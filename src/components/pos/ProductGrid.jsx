@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, ScanLine, X } from 'lucide-react';
+import { Search, ScanLine, X, Menu } from 'lucide-react';
 import Keyboard from 'react-simple-keyboard';
 
 // CSS del teclado importado via vite
@@ -29,7 +29,7 @@ const keyboardDisplay = {
   '{clear}': '✕ Limpiar',
 };
 
-const ProductGrid = ({ onProductClick, cartItems = [] }) => {
+const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
   const [categories, setCategories] = useState([{ id: 'all', name: 'Todos' }]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -130,8 +130,17 @@ const ProductGrid = ({ onProductClick, cartItems = [] }) => {
       {/* Header: Search & Categories */}
       <div ref={searchBarRef} className="bg-white pt-5 pb-4 shadow-sm z-10">
         {/* Search Bar */}
-        <div className="px-5 mb-5">
-          <div className="relative">
+        <div className="px-5 mb-5 flex gap-3 items-center">
+          {/* Mobile Burger Menu Trigger */}
+          <button
+            onPointerDown={onOpenMobileMenu}
+            className="md:hidden p-2 -ml-2 rounded-lg text-gray-700 active:bg-gray-100 shrink-0 select-none"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            <Menu className="h-7 w-7" />
+          </button>
+
+          <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
             {/* Desktop Virtual Keyboard Trigger */}
             <div

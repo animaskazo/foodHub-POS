@@ -5,6 +5,8 @@ import BottomNav from '../components/pos/BottomNav';
 import PaymentModal from '../components/pos/PaymentModal';
 import TransactionsView from '../components/pos/TransactionsView';
 import VariantSelectionModal from '../components/pos/VariantSelectionModal';
+import { NAV_ITEMS } from '../components/pos/BottomNav';
+import { X, LogOut, Menu } from 'lucide-react';
 import { createOrder } from '../services/orderService';
 
 const PosView = () => {
@@ -13,6 +15,7 @@ const PosView = () => {
   const [activeTab, setActiveTab] = useState('pago');
   const [selectedProductForVariant, setSelectedProductForVariant] = useState(null);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const addToCart = (product, variant) => {
     const cartItemId = variant ? `${product.id}-${variant.id}` : product.id;
@@ -108,6 +111,7 @@ const PosView = () => {
               <ProductGrid
                 onProductClick={handleProductClick}
                 cartItems={cartItems}
+                onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
               />
               
               {/* Floating Cart Button for Mobile */}
@@ -160,7 +164,56 @@ const PosView = () => {
         )}
       </div>
 
-      {/* Bottom Navigation */}
+      {/* Mobile Burger Drawer */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50"
+            onPointerDown={() => setIsMobileMenuOpen(false)}
+          />
+          {/* Drawer */}
+          <div className="relative w-4/5 max-w-xs bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h2 className="font-bold text-lg">Menú</h2>
+              <button 
+                onPointerDown={() => setIsMobileMenuOpen(false)}
+                className="p-2 -mr-2 text-gray-500 bg-gray-50 active:bg-gray-100 rounded-full"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto py-4">
+              {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  onPointerDown={() => {
+                    setActiveTab(id);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-4 px-6 py-4 transition-colors ${
+                    activeTab === id ? 'bg-blue-50 text-blue-600 font-bold border-r-4 border-blue-600' : 'text-gray-600 font-medium'
+                  }`}
+                >
+                  <Icon className="h-6 w-6" />
+                  <span className="text-base">{label}</span>
+                </button>
+              ))}
+            </div>
+            <div className="p-5 border-t border-gray-100">
+              <button
+                onPointerDown={() => window.location.href = '/'}
+                className="w-full flex items-center gap-3 px-4 py-3 text-red-600 font-semibold active:bg-red-50 rounded-xl"
+              >
+                <LogOut className="h-5 w-5" />
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom Navigation (Hidden on mobile) */}
       <BottomNav active={activeTab} onChange={setActiveTab} />
 
       <PaymentModal

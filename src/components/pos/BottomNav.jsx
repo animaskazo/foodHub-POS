@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ShoppingCart, ClipboardList, ArrowLeftRight, Bell, MoreHorizontal, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const NAV_ITEMS = [
+export const NAV_ITEMS = [
   { id: 'pago', label: 'Pago', icon: ShoppingCart },
   { id: 'inventario', label: 'Inventario', icon: ClipboardList },
   { id: 'transacciones', label: 'Transacciones', icon: ArrowLeftRight },
@@ -14,7 +14,7 @@ const BottomNav = ({ active = 'pago', onChange }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="bg-[#111111] text-white flex items-center px-6 h-16 shrink-0">
+    <div className="bg-[#111111] text-white hidden md:flex items-center px-6 h-16 shrink-0 z-50">
       {/* Left: Session info */}
       <button
         onPointerDown={() => navigate('/')}
