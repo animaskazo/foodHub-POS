@@ -101,7 +101,7 @@ const PosView = () => {
   const total = subtotal + Math.round(subtotal * 0.19);
 
   return (
-    <div className="h-screen w-full flex flex-col overflow-hidden">
+    <div className="h-[100dvh] w-full flex flex-col overflow-hidden">
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden">
         {activeTab === 'pago' && (
@@ -116,7 +116,7 @@ const PosView = () => {
               
               {/* Floating Cart Button for Mobile */}
               {cartItems.length > 0 && (
-                <div className="absolute bottom-4 left-4 right-4 md:hidden">
+                <div className="fixed bottom-6 left-4 right-4 z-40 md:hidden pb-safe">
                   <button
                     onPointerDown={() => setIsMobileCartOpen(true)}
                     className="w-full bg-blue-600 text-white rounded-2xl shadow-lg p-4 flex items-center justify-between active:bg-blue-700 transition-colors"
