@@ -2,14 +2,28 @@ import { supabase } from '../lib/supabase';
 
 export const createOrder = async (cartItems, paymentMethod, total, subtotal, tax) => {
   try {
-    // 1. Get first org and branch (as demo fallback)
-    const { data: orgData, error: orgError } = await supabase.from('organizations').select('id').limit(1).single();
-    if (orgError || !orgData) throw new Error("No organization found. " + (orgError?.message || ''));
+    // 1. Get the current logged-in user's organization and branch
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("No hay sesión activa.");
 
-    const { data: branchData, error: branchError } = await supabase.from('branches').select('id').limit(1).single();
-    if (branchError || !branchData) throw new Error("No branch found. " + (branchError?.message || ''));
+    const { data: staffData } = await supabase
+      .from('staff')
+      .select('organization_id')
+      .eq('id', session.user.id)
+      .single();
 
-    const organizationId = orgData.id;
+    if (!staffData) throw new Error("El usuario no está asignado a ninguna organización.");
+    const organizationId = staffData.organization_id;
+
+    // Get the first branch for this specific organization
+    const { data: branchData, error: branchError } = await supabase
+      .from('branches')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .limit(1)
+      .single();
+
+    if (branchError || !branchData) throw new Error("No branch found for this organization. " + (branchError?.message || ''));
     const branchId = branchData.id;
 
     // 2. Generate an order number sequentially per branch
@@ -120,7 +134,24 @@ export const createOrder = async (cartItems, paymentMethod, total, subtotal, tax
 
 export const getOrders = async () => {
   try {
-    const { data: branchData } = await supabase.from('branches').select('id').limit(1).single();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return [];
+
+    const { data: staffData } = await supabase
+      .from('staff')
+      .select('organization_id')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!staffData) return [];
+
+    const { data: branchData } = await supabase
+      .from('branches')
+      .select('id')
+      .eq('organization_id', staffData.organization_id)
+      .limit(1)
+      .single();
+      
     if (!branchData) return [];
     
     const { data, error } = await supabase
@@ -143,7 +174,24 @@ export const getOrders = async () => {
 
 export const getKitchenOrders = async () => {
   try {
-    const { data: branchData } = await supabase.from('branches').select('id').limit(1).single();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return [];
+
+    const { data: staffData } = await supabase
+      .from('staff')
+      .select('organization_id')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!staffData) return [];
+
+    const { data: branchData } = await supabase
+      .from('branches')
+      .select('id')
+      .eq('organization_id', staffData.organization_id)
+      .limit(1)
+      .single();
+      
     if (!branchData) return [];
     
     const { data, error } = await supabase

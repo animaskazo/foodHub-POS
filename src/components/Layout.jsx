@@ -89,21 +89,10 @@ const Layout = () => {
               </li>
             )}
 
-            <li>
-              <NavLink 
-                to="/pos" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors text-white bg-blue-600 hover:bg-blue-700 shadow-sm mt-2"
-              >
-                <Store className="h-4 w-4" />
-                Ir a Caja (POS)
-              </NavLink>
-            </li>
-            
             <li className="pt-2">
               <button 
                 onClick={() => setIsProductsOpen(!isProductsOpen)}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-black transition-colors"
+                className="w-full flex items-center justify-between px-3 py-2 text-gray-600 hover:bg-gray-50 hover:text-black rounded-md transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <Package className="h-4 w-4" />
