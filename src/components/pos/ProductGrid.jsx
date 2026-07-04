@@ -133,9 +133,10 @@ const ProductGrid = ({ onProductClick, cartItems = [] }) => {
         <div className="px-5 mb-5">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+            {/* Desktop Virtual Keyboard Trigger */}
             <div
               onClick={() => setShowKeyboard(true)}
-              className={`w-full h-12 pl-12 pr-12 bg-gray-100 rounded-xl text-base flex items-center cursor-pointer select-none transition-all ${
+              className={`hidden md:flex w-full h-12 pl-12 pr-12 bg-gray-100 rounded-xl text-base items-center cursor-pointer select-none transition-all ${
                 showKeyboard ? 'ring-2 ring-blue-500 bg-white' : ''
               }`}
               style={{ WebkitTapHighlightColor: 'transparent' }}
@@ -144,6 +145,18 @@ const ProductGrid = ({ onProductClick, cartItems = [] }) => {
                 {search || 'Buscar artículo...'}
               </span>
             </div>
+
+            {/* Mobile Native Input */}
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                keyboardRef.current?.setInput(e.target.value);
+              }}
+              placeholder="Buscar artículo..."
+              className="md:hidden flex w-full h-12 pl-12 pr-12 bg-gray-100 rounded-xl text-base items-center transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+            />
             {search ? (
               <button
                 onPointerDown={handleClearSearch}
@@ -253,7 +266,7 @@ const ProductGrid = ({ onProductClick, cartItems = [] }) => {
       {showKeyboard && (
         <div
           ref={overlayRef}
-          className="absolute bottom-0 left-0 right-0 z-50 bg-[#1c1c1e] shadow-2xl border-t border-gray-700"
+          className="hidden md:block absolute bottom-0 left-0 right-0 z-50 bg-[#1c1c1e] shadow-2xl border-t border-gray-700"
         >
           {/* Keyboard Header */}
           <div className="flex items-center justify-between px-4 py-2 border-b border-gray-700">

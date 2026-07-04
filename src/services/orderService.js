@@ -150,7 +150,7 @@ export const getKitchenOrders = async () => {
       .from('orders')
       .select(`
         *,
-        order_items(*, products(description))
+        order_items(*, products(description), order_item_variants(variant_option_name))
       `)
       .eq('branch_id', branchData.id)
       .in('status', ['confirmed', 'preparing'])

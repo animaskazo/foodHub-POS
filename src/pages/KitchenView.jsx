@@ -106,35 +106,35 @@ const KitchenView = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-gray-100 overflow-hidden font-sans">
+    <div className="flex flex-col h-screen bg-black text-gray-100 overflow-hidden font-sans">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-gray-800 border-b border-gray-700 shadow-md">
+      <header className="flex items-center justify-between px-6 py-4 bg-[#111] border-b border-[#222] shadow-md">
         <div className="flex items-center gap-3">
-          <div className="bg-orange-500 p-2 rounded-lg text-white">
+          <div className="bg-white p-2 rounded-lg text-black">
             <ChefHat className="h-6 w-6" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">KDS - Vista de Cocina</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-white">KDS - Vista de Cocina</h1>
         </div>
         <div className="flex items-center gap-4">
           <button
             onClick={toggleAudio}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              audioEnabled ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gray-700 text-gray-400'
+              audioEnabled ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-[#222] text-gray-400 border border-[#333]'
             }`}
           >
             {audioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             {audioEnabled ? 'Sonido Activo' : 'Activar Sonido'}
           </button>
-          <div className="text-sm font-medium text-gray-400 bg-gray-700/50 px-4 py-2 rounded-full flex items-center gap-2">
+          <div className="text-sm font-medium text-gray-400 bg-[#222] px-4 py-2 rounded-full flex items-center gap-2 border border-[#333]">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
             Actualización en vivo
           </div>
           <button 
             onClick={() => fetchOrders()}
-            className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            className="p-2 bg-[#222] hover:bg-[#333] border border-[#333] rounded-lg transition-colors"
             title="Actualizar manualmente"
           >
-            <RefreshCw className={`h-5 w-5 text-gray-300 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-5 w-5 text-white ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </header>
@@ -155,19 +155,19 @@ const KitchenView = () => {
             return (
             <div 
               key={order.id} 
-              className={`flex-shrink-0 w-80 h-full flex flex-col rounded-2xl border-2 shadow-xl bg-gray-800 flex-nowrap ticket-enter ${
-                order.status === 'preparing' ? 'border-orange-500/50' : 'border-blue-500/30'
+              className={`flex-shrink-0 w-80 h-full flex flex-col rounded-2xl border-2 shadow-xl bg-[#111] flex-nowrap ticket-enter ${
+                order.status === 'preparing' ? 'border-green-500/50' : 'border-blue-500/30'
               } ${isNew ? 'ring-4 ring-blue-500/20 shadow-blue-500/20' : ''}`}
             >
               {/* Ticket Header */}
               <div className={`p-4 border-b shrink-0 flex justify-between items-center ${
-                order.status === 'preparing' ? 'bg-orange-500/10 border-orange-500/20' : 'bg-blue-500/10 border-blue-500/20'
+                order.status === 'preparing' ? 'bg-green-500/10 border-green-500/20' : 'bg-blue-500/10 border-blue-500/20'
               }`}>
                 <div>
-                  <h2 className={`text-2xl font-black ${order.status === 'preparing' ? 'text-orange-400' : 'text-blue-400'}`}>#{order.order_number}</h2>
+                  <h2 className={`text-2xl font-black ${order.status === 'preparing' ? 'text-green-400' : 'text-blue-400'}`}>#{order.order_number}</h2>
                   <div className="flex items-center gap-1.5 text-xs font-semibold mt-1">
                     <span className={`px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                      order.status === 'preparing' ? 'bg-orange-500 text-white' : 'bg-blue-500 text-white'
+                      order.status === 'preparing' ? 'bg-green-500 text-black' : 'bg-blue-600 text-white'
                     }`}>
                       {order.status === 'preparing' ? 'Preparando' : 'Nuevo'}
                     </span>
@@ -191,30 +191,37 @@ const KitchenView = () => {
 
               {/* Ticket Items */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                {order.order_items?.map(item => (
-                  <div key={item.id} className="flex gap-3 items-start bg-gray-700/30 p-3 rounded-xl border border-gray-700/50">
-                    <div className="w-8 h-8 rounded-lg bg-gray-700 text-white flex items-center justify-center font-bold text-lg shrink-0">
+                {order.order_items?.map(item => {
+                  const variants = item.order_item_variants?.map(v => v.variant_option_name).join(', ');
+                  return (
+                  <div key={item.id} className="flex gap-3 items-start bg-[#222]/50 p-3 rounded-xl border border-[#333]">
+                    <div className="w-8 h-8 rounded-lg bg-[#333] text-white flex items-center justify-center font-bold text-lg shrink-0">
                       {item.quantity}
                     </div>
                     <div className="flex-1 pt-1">
-                      <p className="font-semibold text-gray-200 leading-snug">{item.product_name}</p>
-                      {item.products?.description && (
+                      <p className="font-semibold text-white leading-snug">{item.product_name}</p>
+                      {variants && (
+                        <p className="text-sm text-gray-300 mt-1 font-medium bg-[#111] p-1.5 rounded border border-[#333]">
+                          <span className="text-gray-500 mr-1">Con:</span> {variants}
+                        </p>
+                      )}
+                      {item.products?.description && !variants && (
                         <p className="text-xs text-gray-400 mt-0.5 leading-snug">
                           {item.products.description}
                         </p>
                       )}
                       {item.notes && (
-                        <p className="text-xs text-orange-300 mt-1.5 bg-orange-500/10 p-1.5 rounded-md border border-orange-500/20">
+                        <p className="text-xs text-black mt-1.5 bg-gray-200 p-1.5 rounded-md border border-gray-300 font-medium">
                           {item.notes}
                         </p>
                       )}
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
 
               {/* Ticket Actions */}
-              <div className="p-4 border-t border-gray-700 bg-gray-800/80 rounded-b-2xl shrink-0">
+              <div className="p-4 border-t border-[#222] bg-[#111] rounded-b-2xl shrink-0">
                 {order.status === 'confirmed' ? (
                   <button
                     onClick={() => handleUpdateStatus(order.id, 'preparing')}

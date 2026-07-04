@@ -12,6 +12,7 @@ const PosView = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('pago');
   const [selectedProductForVariant, setSelectedProductForVariant] = useState(null);
+  const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
 
   const addToCart = (product, variant) => {
     const cartItemId = variant ? `${product.id}-${variant.id}` : product.id;
@@ -68,6 +69,7 @@ const PosView = () => {
 
   const handleNewOrder = () => {
     setCartItems([]);
+    setIsMobileCartOpen(false);
   };
 
   const handleCharge = () => {
@@ -84,11 +86,16 @@ const PosView = () => {
       
       setCartItems([]);
       setIsPaymentModalOpen(false);
+      setIsMobileCartOpen(false);
     } catch (error) {
       console.error('Error creating order:', error);
       alert(`Hubo un error al procesar el pago: ${error.message || JSON.stringify(error)}`);
     }
   };
+
+  const totalQty = cartItems.reduce((acc, i) => acc + i.quantity, 0);
+  const subtotal = cartItems.reduce((acc, i) => acc + (i.price * i.quantity), 0);
+  const total = subtotal + Math.round(subtotal * 0.19);
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden">
@@ -96,22 +103,46 @@ const PosView = () => {
       <div className="flex-1 overflow-hidden">
         {activeTab === 'pago' && (
           <div className="flex h-full overflow-hidden">
-            {/* Left Panel: Product Grid (60% width) */}
-            <div className="w-[60%] overflow-hidden">
+            {/* Left Panel: Product Grid (100% on mobile, 60% on desktop) */}
+            <div className="w-full md:w-[60%] overflow-hidden relative">
               <ProductGrid
                 onProductClick={handleProductClick}
                 cartItems={cartItems}
               />
+              
+              {/* Floating Cart Button for Mobile */}
+              {cartItems.length > 0 && (
+                <div className="absolute bottom-4 left-4 right-4 md:hidden">
+                  <button
+                    onPointerDown={() => setIsMobileCartOpen(true)}
+                    className="w-full bg-blue-600 text-white rounded-2xl shadow-lg p-4 flex items-center justify-between active:bg-blue-700 transition-colors"
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="bg-white/20 px-3 py-1 rounded-full text-sm font-bold">
+                        {totalQty}
+                      </div>
+                      <span className="font-bold">Ver Pedido</span>
+                    </div>
+                    <span className="font-bold">${total.toLocaleString('es-CL')}</span>
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* Right Panel: Cart (40% width) */}
-            <div className="w-[40%] overflow-hidden">
+            {/* Right Panel: Cart (Hidden on mobile unless open, 40% on desktop) */}
+            <div className={`
+              ${isMobileCartOpen ? 'fixed inset-0 z-40 bg-white' : 'hidden'}
+              md:block md:relative md:w-[40%] overflow-hidden md:z-auto
+            `}>
               <CartPanel
                 cartItems={cartItems}
                 onRemove={handleRemove}
                 onUpdateQty={handleUpdateQty}
                 onCharge={handleCharge}
                 onNewOrder={handleNewOrder}
+                isMobile={true}
+                onCloseMobile={() => setIsMobileCartOpen(false)}
               />
             </div>
           </div>

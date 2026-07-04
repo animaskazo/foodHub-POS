@@ -1,8 +1,8 @@
 import React from 'react';
-import { Trash2, Plus, Minus, ChevronDown, Monitor } from 'lucide-react';
+import { Trash2, Plus, Minus, ChevronDown, Monitor, X } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 
-const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder }) => {
+const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile }) => {
   const items = cartItems;
 
   const totalQty = items.reduce((acc, i) => acc + i.quantity, 0);
@@ -16,10 +16,19 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
     <div className="flex flex-col h-full bg-white border-l border-gray-100">
 
       {/* Header: Order Info */}
-      <div className="px-5 pt-5 pb-4 border-b border-gray-100">
+      <div className="px-5 pt-5 pb-4 border-b border-gray-100 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+            {isMobile && (
+              <button 
+                onPointerDown={onCloseMobile}
+                className="p-2 -ml-2 text-gray-500 active:bg-gray-100 rounded-full md:hidden select-none"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                <X className="h-6 w-6" />
+              </button>
+            )}
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center hidden sm:flex">
               <Monitor className="h-5 w-5 text-blue-600" />
             </div>
             <div>
@@ -124,17 +133,17 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
       </div>
 
       {/* Footer CTA */}
-      <div className="p-4 bg-white border-t border-gray-100 space-y-2.5">
+      <div className="p-4 bg-white border-t border-gray-100 space-y-2.5 shrink-0 pb-safe">
         {/* Discount / Note quick actions */}
         <div className="flex gap-2">
           <button
-            className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold active:bg-gray-200 select-none"
+            className="flex-1 py-3 md:py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold active:bg-gray-200 select-none"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             % Descuento
           </button>
           <button
-            className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold active:bg-gray-200 select-none"
+            className="flex-1 py-3 md:py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold active:bg-gray-200 select-none"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             📝 Nota
