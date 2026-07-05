@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Clock, ChefHat, CheckCircle2, Play, RefreshCw, Volume2, VolumeX, BellRing } from 'lucide-react';
 import { getKitchenOrders, updateOrderStatus } from '../services/orderService';
 
@@ -76,6 +77,8 @@ const KitchenView = () => {
     const interval = setInterval(() => {
       fetchOrders(true);
     }, 10000);
+    useDocumentTitle('Cocina');
+
     return () => clearInterval(interval);
   }, []);
 

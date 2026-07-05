@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, ChevronDown, ListFilter, Plus, MoreHorizontal } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getFirstOrganizationId, getCategories, quickUpdateCategoryStatus } from '../services/catalogService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import ActionMenu from '../components/ui/ActionMenu';
 
 const CategoriesList = () => {
@@ -37,6 +39,9 @@ const CategoriesList = () => {
       alert("Error al actualizar estado");
     }
   };
+
+  useDocumentTitle('Categorías');
+
 
   return (
     <div className="flex-1 bg-white flex flex-col h-full">
@@ -102,15 +107,6 @@ const CategoriesList = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {/* Creacion Rapida Row */}
-            <tr className="hover:bg-gray-50 group">
-              <td className="px-6 py-3" colSpan={5}>
-                <button className="flex items-center text-sm font-semibold hover:underline">
-                  <Plus className="h-4 w-4 mr-2" /> Creación rápida
-                </button>
-              </td>
-            </tr>
-
             {loading ? (
               <tr>
                 <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
@@ -142,20 +138,12 @@ const CategoriesList = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <Select 
-                      value={category.is_active ? 'active' : 'inactive'} 
-                      onValueChange={(val) => handleStatusChange(category.id, val)}
-                    >
-                      <SelectTrigger className={`h-8 border-0 shadow-none w-[110px] mx-auto rounded-full font-medium ${
-                        category.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Activo</SelectItem>
-                        <SelectItem value="inactive">Inactivo</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex justify-center items-center">
+                      <Switch 
+                        checked={category.is_active} 
+                        onCheckedChange={(checked) => handleStatusChange(category.id, checked ? 'active' : 'inactive')}
+                      />
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">

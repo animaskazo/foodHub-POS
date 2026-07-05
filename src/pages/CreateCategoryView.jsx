@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { X, Image as ImageIcon, Network, Tags, Store, Info, ChevronDown } from 'lucide-react';
@@ -81,6 +82,9 @@ const CreateCategoryView = () => {
       setIsSaving(false);
     }
   };
+
+  useDocumentTitle(isEditing ? 'Editar categoría' : 'Crear categoría');
+
 
   return (
     <div className="modal-page min-h-screen bg-gray-50 pb-24">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +7,7 @@ import { Search, ChevronDown, ListFilter, Plus, MoreHorizontal } from 'lucide-re
 import { Link, useNavigate } from 'react-router-dom';
 import { getFirstOrganizationId, getProducts, getCategories, quickUpdateProductStatus, quickUpdateProductCategory } from '../services/catalogService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import ActionMenu from '../components/ui/ActionMenu';
 
 const CatalogManager = () => {
@@ -54,6 +56,9 @@ const CatalogManager = () => {
       alert("Error al actualizar categoría");
     }
   };
+
+  useDocumentTitle('Artículos');
+
 
   return (
     <div className="flex-1 bg-white flex flex-col h-full">
@@ -124,15 +129,6 @@ const CatalogManager = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {/* Creacion Rapida Row */}
-            <tr className="hover:bg-gray-50 group">
-              <td className="px-6 py-3" colSpan={6}>
-                <button className="flex items-center text-sm font-semibold hover:underline">
-                  <Plus className="h-4 w-4 mr-2" /> Creación rápida
-                </button>
-              </td>
-            </tr>
-
             {loading ? (
               <tr>
                 <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
@@ -182,20 +178,12 @@ const CatalogManager = () => {
                     </Select>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <Select 
-                      value={product.status === 'Disponible' ? 'available' : 'unavailable'} 
-                      onValueChange={(val) => handleStatusChange(product.id, val)}
-                    >
-                      <SelectTrigger className={`h-8 border-0 shadow-none w-[130px] mx-auto rounded-full font-medium ${
-                        product.status === 'Disponible' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="available">Disponible</SelectItem>
-                        <SelectItem value="unavailable">No disponible</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex justify-center items-center">
+                      <Switch 
+                        checked={product.status === 'Disponible'} 
+                        onCheckedChange={(checked) => handleStatusChange(product.id, checked ? 'available' : 'unavailable')}
+                      />
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="font-semibold text-gray-900">${Math.round(product.price * 1.19).toLocaleString('es-CL')}</div>

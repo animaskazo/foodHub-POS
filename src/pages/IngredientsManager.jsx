@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Loader2, ListFilter, ChevronDown } from 'lucide-react';
 import { getFirstOrganizationId, getIngredients, createIngredient, updateIngredient, deleteIngredient } from '../services/catalogService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import Modal from '../components/ui/Modal';
 import ActionMenu from '../components/ui/ActionMenu';
 
@@ -121,6 +123,9 @@ const IngredientsManager = () => {
     }
   };
 
+  useDocumentTitle('Ingredientes Adicionales');
+
+
   return (
     <div className="flex-1 bg-white flex flex-col h-full">
       {/* Header H1 */}
@@ -202,20 +207,12 @@ const IngredientsManager = () => {
                     +${ingredient.price}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <Select 
-                      value={ingredient.is_active ? 'active' : 'inactive'} 
-                      onValueChange={(val) => handleStatusChange(ingredient.id, val)}
-                    >
-                      <SelectTrigger className={`h-8 border-0 shadow-none w-[110px] mx-auto rounded-full font-medium ${
-                        ingredient.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Activo</SelectItem>
-                        <SelectItem value="inactive">Inactivo</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex justify-center items-center">
+                      <Switch 
+                        checked={ingredient.is_active} 
+                        onCheckedChange={(checked) => handleStatusChange(ingredient.id, checked ? 'active' : 'inactive')}
+                      />
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">

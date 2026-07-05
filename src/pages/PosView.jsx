@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import ProductGrid from '../components/pos/ProductGrid';
 import CartPanel from '../components/pos/CartPanel';
 import BottomNav from '../components/pos/BottomNav';
@@ -108,6 +109,9 @@ const PosView = () => {
   const totalQty = cartItems.reduce((acc, i) => acc + i.quantity, 0);
   const subtotal = cartItems.reduce((acc, i) => acc + (i.price * i.quantity), 0);
   const total = subtotal + Math.round(subtotal * 0.19);
+
+  useDocumentTitle('Punto de Venta');
+
 
   return (
     <div className="h-[100dvh] w-full flex flex-col overflow-hidden">

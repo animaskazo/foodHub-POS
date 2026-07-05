@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Search, User, Mail, Calendar, Shield, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -45,6 +46,9 @@ const SuperAdminView = () => {
       setLoading(false);
     }
   };
+
+  useDocumentTitle('Super Admin');
+
 
   return (
     <div className="flex flex-col h-full bg-gray-50">

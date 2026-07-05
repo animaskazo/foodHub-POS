@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useNavigate, Link } from 'react-router-dom';
 import { Store, User, Mail, Lock, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -99,6 +100,9 @@ const SignupView = () => {
       setLoading(false);
     }
   };
+
+  useDocumentTitle('Crear cuenta');
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">

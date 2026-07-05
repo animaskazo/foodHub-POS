@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useNavigate, Link } from 'react-router-dom';
 import { Store, Mail, Lock, LogIn } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -32,6 +33,9 @@ const LoginView = () => {
       setLoading(false);
     }
   };
+
+  useDocumentTitle('Iniciar sesión');
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
@@ -163,6 +164,8 @@ const DashboardView = () => {
       default: return <Filter className="h-4 w-4" />;
     }
   };
+
+  useDocumentTitle('Dashboard');
 
   return (
     <div className="flex-1 overflow-auto bg-gray-50 p-6 md:p-8">

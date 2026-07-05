@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +47,7 @@ const CreateProductView = ({ onClose, onSave }) => {
   const isEditing = id && id !== 'new';
 
   const [formData, setFormData] = useState({
-    name: '', price: '', description: '', type: 'Producto físico', sku: '', gtin: '', categoryId: 'none', imageUrl: ''
+    name: '', price: '', description: '', type: 'Producto físico', sku: '', gtin: '', categoryId: 'none', imageUrl: '', status: 'available'
   });
   const [includesIva, setIncludesIva] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -68,6 +69,8 @@ const CreateProductView = ({ onClose, onSave }) => {
     };
     
     window.addEventListener('beforeunload', handleBeforeUnload);
+    useDocumentTitle(isEditing ? 'Editar artículo' : 'Crear artículo');
+
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasChanges]);
 
@@ -97,6 +100,7 @@ const CreateProductView = ({ onClose, onSave }) => {
             gtin: product.gtin || '',
             categoryId: product.categoryId || 'none',
             imageUrl: product.imageUrl || '',
+            status: product.status === 'Disponible' ? 'available' : 'unavailable',
           }));
           
           if (product.variants && product.variants.length > 0) {
@@ -188,7 +192,8 @@ const CreateProductView = ({ onClose, onSave }) => {
         categoryId: formData.categoryId,
         imageUrl: formData.imageUrl,
         variants: finalVariants,
-        ingredients: selectedIngredients
+        ingredients: selectedIngredients,
+        status: formData.status === 'available' ? 'Disponible' : 'No disponible'
       };
 
       if (isEditing) {
@@ -466,11 +471,15 @@ const CreateProductView = ({ onClose, onSave }) => {
               <p className="font-semibold text-[15px] mb-3">Estado</p>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Visibilidad del artículo</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 text-sm font-semibold rounded-full">
-                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                  Disponible
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-gray-700">
+                    {formData.status === 'available' ? 'Disponible' : 'No disponible'}
+                  </span>
+                  <Switch 
+                    checked={formData.status === 'available'}
+                    onCheckedChange={(checked) => handleSelectChange('status', checked ? 'available' : 'unavailable')}
+                  />
+                </div>
               </div>
             </div>
 
@@ -618,19 +627,15 @@ const CreateProductView = ({ onClose, onSave }) => {
                     </div>
                   </td>
                   <td className="px-5 py-4 text-center align-top pt-5">
-                    <div 
-                      onClick={() => {
-                        const newStatus = v.status === 'available' ? 'unavailable' : 'available';
-                        const newVariants = draftVariants.map(v2 => v2.id === v.id ? { ...v2, status: newStatus } : v2);
-                        setDraftVariants(newVariants);
-                      }}
-                      className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-bold cursor-pointer transition-colors select-none ${
-                        v.status === 'available' 
-                          ? 'bg-green-50 text-green-700 hover:bg-green-100' 
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      {v.status === 'available' ? 'Disponible' : 'Agotado'} <ChevronDown className="h-4 w-4 opacity-70" />
+                    <div className="flex justify-center items-center h-full pt-1">
+                      <Switch 
+                        checked={v.status === 'available'}
+                        onCheckedChange={(checked) => {
+                          const newStatus = checked ? 'available' : 'unavailable';
+                          const newVariants = draftVariants.map(v2 => v2.id === v.id ? { ...v2, status: newStatus } : v2);
+                          setDraftVariants(newVariants);
+                        }}
+                      />
                     </div>
                   </td>
                   <td className="pl-2 pr-6 py-4 text-center align-top pt-4">
