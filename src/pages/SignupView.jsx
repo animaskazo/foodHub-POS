@@ -62,7 +62,22 @@ const SignupView = () => {
 
       if (orgError) throw orgError;
 
-      // 3. Create the Staff record (link user and org)
+      // 3. Create a default branch for the Organization
+      const { data: branchData, error: branchError } = await supabase
+        .from('branches')
+        .insert([{
+          organization_id: orgData.id,
+          name: 'Local Principal',
+          address: 'Dirección por definir',
+          accepts_table: true,
+          accepts_pickup: true
+        }])
+        .select()
+        .single();
+
+      if (branchError) throw branchError;
+
+      // 4. Create the Staff record (link user and org)
       const { error: staffError } = await supabase
         .from('staff')
         .insert([{

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ReceiptText, TrendingUp, RefreshCcw, X, Clock, CreditCard, ShoppingBag } from 'lucide-react';
+import { Search, ReceiptText, TrendingUp, RefreshCcw, X, Clock, CreditCard, ShoppingBag, Menu } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { getOrders } from '../../services/orderService';
 
-const TransactionsView = () => {
+const TransactionsView = ({ onOpenMobileMenu }) => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -83,9 +83,18 @@ const TransactionsView = () => {
   return (
     <div className="flex flex-col h-full bg-gray-50 p-6 overflow-y-auto">
       <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Transacciones</h1>
-          <p className="text-gray-500 text-sm">Gestiona y revisa todas tus ventas</p>
+        <div className="flex items-center gap-4">
+          <button
+            onPointerDown={onOpenMobileMenu}
+            className="md:hidden p-2 rounded-lg text-gray-700 active:bg-gray-200 shrink-0 select-none bg-gray-100"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Transacciones</h1>
+            <p className="text-gray-500 text-sm">Gestiona y revisa todas tus ventas</p>
+          </div>
         </div>
         <button
           onClick={fetchOrders}
@@ -97,7 +106,7 @@ const TransactionsView = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
           <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
             <TrendingUp className="h-6 w-6" />
@@ -134,7 +143,8 @@ const TransactionsView = () => {
           </div>
         </div>
 
-        <div className="flex-1 overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block flex-1 overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 text-gray-500 text-sm border-b border-gray-100">
@@ -192,6 +202,45 @@ const TransactionsView = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile/Simple Cards View */}
+        <div className="md:hidden flex-1 overflow-y-auto p-4 bg-gray-50 space-y-3">
+          {loading ? (
+            <div className="text-center py-12 text-gray-400 font-medium">Cargando transacciones...</div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="text-center py-12 text-gray-400 font-medium">No se encontraron transacciones.</div>
+          ) : (
+            filteredOrders.map((order) => {
+              const date = new Date(order.created_at);
+              const formattedDate = date.toLocaleDateString('es-CL', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+              });
+              return (
+                <div 
+                  key={order.id} 
+                  onClick={() => handleOpenModal(order)}
+                  className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer hover:border-blue-300 active:bg-gray-50 transition-all select-none"
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-900 text-lg">#{order.order_number}</span>
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md font-medium">
+                        {getPaymentMethod(order)}
+                      </span>
+                    </div>
+                    <span className="text-sm text-gray-500">{formattedDate}</span>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className="font-black text-gray-900 text-lg">${fmt(order.total || 0)}</span>
+                    {getStatusTag(order.status)}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
       {/* Modal de Detalles de Orden */}

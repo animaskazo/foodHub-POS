@@ -128,7 +128,7 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
   return (
     <div className="flex flex-col h-full bg-gray-50 relative">
       {/* Header: Search & Categories */}
-      <div ref={searchBarRef} className="bg-white pt-5 pb-4 shadow-sm z-10">
+      <div ref={searchBarRef} className="bg-white pt-5 pb-4 shadow-sm z-10 sticky top-0">
         {/* Search Bar */}
         <div className="px-5 mb-5 flex gap-3 items-center">
           {/* Mobile Burger Menu Trigger */}

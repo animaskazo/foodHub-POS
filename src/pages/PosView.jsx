@@ -85,11 +85,11 @@ const PosView = () => {
       const tax = Math.round(subtotal * 0.19);
       const total = subtotal + tax;
       
-      await createOrder(cartItems, method, total, subtotal, tax);
+      const order = await createOrder(cartItems, method, total, subtotal, tax);
       
       setCartItems([]);
-      setIsPaymentModalOpen(false);
       setIsMobileCartOpen(false);
+      return order;
     } catch (error) {
       console.error('Error creating order:', error);
       alert(`Hubo un error al procesar el pago: ${error.message || JSON.stringify(error)}`);
@@ -153,7 +153,7 @@ const PosView = () => {
         )}
         
         {activeTab === 'transacciones' && (
-          <TransactionsView />
+          <TransactionsView onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
         )}
 
         {/* Placeholders for other tabs */}

@@ -4,11 +4,13 @@ import Modal from '../ui/Modal';
 
 const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm }) => {
   const [status, setStatus] = useState('idle'); // 'idle' | 'success'
+  const [orderNumber, setOrderNumber] = useState(null);
 
   // Restablecer el estado cada vez que se abre el modal
   useEffect(() => {
     if (isOpen) {
       setStatus('idle');
+      setOrderNumber(null);
     }
   }, [isOpen]);
 
@@ -24,11 +26,19 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm }) => {
     { id: 'credit', name: 'Crédito', icon: CreditCard, color: 'bg-purple-100 text-purple-600' },
   ];
 
-  const handlePayment = (methodId) => {
-    setStatus('success');
-    setTimeout(() => {
-      onConfirm(methodId);
-    }, 2000); // 2 seconds animation before closing
+  const handlePayment = async (methodId) => {
+    try {
+      const order = await onConfirm(methodId);
+      if (order) {
+        setOrderNumber(order.order_number);
+        setStatus('success');
+        setTimeout(() => {
+          onClose();
+        }, 3000); // 3 seconds animation before closing
+      }
+    } catch (e) {
+      // error handled by parent
+    }
   };
 
   if (status === 'success') {
@@ -37,37 +47,42 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm }) => {
         isOpen={isOpen} 
         onClose={onClose} 
         hideHeader={true} 
-        customAnimation="popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)"
+        customAnimation="slideUpReceipt 0.6s cubic-bezier(0.16, 1, 0.3, 1)"
         maxWidth="max-w-sm"
-        className="rounded-[2rem] p-10 items-center justify-center text-center"
+        className="rounded-[2rem] p-10 pt-16 pb-12 items-center justify-center text-center flex flex-col"
       >
-        <div className="relative mb-6 mx-auto w-max">
-          <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-20"></div>
-          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center relative z-10 shadow-inner"
-               style={{ animation: 'scaleUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both' }}>
-            <CheckCircle2 className="h-12 w-12 text-green-500" strokeWidth={2.5} />
+        <div className="relative mb-6 mx-auto w-max" style={{ animation: 'bounceIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both' }}>
+          <div className="absolute inset-0 bg-blue-400 rounded-full animate-ping opacity-20"></div>
+          <div className="w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center relative z-10 shadow-lg">
+            <CheckCircle2 className="h-12 w-12 text-white" strokeWidth={2.5} />
           </div>
         </div>
         
-        <h2 className="text-3xl font-black text-gray-900 mb-2 tracking-tight" style={{ animation: 'slideUp 0.5s ease-out 0.2s both' }}>
+        <h2 className="text-3xl font-black text-gray-900 mb-2 tracking-tight" style={{ animation: 'fadeUp 0.5s ease-out 0.4s both' }}>
           ¡Pago Exitoso!
         </h2>
-        <p className="text-gray-500 font-medium text-center text-lg" style={{ animation: 'slideUp 0.5s ease-out 0.3s both' }}>
-          Orden procesada correctamente
+        {orderNumber && (
+          <p className="text-blue-600 font-bold text-xl mb-1" style={{ animation: 'fadeUp 0.5s ease-out 0.5s both' }}>
+            Orden #{orderNumber}
+          </p>
+        )}
+        <p className="text-gray-500 font-medium text-center text-lg" style={{ animation: 'fadeUp 0.5s ease-out 0.6s both' }}>
+          Enviada a preparación
         </p>
 
         <style>{`
-          @keyframes popIn {
-            0% { opacity: 0; transform: scale(0.95) translateY(10px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
+          @keyframes slideUpReceipt {
+            0% { opacity: 0; transform: translateY(40px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
           }
-          @keyframes scaleUp {
-            0% { opacity: 0; transform: scale(0.5) rotate(-10deg); }
-            50% { transform: scale(1.1) rotate(5deg); }
-            100% { opacity: 1; transform: scale(1) rotate(0); }
+          @keyframes bounceIn {
+            0% { opacity: 0; transform: scale(0.3); }
+            50% { transform: scale(1.1); }
+            70% { transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1); }
           }
-          @keyframes slideUp {
-            0% { opacity: 0; transform: translateY(15px); }
+          @keyframes fadeUp {
+            0% { opacity: 0; transform: translateY(10px); }
             100% { opacity: 1; transform: translateY(0); }
           }
         `}</style>
