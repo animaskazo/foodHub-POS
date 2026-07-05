@@ -141,7 +141,7 @@ const DashboardView = () => {
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div className="bg-white p-6 rounded-2xl border border-gray-200">
           <div className="flex items-center gap-3 text-gray-500 mb-2">
             <div className="p-2 bg-green-50 text-green-600 rounded-lg">
               <TrendingUp className="h-5 w-5" />
@@ -153,7 +153,7 @@ const DashboardView = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div className="bg-white p-6 rounded-2xl border border-gray-200">
           <div className="flex items-center gap-3 text-gray-500 mb-2">
             <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
               <ShoppingCart className="h-5 w-5" />
@@ -165,7 +165,7 @@ const DashboardView = () => {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div className="bg-white p-6 rounded-2xl border border-gray-200">
           <div className="flex items-center gap-3 text-gray-500 mb-2">
             <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
               <Receipt className="h-5 w-5" />
@@ -179,9 +179,9 @@ const DashboardView = () => {
       </div>
 
       {/* Sales Record & Filters */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="md:bg-white md:rounded-2xl md:border md:border-gray-200 overflow-hidden flex flex-col">
         {/* Toolbar */}
-        <div className="p-4 md:px-6 md:py-4 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="pb-4 md:p-6 md:border-b flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h2 className="text-lg font-semibold text-gray-900">Registro Diario</h2>
           
           <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
@@ -218,8 +218,8 @@ const DashboardView = () => {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[600px]">
             <thead>
               <tr className="bg-gray-50 border-b text-sm font-medium text-gray-500">
@@ -275,6 +275,48 @@ const DashboardView = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards View */}
+        <div className="md:hidden flex flex-col gap-3 pb-8">
+          {loading ? (
+            <div className="py-12 text-center text-gray-500">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+              Cargando ventas...
+            </div>
+          ) : filteredOrders.length > 0 ? (
+            filteredOrders.map((order) => (
+              <div key={order.id} className="bg-white p-4 rounded-xl border border-gray-200 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-gray-900">#{order.order_number}</span>
+                    <span className="text-xs text-gray-500 font-medium">
+                      {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <span className={`px-2.5 py-1 rounded-md text-xs font-bold capitalize ${getStatusColor(order.status)}`}>
+                    {order.status}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-md capitalize font-medium">
+                    {getChannelIcon(order.order_type)}
+                    {order.order_type}
+                  </div>
+                  <div className="font-black text-lg text-gray-900">
+                    {formatCurrency(order.total)}
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="py-12 text-center bg-white rounded-xl border border-gray-200">
+              <div className="text-gray-400 mb-2 flex justify-center">
+                <Receipt className="h-8 w-8" />
+              </div>
+              <p className="text-gray-500 text-sm">No hay ventas registradas.</p>
+            </div>
+          )}
         </div>
       </div>
       

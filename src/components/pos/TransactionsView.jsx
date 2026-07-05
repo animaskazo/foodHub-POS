@@ -108,7 +108,7 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 flex items-center gap-4">
           <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
             <TrendingUp className="h-6 w-6" />
           </div>
@@ -117,7 +117,7 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
             <p className="text-2xl font-bold text-gray-900">${fmt(totalVentas)}</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 flex items-center gap-4">
           <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center">
             <ReceiptText className="h-6 w-6" />
           </div>
@@ -129,7 +129,7 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
       </div>
 
       {/* Transactions Table/Cards Area */}
-      <div className="md:bg-white md:rounded-2xl md:shadow-sm md:border md:border-gray-100 flex flex-col flex-1 min-h-[400px]">
+      <div className="md:bg-white md:rounded-2xl md:border md:border-gray-200 flex flex-col flex-1 min-h-[400px]">
         <div className="py-4 md:p-4 md:border-b border-gray-100 flex items-center justify-between sticky top-0 bg-gray-50 md:bg-white z-10">
           <h2 className="text-lg font-bold text-gray-800">Transacciones</h2>
           <div className="relative w-40 md:w-64">
@@ -222,7 +222,7 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                 <div 
                   key={order.id} 
                   onClick={() => handleOpenModal(order)}
-                  className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer hover:border-blue-300 active:bg-gray-50 transition-all select-none"
+                  className="bg-white p-4 rounded-xl border border-gray-200 flex justify-between items-center cursor-pointer hover:border-blue-300 active:bg-gray-50 transition-all select-none"
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
                   <div className="flex flex-col gap-1">
