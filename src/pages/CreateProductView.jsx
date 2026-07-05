@@ -60,6 +60,8 @@ const CreateProductView = ({ onClose, onSave }) => {
   const [selectedIngredients, setSelectedIngredients] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
 
+  useDocumentTitle(isEditing ? 'Editar artículo' : 'Crear artículo');
+
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (hasChanges) {
@@ -69,7 +71,6 @@ const CreateProductView = ({ onClose, onSave }) => {
     };
     
     window.addEventListener('beforeunload', handleBeforeUnload);
-    useDocumentTitle(isEditing ? 'Editar artículo' : 'Crear artículo');
 
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [hasChanges]);
