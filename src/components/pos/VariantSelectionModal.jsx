@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 
-const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant }) => {
+const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, editingItem, onDelete }) => {
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
   const [activeTab, setActiveTab] = useState('variants');
 
   useEffect(() => {
     if (isOpen && product) {
-      setSelectedVariant(null);
-      setSelectedIngredients([]);
+      if (editingItem) {
+        setSelectedVariant(editingItem.variant || null);
+        setSelectedIngredients(editingItem.selectedIngredients || []);
+      } else {
+        setSelectedVariant(null);
+        setSelectedIngredients([]);
+      }
       const productHasVariants = product.variants && product.variants.length > 0 && product.variants.some(v => v.is_active);
       setActiveTab(productHasVariants ? 'variants' : 'ingredients');
     }
-  }, [isOpen, product]);
+  }, [isOpen, product, editingItem]);
 
   if (!product) return null;
 
@@ -21,7 +26,7 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant }) =>
   const hasIngredients = product.ingredients && product.ingredients.length > 0;
 
   const handleConfirm = () => {
-    onSelectVariant(selectedVariant, selectedIngredients);
+    onSelectVariant(selectedVariant, selectedIngredients, editingItem);
   };
 
   const toggleIngredient = (ing) => {
@@ -35,8 +40,9 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant }) =>
   // Calculate dynamic price
   const basePrice = selectedVariant ? product.price + (selectedVariant.price_modifier || 0) : product.price;
   const baseGross = Math.round(basePrice * 1.19);
-  const ingredientsGross = selectedIngredients.reduce((sum, ing) => sum + (ing.price || 0), 0);
+  const ingredientsGross = Math.round(selectedIngredients.reduce((sum, ing) => sum + (ing.price || 0), 0));
   const totalGross = baseGross + ingredientsGross;
+  const quantity = editingItem?.quantity || 1;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Opciones para ${product.name}`}>
@@ -136,12 +142,23 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant }) =>
         )}
 
         <div className="pt-4 border-t border-gray-100 mt-2">
+          {editingItem && (
+            <button
+              onClick={() => {
+                if (onDelete) onDelete(editingItem.cartItemId);
+                onClose();
+              }}
+              className="w-full mb-3 bg-red-50 text-red-600 font-bold py-3.5 rounded-xl hover:bg-red-100 transition-colors"
+            >
+              Eliminar producto
+            </button>
+          )}
           <button
             onClick={handleConfirm}
             className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-colors flex items-center justify-between px-6"
           >
-            <span>Agregar al carrito</span>
-            <span>${totalGross.toLocaleString('es-CL')}</span>
+            <span>{editingItem ? 'Actualizar' : 'Agregar al carrito'}</span>
+            <span>${(totalGross * quantity).toLocaleString('es-CL')}</span>
           </button>
         </div>
       </div>

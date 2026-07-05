@@ -15,6 +15,7 @@ const PosView = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('pago');
   const [selectedProductForVariant, setSelectedProductForVariant] = useState(null);
+  const [editingCartItem, setEditingCartItem] = useState(null);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -23,8 +24,8 @@ const PosView = () => {
     const cartItemId = `${product.id}${variant ? '-' + variant.id : ''}${ingredientsIds ? '-ing-' + ingredientsIds : ''}`;
     
     const ingredientsGross = ingredients.reduce((sum, i) => sum + (i.price || 0), 0);
-    const ingredientsNet = ingredientsGross / 1.19;
-    const itemPrice = (variant ? product.price + (variant.price_modifier || 0) : product.price) + ingredientsNet;
+    const ingredientsNet = Math.round(ingredientsGross / 1.19);
+    const itemPrice = Math.round((variant ? product.price + (variant.price_modifier || 0) : product.price) + ingredientsNet);
     
     const itemName = variant ? `${product.name} (${variant.name})` : product.name;
     
@@ -59,8 +60,40 @@ const PosView = () => {
     addToCart(product, null, []);
   };
 
-  const handleVariantSelect = (variant, ingredients = []) => {
-    if (selectedProductForVariant) {
+  const handleVariantSelect = (variant, ingredients = [], editingItem = null) => {
+    if (editingItem && selectedProductForVariant) {
+      const ingredientsIds = ingredients.map(i => i.id).sort().join(',');
+      const newCartItemId = `${selectedProductForVariant.id}${variant ? '-' + variant.id : ''}${ingredientsIds ? '-ing-' + ingredientsIds : ''}`;
+      
+      const ingredientsGross = ingredients.reduce((sum, i) => sum + (i.price || 0), 0);
+      const ingredientsNet = Math.round(ingredientsGross / 1.19);
+      const itemPrice = Math.round((variant ? selectedProductForVariant.price + (variant.price_modifier || 0) : selectedProductForVariant.price) + ingredientsNet);
+      const itemName = variant ? `${selectedProductForVariant.name} (${variant.name})` : selectedProductForVariant.name;
+
+      setCartItems(prev => {
+        const withoutOld = prev.filter(i => i.cartItemId !== editingItem.cartItemId);
+        const existing = withoutOld.find(i => i.cartItemId === newCartItemId);
+        
+        if (existing) {
+          return withoutOld.map(i =>
+            i.cartItemId === newCartItemId ? { ...i, quantity: i.quantity + editingItem.quantity } : i
+          );
+        } else {
+          return [...withoutOld, { 
+            ...selectedProductForVariant, 
+            cartItemId: newCartItemId, 
+            productId: selectedProductForVariant.id, 
+            name: itemName, 
+            price: itemPrice, 
+            quantity: editingItem.quantity, 
+            variant: variant || null,
+            selectedIngredients: ingredients
+          }];
+        }
+      });
+      setSelectedProductForVariant(null);
+      setEditingCartItem(null);
+    } else if (selectedProductForVariant) {
       addToCart(selectedProductForVariant, variant, ingredients);
       setSelectedProductForVariant(null);
     }
@@ -91,7 +124,7 @@ const PosView = () => {
 
   const handlePaymentConfirm = async (method) => {
     try {
-      const subtotal = cartItems.reduce((acc, i) => acc + (i.price * i.quantity), 0);
+      const subtotal = Math.round(cartItems.reduce((acc, i) => acc + (i.price * i.quantity), 0));
       const tax = Math.round(subtotal * 0.19);
       const total = subtotal + tax;
       
@@ -107,7 +140,7 @@ const PosView = () => {
   };
 
   const totalQty = cartItems.reduce((acc, i) => acc + i.quantity, 0);
-  const subtotal = cartItems.reduce((acc, i) => acc + (i.price * i.quantity), 0);
+  const subtotal = Math.round(cartItems.reduce((acc, i) => acc + (i.price * i.quantity), 0));
   const total = subtotal + Math.round(subtotal * 0.19);
 
   useDocumentTitle('Punto de Venta');
@@ -160,6 +193,14 @@ const PosView = () => {
                 onNewOrder={handleNewOrder}
                 isMobile={true}
                 onCloseMobile={() => setIsMobileCartOpen(false)}
+                onItemClick={(item) => {
+                  const hasVariants = item.variants && item.variants.length > 0 && item.variants.some(v => v.is_active);
+                  const hasIngredients = item.ingredients && item.ingredients.length > 0;
+                  if (hasVariants || hasIngredients) {
+                    setSelectedProductForVariant(item);
+                    setEditingCartItem(item);
+                  }
+                }}
               />
             </div>
           </div>
@@ -238,9 +279,18 @@ const PosView = () => {
       
       <VariantSelectionModal
         isOpen={!!selectedProductForVariant}
-        onClose={() => setSelectedProductForVariant(null)}
+        onClose={() => {
+          setSelectedProductForVariant(null);
+          setEditingCartItem(null);
+        }}
         product={selectedProductForVariant}
         onSelectVariant={handleVariantSelect}
+        editingItem={editingCartItem}
+        onDelete={(cartItemId) => {
+          handleRemove(cartItemId);
+          setEditingCartItem(null);
+          setSelectedProductForVariant(null);
+        }}
       />
     </div>
   );

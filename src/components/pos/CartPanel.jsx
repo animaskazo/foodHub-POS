@@ -2,11 +2,11 @@ import React from 'react';
 import { Trash2, Plus, Minus, ChevronDown, Monitor, X } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 
-const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile }) => {
+const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onItemClick }) => {
   const items = cartItems;
 
   const totalQty = items.reduce((acc, i) => acc + i.quantity, 0);
-  const subtotal = items.reduce((acc, i) => acc + (i.price * i.quantity), 0);
+  const subtotal = Math.round(items.reduce((acc, i) => acc + (i.price * i.quantity), 0));
   const tax = Math.round(subtotal * 0.19);
   const total = subtotal + tax;
 
@@ -60,7 +60,14 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
         ) : (
           <div className="divide-y divide-gray-100">
             {items.map((item) => (
-              <div key={item.cartItemId} className="flex items-center gap-3 px-5 py-4">
+              <div 
+                key={item.cartItemId} 
+                className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                onPointerDown={(e) => {
+                  if (e.target.closest('button')) return;
+                  onItemClick && onItemClick(item);
+                }}
+              >
                 {/* Thumbnail */}
                 <div
                   className="w-14 h-14 rounded-xl shrink-0 bg-gray-100 bg-cover bg-center"
