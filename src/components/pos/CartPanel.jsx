@@ -28,9 +28,7 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
                 <X className="h-6 w-6" />
               </button>
             )}
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center hidden sm:flex">
-              <Monitor className="h-5 w-5 text-blue-600" />
-            </div>
+            <Monitor className="h-6 w-6 text-gray-900 hidden sm:block" />
             <div>
               <div className="flex items-center gap-1">
                 <span className="font-bold text-[17px] leading-tight">Point of Sale 1</span>
@@ -53,11 +51,9 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
       <div className="flex-1 overflow-y-auto">
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-300 pb-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.4 5.6a1 1 0 00.9 1.4h11a1 1 0 00.9-1.4L17 13" />
-              </svg>
-            </div>
+            <svg className="h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.4 5.6a1 1 0 00.9 1.4h11a1 1 0 00.9-1.4L17 13" />
+            </svg>
             <p className="font-semibold text-lg">Sin artículos</p>
             <p className="text-sm mt-1">Toca un producto para agregarlo</p>
           </div>
@@ -74,7 +70,16 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
                 {/* Name + Controls */}
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-[14px] leading-snug truncate">{item.name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">${fmt(Math.round(item.price * 1.19))} c/u</p>
+                  {item.selectedIngredients && item.selectedIngredients.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {item.selectedIngredients.map(i => (
+                        <span key={i.id} className="text-[10px] text-orange-600 font-bold bg-orange-100 px-1.5 py-0.5 rounded">
+                          + {i.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-400 mt-1">${fmt(Math.round(item.price * 1.19))} c/u</p>
 
                   {/* Qty Controls */}
                   <div className="flex items-center gap-3 mt-2">

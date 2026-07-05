@@ -106,6 +106,31 @@ export const createOrder = async (cartItems, paymentMethod, total, subtotal, tax
       if (variantError) console.error("Error inserting variants:", variantError);
     }
 
+    // 4.2 Insert ingredients
+    const ingredientInserts = [];
+    cartItems.forEach((item, index) => {
+      if (item.selectedIngredients && item.selectedIngredients.length > 0) {
+        const insertedItem = insertedItems[index];
+        if (insertedItem) {
+          item.selectedIngredients.forEach(ing => {
+            ingredientInserts.push({
+              order_item_id: insertedItem.id,
+              ingredient_id: ing.id,
+              ingredient_name: ing.name,
+              price: ing.price || 0
+            });
+          });
+        }
+      }
+    });
+
+    if (ingredientInserts.length > 0) {
+      const { error: ingError } = await supabase
+        .from('order_item_ingredients')
+        .insert(ingredientInserts);
+      if (ingError) console.error("Error inserting ingredients:", ingError);
+    }
+
     // 5. Insert payment
     // Map debit/credit to 'card'
     let method = paymentMethod;
@@ -159,7 +184,7 @@ export const getOrders = async () => {
       .select(`
         *,
         payments(method, status),
-        order_items(*)
+        order_items(*, order_item_variants(*), order_item_ingredients(*))
       `)
       .eq('branch_id', branchData.id)
       .order('created_at', { ascending: false });
@@ -198,7 +223,7 @@ export const getKitchenOrders = async () => {
       .from('orders')
       .select(`
         *,
-        order_items(*, products(description), order_item_variants(variant_option_name))
+        order_items(*, products(description), order_item_variants(variant_option_name), order_item_ingredients(ingredient_name))
       `)
       .eq('branch_id', branchData.id)
       .in('status', ['confirmed', 'preparing'])

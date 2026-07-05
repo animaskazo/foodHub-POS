@@ -21,9 +21,9 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm }) => {
   const fmt = (n) => n.toLocaleString('es-CL');
 
   const paymentMethods = [
-    { id: 'cash', name: 'Efectivo', icon: Banknote, color: 'bg-green-100 text-green-600' },
-    { id: 'debit', name: 'Débito', icon: CreditCard, color: 'bg-blue-100 text-blue-600' },
-    { id: 'credit', name: 'Crédito', icon: CreditCard, color: 'bg-purple-100 text-purple-600' },
+    { id: 'cash', name: 'Efectivo', icon: Banknote },
+    { id: 'debit', name: 'Débito', icon: CreditCard },
+    { id: 'credit', name: 'Crédito', icon: CreditCard },
   ];
 
   const handlePayment = async (methodId) => {
@@ -112,9 +112,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm }) => {
                 onClick={() => handlePayment(method.id)}
                 className="flex items-center p-4 bg-white border-2 border-gray-100 rounded-2xl hover:border-blue-500 hover:bg-blue-50/50 transition-all group text-left active:scale-[0.98]"
               >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 ${method.color}`}>
-                  <method.icon className="h-6 w-6" />
-                </div>
+                <method.icon className="h-6 w-6 text-gray-900 mr-4" />
                 <div className="flex-1">
                   <span className="font-bold text-lg text-gray-800 group-hover:text-blue-700">{method.name}</span>
                 </div>

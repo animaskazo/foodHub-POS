@@ -109,18 +109,14 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <div className="bg-white p-6 rounded-2xl border border-gray-200 flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
-            <TrendingUp className="h-6 w-6" />
-          </div>
+          <TrendingUp className="h-8 w-8 text-gray-900" />
           <div>
             <p className="text-gray-500 text-sm font-medium">Ventas Totales</p>
             <p className="text-2xl font-bold text-gray-900">${fmt(totalVentas)}</p>
           </div>
         </div>
         <div className="bg-white p-6 rounded-2xl border border-gray-200 flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center">
-            <ReceiptText className="h-6 w-6" />
-          </div>
+          <ReceiptText className="h-8 w-8 text-gray-900" />
           <div>
             <p className="text-gray-500 text-sm font-medium">Transacciones</p>
             <p className="text-2xl font-bold text-gray-900">{totalTransacciones}</p>
@@ -304,8 +300,18 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                             {item.quantity}
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900 text-sm">{item.product_name}</p>
-                            <p className="text-xs text-gray-500">${fmt(Math.round(item.unit_price * 1.19))} c/u</p>
+                            <p className="font-medium text-gray-900 text-sm">
+                              {item.product_name}
+                              {item.order_item_variants && item.order_item_variants.length > 0 && (
+                                <span className="text-gray-500 font-normal"> ({item.order_item_variants[0].variant_option_name})</span>
+                              )}
+                            </p>
+                            {item.order_item_ingredients && item.order_item_ingredients.length > 0 && (
+                              <p className="text-[11px] text-gray-500 mt-0.5 leading-tight">
+                                + {item.order_item_ingredients.map(ing => ing.ingredient_name).join(', ')}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-500 mt-0.5">${fmt(Math.round(item.unit_price * 1.19))} c/u</p>
                           </div>
                         </div>
                         <span className="font-semibold text-gray-900 text-sm">

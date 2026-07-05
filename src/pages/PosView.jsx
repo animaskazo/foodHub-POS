@@ -17,9 +17,14 @@ const PosView = () => {
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const addToCart = (product, variant) => {
-    const cartItemId = variant ? `${product.id}-${variant.id}` : product.id;
-    const itemPrice = variant ? product.price + (variant.price_modifier || 0) : product.price;
+  const addToCart = (product, variant, ingredients = []) => {
+    const ingredientsIds = ingredients.map(i => i.id).sort().join(',');
+    const cartItemId = `${product.id}${variant ? '-' + variant.id : ''}${ingredientsIds ? '-ing-' + ingredientsIds : ''}`;
+    
+    const ingredientsGross = ingredients.reduce((sum, i) => sum + (i.price || 0), 0);
+    const ingredientsNet = ingredientsGross / 1.19;
+    const itemPrice = (variant ? product.price + (variant.price_modifier || 0) : product.price) + ingredientsNet;
+    
     const itemName = variant ? `${product.name} (${variant.name})` : product.name;
     
     setCartItems(prev => {
@@ -36,22 +41,26 @@ const PosView = () => {
         name: itemName, 
         price: itemPrice, 
         quantity: 1, 
-        variant: variant || null 
+        variant: variant || null,
+        selectedIngredients: ingredients
       }];
     });
   };
 
   const handleProductClick = (product) => {
-    if (product.variants && product.variants.length > 0 && product.variants.some(v => v.is_active)) {
+    const hasVariants = product.variants && product.variants.length > 0 && product.variants.some(v => v.is_active);
+    const hasIngredients = product.ingredients && product.ingredients.length > 0;
+    
+    if (hasVariants || hasIngredients) {
       setSelectedProductForVariant(product);
       return;
     }
-    addToCart(product, null);
+    addToCart(product, null, []);
   };
 
-  const handleVariantSelect = (variant) => {
+  const handleVariantSelect = (variant, ingredients = []) => {
     if (selectedProductForVariant) {
-      addToCart(selectedProductForVariant, variant);
+      addToCart(selectedProductForVariant, variant, ingredients);
       setSelectedProductForVariant(null);
     }
   };

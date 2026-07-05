@@ -8,9 +8,7 @@ import { getFirstOrganizationId, createCategory, getCategoryById, updateCategory
 const SectionRow = ({ icon: Icon, title, description, children }) => (
   <div className="flex items-start justify-between gap-4 py-4">
     <div className="flex items-start gap-4">
-      <div className="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
-        <Icon className="h-4.5 w-4.5 text-gray-600" />
-      </div>
+      <Icon className="h-5 w-5 text-gray-900 mt-0.5 shrink-0" />
       <div>
         <p className="font-semibold text-[15px] mb-0.5">{title}</p>
         {description && <p className="text-sm text-gray-500 leading-relaxed">{description}</p>}

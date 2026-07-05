@@ -205,6 +205,11 @@ const KitchenView = () => {
                           <span className="text-gray-500 mr-1">Con:</span> {variants}
                         </p>
                       )}
+                      {item.order_item_ingredients?.length > 0 && (
+                        <p className="text-sm text-orange-300 mt-1 font-medium bg-orange-900/20 p-1.5 rounded border border-orange-500/30">
+                          <span className="text-orange-500/80 mr-1">Extra:</span> {item.order_item_ingredients.map(ing => ing.ingredient_name).join(', ')}
+                        </p>
+                      )}
                       {item.products?.description && !variants && (
                         <p className="text-xs text-gray-400 mt-0.5 leading-snug">
                           {item.products.description}

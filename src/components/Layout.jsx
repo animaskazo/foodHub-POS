@@ -119,6 +119,20 @@ const Layout = () => {
                   </li>
                   <li>
                     <NavLink 
+                      to="/ingredients" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={({ isActive }) => 
+                        `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
+                          isActive ? 'bg-gray-100 text-black font-medium' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        }`
+                      }
+                    >
+                      <PlusCircle className="h-4 w-4" />
+                      Ingredientes
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink 
                       to="/products" 
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) => 

@@ -63,6 +63,14 @@ export const getProducts = async (organizationId, filters = {}) => {
           price_modifier,
           is_active
         )
+      ),
+      product_ingredients (
+        ingredients (
+          id,
+          name,
+          price,
+          is_active
+        )
       )
     `)
     .eq('organization_id', organizationId);
@@ -90,7 +98,8 @@ export const getProducts = async (organizationId, filters = {}) => {
       categoryId: categoryInfo?.id || 'none',
       image: product.product_images?.[0]?.url || null,
       status: product.status === 'available' ? 'Disponible' : 'No disponible',
-      variants: product.variant_groups?.[0]?.variant_options || []
+      variants: product.variant_groups?.[0]?.variant_options || [],
+      ingredients: product.product_ingredients?.map(pi => pi.ingredients).filter(Boolean) || []
     };
   });
 };
@@ -188,6 +197,18 @@ export const createProduct = async (organizationId, productData) => {
       if (optionsError) console.error('Error creating variant options:', optionsError);
     }
   }
+
+  // Guardar ingredientes
+  if (productData.ingredients && productData.ingredients.length > 0) {
+    const ingredientsToInsert = productData.ingredients.map(ingId => ({
+      product_id: product.id,
+      ingredient_id: ingId
+    }));
+    const { error: ingError } = await supabase
+      .from('product_ingredients')
+      .insert(ingredientsToInsert);
+    if (ingError) console.error('Error assigning ingredients:', ingError);
+  }
   
   return product;
 };
@@ -236,6 +257,9 @@ export const getProductById = async (id) => {
           price_modifier,
           is_active
         )
+      ),
+      product_ingredients (
+        ingredient_id
       )
     `)
     .eq('id', id)
@@ -253,6 +277,9 @@ export const getProductById = async (id) => {
     } else {
       data.variants = [];
     }
+    
+    // Extraer ingredientes
+    data.ingredients = data.product_ingredients?.map(pi => pi.ingredient_id) || [];
   }
   return data;
 };
@@ -326,6 +353,21 @@ export const updateProduct = async (id, productData) => {
     }
   }
 
+  // Actualizar ingredientes
+  if (productData.ingredients) {
+    await supabase.from('product_ingredients').delete().eq('product_id', id);
+    if (productData.ingredients.length > 0) {
+      const ingredientsToInsert = productData.ingredients.map(ingId => ({
+        product_id: id,
+        ingredient_id: ingId
+      }));
+      const { error: ingError } = await supabase
+        .from('product_ingredients')
+        .insert(ingredientsToInsert);
+      if (ingError) console.error('Error updating ingredients:', ingError);
+    }
+  }
+
   return data;
 };
 
@@ -354,3 +396,61 @@ export const quickUpdateCategoryStatus = async (id, isActive) => {
     .eq('id', id);
   if (error) throw error;
 };
+
+// ── INGREDIENTS CRUD ──────────────────────────────────────────────
+
+export const getIngredients = async (organizationId) => {
+  const { data, error } = await supabase
+    .from('ingredients')
+    .select('*')
+    .eq('organization_id', organizationId)
+    .order('name');
+    
+  if (error) {
+    console.error('Error fetching ingredients:', error);
+    return [];
+  }
+  return data;
+};
+
+export const createIngredient = async (organizationId, ingredientData) => {
+  const { data, error } = await supabase
+    .from('ingredients')
+    .insert([
+      { 
+        organization_id: organizationId,
+        name: ingredientData.name,
+        price: ingredientData.price || 0,
+        is_active: ingredientData.is_active !== false
+      }
+    ])
+    .select();
+    
+  if (error) throw error;
+  return data[0];
+};
+
+export const updateIngredient = async (id, ingredientData) => {
+  const { data, error } = await supabase
+    .from('ingredients')
+    .update({ 
+      name: ingredientData.name,
+      price: ingredientData.price || 0,
+      is_active: ingredientData.is_active !== false
+    })
+    .eq('id', id)
+    .select();
+    
+  if (error) throw error;
+  return data[0];
+};
+
+export const deleteIngredient = async (id) => {
+  const { error } = await supabase
+    .from('ingredients')
+    .delete()
+    .eq('id', id);
+    
+  if (error) throw error;
+};
+

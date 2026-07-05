@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import CatalogManager from './pages/CatalogManager';
+import IngredientsManager from './pages/IngredientsManager';
 import CreateProductView from './pages/CreateProductView';
 import CategoriesList from './pages/CategoriesList';
 import CreateCategoryView from './pages/CreateCategoryView';
@@ -30,6 +31,7 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="categories" element={<CategoriesList />} />
+          <Route path="ingredients" element={<IngredientsManager />} />
           <Route path="products" element={<CatalogManager />} />
         </Route>
         

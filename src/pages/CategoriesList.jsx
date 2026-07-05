@@ -5,6 +5,7 @@ import { Search, ChevronDown, ListFilter, Plus, MoreHorizontal } from 'lucide-re
 import { Link, useNavigate } from 'react-router-dom';
 import { getFirstOrganizationId, getCategories, quickUpdateCategoryStatus } from '../services/catalogService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ActionMenu from '../components/ui/ActionMenu';
 
 const CategoriesList = () => {
   const [categories, setCategories] = useState([]);
@@ -157,7 +158,7 @@ const CategoriesList = () => {
                     </Select>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-end gap-2">
                       <button 
                         className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-full hover:bg-gray-50 transition-colors shadow-sm active:bg-gray-100"
                         onClick={(e) => {
@@ -167,9 +168,10 @@ const CategoriesList = () => {
                       >
                         Editar
                       </button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400">
-                        <MoreHorizontal className="h-5 w-5" />
-                      </Button>
+                      <ActionMenu 
+                        onDelete={() => alert("Función eliminar categoría no implementada")}
+                        onDuplicate={() => alert("Función duplicar categoría no implementada")}
+                      />
                     </div>
                   </td>
                 </tr>

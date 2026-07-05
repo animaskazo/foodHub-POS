@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useParams } from 'react-router-dom';
-import { getFirstOrganizationId, createProduct, getProductById, updateProduct, getCategories } from '../services/catalogService';
+import { getFirstOrganizationId, createProduct, getProductById, updateProduct, getCategories, getIngredients } from '../services/catalogService';
 import Modal from '../components/ui/Modal';
 import { 
   Select,
@@ -55,6 +55,8 @@ const CreateProductView = ({ onClose, onSave }) => {
   const [variants, setVariants] = useState([]);
   const [draftVariants, setDraftVariants] = useState([]);
   const [showVariants, setShowVariants] = useState(false);
+  const [globalIngredients, setGlobalIngredients] = useState([]);
+  const [selectedIngredients, setSelectedIngredients] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
@@ -74,8 +76,12 @@ const CreateProductView = ({ onClose, onSave }) => {
       try {
         const orgId = await getFirstOrganizationId();
         if (orgId) {
-          const fetchedCategories = await getCategories(orgId);
+          const [fetchedCategories, fetchedIngredients] = await Promise.all([
+            getCategories(orgId),
+            getIngredients(orgId)
+          ]);
           setCategories(fetchedCategories);
+          setGlobalIngredients(fetchedIngredients.filter(i => i.is_active));
         }
 
         if (isEditing) {
@@ -108,6 +114,10 @@ const CreateProductView = ({ onClose, onSave }) => {
             });
             setVariants(mappedVariants);
             setDraftVariants(mappedVariants);
+          }
+          
+          if (product.ingredients) {
+            setSelectedIngredients(product.ingredients);
           }
         }
       } catch (error) {
@@ -177,7 +187,8 @@ const CreateProductView = ({ onClose, onSave }) => {
         type: formData.type,
         categoryId: formData.categoryId,
         imageUrl: formData.imageUrl,
-        variants: finalVariants
+        variants: finalVariants,
+        ingredients: selectedIngredients
       };
 
       if (isEditing) {
@@ -396,12 +407,39 @@ const CreateProductView = ({ onClose, onSave }) => {
                 </Button>
               </SectionRow>
 
-              <SectionRow
-                title="Modificadores"
-                description={<>Permite la personalización de pedidos, como complementos o solicitudes especiales. <span className="underline cursor-pointer text-blue-600">Obtén más información</span></>}
-              >
-                <Button variant="outline" className="rounded-full font-semibold h-9">Agregar</Button>
-              </SectionRow>
+              <div className="p-4 sm:p-5 flex flex-col gap-3">
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-[15px]">Ingredientes Adicionales</h4>
+                  <p className="text-sm text-gray-500 leading-relaxed">Selecciona qué ingredientes extra se pueden agregar a este artículo.</p>
+                </div>
+                {globalIngredients.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 bg-gray-50 p-4 rounded-xl border border-gray-100 max-h-60 overflow-y-auto">
+                    {globalIngredients.map(ing => (
+                      <label key={ing.id} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300 transition-colors">
+                        <input 
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                          checked={selectedIngredients.includes(ing.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedIngredients([...selectedIngredients, ing.id]);
+                            } else {
+                              setSelectedIngredients(selectedIngredients.filter(id => id !== ing.id));
+                            }
+                            setHasChanges(true);
+                          }}
+                        />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-gray-900">{ing.name}</span>
+                          <span className="text-xs text-gray-500">+${ing.price}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 italic">No hay ingredientes creados en el catálogo.</p>
+                )}
+              </div>
 
               <SectionRow
                 title="Paquetes"
@@ -465,9 +503,7 @@ const CreateProductView = ({ onClose, onSave }) => {
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <Store className="h-4 w-4 text-gray-500" />
-                  </div>
+                  <Store className="h-5 w-5 text-gray-900 mx-1.5" />
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold">Sucursales</span>
@@ -483,9 +519,7 @@ const CreateProductView = ({ onClose, onSave }) => {
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <Globe className="h-4 w-4 text-gray-500" />
-                  </div>
+                  <Globe className="h-5 w-5 text-gray-900 mx-1.5" />
                   <span className="text-sm font-semibold">Puntos de venta</span>
                 </div>
                 <Switch defaultChecked />
@@ -494,9 +528,7 @@ const CreateProductView = ({ onClose, onSave }) => {
               <Separator className="my-4" />
 
               <button className="flex items-center gap-3 w-full text-left">
-                <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Plus className="h-4 w-4 text-gray-500" />
-                </div>
+                <Plus className="h-5 w-5 text-gray-900 mx-1.5" />
                 <span className="text-sm font-semibold text-gray-700">Agregar canal</span>
               </button>
             </div>

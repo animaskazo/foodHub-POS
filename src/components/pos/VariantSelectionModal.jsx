@@ -1,65 +1,148 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
-import { ShoppingCart } from 'lucide-react';
 
 const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant }) => {
+  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [selectedIngredients, setSelectedIngredients] = useState([]);
+  const [activeTab, setActiveTab] = useState('variants');
+
+  useEffect(() => {
+    if (isOpen && product) {
+      setSelectedVariant(null);
+      setSelectedIngredients([]);
+      const productHasVariants = product.variants && product.variants.length > 0 && product.variants.some(v => v.is_active);
+      setActiveTab(productHasVariants ? 'variants' : 'ingredients');
+    }
+  }, [isOpen, product]);
+
   if (!product) return null;
+
+  const hasVariants = product.variants && product.variants.length > 0 && product.variants.some(v => v.is_active);
+  const hasIngredients = product.ingredients && product.ingredients.length > 0;
+
+  const handleConfirm = () => {
+    onSelectVariant(selectedVariant, selectedIngredients);
+  };
+
+  const toggleIngredient = (ing) => {
+    if (selectedIngredients.some(i => i.id === ing.id)) {
+      setSelectedIngredients(prev => prev.filter(i => i.id !== ing.id));
+    } else {
+      setSelectedIngredients(prev => [...prev, ing]);
+    }
+  };
+
+  // Calculate dynamic price
+  const basePrice = selectedVariant ? product.price + (selectedVariant.price_modifier || 0) : product.price;
+  const baseGross = Math.round(basePrice * 1.19);
+  const ingredientsGross = selectedIngredients.reduce((sum, ing) => sum + (ing.price || 0), 0);
+  const totalGross = baseGross + ingredientsGross;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Opciones para ${product.name}`}>
       <div className="p-6">
-        <p className="text-gray-500 mb-6">Selecciona una variante para agregar al carrito:</p>
-        <div className="grid grid-cols-1 gap-3">
-          <button
-            onClick={() => onSelectVariant(null)}
-            className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-left group"
-          >
-            <div>
-              <span className="block font-semibold text-gray-900 group-hover:text-blue-700">
-                Original (Por defecto)
-              </span>
-              {product.sku && (
-                <span className="block text-xs text-gray-400 mt-1">SKU: {product.sku}</span>
+        
+        {hasVariants && hasIngredients && (
+          <div className="flex gap-4 mb-6 border-b border-gray-100">
+            <button
+              onClick={() => setActiveTab('variants')}
+              className={`pb-3 px-2 font-semibold transition-colors border-b-2 text-sm ${activeTab === 'variants' ? 'text-black border-black' : 'text-gray-400 border-transparent hover:text-gray-600'}`}
+            >
+              Variante
+            </button>
+            <button
+              onClick={() => setActiveTab('ingredients')}
+              className={`pb-3 px-2 font-semibold transition-colors border-b-2 text-sm flex items-center gap-2 ${activeTab === 'ingredients' ? 'text-black border-black' : 'text-gray-400 border-transparent hover:text-gray-600'}`}
+            >
+              Ingredientes Extra
+              {selectedIngredients.length > 0 && (
+                <span className="bg-orange-100 text-orange-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                  {selectedIngredients.length}
+                </span>
               )}
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="font-bold text-gray-900 group-hover:text-blue-700">
-                ${Math.round(product.price * 1.19).toLocaleString('es-CL')}
-              </span>
-              <div className="px-4 py-1.5 rounded-full bg-gray-100 group-hover:bg-blue-600 text-sm font-semibold text-gray-600 group-hover:text-white transition-colors">
-                Elegir
-              </div>
-            </div>
-          </button>
+            </button>
+          </div>
+        )}
 
-          {product.variants.filter(v => v.is_active).map((variant) => {
-            const finalPrice = product.price + (variant.price_modifier || 0);
-            const finalGrossPrice = Math.round(finalPrice * 1.19);
-            return (
+        {hasVariants && (!hasIngredients || activeTab === 'variants') && (
+          <div className="mb-6">
+            {!hasIngredients && (
+              <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Variante</p>
+            )}
+            <div className="grid grid-cols-1 gap-2">
               <button
-                key={variant.id}
-                onClick={() => onSelectVariant(variant)}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-left group"
+                onClick={() => setSelectedVariant(null)}
+                className={`flex items-center justify-between p-4 border rounded-xl transition-all text-left ${selectedVariant === null ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-gray-200 hover:border-gray-300'}`}
               >
                 <div>
-                  <span className="block font-semibold text-gray-900 group-hover:text-blue-700">
-                    {variant.name}
-                  </span>
-                  {variant.sku && (
-                    <span className="block text-xs text-gray-400 mt-1">SKU: {variant.sku}</span>
-                  )}
+                  <span className="block font-semibold text-gray-900">Original (Por defecto)</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="font-bold text-gray-900 group-hover:text-blue-700">
-                    ${finalGrossPrice.toLocaleString('es-CL')}
-                  </span>
-                  <div className="px-4 py-1.5 rounded-full bg-gray-100 group-hover:bg-blue-600 text-sm font-semibold text-gray-600 group-hover:text-white transition-colors">
-                    Elegir
-                  </div>
-                </div>
+                <span className="font-bold text-gray-900">
+                  ${Math.round(product.price * 1.19).toLocaleString('es-CL')}
+                </span>
               </button>
-            );
-          })}
+
+              {product.variants.filter(v => v.is_active).map((variant) => {
+                const finalGrossPrice = Math.round((product.price + (variant.price_modifier || 0)) * 1.19);
+                return (
+                  <button
+                    key={variant.id}
+                    onClick={() => setSelectedVariant(variant)}
+                    className={`flex items-center justify-between p-4 border rounded-xl transition-all text-left ${selectedVariant?.id === variant.id ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-gray-200 hover:border-gray-300'}`}
+                  >
+                    <div>
+                      <span className="block font-semibold text-gray-900">{variant.name}</span>
+                    </div>
+                    <span className="font-bold text-gray-900">
+                      ${finalGrossPrice.toLocaleString('es-CL')}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {hasIngredients && (!hasVariants || activeTab === 'ingredients') && (
+          <div className="mb-6">
+            {!hasVariants && (
+              <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Ingredientes Extra</p>
+            )}
+            <div className="grid grid-cols-1 gap-2">
+              {product.ingredients.map((ing) => {
+                const isSelected = selectedIngredients.some(i => i.id === ing.id);
+                return (
+                  <label
+                    key={ing.id}
+                    className={`flex items-center justify-between p-4 border rounded-xl transition-all cursor-pointer ${isSelected ? 'border-orange-500 bg-orange-50 ring-1 ring-orange-500' : 'border-gray-200 hover:border-gray-300'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleIngredient(ing)}
+                        className="h-5 w-5 rounded border-gray-300 text-orange-600 focus:ring-orange-600"
+                      />
+                      <span className="block font-semibold text-gray-900">{ing.name}</span>
+                    </div>
+                    <span className="font-bold text-gray-900">
+                      +${Math.round(ing.price).toLocaleString('es-CL')}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="pt-4 border-t border-gray-100 mt-2">
+          <button
+            onClick={handleConfirm}
+            className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-colors flex items-center justify-between px-6"
+          >
+            <span>Agregar al carrito</span>
+            <span>${totalGross.toLocaleString('es-CL')}</span>
+          </button>
         </div>
       </div>
     </Modal>

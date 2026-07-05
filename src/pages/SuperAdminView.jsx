@@ -95,9 +95,7 @@ const SuperAdminView = () => {
                 <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center shrink-0">
-                        <User className="h-5 w-5 text-gray-600" />
-                      </div>
+                      <User className="h-6 w-6 text-gray-900 mx-2" />
                       <div>
                         <div className="font-medium text-gray-900">{user.name}</div>
                         <div className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
