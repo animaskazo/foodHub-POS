@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, Plus, Minus, ChevronDown, Monitor, X } from 'lucide-react';
+import { Trash2, Plus, Minus, ChevronDown, Monitor, X, Edit2 } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 
 const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onItemClick }) => {
@@ -59,68 +59,78 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {items.map((item) => (
-              <div 
-                key={item.cartItemId} 
-                className="flex items-center gap-3 px-5 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
-                onPointerDown={(e) => {
-                  if (e.target.closest('button')) return;
-                  onItemClick && onItemClick(item);
-                }}
-              >
-                {/* Thumbnail */}
-                <div
-                  className="w-14 h-14 rounded-xl shrink-0 bg-gray-100 bg-cover bg-center"
-                  style={{ backgroundImage: `url(${item.image})` }}
-                />
+            {items.map((item) => {
+              const hasVariants = item.variants && item.variants.length > 0 && item.variants.some(v => v.is_active);
+              const hasIngredients = item.ingredients && item.ingredients.length > 0;
+              const hasOptions = hasVariants || hasIngredients;
+              
+              return (
+                <div key={item.cartItemId} className="flex items-center gap-3 px-5 py-4">
+                  {/* Thumbnail */}
+                  <div
+                    className="w-14 h-14 rounded-xl shrink-0 bg-gray-100 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${item.image})` }}
+                  />
 
-                {/* Name + Controls */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-[14px] leading-snug truncate">{item.name}</p>
-                  {item.selectedIngredients && item.selectedIngredients.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {item.selectedIngredients.map(i => (
-                        <span key={i.id} className="text-[10px] text-orange-600 font-bold bg-orange-100 px-1.5 py-0.5 rounded">
-                          + {i.name}
-                        </span>
-                      ))}
+                  {/* Name + Controls */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-[14px] leading-snug truncate">{item.name}</p>
+                    {item.selectedIngredients && item.selectedIngredients.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {item.selectedIngredients.map(i => (
+                          <span key={i.id} className="text-[10px] text-orange-600 font-bold bg-orange-100 px-1.5 py-0.5 rounded">
+                            + {i.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-xs text-gray-400 mt-1">${fmt(Math.round(item.price * 1.19))} c/u</p>
+
+                    {/* Qty Controls */}
+                    <div className="flex items-center gap-3 mt-2">
+                      <button
+                        onPointerDown={() => onUpdateQty && onUpdateQty(item.cartItemId, item.quantity - 1)}
+                        className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center active:bg-gray-200 select-none"
+                        style={{ WebkitTapHighlightColor: 'transparent' }}
+                      >
+                        <Minus className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="font-bold text-sm w-5 text-center">{item.quantity}</span>
+                      <button
+                        onPointerDown={() => onUpdateQty && onUpdateQty(item.cartItemId, item.quantity + 1)}
+                        className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center active:bg-gray-200 select-none"
+                        style={{ WebkitTapHighlightColor: 'transparent' }}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
                     </div>
-                  )}
-                  <p className="text-xs text-gray-400 mt-1">${fmt(Math.round(item.price * 1.19))} c/u</p>
+                  </div>
 
-                  {/* Qty Controls */}
-                  <div className="flex items-center gap-3 mt-2">
-                    <button
-                      onPointerDown={() => onUpdateQty && onUpdateQty(item.cartItemId, item.quantity - 1)}
-                      className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center active:bg-gray-200 select-none"
-                      style={{ WebkitTapHighlightColor: 'transparent' }}
-                    >
-                      <Minus className="h-3.5 w-3.5" />
-                    </button>
-                    <span className="font-bold text-sm w-5 text-center">{item.quantity}</span>
-                    <button
-                      onPointerDown={() => onUpdateQty && onUpdateQty(item.cartItemId, item.quantity + 1)}
-                      className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center active:bg-gray-200 select-none"
-                      style={{ WebkitTapHighlightColor: 'transparent' }}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                    </button>
+                  {/* Price + Actions */}
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <span className="font-bold text-[15px]">${fmt(Math.round(item.price * 1.19) * item.quantity)}</span>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      {hasOptions && (
+                        <button
+                          onPointerDown={() => onItemClick && onItemClick(item)}
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-blue-600 bg-blue-50 active:bg-blue-100 select-none"
+                          style={{ WebkitTapHighlightColor: 'transparent' }}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
+                        onPointerDown={() => onRemove && onRemove(item.cartItemId)}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 bg-gray-50 active:bg-red-50 active:text-red-500 select-none"
+                        style={{ WebkitTapHighlightColor: 'transparent' }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-
-                {/* Price + Delete */}
-                <div className="flex flex-col items-end gap-3 shrink-0">
-                  <span className="font-bold text-[15px]">${fmt(Math.round(item.price * 1.19) * item.quantity)}</span>
-                  <button
-                    onPointerDown={() => onRemove && onRemove(item.cartItemId)}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 bg-gray-50 active:bg-red-50 active:text-red-500 select-none"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

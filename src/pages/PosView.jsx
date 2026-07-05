@@ -6,6 +6,7 @@ import BottomNav from '../components/pos/BottomNav';
 import PaymentModal from '../components/pos/PaymentModal';
 import TransactionsView from '../components/pos/TransactionsView';
 import VariantSelectionModal from '../components/pos/VariantSelectionModal';
+import Modal from '../components/ui/Modal';
 import { NAV_ITEMS } from '../components/pos/BottomNav';
 import { X, LogOut, Menu } from 'lucide-react';
 import { createOrder } from '../services/orderService';
@@ -16,6 +17,7 @@ const PosView = () => {
   const [activeTab, setActiveTab] = useState('pago');
   const [selectedProductForVariant, setSelectedProductForVariant] = useState(null);
   const [editingCartItem, setEditingCartItem] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -110,7 +112,14 @@ const PosView = () => {
   };
 
   const handleRemove = (cartItemId) => {
-    setCartItems(prev => prev.filter(i => i.cartItemId !== cartItemId));
+    setItemToDelete(cartItemId);
+  };
+
+  const confirmRemove = () => {
+    if (itemToDelete) {
+      setCartItems(prev => prev.filter(i => i.cartItemId !== itemToDelete));
+      setItemToDelete(null);
+    }
   };
 
   const handleNewOrder = () => {
@@ -292,6 +301,31 @@ const PosView = () => {
           setSelectedProductForVariant(null);
         }}
       />
+
+      <Modal
+        isOpen={!!itemToDelete}
+        onClose={() => setItemToDelete(null)}
+        title="Confirmar eliminación"
+        maxWidth="max-w-sm"
+      >
+        <div className="p-6">
+          <p className="text-gray-600 mb-6">¿Estás seguro de que deseas eliminar este producto del pedido?</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setItemToDelete(null)}
+              className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={confirmRemove}
+              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
