@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 
-export const createOrder = async (cartItems, paymentMethod, total, subtotal, tax) => {
+export const createOrder = async (cartItems, paymentMethod, orderType, total, subtotal, tax) => {
   try {
     // 1. Get the current logged-in user's organization and branch
     const { data: { session } } = await supabase.auth.getSession();
@@ -51,7 +51,7 @@ export const createOrder = async (cartItems, paymentMethod, total, subtotal, tax
         {
           organization_id: organizationId,
           branch_id: branchId,
-          order_type: 'table',
+          order_type: orderType,
           order_number: orderNumber,
           status: 'confirmed', 
           subtotal: subtotal,
@@ -239,9 +239,13 @@ export const getKitchenOrders = async () => {
 
 export const updateOrderStatus = async (orderId, status) => {
   try {
+    const updateData = { status };
+    if (status === 'ready') {
+      updateData.ready_at = new Date().toISOString();
+    }
     const { error } = await supabase
       .from('orders')
-      .update({ status })
+      .update(updateData)
       .eq('id', orderId);
 
     if (error) throw error;

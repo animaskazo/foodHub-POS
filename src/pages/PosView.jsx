@@ -145,13 +145,13 @@ const PosView = () => {
     setIsPaymentModalOpen(true);
   };
 
-  const handlePaymentConfirm = async (method) => {
+  const handlePaymentConfirm = async (method, orderType) => {
     try {
       const total = cartItems.reduce((acc, i) => acc + (Math.round(i.price * 1.19) * i.quantity), 0);
       const subtotal = Math.round(total / 1.19);
       const tax = total - subtotal;
       
-      const order = await createOrder(cartItems, method, total, subtotal, tax);
+      const order = await createOrder(cartItems, method, orderType, total, subtotal, tax);
       
       setCartItems([]);
       setIsMobileCartOpen(false);

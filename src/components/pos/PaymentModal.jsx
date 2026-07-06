@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Banknote, CreditCard, CheckCircle2 } from 'lucide-react';
+import { Banknote, CreditCard, CheckCircle2, Coffee, Package, Loader2 } from 'lucide-react';
 import Modal from '../ui/Modal';
 
 const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm }) => {
   const [status, setStatus] = useState('idle'); // 'idle' | 'success'
   const [orderNumber, setOrderNumber] = useState(null);
+  const [orderType, setOrderType] = useState('table'); // 'table' | 'takeaway'
+  const [processingMethod, setProcessingMethod] = useState(null);
 
   // Restablecer el estado cada vez que se abre el modal
   useEffect(() => {
     if (isOpen) {
       setStatus('idle');
       setOrderNumber(null);
+      setOrderType('table');
+      setProcessingMethod(null);
     }
   }, [isOpen]);
 
@@ -27,17 +31,22 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm }) => {
   ];
 
   const handlePayment = async (methodId) => {
+    if (processingMethod) return; // Evitar multiples clicks
+    setProcessingMethod(methodId);
     try {
-      const order = await onConfirm(methodId);
+      const order = await onConfirm(methodId, orderType);
       if (order) {
         setOrderNumber(order.order_number);
         setStatus('success');
         setTimeout(() => {
           onClose();
         }, 3000); // 3 seconds animation before closing
+      } else {
+        setProcessingMethod(null);
       }
     } catch (e) {
       // error handled by parent
+      setProcessingMethod(null);
     }
   };
 
@@ -104,17 +113,62 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm }) => {
         </div>
 
         <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider ml-1">Tipo de Pedido</h3>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <button
+              onClick={() => setOrderType('table')}
+              className={`flex items-center justify-center p-4 rounded-2xl border-2 transition-all ${
+                orderType === 'table'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'
+              }`}
+            >
+              <Coffee className={`h-5 w-5 mr-2 ${orderType === 'table' ? 'text-blue-600' : 'text-gray-400'}`} />
+              <span className="font-bold">Para Servir</span>
+            </button>
+            <button
+              onClick={() => setOrderType('takeaway')}
+              className={`flex items-center justify-center p-4 rounded-2xl border-2 transition-all ${
+                orderType === 'takeaway'
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'
+              }`}
+            >
+              <Package className={`h-5 w-5 mr-2 ${orderType === 'takeaway' ? 'text-blue-600' : 'text-gray-400'}`} />
+              <span className="font-bold">Para Llevar</span>
+            </button>
+          </div>
+
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider ml-1">Método de Pago</h3>
           <div className="grid grid-cols-1 gap-3">
             {paymentMethods.map((method) => (
               <button
                 key={method.id}
                 onClick={() => handlePayment(method.id)}
-                className="flex items-center p-4 bg-white border-2 border-gray-100 rounded-2xl hover:border-blue-500 hover:bg-blue-50/50 transition-all group text-left active:scale-[0.98]"
+                disabled={processingMethod !== null}
+                className={`flex items-center p-4 bg-white border-2 rounded-2xl transition-all text-left ${
+                  processingMethod && processingMethod !== method.id
+                    ? 'border-gray-100 opacity-50 cursor-not-allowed grayscale'
+                    : processingMethod === method.id
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-100 hover:border-blue-500 hover:bg-blue-50/50 active:scale-[0.98] group'
+                }`}
               >
-                <method.icon className="h-6 w-6 text-gray-900 mr-4" />
+                {processingMethod === method.id ? (
+                  <Loader2 className="h-6 w-6 text-blue-600 mr-4 animate-spin" />
+                ) : (
+                  <method.icon className={`h-6 w-6 mr-4 ${processingMethod ? 'text-gray-400' : 'text-gray-900'}`} />
+                )}
                 <div className="flex-1">
-                  <span className="font-bold text-lg text-gray-800 group-hover:text-blue-700">{method.name}</span>
+                  <span className={`font-bold text-lg ${
+                    processingMethod === method.id 
+                      ? 'text-blue-700' 
+                      : processingMethod 
+                        ? 'text-gray-400' 
+                        : 'text-gray-800 group-hover:text-blue-700'
+                  }`}>
+                    {method.name}
+                  </span>
                 </div>
               </button>
             ))}

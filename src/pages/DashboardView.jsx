@@ -82,6 +82,7 @@ const DashboardView = () => {
           subtotal,
           tax_amount,
           created_at,
+          ready_at,
           order_items (*),
           payments (*)
         `)
@@ -120,6 +121,14 @@ const DashboardView = () => {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
   };
   const fmt = (n) => n.toLocaleString('es-CL');
+
+  const getKitchenTime = (order) => {
+    if (!order.ready_at) return '-';
+    const start = new Date(order.created_at);
+    const end = new Date(order.ready_at);
+    const diffMins = Math.floor((end - start) / 60000);
+    return diffMins < 1 ? '< 1 min' : `${diffMins} min`;
+  };
 
   const getPaymentMethod = (order) => {
     const payment = order.payments?.[0];
@@ -292,6 +301,7 @@ const DashboardView = () => {
                 <th className="px-6 py-4 font-semibold">Fecha</th>
                 <th className="px-6 py-4 font-semibold">Estado</th>
                 <th className="px-6 py-4 font-semibold">Método</th>
+                <th className="px-6 py-4 font-semibold text-center">T. Cocina</th>
                 <th className="px-6 py-4 font-semibold text-right">Subtotal</th>
                 <th className="px-6 py-4 font-semibold text-right">IVA (19%)</th>
                 <th className="px-6 py-4 font-semibold text-right">Total</th>
@@ -328,6 +338,7 @@ const DashboardView = () => {
                           {getPaymentMethod(order)}
                         </span>
                       </td>
+                      <td className="px-6 py-4 text-center text-gray-600 font-medium whitespace-nowrap">{getKitchenTime(order)}</td>
                       <td className="px-6 py-4 text-right text-gray-600">${fmt(order.subtotal || 0)}</td>
                       <td className="px-6 py-4 text-right text-gray-600">${fmt(order.tax_amount || 0)}</td>
                       <td className="px-6 py-4 text-right font-bold text-gray-900">${fmt(order.total || 0)}</td>
@@ -374,6 +385,11 @@ const DashboardView = () => {
                       </span>
                     </div>
                     <span className="text-sm text-gray-500">{formattedDate}</span>
+                    {order.ready_at && (
+                      <span className="text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md font-semibold w-max border border-orange-100">
+                        Cocina: {getKitchenTime(order)}
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <span className="font-black text-gray-900 text-lg">${fmt(order.total || 0)}</span>
@@ -415,7 +431,7 @@ const DashboardView = () => {
             <div className="p-6 space-y-6">
               
               {/* Información General */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
                   <div className="flex items-center gap-2 mb-2 text-gray-500">
                     <ReceiptText className="h-4 w-4" />
@@ -430,8 +446,17 @@ const DashboardView = () => {
                     <CreditCard className="h-4 w-4" />
                     <span className="text-xs font-semibold uppercase tracking-wider">Pago</span>
                   </div>
-                  <span className="inline-flex items-center px-2.5 py-1 bg-white text-gray-700 rounded-lg font-bold text-sm border border-gray-200">
+                  <span className="inline-flex items-center px-2.5 py-1 bg-white text-gray-700 rounded-lg font-bold text-sm border border-gray-200 shadow-sm">
                     {getPaymentMethod(selectedOrder)}
+                  </span>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                  <div className="flex items-center gap-2 mb-2 text-gray-500">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-xs font-semibold uppercase tracking-wider">T. Cocina</span>
+                  </div>
+                  <span className="font-bold text-gray-900 text-sm">
+                    {getKitchenTime(selectedOrder)}
                   </span>
                 </div>
               </div>

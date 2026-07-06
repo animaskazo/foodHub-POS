@@ -71,13 +71,14 @@ const KitchenView = () => {
     if (!isBackground) setLoading(false);
   };
 
+  useDocumentTitle('Cocina');
+
   useEffect(() => {
     fetchOrders();
     // Auto refresh every 10 seconds silently
     const interval = setInterval(() => {
       fetchOrders(true);
     }, 10000);
-    useDocumentTitle('Cocina');
 
     return () => clearInterval(interval);
   }, []);
