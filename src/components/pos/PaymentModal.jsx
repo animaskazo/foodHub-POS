@@ -14,9 +14,9 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm }) => {
     }
   }, [isOpen]);
 
-  const subtotal = cartItems.reduce((acc, i) => acc + (i.price * i.quantity), 0);
-  const tax = Math.round(subtotal * 0.19);
-  const total = subtotal + tax;
+  const total = cartItems.reduce((acc, i) => acc + (Math.round(i.price * 1.19) * i.quantity), 0);
+  const subtotal = Math.round(total / 1.19);
+  const tax = total - subtotal;
 
   const fmt = (n) => n.toLocaleString('es-CL');
 

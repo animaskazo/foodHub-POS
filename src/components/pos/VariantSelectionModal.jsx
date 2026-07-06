@@ -38,14 +38,17 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
   };
 
   // Calculate dynamic price
-  const basePrice = selectedVariant ? product.price + (selectedVariant.price_modifier || 0) : product.price;
+  const actualBasePrice = product.basePrice !== undefined ? product.basePrice : product.price;
+  const originalName = product.originalName || product.name;
+
+  const basePrice = selectedVariant ? actualBasePrice + (selectedVariant.price_modifier || 0) : actualBasePrice;
   const baseGross = Math.round(basePrice * 1.19);
   const ingredientsGross = Math.round(selectedIngredients.reduce((sum, ing) => sum + (ing.price || 0), 0));
   const totalGross = baseGross + ingredientsGross;
   const quantity = editingItem?.quantity || 1;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Opciones para ${product.name}`}>
+    <Modal isOpen={isOpen} onClose={onClose} title={`Opciones para ${originalName}`}>
       <div className="p-6">
         
         {hasVariants && hasIngredients && (
@@ -84,12 +87,13 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
                   <span className="block font-semibold text-gray-900">Original (Por defecto)</span>
                 </div>
                 <span className="font-bold text-gray-900">
-                  ${Math.round(product.price * 1.19).toLocaleString('es-CL')}
+                  ${Math.round(actualBasePrice * 1.19).toLocaleString('es-CL')}
                 </span>
               </button>
 
               {product.variants.filter(v => v.is_active).map((variant) => {
-                const finalGrossPrice = Math.round((product.price + (variant.price_modifier || 0)) * 1.19);
+                const finalGrossPrice = Math.round((actualBasePrice + (variant.price_modifier || 0)) * 1.19);
+
                 return (
                   <button
                     key={variant.id}

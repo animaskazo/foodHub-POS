@@ -6,9 +6,9 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
   const items = cartItems;
 
   const totalQty = items.reduce((acc, i) => acc + i.quantity, 0);
-  const subtotal = Math.round(items.reduce((acc, i) => acc + (i.price * i.quantity), 0));
-  const tax = Math.round(subtotal * 0.19);
-  const total = subtotal + tax;
+  const total = items.reduce((acc, i) => acc + (Math.round(i.price * 1.19) * i.quantity), 0);
+  const subtotal = Math.round(total / 1.19);
+  const tax = total - subtotal;
 
   const fmt = (n) => n.toLocaleString('es-CL');
 

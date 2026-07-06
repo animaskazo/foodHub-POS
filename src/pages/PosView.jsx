@@ -25,11 +25,16 @@ const PosView = () => {
     const ingredientsIds = ingredients.map(i => i.id).sort().join(',');
     const cartItemId = `${product.id}${variant ? '-' + variant.id : ''}${ingredientsIds ? '-ing-' + ingredientsIds : ''}`;
     
+    const basePrice = product.basePrice !== undefined ? product.basePrice : product.price;
+    const originalName = product.originalName || product.name;
+
+    const baseNet = variant ? basePrice + (variant.price_modifier || 0) : basePrice;
+    const baseGross = Math.round(baseNet * 1.19);
     const ingredientsGross = ingredients.reduce((sum, i) => sum + (i.price || 0), 0);
-    const ingredientsNet = Math.round(ingredientsGross / 1.19);
-    const itemPrice = Math.round((variant ? product.price + (variant.price_modifier || 0) : product.price) + ingredientsNet);
+    const totalGross = baseGross + ingredientsGross;
+    const itemPrice = Math.round(totalGross / 1.19);
     
-    const itemName = variant ? `${product.name} (${variant.name})` : product.name;
+    const itemName = variant ? `${originalName} (${variant.name})` : originalName;
     
     setCartItems(prev => {
       const existing = prev.find(i => i.cartItemId === cartItemId);
@@ -43,6 +48,8 @@ const PosView = () => {
         cartItemId, 
         productId: product.id, 
         name: itemName, 
+        originalName,
+        basePrice,
         price: itemPrice, 
         quantity: 1, 
         variant: variant || null,
@@ -64,13 +71,18 @@ const PosView = () => {
 
   const handleVariantSelect = (variant, ingredients = [], editingItem = null) => {
     if (editingItem && selectedProductForVariant) {
+      const basePrice = selectedProductForVariant.basePrice !== undefined ? selectedProductForVariant.basePrice : selectedProductForVariant.price;
+      const originalName = selectedProductForVariant.originalName || selectedProductForVariant.name;
+
       const ingredientsIds = ingredients.map(i => i.id).sort().join(',');
-      const newCartItemId = `${selectedProductForVariant.id}${variant ? '-' + variant.id : ''}${ingredientsIds ? '-ing-' + ingredientsIds : ''}`;
+      const newCartItemId = `${selectedProductForVariant.productId || selectedProductForVariant.id}${variant ? '-' + variant.id : ''}${ingredientsIds ? '-ing-' + ingredientsIds : ''}`;
       
+      const baseNet = variant ? basePrice + (variant.price_modifier || 0) : basePrice;
+      const baseGross = Math.round(baseNet * 1.19);
       const ingredientsGross = ingredients.reduce((sum, i) => sum + (i.price || 0), 0);
-      const ingredientsNet = Math.round(ingredientsGross / 1.19);
-      const itemPrice = Math.round((variant ? selectedProductForVariant.price + (variant.price_modifier || 0) : selectedProductForVariant.price) + ingredientsNet);
-      const itemName = variant ? `${selectedProductForVariant.name} (${variant.name})` : selectedProductForVariant.name;
+      const totalGross = baseGross + ingredientsGross;
+      const itemPrice = Math.round(totalGross / 1.19);
+      const itemName = variant ? `${originalName} (${variant.name})` : originalName;
 
       setCartItems(prev => {
         const withoutOld = prev.filter(i => i.cartItemId !== editingItem.cartItemId);
@@ -84,8 +96,10 @@ const PosView = () => {
           return [...withoutOld, { 
             ...selectedProductForVariant, 
             cartItemId: newCartItemId, 
-            productId: selectedProductForVariant.id, 
-            name: itemName, 
+            productId: selectedProductForVariant.productId || selectedProductForVariant.id, 
+            name: itemName,
+            originalName,
+            basePrice,
             price: itemPrice, 
             quantity: editingItem.quantity, 
             variant: variant || null,
@@ -133,9 +147,9 @@ const PosView = () => {
 
   const handlePaymentConfirm = async (method) => {
     try {
-      const subtotal = Math.round(cartItems.reduce((acc, i) => acc + (i.price * i.quantity), 0));
-      const tax = Math.round(subtotal * 0.19);
-      const total = subtotal + tax;
+      const total = cartItems.reduce((acc, i) => acc + (Math.round(i.price * 1.19) * i.quantity), 0);
+      const subtotal = Math.round(total / 1.19);
+      const tax = total - subtotal;
       
       const order = await createOrder(cartItems, method, total, subtotal, tax);
       
@@ -149,8 +163,8 @@ const PosView = () => {
   };
 
   const totalQty = cartItems.reduce((acc, i) => acc + i.quantity, 0);
-  const subtotal = Math.round(cartItems.reduce((acc, i) => acc + (i.price * i.quantity), 0));
-  const total = subtotal + Math.round(subtotal * 0.19);
+  const total = cartItems.reduce((acc, i) => acc + (Math.round(i.price * 1.19) * i.quantity), 0);
+  const subtotal = Math.round(total / 1.19);
 
   useDocumentTitle('Punto de Venta');
 
@@ -309,7 +323,9 @@ const PosView = () => {
         maxWidth="max-w-sm"
       >
         <div className="p-6">
-          <p className="text-gray-600 mb-6">¿Estás seguro de que deseas eliminar este producto del pedido?</p>
+          <p className="text-gray-600 mb-6">
+            ¿Estás seguro de que deseas eliminar <strong>{cartItems.find(i => i.cartItemId === itemToDelete)?.name}</strong> del pedido?
+          </p>
           <div className="flex gap-3">
             <button
               onClick={() => setItemToDelete(null)}

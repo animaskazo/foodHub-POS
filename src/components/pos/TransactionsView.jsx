@@ -315,7 +315,7 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                           </div>
                         </div>
                         <span className="font-semibold text-gray-900 text-sm">
-                          ${fmt(Math.round(item.total_price * 1.19))}
+                          ${fmt(Math.round(item.unit_price * 1.19) * item.quantity)}
                         </span>
                       </div>
                     ))
