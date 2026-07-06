@@ -114,28 +114,28 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm }) => {
 
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider ml-1">Tipo de Pedido</h3>
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-2 gap-2 md:gap-3 mb-6">
             <button
               onClick={() => setOrderType('table')}
-              className={`flex items-center justify-center p-4 rounded-2xl border-2 transition-all ${
+              className={`flex items-center justify-center p-2.5 md:p-4 rounded-xl md:rounded-2xl border-2 transition-all ${
                 orderType === 'table'
                   ? 'border-blue-500 bg-blue-50 text-blue-700'
                   : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'
               }`}
             >
-              <Coffee className={`h-5 w-5 mr-2 ${orderType === 'table' ? 'text-blue-600' : 'text-gray-400'}`} />
-              <span className="font-bold">Para Servir</span>
+              <Coffee className={`h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 ${orderType === 'table' ? 'text-blue-600' : 'text-gray-400'}`} />
+              <span className="font-bold text-sm md:text-base whitespace-nowrap">Para Servir</span>
             </button>
             <button
               onClick={() => setOrderType('takeaway')}
-              className={`flex items-center justify-center p-4 rounded-2xl border-2 transition-all ${
+              className={`flex items-center justify-center p-2.5 md:p-4 rounded-xl md:rounded-2xl border-2 transition-all ${
                 orderType === 'takeaway'
                   ? 'border-blue-500 bg-blue-50 text-blue-700'
                   : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'
               }`}
             >
-              <Package className={`h-5 w-5 mr-2 ${orderType === 'takeaway' ? 'text-blue-600' : 'text-gray-400'}`} />
-              <span className="font-bold">Para Llevar</span>
+              <Package className={`h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 ${orderType === 'takeaway' ? 'text-blue-600' : 'text-gray-400'}`} />
+              <span className="font-bold text-sm md:text-base whitespace-nowrap">Para Llevar</span>
             </button>
           </div>
 
