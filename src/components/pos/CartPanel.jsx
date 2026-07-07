@@ -156,22 +156,6 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
 
       {/* Footer CTA */}
       <div className="p-4 bg-white border-t border-gray-100 space-y-2.5 shrink-0 pb-safe">
-        {/* Discount / Note quick actions */}
-        <div className="flex gap-2">
-          <button
-            className="flex-1 py-3 md:py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold active:bg-gray-200 select-none"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            % Descuento
-          </button>
-          <button
-            className="flex-1 py-3 md:py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-semibold active:bg-gray-200 select-none"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            📝 Nota
-          </button>
-        </div>
-
         {/* Charge Button */}
         <button
           onPointerDown={onCharge}

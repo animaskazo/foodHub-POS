@@ -2,12 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Loader2, ListFilter, ChevronDown } from 'lucide-react';
-import { getFirstOrganizationId, getIngredients, createIngredient, updateIngredient, deleteIngredient } from '../services/catalogService';
+import { Search, Plus, Loader2, ListFilter, ChevronDown, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { getFirstOrganizationId, getIngredients, createIngredient, updateIngredient, deleteIngredient, bulkDeleteIngredients, duplicateIngredient } from '../services/catalogService';
+import { uploadImage } from '../services/storageService';
+import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import Modal from '../components/ui/Modal';
 import ActionMenu from '../components/ui/ActionMenu';
+import ConfirmDeleteModal from '../components/ui/ConfirmDeleteModal';
 
 const IngredientsManager = () => {
   const [ingredients, setIngredients] = useState([]);
@@ -15,11 +19,15 @@ const IngredientsManager = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, mode: 'single', targetId: null, isDeleting: false });
   
   // Form state
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
     loadIngredients();
@@ -53,12 +61,30 @@ const IngredientsManager = () => {
       setEditingIngredient(ingredient);
       setName(ingredient.name);
       setPrice(ingredient.price.toString());
+      setImageUrl(ingredient.image_url || '');
     } else {
       setEditingIngredient(null);
       setName('');
       setPrice('');
+      setImageUrl('');
     }
     setIsModalOpen(true);
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingImage(true);
+      const url = await uploadImage(file, 'ingredients');
+      setImageUrl(url);
+    } catch (error) {
+      alert("Error al subir la imagen. Por favor intenta de nuevo.");
+      console.error(error);
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const closeModal = () => {
@@ -76,16 +102,19 @@ const IngredientsManager = () => {
       const payload = {
         name: name.trim(),
         price: parseFloat(price) || 0,
-        is_active: true
+        is_active: true,
+        image_url: imageUrl
       };
 
       if (editingIngredient) {
         payload.is_active = editingIngredient.is_active;
         const updated = await updateIngredient(editingIngredient.id, payload);
         setIngredients(prev => prev.map(i => i.id === updated.id ? updated : i));
+        toast.success("Ingrediente actualizado");
       } else {
         const created = await createIngredient(orgId, payload);
         setIngredients(prev => [...prev, created]);
+        toast.success("Ingrediente creado");
       }
       closeModal();
     } catch (error) {
@@ -96,30 +125,44 @@ const IngredientsManager = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (confirm("¿Estás seguro de eliminar este ingrediente?")) {
-      try {
-        await deleteIngredient(id);
-        setIngredients(prev => prev.filter(i => i.id !== id));
-      } catch (error) {
-        alert("Error al eliminar ingrediente. Es posible que esté en uso.");
+  const handleToggleSelect = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const handleToggleSelectAll = (e, currentIngredients) => {
+    if (e.target.checked) {
+      setSelectedIds(currentIngredients.map(i => i.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    setDeleteModal(prev => ({ ...prev, isDeleting: true }));
+    try {
+      if (deleteModal.mode === 'single') {
+        await deleteIngredient(deleteModal.targetId);
+        toast.success("Ingrediente eliminado");
+      } else {
+        await bulkDeleteIngredients(selectedIds);
+        toast.success(`${selectedIds.length} ingredientes eliminados`);
+        setSelectedIds([]);
       }
+      loadIngredients();
+    } catch (err) {
+      toast.error("Error al eliminar ingrediente. Es posible que esté en uso.");
+    } finally {
+      setDeleteModal({ isOpen: false, mode: 'single', targetId: null, isDeleting: false });
     }
   };
 
   const handleDuplicate = async (ingredient) => {
     try {
-      const orgId = getFirstOrganizationId();
-      const newIng = await createIngredient(orgId, {
-        name: ingredient.name + ' (Copia)',
-        price: ingredient.price,
-        is_active: false
-      });
-      if (newIng) {
-        setIngredients(prev => [newIng, ...prev]);
-      }
+      await duplicateIngredient(ingredient.id);
+      toast.success("Ingrediente duplicado con éxito");
+      loadIngredients();
     } catch (error) {
-      alert("Error al duplicar el ingrediente.");
+      toast.error("Error al duplicar el ingrediente.");
     }
   };
 
@@ -134,46 +177,69 @@ const IngredientsManager = () => {
       </div>
 
       {/* Action Bar */}
-      <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input 
-              className="pl-9 w-full sm:w-64 rounded-full border-gray-300" 
-              placeholder="Buscar ingrediente" 
-            />
+      {selectedIds.length > 0 ? (
+        <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b bg-blue-50/50">
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none font-medium text-sm px-3 py-1">
+              {selectedIds.length} seleccionados
+            </Badge>
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px] rounded-full border-gray-200">
-              <span className="font-normal text-gray-500 mr-1">Estado:</span>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="active">Activo</SelectItem>
-              <SelectItem value="inactive">Inactivo</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button variant="outline" className="rounded-full font-normal hidden sm:flex">
-            <ListFilter className="h-4 w-4 mr-2" /> Todos los filtros
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" className="rounded-full text-red-600 border-red-200 hover:bg-red-50" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
+              <Trash2 className="h-4 w-4 mr-2" /> Eliminar seleccionados
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-full">
-            Acciones <ChevronDown className="ml-2 h-4 w-4" />
-          </Button>
-          <Button className="rounded-full bg-black text-white hover:bg-gray-800" onClick={() => openModal()}>
-            <Plus className="h-4 w-4 mr-2" /> Crear ingrediente
-          </Button>
+      ) : (
+        <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input 
+                className="pl-9 w-full sm:w-64 rounded-full border-gray-300" 
+                placeholder="Buscar ingrediente" 
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px] rounded-full border-gray-200">
+                <span className="font-normal text-gray-500 mr-1">Estado:</span>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="active">Activo</SelectItem>
+                <SelectItem value="inactive">Inactivo</SelectItem>
+              </SelectContent>
+            </Select>
+  
+            <Button variant="outline" className="rounded-full font-normal hidden sm:flex">
+              <ListFilter className="h-4 w-4 mr-2" /> Todos los filtros
+            </Button>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" className="rounded-full">
+              Acciones <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+            <Button className="rounded-full bg-black text-white hover:bg-gray-800" onClick={() => openModal()}>
+              <Plus className="h-4 w-4 mr-2" /> Crear ingrediente
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Table Section */}
       <div className="flex-1 overflow-auto">
         <table className="w-full text-sm text-left">
           <thead className="bg-white border-b text-gray-500 font-medium sticky top-0 z-10">
             <tr>
+              <th className="px-6 py-3 w-10">
+                <input 
+                  type="checkbox" 
+                  className="rounded border-gray-300"
+                  checked={ingredients.length > 0 && selectedIds.length === ingredients.length}
+                  onChange={(e) => handleToggleSelectAll(e, ingredients)}
+                />
+              </th>
               <th className="px-6 py-3 font-medium">Ingrediente</th>
               <th className="px-6 py-3 font-medium">Precio Adicional</th>
               <th className="px-6 py-3 font-medium text-center">Estado</th>
@@ -200,8 +266,24 @@ const IngredientsManager = () => {
                   key={ingredient.id}
                   className="hover:bg-gray-50 group transition-colors"
                 >
+                  <td className="px-6 py-4">
+                    <input 
+                      type="checkbox" 
+                      className="rounded border-gray-300"
+                      checked={selectedIds.includes(ingredient.id)}
+                      onChange={() => handleToggleSelect(ingredient.id)}
+                    />
+                  </td>
                   <td className="px-6 py-4 font-medium text-gray-900">
-                    {ingredient.name}
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden"
+                        style={ingredient.image_url ? { backgroundImage: `url(${ingredient.image_url})` } : {}}
+                      >
+                        {!ingredient.image_url && <ImageIcon className="h-4 w-4 text-gray-400" />}
+                      </div>
+                      <span>{ingredient.name}</span>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-gray-600">
                     +${ingredient.price}
@@ -223,7 +305,7 @@ const IngredientsManager = () => {
                         Editar
                       </button>
                       <ActionMenu 
-                        onDelete={() => handleDelete(ingredient.id)}
+                        onDelete={() => setDeleteModal({ isOpen: true, mode: 'single', targetId: ingredient.id, isDeleting: false })}
                         onDuplicate={() => handleDuplicate(ingredient)}
                       />
                     </div>
@@ -239,6 +321,38 @@ const IngredientsManager = () => {
       <Modal isOpen={isModalOpen} onClose={closeModal} title={editingIngredient ? "Editar Ingrediente" : "Nuevo Ingrediente"}>
         <form onSubmit={handleSave} className="flex flex-col h-full">
           <div className="p-6 space-y-4 flex-1">
+            <div className="flex items-center gap-4 mb-2">
+              <div 
+                className="w-16 h-16 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden"
+                style={imageUrl ? { backgroundImage: `url(${imageUrl})` } : {}}
+              >
+                {!imageUrl && <ImageIcon className="h-6 w-6 text-gray-400" />}
+              </div>
+              
+              <div className="flex-1">
+                <label className="flex items-center justify-center gap-2 w-full h-11 px-3 bg-white border border-gray-200 hover:border-gray-300 rounded-lg text-[14px] font-semibold text-gray-700 cursor-pointer transition-colors">
+                  {isUploadingImage ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="animate-spin h-4 w-4 text-gray-500" />
+                      Subiendo...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4" /> 
+                      {imageUrl ? 'Cambiar imagen' : 'Subir imagen'}
+                    </span>
+                  )}
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={isUploadingImage}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Ingrediente</label>
               <Input 
@@ -263,16 +377,28 @@ const IngredientsManager = () => {
             </div>
           </div>
           <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 shrink-0">
-            <Button type="button" variant="outline" className="rounded-full" onClick={closeModal} disabled={isSaving}>
+            <Button type="button" variant="outline" className="rounded-full" onClick={closeModal} disabled={isSaving || isUploadingImage}>
               Cancelar
             </Button>
-            <Button type="submit" className="rounded-full bg-black text-white hover:bg-gray-800" disabled={isSaving}>
+            <Button type="submit" className="rounded-full bg-black text-white hover:bg-gray-800" disabled={isSaving || isUploadingImage}>
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               {editingIngredient ? 'Guardar Cambios' : 'Crear Ingrediente'}
             </Button>
           </div>
         </form>
       </Modal>
+
+      <ConfirmDeleteModal 
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={handleDeleteConfirm}
+        isDeleting={deleteModal.isDeleting}
+        title={deleteModal.mode === 'single' ? "Eliminar ingrediente" : "Eliminar ingredientes"}
+        description={deleteModal.mode === 'single' 
+          ? "¿Estás seguro de que deseas eliminar este ingrediente? Podría afectar los artículos que lo usan."
+          : `¿Estás seguro de que deseas eliminar los ${selectedIds.length} ingredientes seleccionados? Podría afectar los artículos que los usan.`
+        }
+      />
     </div>
   );
 };

@@ -14,6 +14,7 @@ import DashboardView from './pages/DashboardView';
 import SettingsView from './pages/SettingsView';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import { Toaster } from 'sonner';
 
 function App() {
   return (
@@ -43,13 +44,9 @@ function App() {
         <Route path="/pos" element={<PosView />} />
         <Route path="/kitchen" element={<KitchenView />} />
         <Route path="/categories/:id" element={<CreateCategoryView />} />
-        <Route path="/products/:id" element={
-          <CreateProductView 
-            onClose={() => window.history.back()} 
-            onSave={() => window.history.back()} 
-          />
-        } />
+        <Route path="/products/:id" element={<CreateProductView />} />
         </Routes>
+        <Toaster position="top-right" richColors expand={false} offset="80px" />
       </BrowserRouter>
     </AuthProvider>
   );

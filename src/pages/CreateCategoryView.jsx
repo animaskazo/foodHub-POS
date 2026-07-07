@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
-import { X, Image as ImageIcon, Network, Tags, Store, Info, ChevronDown } from 'lucide-react';
+import { X, Image as ImageIcon, Network, Tags, Store, Info, ChevronDown, Loader2 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { getFirstOrganizationId, createCategory, getCategoryById, updateCategory } from '../services/catalogService';
 
 const SectionRow = ({ icon: Icon, title, description, children }) => (
@@ -68,13 +68,14 @@ const CreateCategoryView = () => {
       
       if (isEditing) {
         await updateCategory(id, formData);
+        toast.success("Categoría actualizada exitosamente");
       } else {
         const orgId = await getFirstOrganizationId();
         if (!orgId) throw new Error("Organización no encontrada");
-        await createCategory(orgId, formData);
+        const created = await createCategory(orgId, formData);
+        toast.success("Categoría creada exitosamente");
+        navigate(`/categories/${created.id}`, { replace: true });
       }
-      
-      navigate(-1);
     } catch (error) {
       console.error(error);
       alert("Error al guardar la categoría");
@@ -100,8 +101,9 @@ const CreateCategoryView = () => {
         <button
           onClick={handleSave}
           disabled={isSaving || isLoading}
-          className="px-6 py-2.5 bg-black text-white text-[15px] font-semibold rounded-full active:bg-gray-800 transition-colors disabled:opacity-50"
+          className="px-6 py-2.5 bg-black text-white text-[15px] font-semibold rounded-full active:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
         >
+          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           {isSaving ? 'Guardando...' : 'Guardar'}
         </button>
       </header>

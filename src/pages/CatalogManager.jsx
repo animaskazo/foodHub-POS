@@ -3,12 +3,15 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, ChevronDown, ListFilter, Plus, MoreHorizontal } from 'lucide-react';
+import { Search, ChevronDown, ListFilter, Plus, MoreHorizontal, Sparkles, Trash2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getFirstOrganizationId, getProducts, getCategories, quickUpdateProductStatus, quickUpdateProductCategory } from '../services/catalogService';
+import { getFirstOrganizationId, getProducts, getCategories, quickUpdateProductStatus, quickUpdateProductCategory, deleteProduct, bulkDeleteProducts, duplicateProduct } from '../services/catalogService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import ActionMenu from '../components/ui/ActionMenu';
+import AIImportModal from '../components/catalog/AIImportModal';
+import ConfirmDeleteModal from '../components/ui/ConfirmDeleteModal';
+import { toast } from 'sonner';
 
 const CatalogManager = () => {
   const [products, setProducts] = useState([]);
@@ -16,6 +19,9 @@ const CatalogManager = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all'); // all, available, unavailable
   const [collapsedCategories, setCollapsedCategories] = useState({});
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, mode: 'single', targetId: null, isDeleting: false });
   const navigate = useNavigate();
 
   const toggleCategory = (catName) => {
@@ -25,20 +31,21 @@ const CatalogManager = () => {
     }));
   };
 
+  const loadData = async () => {
+    setLoading(true);
+    const orgId = await getFirstOrganizationId();
+    if (orgId) {
+      const [prods, cats] = await Promise.all([
+        getProducts(orgId),
+        getCategories(orgId)
+      ]);
+      setProducts(prods);
+      setCategories(cats);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      const orgId = await getFirstOrganizationId();
-      if (orgId) {
-        const [prods, cats] = await Promise.all([
-          getProducts(orgId),
-          getCategories(orgId)
-        ]);
-        setProducts(prods);
-        setCategories(cats);
-      }
-      setLoading(false);
-    };
     loadData();
   }, []);
 
@@ -65,6 +72,47 @@ const CatalogManager = () => {
     }
   };
 
+  const handleToggleSelect = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const handleToggleSelectAll = (e, currentProducts) => {
+    if (e.target.checked) {
+      setSelectedIds(currentProducts.map(p => p.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    setDeleteModal(prev => ({ ...prev, isDeleting: true }));
+    try {
+      if (deleteModal.mode === 'single') {
+        await deleteProduct(deleteModal.targetId);
+        toast.success("Producto eliminado");
+      } else {
+        await bulkDeleteProducts(selectedIds);
+        toast.success(`${selectedIds.length} productos eliminados`);
+        setSelectedIds([]);
+      }
+      loadData();
+    } catch (err) {
+      toast.error("Error al eliminar");
+    } finally {
+      setDeleteModal({ isOpen: false, mode: 'single', targetId: null, isDeleting: false });
+    }
+  };
+
+  const handleDuplicate = async (id) => {
+    try {
+      await duplicateProduct(id);
+      toast.success("Producto duplicado con éxito");
+      loadData();
+    } catch (err) {
+      toast.error("Error al duplicar producto");
+    }
+  };
+
   useDocumentTitle('Artículos');
 
 
@@ -76,46 +124,64 @@ const CatalogManager = () => {
       </div>
 
       {/* Action Bar */}
-      <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input 
-              className="pl-9 w-full sm:w-64 rounded-full border-gray-300" 
-              placeholder="Buscar" 
-            />
+      {selectedIds.length > 0 ? (
+        <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b bg-blue-50/50">
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none font-medium text-sm px-3 py-1">
+              {selectedIds.length} seleccionados
+            </Badge>
           </div>
-          <Button variant="outline" className="rounded-full font-normal hidden sm:flex">
-            Categoría
-          </Button>
-          
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px] rounded-full border-gray-200">
-              <span className="font-normal text-gray-500 mr-1">Estado:</span>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="available">Activo</SelectItem>
-              <SelectItem value="unavailable">Inactivo</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button variant="outline" className="rounded-full font-normal hidden sm:flex">
-            <ListFilter className="h-4 w-4 mr-2" /> Todos los filtros
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" className="rounded-full text-red-600 border-red-200 hover:bg-red-50" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
+              <Trash2 className="h-4 w-4 mr-2" /> Eliminar seleccionados
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-full">
-            Acciones <ChevronDown className="ml-2 h-4 w-4" />
-          </Button>
-          <Button className="rounded-full bg-black text-white hover:bg-gray-800" asChild>
-            <Link to="/products/new">
-              Crear artículo
-            </Link>
-          </Button>
+      ) : (
+        <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input 
+                className="pl-9 w-full sm:w-64 rounded-full border-gray-300" 
+                placeholder="Buscar" 
+              />
+            </div>
+            <Button variant="outline" className="rounded-full font-normal hidden sm:flex">
+              Categoría
+            </Button>
+            
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px] rounded-full border-gray-200">
+                <span className="font-normal text-gray-500 mr-1">Estado:</span>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="available">Activo</SelectItem>
+                <SelectItem value="unavailable">Inactivo</SelectItem>
+              </SelectContent>
+            </Select>
+  
+            <Button variant="outline" className="rounded-full font-normal hidden sm:flex">
+              <ListFilter className="h-4 w-4 mr-2" /> Todos los filtros
+            </Button>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" className="rounded-full text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => setIsAIModalOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-2" /> Importar menú
+            </Button>
+            <Button variant="outline" className="rounded-full">
+              Acciones <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+            <Button className="rounded-full bg-black text-white hover:bg-gray-800" asChild>
+              <Link to="/products/new">
+                Crear artículo
+              </Link>
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Table Section */}
       <div className="flex-1 overflow-auto">
@@ -123,7 +189,12 @@ const CatalogManager = () => {
           <thead className="bg-white border-b text-gray-500 font-medium sticky top-0 z-10">
             <tr>
               <th className="px-6 py-3 w-10">
-                <input type="checkbox" className="rounded border-gray-300" />
+                <input 
+                  type="checkbox" 
+                  className="rounded border-gray-300"
+                  checked={products.length > 0 && selectedIds.length === products.length}
+                  onChange={(e) => handleToggleSelectAll(e, products)}
+                />
               </th>
               <th className="px-6 py-3 font-medium">Artículo</th>
               <th className="px-6 py-3 font-medium">Categoría de informes</th>
@@ -193,7 +264,12 @@ const CatalogManager = () => {
                         className="hover:bg-gray-50 group transition-colors"
                       >
                         <td className="px-6 py-4">
-                          <input type="checkbox" className="rounded border-gray-300" />
+                          <input 
+                            type="checkbox" 
+                            className="rounded border-gray-300"
+                            checked={selectedIds.includes(product.id)}
+                            onChange={() => handleToggleSelect(product.id)}
+                          />
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
@@ -246,8 +322,8 @@ const CatalogManager = () => {
                               Editar
                             </button>
                             <ActionMenu 
-                              onDelete={() => alert("Función eliminar producto no implementada")}
-                              onDuplicate={() => alert("Función duplicar producto no implementada")}
+                              onDelete={() => setDeleteModal({ isOpen: true, mode: 'single', targetId: product.id, isDeleting: false })}
+                              onDuplicate={() => handleDuplicate(product.id)}
                             />
                           </div>
                         </td>
@@ -260,6 +336,22 @@ const CatalogManager = () => {
           </tbody>
         </table>
       </div>
+      <AIImportModal 
+        isOpen={isAIModalOpen} 
+        onClose={() => setIsAIModalOpen(false)} 
+        onSuccess={loadData} 
+      />
+      <ConfirmDeleteModal 
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={handleDeleteConfirm}
+        isDeleting={deleteModal.isDeleting}
+        title={deleteModal.mode === 'single' ? "Eliminar artículo" : "Eliminar artículos"}
+        description={deleteModal.mode === 'single' 
+          ? "¿Estás seguro de que deseas eliminar este artículo? Esta acción no se puede deshacer."
+          : `¿Estás seguro de que deseas eliminar los ${selectedIds.length} artículos seleccionados? Esta acción no se puede deshacer.`
+        }
+      />
     </div>
   );
 };

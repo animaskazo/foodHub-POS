@@ -425,7 +425,8 @@ export const createIngredient = async (organizationId, ingredientData) => {
         organization_id: organizationId,
         name: ingredientData.name,
         price: ingredientData.price || 0,
-        is_active: ingredientData.is_active !== false
+        is_active: ingredientData.is_active !== false,
+        image_url: ingredientData.image_url || null
       }
     ])
     .select();
@@ -440,7 +441,8 @@ export const updateIngredient = async (id, ingredientData) => {
     .update({ 
       name: ingredientData.name,
       price: ingredientData.price || 0,
-      is_active: ingredientData.is_active !== false
+      is_active: ingredientData.is_active !== false,
+      image_url: ingredientData.image_url !== undefined ? ingredientData.image_url : null
     })
     .eq('id', id)
     .select();
@@ -456,5 +458,84 @@ export const deleteIngredient = async (id) => {
     .eq('id', id);
     
   if (error) throw error;
+};
+
+// ── BULK CRUD & DUPLICATION ──────────────────────────────────────────────
+
+export const deleteCategory = async (id) => {
+  const { error } = await supabase.from('categories').delete().eq('id', id);
+  if (error) throw error;
+};
+
+export const bulkDeleteCategories = async (ids) => {
+  if (!ids || ids.length === 0) return;
+  const { error } = await supabase.from('categories').delete().in('id', ids);
+  if (error) throw error;
+};
+
+export const duplicateCategory = async (id) => {
+  const cat = await getCategoryById(id);
+  const { data, error } = await supabase
+    .from('categories')
+    .insert([{
+      organization_id: cat.organization_id,
+      name: `Copia de ${cat.name}`,
+      is_active: cat.is_active,
+      image_url: cat.image_url
+    }])
+    .select();
+  if (error) throw error;
+  return data[0];
+};
+
+export const deleteProduct = async (id) => {
+  const { error } = await supabase.from('products').delete().eq('id', id);
+  if (error) throw error;
+};
+
+export const bulkDeleteProducts = async (ids) => {
+  if (!ids || ids.length === 0) return;
+  const { error } = await supabase.from('products').delete().in('id', ids);
+  if (error) throw error;
+};
+
+export const duplicateProduct = async (id) => {
+  const prod = await getProductById(id);
+  const newProductData = {
+    name: `Copia de ${prod.name}`,
+    description: prod.description,
+    price: prod.base_price,
+    sku: prod.sku,
+    gtin: prod.gtin,
+    type: prod.type === 'service' ? 'Servicio' : 'Producto físico',
+    categoryId: prod.categoryId,
+    imageUrl: prod.imageUrl,
+    variants: prod.variants,
+    ingredients: prod.ingredients
+  };
+  return await createProduct(prod.organization_id, newProductData);
+};
+
+export const bulkDeleteIngredients = async (ids) => {
+  if (!ids || ids.length === 0) return;
+  const { error } = await supabase.from('ingredients').delete().in('id', ids);
+  if (error) throw error;
+};
+
+export const duplicateIngredient = async (id) => {
+  const { data: ing, error: fetchErr } = await supabase
+    .from('ingredients')
+    .select('*')
+    .eq('id', id)
+    .single();
+  if (fetchErr) throw fetchErr;
+
+  const newIngData = {
+    name: `Copia de ${ing.name}`,
+    price: ing.price,
+    is_active: ing.is_active,
+    image_url: ing.image_url
+  };
+  return await createIngredient(ing.organization_id, newIngData);
 };
 

@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { getFirstOrganizationId, createProduct, getProductById, updateProduct, getCategories, getIngredients } from '../services/catalogService';
+import { uploadImage } from '../services/storageService';
 import Modal from '../components/ui/Modal';
 import { 
   Select,
@@ -15,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { 
-  X, Tag, ScanLine, Image as ImageIcon, Store, Globe, Plus, Search, Info, ChevronDown, Trash2
+  X, Tag, ScanLine, Image as ImageIcon, Store, Globe, Plus, Search, Info, ChevronDown, Trash2, Loader2
 } from 'lucide-react';
 
 const InfoIcon = () => (
@@ -42,8 +44,9 @@ const SectionRow = ({ title, description, badge, children }) => (
   </div>
 );
 
-const CreateProductView = ({ onClose, onSave }) => {
+const CreateProductView = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const isEditing = id && id !== 'new';
 
   const [formData, setFormData] = useState({
@@ -59,6 +62,7 @@ const CreateProductView = ({ onClose, onSave }) => {
   const [globalIngredients, setGlobalIngredients] = useState([]);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useDocumentTitle(isEditing ? 'Editar artículo' : 'Crear artículo');
 
@@ -144,13 +148,30 @@ const CreateProductView = ({ onClose, onSave }) => {
     setHasChanges(true);
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingImage(true);
+      const url = await uploadImage(file, 'products');
+      setFormData({ ...formData, imageUrl: url });
+      setHasChanges(true);
+    } catch (error) {
+      alert("Error al subir la imagen. Por favor intenta de nuevo.");
+      console.error(error);
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   const handleClose = () => {
     if (hasChanges) {
       if (window.confirm("Tienes cambios sin guardar. ¿Estás seguro de que deseas salir sin guardar?")) {
-        onClose?.();
+        navigate(-1);
       }
     } else {
-      onClose?.();
+      navigate(-1);
     }
   };
 
@@ -199,16 +220,16 @@ const CreateProductView = ({ onClose, onSave }) => {
 
       if (isEditing) {
         await updateProduct(id, productPayload);
+        toast.success("Producto actualizado exitosamente");
       } else {
         const orgId = await getFirstOrganizationId();
         if (!orgId) throw new Error("Organización no encontrada");
-        await createProduct(orgId, productPayload);
+        const created = await createProduct(orgId, productPayload);
+        toast.success("Producto creado exitosamente");
+        navigate(`/products/${created.id}`, { replace: true });
       }
       
-      // Llamar a onSave y onClose para volver atrás
       setHasChanges(false);
-      onSave?.();
-      onClose?.();
     } catch (error) {
       console.error(error);
       alert("Error al guardar el producto");
@@ -230,9 +251,10 @@ const CreateProductView = ({ onClose, onSave }) => {
         <h1 className="text-[17px] font-bold">{isEditing ? 'Editar artículo' : 'Crear artículo'}</h1>
         <Button
           onClick={handleSave}
-          disabled={isSaving || isLoading}
+          disabled={isSaving || isLoading || isUploadingImage}
           className="rounded-full px-6 bg-black text-white hover:bg-gray-800"
         >
+          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           {isSaving ? 'Guardando...' : 'Guardar'}
         </Button>
       </header>
@@ -327,13 +349,30 @@ const CreateProductView = ({ onClose, onSave }) => {
                 >
                   {!formData.imageUrl && <ImageIcon className="h-6 w-6 text-gray-400" />}
                 </div>
-                <input
-                  type="url"
-                  value={formData.imageUrl}
-                  onChange={(e) => { setFormData({ ...formData, imageUrl: e.target.value }); setHasChanges(true); }}
-                  className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg text-[15px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  placeholder="URL de la imagen (ej. https://...)"
-                />
+                
+                <div className="flex-1">
+                  <label className="flex items-center justify-center gap-2 w-full h-11 px-3 bg-white border border-gray-200 hover:border-gray-300 rounded-lg text-[14px] font-semibold text-gray-700 cursor-pointer transition-colors">
+                    {isUploadingImage ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        Subiendo...
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4" /> 
+                        {formData.imageUrl ? 'Cambiar imagen' : 'Subir imagen'}
+                      </span>
+                    )}
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={isUploadingImage}
+                      className="hidden"
+                    />
+                  </label>
+                  <p className="text-[12px] text-gray-400 mt-2 text-center">JPG o PNG, máx. 5MB</p>
+                </div>
               </div>
             </div>
 
