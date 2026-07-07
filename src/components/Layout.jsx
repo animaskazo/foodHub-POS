@@ -10,6 +10,7 @@ import {
   ChevronRight, 
   Store,
   Building2,
+  Settings,
   LogOut,
   Menu,
   X
@@ -62,12 +63,12 @@ const Layout = () => {
                 to="/" 
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={({ isActive }) => 
-                  `flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${
                     isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                   }`
                 }
               >
-                <LayoutDashboard className="h-4 w-4" />
+                <LayoutDashboard className="h-[18px] w-[18px]" />
                 Dashboard
               </NavLink>
             </li>
@@ -78,12 +79,12 @@ const Layout = () => {
                   to="/superadmin" 
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={({ isActive }) => 
-                    `flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${
                       isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                     }`
                   }
                 >
-                  <Building2 className="h-4 w-4" />
+                  <Building2 className="h-[18px] w-[18px]" />
                   Super Admin
                 </NavLink>
               </li>
@@ -92,13 +93,13 @@ const Layout = () => {
             <li className="pt-2">
               <button 
                 onClick={() => setIsProductsOpen(!isProductsOpen)}
-                className="w-full flex items-center justify-between px-3 py-2 text-gray-600 hover:bg-gray-50 hover:text-black rounded-md transition-colors"
+                className="w-full flex items-center justify-between px-3 py-2.5 text-gray-600 hover:bg-gray-50 hover:text-black rounded-lg transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <Package className="h-4 w-4" />
-                  Productos
+                <div className="flex items-center gap-3 text-[15px] font-semibold">
+                  <Package className="h-[18px] w-[18px]" />
+                  Catálogo
                 </div>
-                {isProductsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                {isProductsOpen ? <ChevronDown className="h-[18px] w-[18px]" /> : <ChevronRight className="h-[18px] w-[18px]" />}
               </button>
               
               {isProductsOpen && (
@@ -108,12 +109,12 @@ const Layout = () => {
                       to="/categories" 
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) => 
-                        `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                          isActive ? 'bg-gray-100 text-black font-medium' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
+                          isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                         }`
                       }
                     >
-                      <Tags className="h-4 w-4" />
+                      <Tags className="h-[18px] w-[18px]" />
                       Categorías
                     </NavLink>
                   </li>
@@ -122,12 +123,12 @@ const Layout = () => {
                       to="/ingredients" 
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) => 
-                        `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                          isActive ? 'bg-gray-100 text-black font-medium' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
+                          isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                         }`
                       }
                     >
-                      <PlusCircle className="h-4 w-4" />
+                      <PlusCircle className="h-[18px] w-[18px]" />
                       Ingredientes
                     </NavLink>
                   </li>
@@ -136,17 +137,32 @@ const Layout = () => {
                       to="/products" 
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) => 
-                        `flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                          isActive ? 'bg-gray-100 text-black font-medium' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
+                          isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                         }`
                       }
                     >
-                      <Package className="h-4 w-4" />
+                      <Package className="h-[18px] w-[18px]" />
                       Artículos
                     </NavLink>
                   </li>
                 </ul>
               )}
+            </li>
+
+            <li className="pt-2">
+              <NavLink 
+                to="/settings" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={({ isActive }) => 
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${
+                    isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                  }`
+                }
+              >
+                <Settings className="h-[18px] w-[18px]" />
+                Configuración
+              </NavLink>
             </li>
           </ul>
         </nav>
@@ -155,9 +171,9 @@ const Layout = () => {
         <div className="p-4 border-t shrink-0">
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2 w-full rounded-md text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-semibold text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-[18px] w-[18px]" />
             Cerrar Sesión
           </button>
         </div>

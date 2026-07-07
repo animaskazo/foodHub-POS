@@ -89,6 +89,10 @@ export const getProducts = async (organizationId, filters = {}) => {
   // Transform the nested Supabase relation into a flat object for the UI
   return data.map(product => {
     const categoryInfo = product.product_categories?.[0]?.categories;
+    const variantGroup = product.variant_groups && product.variant_groups.length > 0 
+      ? product.variant_groups[product.variant_groups.length - 1] 
+      : null;
+
     return {
       id: product.id,
       name: product.name,
@@ -98,7 +102,7 @@ export const getProducts = async (organizationId, filters = {}) => {
       categoryId: categoryInfo?.id || 'none',
       image: product.product_images?.[0]?.url || null,
       status: product.status === 'available' ? 'Disponible' : 'No disponible',
-      variants: product.variant_groups?.[0]?.variant_options || [],
+      variants: variantGroup?.variant_options || [],
       ingredients: product.product_ingredients?.map(pi => pi.ingredients).filter(Boolean) || []
     };
   });
@@ -271,9 +275,9 @@ export const getProductById = async (id) => {
     data.categoryId = data.product_categories?.[0]?.category_id || 'none';
     data.imageUrl = data.product_images?.[0]?.url || '';
     
-    // Extraer variantes del primer grupo
+    // Extraer variantes del último grupo (el más reciente)
     if (data.variant_groups && data.variant_groups.length > 0) {
-      data.variants = data.variant_groups[0].variant_options || [];
+      data.variants = data.variant_groups[data.variant_groups.length - 1].variant_options || [];
     } else {
       data.variants = [];
     }

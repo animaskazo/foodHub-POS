@@ -15,7 +15,15 @@ const CatalogManager = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all'); // all, available, unavailable
+  const [collapsedCategories, setCollapsedCategories] = useState({});
   const navigate = useNavigate();
+
+  const toggleCategory = (catName) => {
+    setCollapsedCategories(prev => ({
+      ...prev,
+      [catName]: !prev[catName]
+    }));
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -135,80 +143,120 @@ const CatalogManager = () => {
                   Cargando artículos...
                 </td>
               </tr>
-            ) : products.filter(p => statusFilter === 'all' || (statusFilter === 'available' ? p.status === 'Disponible' : p.status === 'No disponible')).length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                  No se encontraron artículos con ese filtro.
-                </td>
-              </tr>
-            ) : (
-              products.filter(p => statusFilter === 'all' || (statusFilter === 'available' ? p.status === 'Disponible' : p.status === 'No disponible')).map((product) => (
-                <tr 
-                  key={product.id}
-                  className="hover:bg-gray-50 group transition-colors"
-                >
-                  <td className="px-6 py-4">
-                    <input type="checkbox" className="rounded border-gray-300" />
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div 
-                        className="w-10 h-10 rounded overflow-hidden bg-gray-100 bg-cover bg-center shrink-0 border flex items-center justify-center text-gray-400"
-                        style={product.image ? { backgroundImage: `url(${product.image})` } : {}}
-                      >
-                        {!product.image && <span className="text-xs">Sin foto</span>}
-                      </div>
-                      <span className="font-medium text-gray-900">{product.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">
-                    <Select 
-                      value={product.categoryId} 
-                      onValueChange={(val) => handleCategoryChange(product.id, val)}
+            ) : (() => {
+              const filteredProducts = products.filter(p => statusFilter === 'all' || (statusFilter === 'available' ? p.status === 'Disponible' : p.status === 'No disponible'));
+              
+              if (filteredProducts.length === 0) {
+                return (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                      No se encontraron artículos con ese filtro.
+                    </td>
+                  </tr>
+                );
+              }
+
+              const groupedProducts = filteredProducts.reduce((acc, product) => {
+                const cat = product.category || 'General';
+                if (!acc[cat]) acc[cat] = [];
+                acc[cat].push(product);
+                return acc;
+              }, {});
+
+              // Sort categories alphabetically, maybe keep 'General' at the end
+              const sortedCategories = Object.keys(groupedProducts).sort((a, b) => {
+                if (a === 'General') return 1;
+                if (b === 'General') return -1;
+                return a.localeCompare(b);
+              });
+
+              return sortedCategories.map(catName => {
+                const isCollapsed = collapsedCategories[catName];
+                const prods = groupedProducts[catName];
+                
+                return (
+                  <React.Fragment key={catName}>
+                    <tr 
+                      className="bg-gray-100/80 hover:bg-gray-100 cursor-pointer border-t border-b border-gray-200 select-none" 
+                      onClick={() => toggleCategory(catName)}
                     >
-                      <SelectTrigger className="h-8 border-transparent hover:border-gray-200 bg-transparent hover:bg-white w-[140px] shadow-none">
-                        <SelectValue>{product.category}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">General</SelectItem>
-                        {categories.map(c => (
-                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <div className="flex justify-center items-center">
-                      <Switch 
-                        checked={product.status === 'Disponible'} 
-                        onCheckedChange={(checked) => handleStatusChange(product.id, checked ? 'available' : 'unavailable')}
-                      />
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="font-semibold text-gray-900">${Math.round(product.price * 1.19).toLocaleString('es-CL')}</div>
-                    <div className="text-[11px] text-gray-500 mt-0.5">Neto: ${product.price?.toLocaleString('es-CL')}</div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button 
-                        className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-full hover:bg-gray-50 transition-colors shadow-sm active:bg-gray-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/products/${product.id}`);
-                        }}
+                      <td colSpan={7} className="px-6 py-3 font-semibold text-gray-800">
+                        <div className="flex items-center gap-2">
+                          <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} />
+                          {catName} <span className="text-gray-500 text-sm font-normal">({prods.length})</span>
+                        </div>
+                      </td>
+                    </tr>
+                    {!isCollapsed && prods.map((product) => (
+                      <tr 
+                        key={product.id}
+                        className="hover:bg-gray-50 group transition-colors"
                       >
-                        Editar
-                      </button>
-                      <ActionMenu 
-                        onDelete={() => alert("Función eliminar producto no implementada")}
-                        onDuplicate={() => alert("Función duplicar producto no implementada")}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
+                        <td className="px-6 py-4">
+                          <input type="checkbox" className="rounded border-gray-300" />
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-10 h-10 rounded overflow-hidden bg-gray-100 bg-cover bg-center shrink-0 border flex items-center justify-center text-gray-400"
+                              style={product.image ? { backgroundImage: `url(${product.image})` } : {}}
+                            >
+                              {!product.image && <span className="text-xs">Sin foto</span>}
+                            </div>
+                            <span className="font-medium text-gray-900">{product.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-gray-600">
+                          <Select 
+                            value={product.categoryId} 
+                            onValueChange={(val) => handleCategoryChange(product.id, val)}
+                          >
+                            <SelectTrigger className="h-8 border-transparent hover:border-gray-200 bg-transparent hover:bg-white w-[140px] shadow-none">
+                              <SelectValue>{product.category}</SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">General</SelectItem>
+                              {categories.map(c => (
+                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex justify-center items-center">
+                            <Switch 
+                              checked={product.status === 'Disponible'} 
+                              onCheckedChange={(checked) => handleStatusChange(product.id, checked ? 'available' : 'unavailable')}
+                            />
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="font-semibold text-gray-900">${Math.round(product.price * 1.19).toLocaleString('es-CL')}</div>
+                          <div className="text-[11px] text-gray-500 mt-0.5">Neto: ${product.price?.toLocaleString('es-CL')}</div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button 
+                              className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-full hover:bg-gray-50 transition-colors shadow-sm active:bg-gray-100"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/products/${product.id}`);
+                              }}
+                            >
+                              Editar
+                            </button>
+                            <ActionMenu 
+                              onDelete={() => alert("Función eliminar producto no implementada")}
+                              onDuplicate={() => alert("Función duplicar producto no implementada")}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                );
+              });
+            })()}
           </tbody>
         </table>
       </div>

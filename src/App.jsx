@@ -11,6 +11,7 @@ import LoginView from './pages/LoginView';
 import SignupView from './pages/SignupView';
 import SuperAdminView from './pages/SuperAdminView';
 import DashboardView from './pages/DashboardView';
+import SettingsView from './pages/SettingsView';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -33,6 +34,7 @@ function App() {
           <Route path="categories" element={<CategoriesList />} />
           <Route path="ingredients" element={<IngredientsManager />} />
           <Route path="products" element={<CatalogManager />} />
+          <Route path="settings" element={<SettingsView />} />
         </Route>
         
         {/* Full-screen Modals & Views (Outside Layout) */}

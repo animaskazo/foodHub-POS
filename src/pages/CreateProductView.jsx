@@ -247,22 +247,7 @@ const CreateProductView = ({ onClose, onSave }) => {
           {/* Left column */}
           <div className="space-y-4">
 
-            {/* Tipo de artículo */}
-            <div className="form-field flex items-center px-4 gap-3">
-              <Tag className="h-5 w-5 text-gray-400 shrink-0" />
-              <div className="flex-1">
-                <p className="text-[11px] font-medium text-gray-400 mt-3 mb-0.5">Tipo de artículo</p>
-                <Select value={formData.type} onValueChange={(val) => handleSelectChange('type', val)}>
-                  <SelectTrigger className="border-0 shadow-none focus:ring-0 w-full h-9 bg-transparent px-0 font-medium text-[15px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Producto físico">Producto físico</SelectItem>
-                    <SelectItem value="Servicio">Servicio</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+
 
             {/* Nombre */}
             <div className="form-field flex items-center px-4 gap-2">
@@ -273,9 +258,6 @@ const CreateProductView = ({ onClose, onSave }) => {
                 value={formData.name}
                 onChange={handleChange}
               />
-              <div className="flex items-center gap-1 text-gray-400">
-                <button className="p-1.5 rounded-lg active:bg-gray-100"><ScanLine className="h-5 w-5" /></button>
-              </div>
             </div>
 
             {/* Precio */}
@@ -366,32 +348,17 @@ const CreateProductView = ({ onClose, onSave }) => {
 
             <Separator />
 
-            {/* SKU / GTIN */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="form-field flex items-center px-4 gap-2">
-                <input
-                  className="flex-1 h-12 bg-transparent text-[15px] outline-none placeholder-gray-400"
-                  placeholder="SKU"
-                  name="sku"
-                  value={formData.sku}
-                  onChange={handleChange}
-                />
-                <InfoIcon />
-              </div>
-              <div className="form-field flex items-center px-4 gap-2">
-                <input
-                  className="flex-1 h-12 bg-transparent text-[15px] outline-none placeholder-gray-400"
-                  placeholder="GTIN"
-                  name="gtin"
-                  value={formData.gtin}
-                  onChange={handleChange}
-                />
-                <InfoIcon />
-              </div>
+            {/* SKU */}
+            <div className="form-field flex items-center px-4 gap-2">
+              <input
+                className="flex-1 h-12 bg-transparent text-[15px] outline-none placeholder-gray-400"
+                placeholder="SKU (opcional)"
+                name="sku"
+                value={formData.sku}
+                onChange={handleChange}
+              />
+              <InfoIcon />
             </div>
-            <button className="text-sm font-semibold text-blue-600 -mt-1">
-              Agregar costo por unidad y proveedor
-            </button>
 
             {/* Secciones adicionales */}
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mt-2 divide-y divide-gray-100">
@@ -490,7 +457,11 @@ const CreateProductView = ({ onClose, onSave }) => {
               <div className="relative">
                 <Select value={formData.categoryId} onValueChange={(val) => handleSelectChange('categoryId', val)}>
                   <SelectTrigger className="w-full bg-gray-50 border-gray-200 rounded-lg">
-                    <SelectValue placeholder="Sin categoría" />
+                    <SelectValue placeholder="Sin categoría">
+                      {formData.categoryId === 'none' 
+                        ? 'Sin categoría (General)' 
+                        : categories.find(c => c.id === formData.categoryId)?.name || 'Sin categoría (General)'}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Sin categoría (General)</SelectItem>
