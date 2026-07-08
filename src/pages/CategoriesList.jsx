@@ -20,14 +20,14 @@ const CategoriesList = () => {
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, mode: 'single', targetId: null, isDeleting: false });
   const navigate = useNavigate();
 
-  const loadCategories = async () => {
-    setLoading(true);
+  const loadCategories = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     const orgId = await getFirstOrganizationId();
     if (orgId) {
       const data = await getCategories(orgId);
       setCategories(data);
     }
-    setLoading(false);
+    if (showLoading) setLoading(false);
   };
 
   useEffect(() => {
@@ -71,7 +71,7 @@ const CategoriesList = () => {
         toast.success(`${selectedIds.length} categorías eliminadas`);
         setSelectedIds([]);
       }
-      loadCategories();
+      loadCategories(false);
     } catch (err) {
       toast.error("Error al eliminar");
     } finally {
@@ -83,7 +83,7 @@ const CategoriesList = () => {
     try {
       await duplicateCategory(id);
       toast.success("Categoría duplicada con éxito");
-      loadCategories();
+      loadCategories(false);
     } catch (err) {
       toast.error("Error al duplicar categoría");
     }
@@ -106,7 +106,7 @@ const CategoriesList = () => {
             </Badge>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="rounded-full text-red-600 border-red-200 hover:bg-red-50" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
+            <Button className="rounded-full bg-red-600 text-white hover:bg-red-700 shadow-sm" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
               <Trash2 className="h-4 w-4 mr-2" /> Eliminar seleccionadas
             </Button>
           </div>
@@ -141,10 +141,8 @@ const CategoriesList = () => {
             <Button variant="outline" className="rounded-full">
               Acciones <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
-            <Button className="rounded-full bg-black text-white hover:bg-gray-800" asChild>
-              <Link to="/categories/new">
-                Crear categoría
-              </Link>
+            <Button className="rounded-full bg-black text-white hover:bg-gray-800" onClick={() => navigate('/categories/new')}>
+              <Plus className="h-4 w-4 mr-2" /> Nueva categoría
             </Button>
           </div>
         </div>
@@ -158,7 +156,7 @@ const CategoriesList = () => {
               <th className="px-6 py-3 w-10">
                 <input 
                   type="checkbox" 
-                  className="rounded border-gray-300"
+                  className="h-5 w-5 rounded border-gray-300 cursor-pointer"
                   checked={categories.length > 0 && selectedIds.length === categories.length}
                   onChange={(e) => handleToggleSelectAll(e, categories)}
                 />
@@ -195,7 +193,7 @@ const CategoriesList = () => {
                   <td className="px-6 py-4">
                     <input 
                       type="checkbox" 
-                      className="rounded border-gray-300"
+                      className="h-5 w-5 rounded border-gray-300 cursor-pointer"
                       checked={selectedIds.includes(category.id)}
                       onChange={() => handleToggleSelect(category.id)}
                     />

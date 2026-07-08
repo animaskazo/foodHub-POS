@@ -1,9 +1,22 @@
 import { supabase } from '../lib/supabase';
 
 export const getFirstOrganizationId = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const { data } = await supabase
+      .from('staff')
+      .select('organization_id')
+      .eq('id', user.id)
+      .maybeSingle();
+      
+    if (data?.organization_id) return data.organization_id;
+  }
+  
+  // Fallback if no user is logged in
   const { data, error } = await supabase
     .from('organizations')
     .select('id')
+    .order('created_at', { ascending: false })
     .limit(1)
     .single();
     
@@ -11,7 +24,7 @@ export const getFirstOrganizationId = async () => {
     console.error('Error fetching organization:', error);
     return null;
   }
-  return data?.id;
+  return data.id;
 };
 
 export const getOrganizationDetails = async (id) => {

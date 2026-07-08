@@ -33,14 +33,14 @@ const IngredientsManager = () => {
     loadIngredients();
   }, []);
 
-  const loadIngredients = async () => {
-    setLoading(true);
+  const loadIngredients = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     const orgId = await getFirstOrganizationId();
     if (orgId) {
       const data = await getIngredients(orgId);
       setIngredients(data);
     }
-    setLoading(false);
+    if (showLoading) setLoading(false);
   };
 
   const handleStatusChange = async (id, newStatus) => {
@@ -148,7 +148,7 @@ const IngredientsManager = () => {
         toast.success(`${selectedIds.length} ingredientes eliminados`);
         setSelectedIds([]);
       }
-      loadIngredients();
+      loadIngredients(false);
     } catch (err) {
       toast.error("Error al eliminar ingrediente. Es posible que esté en uso.");
     } finally {
@@ -160,7 +160,7 @@ const IngredientsManager = () => {
     try {
       await duplicateIngredient(ingredient.id);
       toast.success("Ingrediente duplicado con éxito");
-      loadIngredients();
+      loadIngredients(false);
     } catch (error) {
       toast.error("Error al duplicar el ingrediente.");
     }
@@ -185,7 +185,7 @@ const IngredientsManager = () => {
             </Badge>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="rounded-full text-red-600 border-red-200 hover:bg-red-50" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
+            <Button className="rounded-full bg-red-600 text-white hover:bg-red-700 shadow-sm" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
               <Trash2 className="h-4 w-4 mr-2" /> Eliminar seleccionados
             </Button>
           </div>
@@ -235,7 +235,7 @@ const IngredientsManager = () => {
               <th className="px-6 py-3 w-10">
                 <input 
                   type="checkbox" 
-                  className="rounded border-gray-300"
+                  className="h-5 w-5 rounded border-gray-300 cursor-pointer"
                   checked={ingredients.length > 0 && selectedIds.length === ingredients.length}
                   onChange={(e) => handleToggleSelectAll(e, ingredients)}
                 />
@@ -269,7 +269,7 @@ const IngredientsManager = () => {
                   <td className="px-6 py-4">
                     <input 
                       type="checkbox" 
-                      className="rounded border-gray-300"
+                      className="h-5 w-5 rounded border-gray-300 cursor-pointer"
                       checked={selectedIds.includes(ingredient.id)}
                       onChange={() => handleToggleSelect(ingredient.id)}
                     />

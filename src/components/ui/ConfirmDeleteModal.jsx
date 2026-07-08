@@ -29,7 +29,7 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, description, is
             </Button>
             <Button 
               variant="destructive" 
-              className="flex-1 rounded-xl bg-red-600 hover:bg-red-700"
+              className="flex-1 rounded-xl bg-red-600 text-white hover:bg-red-700"
               onClick={onConfirm}
               disabled={isDeleting}
             >

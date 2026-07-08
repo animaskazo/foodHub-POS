@@ -3,14 +3,16 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, ChevronDown, ListFilter, Plus, MoreHorizontal, Sparkles, Trash2 } from 'lucide-react';
+import { Search, ChevronDown, ListFilter, Plus, MoreHorizontal, Sparkles, Trash2, FolderInput, CheckCircle, XCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getFirstOrganizationId, getProducts, getCategories, quickUpdateProductStatus, quickUpdateProductCategory, deleteProduct, bulkDeleteProducts, duplicateProduct } from '../services/catalogService';
+import { getFirstOrganizationId, getProducts, getCategories, quickUpdateProductStatus, quickUpdateProductCategory, deleteProduct, bulkDeleteProducts, duplicateProduct, bulkUpdateProductCategory, bulkUpdateProductStatus } from '../services/catalogService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import ActionMenu from '../components/ui/ActionMenu';
 import AIImportModal from '../components/catalog/AIImportModal';
 import ConfirmDeleteModal from '../components/ui/ConfirmDeleteModal';
+import BulkActionMenu from '../components/ui/BulkActionMenu';
+import Modal from '../components/ui/Modal';
 import { toast } from 'sonner';
 
 const CatalogManager = () => {
@@ -22,6 +24,7 @@ const CatalogManager = () => {
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, mode: 'single', targetId: null, isDeleting: false });
+  const [assignCategoryModal, setAssignCategoryModal] = useState({ isOpen: false, selectedCategory: 'none', isUpdating: false });
   const navigate = useNavigate();
 
   const toggleCategory = (catName) => {
@@ -31,8 +34,8 @@ const CatalogManager = () => {
     }));
   };
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     const orgId = await getFirstOrganizationId();
     if (orgId) {
       const [prods, cats] = await Promise.all([
@@ -42,7 +45,7 @@ const CatalogManager = () => {
       setProducts(prods);
       setCategories(cats);
     }
-    setLoading(false);
+    if (showLoading) setLoading(false);
   };
 
   useEffect(() => {
@@ -95,7 +98,7 @@ const CatalogManager = () => {
         toast.success(`${selectedIds.length} productos eliminados`);
         setSelectedIds([]);
       }
-      loadData();
+      loadData(false);
     } catch (err) {
       toast.error("Error al eliminar");
     } finally {
@@ -107,9 +110,34 @@ const CatalogManager = () => {
     try {
       await duplicateProduct(id);
       toast.success("Producto duplicado con éxito");
-      loadData();
+      loadData(false);
     } catch (err) {
       toast.error("Error al duplicar producto");
+    }
+  };
+
+  const handleBulkStatusChange = async (status) => {
+    try {
+      await bulkUpdateProductStatus(selectedIds, status);
+      toast.success(`Se actualizaron ${selectedIds.length} productos`);
+      setSelectedIds([]);
+      loadData(false);
+    } catch (error) {
+      toast.error("Error al actualizar estados");
+    }
+  };
+
+  const handleBulkAssignCategory = async () => {
+    setAssignCategoryModal(prev => ({ ...prev, isUpdating: true }));
+    try {
+      await bulkUpdateProductCategory(selectedIds, assignCategoryModal.selectedCategory);
+      toast.success(`Categoría asignada a ${selectedIds.length} productos`);
+      setSelectedIds([]);
+      loadData(false);
+    } catch (error) {
+      toast.error("Error al asignar categoría");
+    } finally {
+      setAssignCategoryModal({ isOpen: false, selectedCategory: 'none', isUpdating: false });
     }
   };
 
@@ -132,9 +160,14 @@ const CatalogManager = () => {
             </Badge>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="rounded-full text-red-600 border-red-200 hover:bg-red-50" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
-              <Trash2 className="h-4 w-4 mr-2" /> Eliminar seleccionados
-            </Button>
+            <BulkActionMenu 
+              actions={[
+                { label: "Asignar a categoría", icon: <FolderInput className="h-4 w-4" />, onClick: () => setAssignCategoryModal({ isOpen: true, selectedCategory: 'none', isUpdating: false }) },
+                { label: "Activar", icon: <CheckCircle className="h-4 w-4" />, onClick: () => handleBulkStatusChange('available') },
+                { label: "Desactivar", icon: <XCircle className="h-4 w-4" />, onClick: () => handleBulkStatusChange('unavailable') },
+                { label: "Eliminar", icon: <Trash2 className="h-4 w-4" />, onClick: () => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false }), destructive: true },
+              ]}
+            />
           </div>
         </div>
       ) : (
@@ -174,10 +207,8 @@ const CatalogManager = () => {
             <Button variant="outline" className="rounded-full">
               Acciones <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
-            <Button className="rounded-full bg-black text-white hover:bg-gray-800" asChild>
-              <Link to="/products/new">
-                Crear artículo
-              </Link>
+            <Button className="rounded-full bg-black text-white hover:bg-gray-800" onClick={() => navigate('/products/new')}>
+              <Plus className="h-4 w-4 mr-2" /> Nuevo artículo
             </Button>
           </div>
         </div>
@@ -191,7 +222,7 @@ const CatalogManager = () => {
               <th className="px-6 py-3 w-10">
                 <input 
                   type="checkbox" 
-                  className="rounded border-gray-300"
+                  className="h-5 w-5 rounded border-gray-300 cursor-pointer"
                   checked={products.length > 0 && selectedIds.length === products.length}
                   onChange={(e) => handleToggleSelectAll(e, products)}
                 />
@@ -266,7 +297,7 @@ const CatalogManager = () => {
                         <td className="px-6 py-4">
                           <input 
                             type="checkbox" 
-                            className="rounded border-gray-300"
+                            className="h-5 w-5 rounded border-gray-300 cursor-pointer"
                             checked={selectedIds.includes(product.id)}
                             onChange={() => handleToggleSelect(product.id)}
                           />
@@ -352,6 +383,37 @@ const CatalogManager = () => {
           : `¿Estás seguro de que deseas eliminar los ${selectedIds.length} artículos seleccionados? Esta acción no se puede deshacer.`
         }
       />
+      <Modal 
+        isOpen={assignCategoryModal.isOpen} 
+        onClose={() => setAssignCategoryModal(prev => ({ ...prev, isOpen: false }))} 
+        title="Asignar a categoría"
+      >
+        <div className="p-6">
+          <p className="text-gray-600 mb-4 text-sm">Selecciona la categoría a la que deseas mover los {selectedIds.length} artículos seleccionados.</p>
+          <Select 
+            value={assignCategoryModal.selectedCategory} 
+            onValueChange={(val) => setAssignCategoryModal(prev => ({ ...prev, selectedCategory: val }))}
+          >
+            <SelectTrigger className="w-full h-11 rounded-xl">
+              <SelectValue placeholder="Seleccionar categoría" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">General (Sin categoría)</SelectItem>
+              {categories.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="p-6 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
+          <Button variant="outline" className="rounded-full" onClick={() => setAssignCategoryModal(prev => ({ ...prev, isOpen: false }))}>
+            Cancelar
+          </Button>
+          <Button className="rounded-full bg-black text-white hover:bg-gray-800" onClick={handleBulkAssignCategory} disabled={assignCategoryModal.isUpdating}>
+            {assignCategoryModal.isUpdating ? "Asignando..." : "Asignar"}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 };

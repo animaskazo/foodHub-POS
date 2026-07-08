@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
           .from('super_admins')
           .select('user_id')
           .eq('user_id', userId)
-          .single();
+          .maybeSingle();
         
         setIsSuperAdmin(!!data);
       } catch (err) {

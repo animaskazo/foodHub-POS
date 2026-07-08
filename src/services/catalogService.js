@@ -1,9 +1,22 @@
 import { supabase } from '../lib/supabase';
 
 export const getFirstOrganizationId = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const { data } = await supabase
+      .from('staff')
+      .select('organization_id')
+      .eq('id', user.id)
+      .maybeSingle();
+      
+    if (data?.organization_id) return data.organization_id;
+  }
+  
+  // Fallback if no user is logged in
   const { data, error } = await supabase
     .from('organizations')
     .select('id')
+    .order('created_at', { ascending: false })
     .limit(1)
     .single();
     
@@ -87,7 +100,7 @@ export const getProducts = async (organizationId, filters = {}) => {
   }
   
   // Transform the nested Supabase relation into a flat object for the UI
-  return data.map(product => {
+  const formattedData = data.map(product => {
     const categoryInfo = product.product_categories?.[0]?.categories;
     const variantGroup = product.variant_groups && product.variant_groups.length > 0 
       ? product.variant_groups[product.variant_groups.length - 1] 
@@ -106,6 +119,8 @@ export const getProducts = async (organizationId, filters = {}) => {
       ingredients: product.product_ingredients?.map(pi => pi.ingredients).filter(Boolean) || []
     };
   });
+
+  return formattedData.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 };
 
 export const createCategory = async (organizationId, categoryData) => {
@@ -496,6 +511,23 @@ export const deleteProduct = async (id) => {
 export const bulkDeleteProducts = async (ids) => {
   if (!ids || ids.length === 0) return;
   const { error } = await supabase.from('products').delete().in('id', ids);
+  if (error) throw error;
+};
+
+export const bulkUpdateProductCategory = async (ids, categoryId) => {
+  if (!ids || ids.length === 0) return;
+  await supabase.from('product_categories').delete().in('product_id', ids);
+  
+  if (categoryId !== 'none') {
+    const records = ids.map(id => ({ product_id: id, category_id: categoryId }));
+    const { error } = await supabase.from('product_categories').insert(records);
+    if (error) throw error;
+  }
+};
+
+export const bulkUpdateProductStatus = async (ids, status) => {
+  if (!ids || ids.length === 0) return;
+  const { error } = await supabase.from('products').update({ status }).in('id', ids);
   if (error) throw error;
 };
 

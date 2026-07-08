@@ -46,7 +46,7 @@ function App() {
         <Route path="/categories/:id" element={<CreateCategoryView />} />
         <Route path="/products/:id" element={<CreateProductView />} />
         </Routes>
-        <Toaster position="top-right" richColors expand={false} offset="80px" />
+        <Toaster position="bottom-right" richColors expand={false} offset="80px" />
       </BrowserRouter>
     </AuthProvider>
   );
