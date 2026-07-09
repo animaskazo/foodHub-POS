@@ -201,12 +201,6 @@ const DashboardView = () => {
             <option value="7days">Últimos 7 días</option>
             <option value="30days">Últimos 30 días</option>
           </select>
-          <Link to="/pos" className="bg-blue-600 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition shadow-sm">
-            Abrir POS
-          </Link>
-          <Link to="/kitchen" className="bg-orange-500 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-orange-600 transition shadow-sm">
-            KDS (Cocina)
-          </Link>
         </div>
       </div>
 

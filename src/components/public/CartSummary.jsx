@@ -1,0 +1,106 @@
+import React from 'react';
+import { Trash2, Plus, Minus, ChevronRight } from 'lucide-react';
+
+const fmt = (n) => n.toLocaleString('es-CL');
+
+const CartSummary = ({ cartItems, onUpdateQty, onRemove, onCheckout }) => {
+  const total = cartItems.reduce((acc, item) => {
+    const itemGross = Math.round(item.price * 1.19);
+    const extrasGross = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
+    return acc + (itemGross + extrasGross) * item.quantity;
+  }, 0);
+
+  return (
+    <div className="flex flex-col min-h-0">
+      {/* Items list */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
+          {cartItems.map((item) => {
+            const itemGross = Math.round(item.price * 1.19);
+            const extrasGross = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
+            const lineTotal = (itemGross + extrasGross) * item.quantity;
+
+            return (
+              <div key={item.cartItemId} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex gap-4">
+                {/* Image */}
+                <div
+                  className="w-16 h-16 rounded-xl shrink-0 bg-gray-100 bg-cover bg-center"
+                  style={{ backgroundImage: item.image ? `url(${item.image})` : undefined }}
+                />
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900 text-sm leading-snug">{item.name}</p>
+
+                  {item.variant && (
+                    <p className="text-xs text-gray-500 mt-0.5">{item.variant.name}</p>
+                  )}
+
+                  {item.selectedIngredients?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {item.selectedIngredients.map(ing => (
+                        <span key={ing.id} className="text-[10px] bg-orange-100 text-orange-700 font-bold px-2 py-0.5 rounded-full">
+                          + {ing.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Controls */}
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => onUpdateQty(item.cartItemId, item.quantity - 1)}
+                        className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                      >
+                        {item.quantity === 1 ? (
+                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                        ) : (
+                          <Minus className="h-3.5 w-3.5 text-gray-700" />
+                        )}
+                      </button>
+                      <span className="font-bold text-sm w-4 text-center">{item.quantity}</span>
+                      <button
+                        onClick={() => onUpdateQty(item.cartItemId, item.quantity + 1)}
+                        className="w-7 h-7 rounded-full bg-black flex items-center justify-center hover:bg-gray-900 transition-colors"
+                      >
+                        <Plus className="h-3.5 w-3.5 text-white" />
+                      </button>
+                    </div>
+                    <span className="font-bold text-gray-900 text-sm">${fmt(lineTotal)}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Total summary */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-gray-900 text-base">Total a pagar</span>
+              <span className="font-black text-gray-900 text-xl">${fmt(total)}</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">IVA incluido · Pago en local al retirar</p>
+          </div>
+
+          <div className="h-24" />
+        </div>
+      </div>
+
+      {/* Checkout CTA */}
+      <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-8">
+        <div className="max-w-2xl mx-auto">
+          <button
+            onClick={onCheckout}
+            className="w-full bg-black text-white font-bold py-4 rounded-full flex items-center justify-center gap-2 shadow-xl hover:bg-gray-900 transition-colors active:scale-[0.98]"
+          >
+            Continuar con mis datos
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CartSummary;

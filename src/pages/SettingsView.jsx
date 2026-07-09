@@ -6,7 +6,7 @@ import {
   updateOrganizationDetails,
   getStaff 
 } from '../services/organizationService';
-import { Store, User, Clock, Check, Loader2, Save } from 'lucide-react';
+import { Store, User, Clock, Check, Loader2, Save, Link, Copy, ExternalLink } from 'lucide-react';
 
 const SettingsView = () => {
   useDocumentTitle('Configuración');
@@ -205,6 +205,38 @@ const SettingsView = () => {
                     className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
                   />
                 </div>
+
+                {/* Public store link */}
+                {formData.name && (
+                  <div className="bg-gray-50 rounded-2xl border border-gray-200 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Link className="h-4 w-4 text-gray-500" />
+                      <p className="text-sm font-bold text-gray-700">Tu tienda pública</p>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-3">Comparte este enlace con tus clientes para que puedan hacer pedidos en línea.</p>
+                    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5">
+                      <span className="text-sm text-gray-600 flex-1 truncate">
+                        {window.location.origin}/order/{encodeURIComponent(formData.name.toLowerCase())}
+                      </span>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(`${window.location.origin}/order/${encodeURIComponent(formData.name.toLowerCase())}`)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors shrink-0"
+                        title="Copiar enlace"
+                      >
+                        <Copy className="h-4 w-4 text-gray-500" />
+                      </button>
+                      <a
+                        href={`/order/${encodeURIComponent(formData.name.toLowerCase())}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors shrink-0"
+                        title="Abrir tienda"
+                      >
+                        <ExternalLink className="h-4 w-4 text-gray-500" />
+                      </a>
+                    </div>
+                  </div>
+                )}
 
                 <div className="pt-6 border-t border-gray-100 flex justify-end">
                   <button

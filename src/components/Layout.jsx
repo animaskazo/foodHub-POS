@@ -13,7 +13,9 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  MonitorPlay,
+  ChefHat
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -168,10 +170,24 @@ const Layout = () => {
         </nav>
 
         {/* Footer / Logout */}
-        <div className="p-4 border-t shrink-0">
+        <div className="p-4 border-t shrink-0 flex flex-col gap-2">
+          <NavLink 
+            to="/pos"
+            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            <MonitorPlay className="h-[18px] w-[18px]" />
+            Punto de Venta
+          </NavLink>
+          <NavLink 
+            to="/kitchen"
+            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors"
+          >
+            <ChefHat className="h-[18px] w-[18px]" />
+            Vista Cocina
+          </NavLink>
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-semibold text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-semibold text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors mt-2"
           >
             <LogOut className="h-[18px] w-[18px]" />
             Cerrar Sesión

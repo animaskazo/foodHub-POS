@@ -1,20 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { Banknote, CreditCard, CheckCircle2, Coffee, Package, Loader2 } from 'lucide-react';
 import Modal from '../ui/Modal';
+import { Button } from '../ui/button';
 
-const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm }) => {
+const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer }) => {
   const [status, setStatus] = useState('idle'); // 'idle' | 'success'
   const [orderNumber, setOrderNumber] = useState(null);
+  const [orderId, setOrderId] = useState(null);
   const [orderType, setOrderType] = useState('table'); // 'table' | 'takeaway'
   const [processingMethod, setProcessingMethod] = useState(null);
+
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [isSavingCustomer, setIsSavingCustomer] = useState(false);
 
   // Restablecer el estado cada vez que se abre el modal
   useEffect(() => {
     if (isOpen) {
       setStatus('idle');
       setOrderNumber(null);
+      setOrderId(null);
       setOrderType('table');
       setProcessingMethod(null);
+      setCustomerName('');
+      setCustomerPhone('');
+      setIsSavingCustomer(false);
     }
   }, [isOpen]);
 
@@ -37,10 +47,8 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm }) => {
       const order = await onConfirm(methodId, orderType);
       if (order) {
         setOrderNumber(order.order_number);
+        setOrderId(order.id);
         setStatus('success');
-        setTimeout(() => {
-          onClose();
-        }, 3000); // 3 seconds animation before closing
       } else {
         setProcessingMethod(null);
       }
@@ -57,8 +65,8 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm }) => {
         onClose={onClose} 
         hideHeader={true} 
         customAnimation="slideUpReceipt 0.6s cubic-bezier(0.16, 1, 0.3, 1)"
-        maxWidth="max-w-sm"
-        className="rounded-[2rem] p-10 pt-16 pb-12 items-center justify-center text-center flex flex-col"
+        maxWidth="max-w-xl"
+        className="rounded-[2rem] p-8 pt-12 pb-10 items-center justify-center text-center flex flex-col"
       >
         <div className="relative mb-6 mx-auto w-max" style={{ animation: 'bounceIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both' }}>
           <div className="absolute inset-0 bg-blue-400 rounded-full animate-ping opacity-20"></div>
@@ -78,6 +86,59 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm }) => {
         <p className="text-gray-500 font-medium text-center text-lg" style={{ animation: 'fadeUp 0.5s ease-out 0.6s both' }}>
           Enviada a preparación
         </p>
+
+        <div className="w-full text-left mt-6" style={{ animation: 'fadeUp 0.5s ease-out 0.7s both' }}>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Guardar datos del cliente (Opcional)</h3>
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+            <input 
+              type="text" 
+              placeholder="Nombre del cliente" 
+              className="w-full sm:w-1/2 px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-blue-500 focus:outline-none transition-colors"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+            />
+            <input 
+              type="tel" 
+              placeholder="Teléfono" 
+              className="w-full sm:w-1/2 px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-blue-500 focus:outline-none transition-colors"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <Button 
+              variant="outline"
+              size="lg"
+              onClick={() => onClose()}
+              className="flex-1"
+            >
+              Omitir
+            </Button>
+            <Button 
+              variant="default"
+              size="lg"
+              onClick={async () => {
+                if (!customerName && !customerPhone) {
+                  onClose();
+                  return;
+                }
+                setIsSavingCustomer(true);
+                try {
+                  if (onSaveCustomer) await onSaveCustomer(orderId, customerName, customerPhone);
+                  onClose();
+                } catch(e) {
+                  alert("Error al guardar datos del cliente");
+                  setIsSavingCustomer(false);
+                }
+              }}
+              disabled={isSavingCustomer}
+              className="flex-1"
+            >
+              {isSavingCustomer ? <Loader2 className="w-5 h-5 animate-spin" /> : "Guardar y Cerrar"}
+            </Button>
+          </div>
+        </div>
 
         <style>{`
           @keyframes slideUpReceipt {
@@ -117,24 +178,24 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm }) => {
           <div className="grid grid-cols-2 gap-2 md:gap-3 mb-6">
             <button
               onClick={() => setOrderType('table')}
-              className={`flex items-center justify-center p-2.5 md:p-4 rounded-xl md:rounded-2xl border-2 transition-all ${
+              className={`flex items-center justify-center p-2.5 md:p-3.5 rounded-full border-2 transition-all ${
                 orderType === 'table'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'
+                  ? 'border-black bg-black text-white shadow-md'
+                  : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
               }`}
             >
-              <Coffee className={`h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 ${orderType === 'table' ? 'text-blue-600' : 'text-gray-400'}`} />
+              <Coffee className={`h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 ${orderType === 'table' ? 'text-white' : 'text-gray-500'}`} />
               <span className="font-bold text-sm md:text-base whitespace-nowrap">Para Servir</span>
             </button>
             <button
               onClick={() => setOrderType('takeaway')}
-              className={`flex items-center justify-center p-2.5 md:p-4 rounded-xl md:rounded-2xl border-2 transition-all ${
+              className={`flex items-center justify-center p-2.5 md:p-3.5 rounded-full border-2 transition-all ${
                 orderType === 'takeaway'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-100 bg-white text-gray-500 hover:border-gray-200'
+                  ? 'border-black bg-black text-white shadow-md'
+                  : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
               }`}
             >
-              <Package className={`h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 ${orderType === 'takeaway' ? 'text-blue-600' : 'text-gray-400'}`} />
+              <Package className={`h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 ${orderType === 'takeaway' ? 'text-white' : 'text-gray-500'}`} />
               <span className="font-bold text-sm md:text-base whitespace-nowrap">Para Llevar</span>
             </button>
           </div>
@@ -146,26 +207,26 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm }) => {
                 key={method.id}
                 onClick={() => handlePayment(method.id)}
                 disabled={processingMethod !== null}
-                className={`flex items-center p-4 bg-white border-2 rounded-2xl transition-all text-left ${
+                className={`flex items-center p-4 bg-white border-2 rounded-full transition-all text-left ${
                   processingMethod && processingMethod !== method.id
                     ? 'border-gray-100 opacity-50 cursor-not-allowed grayscale'
                     : processingMethod === method.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-100 hover:border-blue-500 hover:bg-blue-50/50 active:scale-[0.98] group'
+                    ? 'border-black bg-black shadow-md'
+                    : 'border-gray-200 hover:border-black hover:bg-gray-50 active:scale-[0.98] group'
                 }`}
               >
                 {processingMethod === method.id ? (
-                  <Loader2 className="h-6 w-6 text-blue-600 mr-4 animate-spin" />
+                  <Loader2 className="h-6 w-6 text-white mr-4 animate-spin" />
                 ) : (
-                  <method.icon className={`h-6 w-6 mr-4 ${processingMethod ? 'text-gray-400' : 'text-gray-900'}`} />
+                  <method.icon className={`h-6 w-6 mr-4 ${processingMethod ? 'text-gray-400' : 'text-gray-700 group-hover:text-black'}`} />
                 )}
                 <div className="flex-1">
                   <span className={`font-bold text-lg ${
                     processingMethod === method.id 
-                      ? 'text-blue-700' 
+                      ? 'text-white' 
                       : processingMethod 
                         ? 'text-gray-400' 
-                        : 'text-gray-800 group-hover:text-blue-700'
+                        : 'text-gray-800 group-hover:text-black'
                   }`}>
                     {method.name}
                   </span>

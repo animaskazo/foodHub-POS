@@ -12,6 +12,7 @@ import SignupView from './pages/SignupView';
 import SuperAdminView from './pages/SuperAdminView';
 import DashboardView from './pages/DashboardView';
 import SettingsView from './pages/SettingsView';
+import OrderView from './pages/OrderView';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Toaster } from 'sonner';
@@ -43,6 +44,7 @@ function App() {
         <Route path="/signup" element={<SignupView />} />
         <Route path="/pos" element={<PosView />} />
         <Route path="/kitchen" element={<KitchenView />} />
+        <Route path="/order/:slug" element={<OrderView />} />
         <Route path="/categories/:id" element={<CreateCategoryView />} />
         <Route path="/products/:id" element={<CreateProductView />} />
         </Routes>

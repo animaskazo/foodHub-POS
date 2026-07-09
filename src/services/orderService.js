@@ -255,3 +255,70 @@ export const updateOrderStatus = async (orderId, status) => {
     throw error;
   }
 };
+
+export const updateOrderCustomer = async (orderId, name, phone) => {
+  try {
+    const { data: orderData } = await supabase
+      .from('orders')
+      .select('organization_id')
+      .eq('id', orderId)
+      .single();
+      
+    if (!orderData) throw new Error("Order not found");
+    const organizationId = orderData.organization_id;
+
+    let customerId = null;
+
+    if (phone) {
+      const { data: existingCustomer } = await supabase
+        .from('customers')
+        .select('id, full_name')
+        .eq('organization_id', organizationId)
+        .eq('phone', phone)
+        .maybeSingle();
+      
+      if (existingCustomer) {
+        customerId = existingCustomer.id;
+        if (name && existingCustomer.full_name !== name) {
+          await supabase.from('customers').update({ full_name: name }).eq('id', customerId);
+        }
+      } else {
+        const { data: newCustomer, error: insertError } = await supabase
+          .from('customers')
+          .insert([{ organization_id: organizationId, phone, full_name: name || null }])
+          .select()
+          .single();
+          
+        if (insertError) throw insertError;
+        customerId = newCustomer.id;
+      }
+    } else if (name) {
+      const { data: newCustomer, error: insertError } = await supabase
+        .from('customers')
+        .insert([{ organization_id: organizationId, full_name: name }])
+        .select()
+        .single();
+        
+      if (insertError) throw insertError;
+      customerId = newCustomer.id;
+    }
+
+    const updateData = {};
+    if (name) updateData.customer_name = name;
+    if (phone) updateData.customer_phone = phone;
+    if (customerId) updateData.customer_id = customerId;
+    
+    if (Object.keys(updateData).length > 0) {
+      const { error } = await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('id', orderId);
+
+      if (error) throw error;
+    }
+    return true;
+  } catch (error) {
+    console.error("Error updating order customer:", error);
+    throw error;
+  }
+};

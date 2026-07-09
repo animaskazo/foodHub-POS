@@ -60,7 +60,8 @@ const CreateProductView = () => {
   const [draftVariants, setDraftVariants] = useState([]);
   const [showVariants, setShowVariants] = useState(false);
   const [globalIngredients, setGlobalIngredients] = useState([]);
-  const [selectedIngredients, setSelectedIngredients] = useState([]);
+  const [baseIngredients, setBaseIngredients] = useState([]);
+  const [extraIngredients, setExtraIngredients] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
@@ -125,8 +126,11 @@ const CreateProductView = () => {
             setDraftVariants(mappedVariants);
           }
           
-          if (product.ingredients) {
-            setSelectedIngredients(product.ingredients);
+          if (product.baseIngredients) {
+            setBaseIngredients(product.baseIngredients);
+          }
+          if (product.extraIngredients) {
+            setExtraIngredients(product.extraIngredients);
           }
         }
       } catch (error) {
@@ -214,7 +218,8 @@ const CreateProductView = () => {
         categoryId: formData.categoryId,
         imageUrl: formData.imageUrl,
         variants: finalVariants,
-        ingredients: selectedIngredients,
+        baseIngredients: baseIngredients,
+        extraIngredients: extraIngredients,
         status: formData.status === 'available' ? 'Disponible' : 'No disponible'
       };
 
@@ -419,38 +424,77 @@ const CreateProductView = () => {
                 </Button>
               </SectionRow>
 
-              <div className="p-4 sm:p-5 flex flex-col gap-3">
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-[15px]">Ingredientes Adicionales</h4>
-                  <p className="text-sm text-gray-500 leading-relaxed">Selecciona qué ingredientes extra se pueden agregar a este artículo.</p>
-                </div>
-                {globalIngredients.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 bg-gray-50 p-4 rounded-xl border border-gray-100 max-h-60 overflow-y-auto">
-                    {globalIngredients.map(ing => (
-                      <label key={ing.id} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300 transition-colors">
-                        <input 
-                          type="checkbox"
-                          className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
-                          checked={selectedIngredients.includes(ing.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedIngredients([...selectedIngredients, ing.id]);
-                            } else {
-                              setSelectedIngredients(selectedIngredients.filter(id => id !== ing.id));
-                            }
-                            setHasChanges(true);
-                          }}
-                        />
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-gray-900">{ing.name}</span>
-                          <span className="text-xs text-gray-500">+${ing.price}</span>
-                        </div>
-                      </label>
-                    ))}
+              <div className="p-4 sm:p-5 flex flex-col gap-6">
+                {/* Ingredientes Base */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-[15px]">Ingredientes Base</h4>
+                    <p className="text-sm text-gray-500 leading-relaxed">Selecciona los ingredientes que vienen incluidos por defecto en este artículo.</p>
                   </div>
-                ) : (
-                  <p className="text-sm text-gray-400 italic">No hay ingredientes creados en el catálogo.</p>
-                )}
+                  {globalIngredients.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 bg-gray-50 p-4 rounded-xl border border-gray-100 max-h-60 overflow-y-auto">
+                      {globalIngredients.map(ing => (
+                        <label key={`base-${ing.id}`} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300 transition-colors">
+                          <input 
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                            checked={baseIngredients.includes(ing.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setBaseIngredients([...baseIngredients, ing.id]);
+                              } else {
+                                setBaseIngredients(baseIngredients.filter(id => id !== ing.id));
+                              }
+                              setHasChanges(true);
+                            }}
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-900">{ing.name}</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">No hay ingredientes creados en el catálogo.</p>
+                  )}
+                </div>
+
+                <div className="h-px bg-gray-100 w-full"></div>
+
+                {/* Ingredientes Extra */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-[15px]">Opciones Extras</h4>
+                    <p className="text-sm text-gray-500 leading-relaxed">Selecciona qué ingredientes adicionales se pueden agregar (se cobrará el precio extra).</p>
+                  </div>
+                  {globalIngredients.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 bg-gray-50 p-4 rounded-xl border border-gray-100 max-h-60 overflow-y-auto">
+                      {globalIngredients.map(ing => (
+                        <label key={`extra-${ing.id}`} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300 transition-colors">
+                          <input 
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                            checked={extraIngredients.includes(ing.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setExtraIngredients([...extraIngredients, ing.id]);
+                              } else {
+                                setExtraIngredients(extraIngredients.filter(id => id !== ing.id));
+                              }
+                              setHasChanges(true);
+                            }}
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-900">{ing.name}</span>
+                            <span className="text-xs text-gray-500">+${ing.price}</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">No hay ingredientes creados en el catálogo.</p>
+                  )}
+                </div>
               </div>
 
               <SectionRow

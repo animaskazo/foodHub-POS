@@ -1,6 +1,7 @@
 import React from 'react';
 import { Trash2, Plus, Minus, ChevronDown, Monitor, X, Edit2 } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
+import { Button } from "../ui/button";
 
 const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onItemClick }) => {
   const items = cartItems;
@@ -37,13 +38,13 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
               <p className="text-xs text-gray-400 mt-0.5">{totalQty} {totalQty === 1 ? 'artículo' : 'artículos'}</p>
             </div>
           </div>
-          <button
+          <Button
+            size="sm"
+            variant="outline"
             onPointerDown={onNewOrder}
-            className="text-sm font-semibold text-blue-600 px-4 py-2 rounded-xl bg-blue-50 active:bg-blue-100 select-none"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             + Nueva orden
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -88,21 +89,21 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
 
                     {/* Qty Controls */}
                     <div className="flex items-center gap-3 mt-2">
-                      <button
+                      <Button
+                        size="icon-sm"
+                        variant="secondary"
                         onPointerDown={() => onUpdateQty && onUpdateQty(item.cartItemId, item.quantity - 1)}
-                        className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center active:bg-gray-200 select-none"
-                        style={{ WebkitTapHighlightColor: 'transparent' }}
                       >
-                        <Minus className="h-3.5 w-3.5" />
-                      </button>
+                        <Minus />
+                      </Button>
                       <span className="font-bold text-sm w-5 text-center">{item.quantity}</span>
-                      <button
+                      <Button
+                        size="icon-sm"
+                        variant="secondary"
                         onPointerDown={() => onUpdateQty && onUpdateQty(item.cartItemId, item.quantity + 1)}
-                        className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center active:bg-gray-200 select-none"
-                        style={{ WebkitTapHighlightColor: 'transparent' }}
                       >
-                        <Plus className="h-3.5 w-3.5" />
-                      </button>
+                        <Plus />
+                      </Button>
                     </div>
                   </div>
 
@@ -111,21 +112,22 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
                     <span className="font-bold text-[15px]">${fmt(Math.round(item.price * 1.19) * item.quantity)}</span>
                     <div className="flex items-center gap-1.5 mt-1">
                       {hasOptions && (
-                        <button
+                        <Button
+                          size="icon-sm"
+                          variant="secondary"
                           onPointerDown={() => onItemClick && onItemClick(item)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-blue-600 bg-blue-50 active:bg-blue-100 select-none"
-                          style={{ WebkitTapHighlightColor: 'transparent' }}
                         >
-                          <Edit2 className="h-4 w-4" />
-                        </button>
+                          <Edit2 />
+                        </Button>
                       )}
-                      <button
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
                         onPointerDown={() => onRemove && onRemove(item.cartItemId)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 bg-gray-50 active:bg-red-50 active:text-red-500 select-none"
-                        style={{ WebkitTapHighlightColor: 'transparent' }}
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                        <Trash2 />
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -157,14 +159,14 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
       {/* Footer CTA */}
       <div className="p-4 bg-white border-t border-gray-100 space-y-2.5 shrink-0 pb-safe">
         {/* Charge Button */}
-        <button
+        <Button
+          size="lg"
           onPointerDown={onCharge}
           disabled={items.length === 0}
-          className="w-full py-4 rounded-2xl bg-blue-600 text-white font-bold text-lg active:bg-blue-700 disabled:opacity-40 disabled:pointer-events-none select-none transition-colors"
-          style={{ WebkitTapHighlightColor: 'transparent' }}
+          className="w-full text-lg"
         >
           Cobrar ${fmt(total)}
-        </button>
+        </Button>
       </div>
     </div>
   );

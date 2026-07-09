@@ -134,3 +134,12 @@
   gap: 1rem;
   padding: 1.25rem 1.25rem;
 }
+
+/* ── Scrollbar utilities ─────────────────────────────────── */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

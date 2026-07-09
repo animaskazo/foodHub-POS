@@ -78,6 +78,8 @@ export const getProducts = async (organizationId, filters = {}) => {
         )
       ),
       product_ingredients (
+        is_base,
+        is_extra,
         ingredients (
           id,
           name,
@@ -116,7 +118,14 @@ export const getProducts = async (organizationId, filters = {}) => {
       image: product.product_images?.[0]?.url || null,
       status: product.status === 'available' ? 'Disponible' : 'No disponible',
       variants: variantGroup?.variant_options || [],
-      ingredients: product.product_ingredients?.map(pi => pi.ingredients).filter(Boolean) || []
+      ingredients: product.product_ingredients?.map(pi => {
+        if (!pi.ingredients) return null;
+        return {
+          ...pi.ingredients,
+          isBase: pi.is_base !== false,
+          isExtra: pi.is_extra === true
+        };
+      }).filter(Boolean) || []
     };
   });
 
@@ -218,15 +227,27 @@ export const createProduct = async (organizationId, productData) => {
   }
 
   // Guardar ingredientes
-  if (productData.ingredients && productData.ingredients.length > 0) {
-    const ingredientsToInsert = productData.ingredients.map(ingId => ({
-      product_id: product.id,
-      ingredient_id: ingId
-    }));
-    const { error: ingError } = await supabase
-      .from('product_ingredients')
-      .insert(ingredientsToInsert);
-    if (ingError) console.error('Error assigning ingredients:', ingError);
+  if (productData.baseIngredients || productData.extraIngredients) {
+    const ingredientsToInsert = [];
+    const baseSet = new Set(productData.baseIngredients || []);
+    const extraSet = new Set(productData.extraIngredients || []);
+    const allIngredientIds = new Set([...baseSet, ...extraSet]);
+    
+    for (const ingId of allIngredientIds) {
+      ingredientsToInsert.push({
+        product_id: product.id,
+        ingredient_id: ingId,
+        is_base: baseSet.has(ingId),
+        is_extra: extraSet.has(ingId)
+      });
+    }
+    
+    if (ingredientsToInsert.length > 0) {
+      const { error: ingError } = await supabase
+        .from('product_ingredients')
+        .insert(ingredientsToInsert);
+      if (ingError) console.error('Error assigning ingredients:', ingError);
+    }
   }
   
   return product;
@@ -278,7 +299,9 @@ export const getProductById = async (id) => {
         )
       ),
       product_ingredients (
-        ingredient_id
+        ingredient_id,
+        is_base,
+        is_extra
       )
     `)
     .eq('id', id)
@@ -298,7 +321,8 @@ export const getProductById = async (id) => {
     }
     
     // Extraer ingredientes
-    data.ingredients = data.product_ingredients?.map(pi => pi.ingredient_id) || [];
+    data.baseIngredients = data.product_ingredients?.filter(pi => pi.is_base !== false).map(pi => pi.ingredient_id) || [];
+    data.extraIngredients = data.product_ingredients?.filter(pi => pi.is_extra === true).map(pi => pi.ingredient_id) || [];
   }
   return data;
 };
@@ -373,13 +397,24 @@ export const updateProduct = async (id, productData) => {
   }
 
   // Actualizar ingredientes
-  if (productData.ingredients) {
+  if (productData.baseIngredients !== undefined || productData.extraIngredients !== undefined) {
     await supabase.from('product_ingredients').delete().eq('product_id', id);
-    if (productData.ingredients.length > 0) {
-      const ingredientsToInsert = productData.ingredients.map(ingId => ({
+    
+    const ingredientsToInsert = [];
+    const baseSet = new Set(productData.baseIngredients || []);
+    const extraSet = new Set(productData.extraIngredients || []);
+    const allIngredientIds = new Set([...baseSet, ...extraSet]);
+    
+    for (const ingId of allIngredientIds) {
+      ingredientsToInsert.push({
         product_id: id,
-        ingredient_id: ingId
-      }));
+        ingredient_id: ingId,
+        is_base: baseSet.has(ingId),
+        is_extra: extraSet.has(ingId)
+      });
+    }
+    
+    if (ingredientsToInsert.length > 0) {
       const { error: ingError } = await supabase
         .from('product_ingredients')
         .insert(ingredientsToInsert);

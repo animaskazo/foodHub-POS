@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
+import { Button } from '../ui/button';
 
 const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, editingItem, onDelete }) => {
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -22,8 +23,11 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
 
   if (!product) return null;
 
+  const baseIngredients = product.ingredients?.filter(ing => ing.isBase) || [];
+  const extraIngredients = product.ingredients?.filter(ing => ing.isExtra) || [];
+
   const hasVariants = product.variants && product.variants.length > 0 && product.variants.some(v => v.is_active);
-  const hasIngredients = product.ingredients && product.ingredients.length > 0;
+  const hasExtraIngredients = extraIngredients.length > 0;
 
   const handleConfirm = () => {
     onSelectVariant(selectedVariant, selectedIngredients, editingItem);
@@ -51,7 +55,13 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
     <Modal isOpen={isOpen} onClose={onClose} title={`Opciones para ${originalName}`}>
       <div className="p-6">
         
-        {hasVariants && hasIngredients && (
+        {baseIngredients.length > 0 && (
+          <div className="mb-4 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100">
+            <span className="font-semibold text-gray-800">Incluye:</span> {baseIngredients.map(ing => ing.name).join(', ')}
+          </div>
+        )}
+
+        {hasVariants && hasExtraIngredients && (
           <div className="flex gap-4 mb-6 border-b border-gray-100">
             <button
               onClick={() => setActiveTab('variants')}
@@ -73,20 +83,20 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
           </div>
         )}
 
-        {hasVariants && (!hasIngredients || activeTab === 'variants') && (
+        {hasVariants && (!hasExtraIngredients || activeTab === 'variants') && (
           <div className="mb-6">
-            {!hasIngredients && (
+            {!hasExtraIngredients && (
               <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Variante</p>
             )}
             <div className="grid grid-cols-1 gap-2">
               <button
                 onClick={() => setSelectedVariant(null)}
-                className={`flex items-center justify-between p-4 border rounded-xl transition-all text-left ${selectedVariant === null ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-gray-200 hover:border-gray-300'}`}
+                className={`flex items-center justify-between p-4 border rounded-2xl transition-all text-left ${selectedVariant === null ? 'border-black bg-black text-white shadow-md' : 'border-gray-200 hover:border-gray-300 bg-white'}`}
               >
                 <div>
-                  <span className="block font-semibold text-gray-900">Original (Por defecto)</span>
+                  <span className={`block font-semibold ${selectedVariant === null ? 'text-white' : 'text-gray-900'}`}>Original (Por defecto)</span>
                 </div>
-                <span className="font-bold text-gray-900">
+                <span className={`font-bold ${selectedVariant === null ? 'text-white' : 'text-gray-900'}`}>
                   ${Math.round(actualBasePrice * 1.19).toLocaleString('es-CL')}
                 </span>
               </button>
@@ -98,12 +108,12 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
                   <button
                     key={variant.id}
                     onClick={() => setSelectedVariant(variant)}
-                    className={`flex items-center justify-between p-4 border rounded-xl transition-all text-left ${selectedVariant?.id === variant.id ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-gray-200 hover:border-gray-300'}`}
+                    className={`flex items-center justify-between p-4 border rounded-2xl transition-all text-left ${selectedVariant?.id === variant.id ? 'border-black bg-black text-white shadow-md' : 'border-gray-200 hover:border-gray-300 bg-white'}`}
                   >
                     <div>
-                      <span className="block font-semibold text-gray-900">{variant.name}</span>
+                      <span className={`block font-semibold ${selectedVariant?.id === variant.id ? 'text-white' : 'text-gray-900'}`}>{variant.name}</span>
                     </div>
-                    <span className="font-bold text-gray-900">
+                    <span className={`font-bold ${selectedVariant?.id === variant.id ? 'text-white' : 'text-gray-900'}`}>
                       ${finalGrossPrice.toLocaleString('es-CL')}
                     </span>
                   </button>
@@ -113,13 +123,13 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
           </div>
         )}
 
-        {hasIngredients && (!hasVariants || activeTab === 'ingredients') && (
+        {hasExtraIngredients && (!hasVariants || activeTab === 'ingredients') && (
           <div className="mb-6">
             {!hasVariants && (
               <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Ingredientes Extra</p>
             )}
             <div className="grid grid-cols-1 gap-2">
-              {product.ingredients.map((ing) => {
+              {extraIngredients.map((ing) => {
                 const isSelected = selectedIngredients.some(i => i.id === ing.id);
                 return (
                   <label
@@ -145,25 +155,28 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
           </div>
         )}
 
-        <div className="pt-4 border-t border-gray-100 mt-2">
+        <div className="pt-4 border-t border-gray-100 mt-2 space-y-3">
           {editingItem && (
-            <button
+            <Button
+              variant="destructive"
+              size="lg"
               onClick={() => {
                 if (onDelete) onDelete(editingItem.cartItemId);
                 onClose();
               }}
-              className="w-full mb-3 bg-red-50 text-red-600 font-bold py-3.5 rounded-xl hover:bg-red-100 transition-colors"
+              className="w-full"
             >
               Eliminar producto
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            size="lg"
             onClick={handleConfirm}
-            className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-colors flex items-center justify-between px-6"
+            className="w-full flex items-center justify-between"
           >
             <span>{editingItem ? 'Actualizar' : 'Agregar al carrito'}</span>
             <span>${(totalGross * quantity).toLocaleString('es-CL')}</span>
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

@@ -9,7 +9,8 @@ import VariantSelectionModal from '../components/pos/VariantSelectionModal';
 import Modal from '../components/ui/Modal';
 import { NAV_ITEMS } from '../components/pos/BottomNav';
 import { X, LogOut, Menu } from 'lucide-react';
-import { createOrder } from '../services/orderService';
+import { Button } from '../components/ui/button';
+import { createOrder, updateOrderCustomer } from '../services/orderService';
 
 const PosView = () => {
   const [cartItems, setCartItems] = useState([]);
@@ -186,9 +187,10 @@ const PosView = () => {
               {/* Floating Cart Button for Mobile */}
               {cartItems.length > 0 && (
                 <div className="fixed bottom-6 left-4 right-4 z-40 md:hidden pb-safe">
-                  <button
+                  <Button
+                    size="lg"
                     onPointerDown={() => setIsMobileCartOpen(true)}
-                    className="w-full bg-blue-600 text-white rounded-2xl shadow-lg p-4 flex items-center justify-between active:bg-blue-700 transition-colors"
+                    className="w-full flex items-center justify-between"
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
                     <div className="flex items-center gap-3">
@@ -198,7 +200,7 @@ const PosView = () => {
                       <span className="font-bold">Ver Pedido</span>
                     </div>
                     <span className="font-bold">${total.toLocaleString('es-CL')}</span>
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -298,6 +300,9 @@ const PosView = () => {
         onClose={() => setIsPaymentModalOpen(false)}
         cartItems={cartItems}
         onConfirm={handlePaymentConfirm}
+        onSaveCustomer={async (id, name, phone) => {
+          await updateOrderCustomer(id, name, phone);
+        }}
       />
       
       <VariantSelectionModal
