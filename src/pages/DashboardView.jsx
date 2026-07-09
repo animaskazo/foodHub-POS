@@ -83,6 +83,8 @@ const DashboardView = () => {
           tax_amount,
           created_at,
           ready_at,
+          customer_name,
+          customer_phone,
           order_items (*),
           payments (*)
         `)
@@ -292,6 +294,7 @@ const DashboardView = () => {
             <thead>
               <tr className="bg-gray-50 text-gray-500 text-sm border-b border-gray-100">
                 <th className="px-6 py-4 font-semibold w-24">N° Orden</th>
+                <th className="px-6 py-4 font-semibold">Cliente</th>
                 <th className="px-6 py-4 font-semibold">Fecha</th>
                 <th className="px-6 py-4 font-semibold">Estado</th>
                 <th className="px-6 py-4 font-semibold">Método</th>
@@ -323,6 +326,21 @@ const DashboardView = () => {
                       className="border-b border-gray-50 hover:bg-gray-50 transition-colors text-sm cursor-pointer active:bg-gray-100 group"
                     >
                       <td className="px-6 py-4 font-semibold text-gray-900">#{order.order_number}</td>
+                      <td className="px-6 py-4">
+                        {order.customer_name ? (
+                          <div className="flex flex-col gap-1">
+                            <span className="font-medium text-gray-900 leading-tight">{order.customer_name}</span>
+                            {order.order_type === 'online' && order.payments?.some(p => p.status === 'pending') && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[10px] font-bold w-fit">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                                Pago pendiente
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">—</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 text-gray-600">{formattedDate}</td>
                       <td className="px-6 py-4">
                         {getStatusTag(order.status)}
@@ -341,7 +359,7 @@ const DashboardView = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan="9" className="px-6 py-12 text-center text-gray-500">
                     No hay ventas registradas.
                   </td>
                 </tr>
