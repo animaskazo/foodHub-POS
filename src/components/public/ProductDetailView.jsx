@@ -1,21 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
-const ProductDetailView = ({ product, onAdd, onBack }) => {
+const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, initialExtras = [], initialQuantity = 1 }) => {
   const hasVariants = product.variants?.length > 0;
   const extraIngredients = product.ingredients?.filter(i => i.isExtra) || [];
   const baseIngredients = product.ingredients?.filter(i => !i.isExtra) || [];
   const hasExtras = extraIngredients.length > 0;
 
-  const [selectedVariant, setSelectedVariant] = useState(null);
-  const [selectedExtras, setSelectedExtras] = useState([]);
-  const [quantity, setQuantity] = useState(1);
+  const [selectedVariant, setSelectedVariant] = useState(initialVariant);
+  const [selectedExtras, setSelectedExtras] = useState(initialExtras);
+  const [quantity, setQuantity] = useState(initialQuantity);
 
   const actualBasePrice = selectedVariant
     ? product.price + (selectedVariant.price_modifier || 0)
     : product.price;
+  const baseGross = Math.round(actualBasePrice * 1.19);
   const extrasTotal = selectedExtras.reduce((s, i) => s + (i.price || 0), 0);
-  const totalGross = Math.round((actualBasePrice + extrasTotal) * 1.19);
+  const totalGross = baseGross + extrasTotal;
+
+  useEffect(() => {
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
 
   const toggleExtra = (ing) => {
     setSelectedExtras(prev =>
@@ -36,14 +45,14 @@ const ProductDetailView = ({ product, onAdd, onBack }) => {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-gray-50 fixed inset-0 z-50 overflow-hidden">
+    <div className="flex flex-col h-[100dvh] bg-gray-50 fixed inset-0 z-50 overflow-hidden overscroll-none">
       
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto pb-24">
         {/* Header / Image Area */}
-        <div className="relative bg-white shrink-0">
+        <div className="relative bg-transparent shrink-0">
           {product.image ? (
-            <div className="w-full aspect-square sm:h-72 sm:aspect-auto relative bg-gray-100">
+            <div className="w-full h-[380px] relative bg-gray-100">
               <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
               <button 
                 onClick={onBack} 
@@ -63,7 +72,7 @@ const ProductDetailView = ({ product, onAdd, onBack }) => {
             </div>
           )}
 
-          <div className="px-5 pt-4 pb-6">
+          <div className="px-5 pt-4 pb-1">
             <h1 className="font-bold text-3xl text-gray-900 leading-tight mb-2">{product.name}</h1>
             {product.description && (
               <p className="text-[15px] text-gray-500 leading-relaxed">{product.description}</p>
@@ -71,7 +80,7 @@ const ProductDetailView = ({ product, onAdd, onBack }) => {
           </div>
         </div>
 
-        <div className="px-5 py-6 space-y-8">
+        <div className="px-5 pt-2 pb-6 space-y-8">
           {/* Base Ingredients */}
           {baseIngredients.length > 0 && (
             <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
@@ -161,7 +170,7 @@ const ProductDetailView = ({ product, onAdd, onBack }) => {
             disabled={hasVariants && !selectedVariant}
             className="flex-1 h-14 bg-blue-600 text-white font-bold rounded-full flex items-center justify-between px-6 hover:bg-blue-700 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 shadow-md shadow-blue-600/20"
           >
-            <span>Agregar al pedido</span>
+            <span>Agregar</span>
             <span className="text-lg">${(totalGross * quantity).toLocaleString('es-CL')}</span>
           </button>
         </div>

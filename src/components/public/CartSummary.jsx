@@ -3,7 +3,7 @@ import { Trash2, Plus, Minus, ChevronRight } from 'lucide-react';
 
 const fmt = (n) => n.toLocaleString('es-CL');
 
-const CartSummary = ({ cartItems, onUpdateQty, onRemove, onCheckout }) => {
+const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout }) => {
   const total = cartItems.reduce((acc, item) => {
     const itemGross = Math.round(item.price * 1.19);
     const extrasGross = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
@@ -46,25 +46,40 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onCheckout }) => {
                     </div>
                   )}
 
+                  {(item.variants?.length > 0 || item.ingredients?.some(i => i.isExtra)) && (
+                    <button
+                      onClick={() => onEditItem(item)}
+                      className="text-xs font-bold text-blue-600 hover:text-blue-700 mt-2.5 inline-flex items-center"
+                    >
+                      Editar opciones
+                    </button>
+                  )}
+
                   {/* Controls */}
                   <div className="flex items-center justify-between mt-3">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center bg-blue-600 text-white rounded-full h-8 p-0.5 gap-1.5 shadow-sm">
                       <button
-                        onClick={() => onUpdateQty(item.cartItemId, item.quantity - 1)}
-                        className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                        onClick={() => {
+                          if (item.quantity === 1) {
+                            onRemove(item.cartItemId);
+                          } else {
+                            onUpdateQty(item.cartItemId, item.quantity - 1);
+                          }
+                        }}
+                        className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
                       >
                         {item.quantity === 1 ? (
-                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                          <Trash2 className="h-3.5 w-3.5 text-white" />
                         ) : (
-                          <Minus className="h-3.5 w-3.5 text-gray-700" />
+                          '−'
                         )}
                       </button>
-                      <span className="font-bold text-sm w-4 text-center">{item.quantity}</span>
+                      <span className="font-extrabold text-sm min-w-[12px] text-center">{item.quantity}</span>
                       <button
                         onClick={() => onUpdateQty(item.cartItemId, item.quantity + 1)}
-                        className="w-7 h-7 rounded-full bg-black flex items-center justify-center hover:bg-gray-900 transition-colors"
+                        className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
                       >
-                        <Plus className="h-3.5 w-3.5 text-white" />
+                        +
                       </button>
                     </div>
                     <span className="font-bold text-gray-900 text-sm">${fmt(lineTotal)}</span>

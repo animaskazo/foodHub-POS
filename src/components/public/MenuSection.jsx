@@ -5,10 +5,14 @@ import ProductDetailView from './ProductDetailView';
 const fmt = (n) => Math.round(n * 1.19).toLocaleString('es-CL');
 
 // ── Product Card ──────────────────────────────────────────────
-const ProductCard = ({ product, isInCart, onAdd }) => {
+const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpdateQty, onRemoveItem }) => {
   const [tapped, setTapped] = useState(false);
+  const hasVariants = product.variants?.length > 0;
+  const hasExtras = product.ingredients?.some(i => i.isExtra);
+  const isConfigurable = hasVariants || hasExtras;
 
-  const handleTap = () => {
+  const handleTap = (e) => {
+    if (e) e.stopPropagation();
     setTapped(true);
     setTimeout(() => setTapped(false), 200);
     onAdd(product);
@@ -16,7 +20,8 @@ const ProductCard = ({ product, isInCart, onAdd }) => {
 
   return (
     <div
-      className={`bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm transition-all duration-200 active:scale-[0.97] ${tapped ? 'scale-[0.97]' : ''}`}
+      onClick={handleTap}
+      className={`bg-white rounded-2xl overflow-hidden border border-gray-200/60 transition-all duration-200 active:scale-[0.97] cursor-pointer ${tapped ? 'scale-[0.97]' : ''}`}
     >
       {/* Image */}
       <div className="aspect-square bg-gray-100 relative overflow-hidden">
@@ -32,9 +37,9 @@ const ProductCard = ({ product, isInCart, onAdd }) => {
             <span className="text-4xl">🍽️</span>
           </div>
         )}
-        {isInCart && (
-          <div className="absolute top-2 right-2 w-6 h-6 bg-black rounded-full flex items-center justify-center shadow">
-            <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
+        {quantity > 0 && (
+          <div className="absolute top-3 right-3 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-black/25">
+            <Check className="h-4.5 w-4.5 text-white" style={{ width: '18px', height: '18px' }} strokeWidth={3.5} />
           </div>
         )}
       </div>
@@ -45,17 +50,67 @@ const ProductCard = ({ product, isInCart, onAdd }) => {
           {product.name}
         </p>
         {product.description && (
-          <p className="text-xs text-gray-400 line-clamp-1 mb-2">{product.description}</p>
+          <p className="text-xs text-gray-400 line-clamp-2 mb-3 leading-relaxed">{product.description}</p>
         )}
-        <div className="flex items-center justify-between">
-          <span className="font-bold text-gray-900 text-sm">${fmt(product.price)}</span>
-          <button
-            onPointerDown={handleTap}
-            className="w-8 h-8 bg-black rounded-full flex items-center justify-center active:scale-90 transition-transform"
-            aria-label={`Agregar ${product.name}`}
-          >
-            <Plus className="h-4 w-4 text-white" />
-          </button>
+        <div className="flex items-center justify-between mt-1">
+          <span className="font-extrabold text-gray-900 text-base">${fmt(product.price)}</span>
+          
+          {quantity > 0 ? (
+            isConfigurable ? (
+              <button
+                onClick={handleTap}
+                className="h-8 px-3 bg-blue-600 text-white rounded-full flex items-center gap-1 font-bold text-xs shadow-sm hover:bg-blue-700 transition-colors"
+              >
+                <span>{quantity}</span>
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <div 
+                className="flex items-center bg-blue-600 text-white rounded-full h-8 p-0.5 gap-1.5 shadow-sm"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (quantity === 1) {
+                      onRemoveItem(cartItemId);
+                    } else {
+                      onUpdateQty(cartItemId, quantity - 1);
+                    }
+                  }}
+                  className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
+                >
+                  −
+                </button>
+                <span className="font-extrabold text-sm min-w-[12px] text-center">{quantity}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddDirect();
+                  }}
+                  className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
+                >
+                  +
+                </button>
+              </div>
+            )
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isConfigurable) {
+                  onAdd(product);
+                } else {
+                  onAddDirect();
+                }
+              }}
+              className="px-3.5 h-8 bg-black text-white rounded-full flex items-center gap-1 font-bold text-xs active:scale-90 transition-transform shadow-sm hover:bg-gray-900"
+              aria-label={`Agregar ${product.name}`}
+            >
+              <span>Agregar</span>
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -64,7 +119,7 @@ const ProductCard = ({ product, isInCart, onAdd }) => {
 
 
 // ── Menu Section (Step 1) ─────────────────────────────────────
-const MenuSection = ({ categories, products, cartItems, onAddItem, onViewCart }) => {
+const MenuSection = ({ categories, products, cartItems, onAddItem, onUpdateQty, onRemoveItem, onViewCart }) => {
   const [activeCategory, setActiveCategory] = useState('all');
   const [search, setSearch] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -84,11 +139,26 @@ const MenuSection = ({ categories, products, cartItems, onAddItem, onViewCart })
     return list;
   }, [products, activeCategory, search]);
 
-  const cartMap = useMemo(() => {
+  const cartInfoMap = useMemo(() => {
     const map = {};
-    cartItems.forEach(item => { map[item.id] = (map[item.id] || 0) + item.quantity; });
+    cartItems.forEach(item => {
+      if (!map[item.id]) {
+        map[item.id] = { quantity: 0, cartItemId: item.cartItemId };
+      }
+      map[item.id].quantity += item.quantity;
+    });
     return map;
   }, [cartItems]);
+
+  const groupedProducts = useMemo(() => {
+    const groups = {};
+    filteredProducts.forEach(p => {
+      const catId = p.categoryId || 'other';
+      if (!groups[catId]) groups[catId] = [];
+      groups[catId].push(p);
+    });
+    return groups;
+  }, [filteredProducts]);
 
   const handleProductTap = (product) => {
     setSelectedProduct(product);
@@ -99,6 +169,12 @@ const MenuSection = ({ categories, products, cartItems, onAddItem, onViewCart })
       catRefs.current[catId].scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
     }
   };
+
+  const categoriesToRender = activeCategory === 'all' 
+    ? categories 
+    : categories.filter(c => c.id === activeCategory);
+
+  const renderFallback = activeCategory === 'all' && groupedProducts['other']?.length > 0;
 
   return (
     <div className="flex flex-col min-h-0">
@@ -145,7 +221,7 @@ const MenuSection = ({ categories, products, cartItems, onAddItem, onViewCart })
       </div>
 
       {/* Products grid */}
-      <div className="flex-1 overflow-y-auto">
+      <div className={`flex-1 ${selectedProduct ? 'overflow-hidden' : 'overflow-y-auto'}`}>
         <div className="max-w-2xl mx-auto px-4 py-4">
           {filteredProducts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-gray-300">
@@ -154,15 +230,55 @@ const MenuSection = ({ categories, products, cartItems, onAddItem, onViewCart })
               <p className="text-sm text-gray-400 mt-1">Intenta con otro término</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {filteredProducts.map(p => (
-                <ProductCard
-                  key={p.id}
-                  product={p}
-                  isInCart={!!cartMap[p.id]}
-                  onAdd={handleProductTap}
-                />
-              ))}
+            <div className="space-y-8">
+              {categoriesToRender.map(cat => {
+                const prods = groupedProducts[cat.id] || [];
+                if (prods.length === 0) return null;
+
+                return (
+                  <div key={cat.id} className="space-y-4">
+                    <h3 className="font-extrabold text-lg text-gray-900 border-b border-gray-100 pb-2 mb-1 px-1 sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10 pt-2">
+                      {cat.name}
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {prods.map(p => (
+                        <ProductCard
+                          key={p.id}
+                          product={p}
+                          quantity={cartInfoMap[p.id]?.quantity || 0}
+                          cartItemId={cartInfoMap[p.id]?.cartItemId || null}
+                          onAdd={handleProductTap}
+                          onAddDirect={() => onAddItem({ ...p, quantity: 1, selectedIngredients: [], variant: null })}
+                          onUpdateQty={onUpdateQty}
+                          onRemoveItem={onRemoveItem}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {renderFallback && (
+                <div className="space-y-4">
+                  <h3 className="font-extrabold text-lg text-gray-900 border-b border-gray-100 pb-2 mb-1 px-1 sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10 pt-2">
+                    Otros
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {groupedProducts['other'].map(p => (
+                      <ProductCard
+                        key={p.id}
+                        product={p}
+                        quantity={cartInfoMap[p.id]?.quantity || 0}
+                        cartItemId={cartInfoMap[p.id]?.cartItemId || null}
+                        onAdd={handleProductTap}
+                        onAddDirect={() => onAddItem({ ...p, quantity: 1, selectedIngredients: [], variant: null })}
+                        onUpdateQty={onUpdateQty}
+                        onRemoveItem={onRemoveItem}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {/* Bottom spacing for floating button */}
@@ -176,15 +292,15 @@ const MenuSection = ({ categories, products, cartItems, onAddItem, onViewCart })
           <div className="max-w-2xl mx-auto">
             <button
               onClick={onViewCart}
-              className="w-full bg-black text-white font-bold py-4 rounded-full flex items-center justify-between px-6 shadow-xl hover:bg-gray-900 transition-colors active:scale-[0.98]"
+              className="w-full h-16 bg-black text-white font-bold rounded-full flex items-center justify-between px-8 shadow-2xl hover:bg-gray-900 transition-colors active:scale-[0.98]"
             >
-              <div className="flex items-center gap-3">
-                <span className="bg-white/20 text-white text-sm font-bold px-2.5 py-0.5 rounded-full">
+              <div className="flex items-center gap-3.5">
+                <span className="bg-white/20 text-white text-base font-extrabold px-3 py-0.5 rounded-full">
                   {totalQty}
                 </span>
-                <span>Ver Pedido</span>
+                <span className="text-[17px] tracking-wide">Ver Pedido</span>
               </div>
-              <span>${totalPrice.toLocaleString('es-CL')}</span>
+              <span className="text-lg font-extrabold">${totalPrice.toLocaleString('es-CL')}</span>
             </button>
           </div>
         </div>

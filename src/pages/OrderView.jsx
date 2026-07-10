@@ -5,6 +5,7 @@ import MenuSection from '../components/public/MenuSection';
 import CartSummary from '../components/public/CartSummary';
 import CheckoutForm from '../components/public/CheckoutForm';
 import OrderConfirmation from '../components/public/OrderConfirmation';
+import ProductDetailView from '../components/public/ProductDetailView';
 import { getOrganizationByName, getPublicCatalog, createPublicOrder } from '../services/publicOrderService';
 
 const OrderView = () => {
@@ -20,6 +21,7 @@ const OrderView = () => {
 
   // Cart
   const [cartItems, setCartItems] = useState([]);
+  const [editingCartItem, setEditingCartItem] = useState(null);
 
   // Submitted order
   const [submittedOrder, setSubmittedOrder] = useState(null);
@@ -168,6 +170,8 @@ const OrderView = () => {
             products={products}
             cartItems={cartItems}
             onAddItem={handleAddItem}
+            onUpdateQty={handleUpdateQty}
+            onRemoveItem={handleRemoveItem}
             onViewCart={() => setStep(2)}
           />
         )}
@@ -176,6 +180,7 @@ const OrderView = () => {
             cartItems={cartItems}
             onUpdateQty={handleUpdateQty}
             onRemove={handleRemoveItem}
+            onEditItem={(item) => setEditingCartItem(item)}
             onCheckout={() => setStep(3)}
           />
         )}
@@ -193,6 +198,30 @@ const OrderView = () => {
           />
         )}
       </div>
+
+      {editingCartItem && (
+        <ProductDetailView
+          product={editingCartItem}
+          initialVariant={editingCartItem.variant}
+          initialExtras={editingCartItem.selectedIngredients}
+          initialQuantity={editingCartItem.quantity}
+          onAdd={(updatedFields) => {
+            setCartItems(prev => prev.map(item => 
+              item.cartItemId === editingCartItem.cartItemId 
+                ? { 
+                    ...item, 
+                    price: updatedFields.price, 
+                    variant: updatedFields.variant, 
+                    selectedIngredients: updatedFields.selectedIngredients, 
+                    quantity: updatedFields.quantity 
+                  }
+                : item
+            ));
+            setEditingCartItem(null);
+          }}
+          onBack={() => setEditingCartItem(null)}
+        />
+      )}
     </div>
   );
 };
