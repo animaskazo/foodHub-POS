@@ -11,9 +11,11 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
   const [selectedExtras, setSelectedExtras] = useState(initialExtras);
   const [quantity, setQuantity] = useState(initialQuantity);
 
+  const basePrice = product.originalPrice || product.price;
+
   const actualBasePrice = selectedVariant
-    ? product.price + (selectedVariant.price_modifier || 0)
-    : product.price;
+    ? basePrice + (selectedVariant.price_modifier || 0)
+    : basePrice;
   const baseGross = Math.round(actualBasePrice * 1.19);
   const extrasTotal = selectedExtras.reduce((s, i) => s + (i.price || 0), 0);
   const totalGross = baseGross + extrasTotal;
@@ -38,6 +40,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
     onAdd({
       ...product,
       price: actualBasePrice,
+      originalPrice: basePrice,
       variant: selectedVariant,
       selectedIngredients: selectedExtras,
       quantity,
@@ -100,7 +103,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
               </div>
               <div className="space-y-2.5">
                 {product.variants.map(v => {
-                  const gross = Math.round((product.price + (v.price_modifier || 0)) * 1.19);
+                  const gross = Math.round((basePrice + (v.price_modifier || 0)) * 1.19);
                   const isSelected = selectedVariant?.id === v.id;
                   return (
                     <button
