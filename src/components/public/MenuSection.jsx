@@ -24,7 +24,7 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
       className={`bg-white rounded-2xl overflow-hidden border border-gray-200/60 transition-all duration-200 active:scale-[0.97] cursor-pointer flex flex-col h-full ${tapped ? 'scale-[0.97]' : ''}`}
     >
       {/* Image */}
-      <div className="w-full h-28 sm:h-36 bg-gray-100 relative overflow-hidden">
+      <div className="aspect-square bg-gray-100 relative overflow-hidden shrink-0">
         {product.image ? (
           <img
             src={product.image}
@@ -34,90 +34,87 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="text-3xl">🍽️</span>
+            <span className="text-4xl">🍽️</span>
           </div>
         )}
         {quantity > 0 && (
-          <div className="absolute top-2.5 right-2.5 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-black/25">
-            <Check className="h-4.5 w-4.5 text-white" style={{ width: '18px', height: '18px' }} strokeWidth={3.5} />
+          <div className="absolute top-2.5 right-2.5 w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-black/25 z-10">
+            <Check className="h-4 w-4 text-white" strokeWidth={3.5} />
           </div>
         )}
-      </div>
-
-      {/* Info */}
-      <div className="p-3 flex flex-col justify-between flex-1">
-        <div>
-          <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 mb-1">
-            {product.name}
-          </p>
-          {product.description && (
-            <p className="text-xs text-gray-400 line-clamp-2 mb-2 leading-relaxed">{product.description}</p>
-          )}
-        </div>
         
-        <div className="mt-auto">
-          <div className="mb-2">
-            <span className="font-extrabold text-gray-900 text-base">${fmt(product.price)}</span>
-          </div>
-          
-          <div className="flex justify-end">
-            {quantity > 0 ? (
-              isConfigurable ? (
+        {/* Floating Add/Counter inside image */}
+        <div className="absolute bottom-2.5 right-2.5 z-10" onClick={(e) => e.stopPropagation()}>
+          {quantity > 0 ? (
+            isConfigurable ? (
+              <button
+                onClick={handleTap}
+                className="h-8 px-3 bg-blue-600 text-white rounded-full flex items-center gap-1 font-bold text-xs shadow-lg hover:bg-blue-700 transition-colors"
+              >
+                <span>{quantity}</span>
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <div 
+                className="flex items-center bg-blue-600 text-white rounded-full h-8 p-0.5 gap-1.5 shadow-lg"
+              >
                 <button
-                  onClick={handleTap}
-                  className="h-8 px-3 bg-blue-600 text-white rounded-full flex items-center gap-1 font-bold text-xs shadow-sm hover:bg-blue-700 transition-colors"
+                  onClick={(e) => {
+                    if (quantity === 1) {
+                      onRemoveItem(cartItemId);
+                    } else {
+                      onUpdateQty(cartItemId, quantity - 1);
+                    }
+                  }}
+                  className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
                 >
-                  <span>{quantity}</span>
-                  <Plus className="h-3.5 w-3.5" />
+                  −
                 </button>
-              ) : (
-                <div 
-                  className="flex items-center bg-blue-600 text-white rounded-full h-8 p-0.5 gap-1.5 shadow-sm"
-                  onClick={(e) => e.stopPropagation()}
+                <span className="font-extrabold text-sm min-w-[12px] text-center">{quantity}</span>
+                <button
+                  onClick={onAddDirect}
+                  className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
                 >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (quantity === 1) {
-                        onRemoveItem(cartItemId);
-                      } else {
-                        onUpdateQty(cartItemId, quantity - 1);
-                      }
-                    }}
-                    className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
-                  >
-                    −
-                  </button>
-                  <span className="font-extrabold text-sm min-w-[12px] text-center">{quantity}</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAddDirect();
-                    }}
-                    className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
-                  >
-                    +
+                  +
                 </button>
               </div>
             )
           ) : (
             <button
               onClick={(e) => {
-                e.stopPropagation();
                 if (isConfigurable) {
                   onAdd(product);
                 } else {
                   onAddDirect();
                 }
               }}
-              className="px-3.5 h-8 bg-black text-white rounded-full flex items-center gap-1 font-bold text-xs active:scale-90 transition-transform shadow-sm hover:bg-gray-900"
+              className="px-3 h-8 bg-white text-gray-900 rounded-full flex items-center gap-1 font-extrabold text-xs active:scale-90 transition-transform shadow-lg shadow-black/20 border border-gray-100/50 hover:bg-gray-50"
               aria-label={`Agregar ${product.name}`}
             >
               <span>Agregar</span>
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-3 w-3 text-gray-900" />
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Info */}
+      <div className="p-3 flex flex-col justify-between flex-1">
+        <div>
+          {/* Price */}
+          <div className="mb-1">
+            <span className="font-extrabold text-gray-900 text-base">${fmt(product.price)}</span>
           </div>
+          
+          {/* Name */}
+          <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 mb-1">
+            {product.name}
+          </p>
+          
+          {/* Description */}
+          {product.description && (
+            <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">{product.description}</p>
+          )}
         </div>
       </div>
     </div>
