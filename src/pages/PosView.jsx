@@ -306,7 +306,7 @@ const PosView = () => {
       />
       
       <VariantSelectionModal
-        isOpen={!!selectedProductForVariant}
+        isOpen={selectedProductForVariant !== null}
         onClose={() => {
           setSelectedProductForVariant(null);
           setEditingCartItem(null);
@@ -314,6 +314,7 @@ const PosView = () => {
         product={selectedProductForVariant}
         onSelectVariant={handleVariantSelect}
         editingItem={editingCartItem}
+        cartItems={cartItems}
         onDelete={(cartItemId) => {
           handleRemove(cartItemId);
           setEditingCartItem(null);

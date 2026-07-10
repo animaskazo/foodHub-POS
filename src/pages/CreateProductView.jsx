@@ -66,6 +66,13 @@ const CreateProductView = () => {
   const [hasChanges, setHasChanges] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+  const [channels, setChannels] = useState({
+    pos: true,
+    table: true,
+    pickup: true,
+    online: true,
+    whatsapp: false
+  });
 
   useDocumentTitle(isEditing ? 'Editar artículo' : 'Crear artículo');
 
@@ -274,15 +281,24 @@ const CreateProductView = () => {
         >
           <X className="h-5 w-5" />
         </button>
-        <h1 className="text-[17px] font-bold">{isEditing ? 'Editar artículo' : 'Crear artículo'}</h1>
-        <Button
-          onClick={handleSave}
-          disabled={isSaving || isLoading || isUploadingImage}
-          className="rounded-full px-6 bg-black text-white hover:bg-gray-800"
-        >
-          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          {isSaving ? 'Guardando...' : 'Guardar'}
-        </Button>
+        <h1 className="text-[17px] font-bold">
+          {isEditing ? `Editar ${formData.name || 'artículo'}` : `Crear ${formData.name || 'artículo'}`}
+        </h1>
+        <div className="flex items-center gap-3">
+          {hasChanges && (
+            <span className="text-xs text-amber-600 font-bold animate-pulse select-none hidden sm:inline">
+              Tienes cambios sin guardar
+            </span>
+          )}
+          <Button
+            onClick={handleSave}
+            disabled={isSaving || isLoading || isUploadingImage}
+            className="rounded-full px-6 bg-black text-white hover:bg-gray-800 font-semibold"
+          >
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {isSaving ? 'Guardando...' : 'Guardar'}
+          </Button>
+        </div>
       </header>
 
       {/* ── Body ──────────────────────────────────────── */}
@@ -292,21 +308,19 @@ const CreateProductView = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8">
 
-          {/* Left column */}
-          <div className="space-y-4">
+            {/* Left column */}
+            <div className="space-y-4">
 
-
-
-            {/* Nombre */}
-            <div className="form-field flex items-center px-4 gap-2">
-              <input
-                className="flex-1 h-14 bg-transparent text-[15px] outline-none placeholder-gray-400 font-medium"
-                placeholder="Nombre (requerido)"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-              />
-            </div>
+              {/* Nombre */}
+              <div className="form-field flex items-center px-4 gap-2">
+                <input
+                  className="flex-1 h-16 bg-transparent text-lg outline-none placeholder-gray-400 font-bold"
+                  placeholder="Nombre del artículo (requerido)"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                />
+              </div>
 
             {/* Precio */}
             <div className="space-y-2">
@@ -366,42 +380,24 @@ const CreateProductView = () => {
                   onChange={handleChange}
                 />
                 {formData.name.trim() && (
-                  <>
-                    <style>{`
-                      @keyframes ai-pulse-glow {
-                        0%, 100% {
-                          box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
-                        }
-                        33% {
-                          box-shadow: 0 0 24px rgba(139, 92, 246, 0.7), 0 0 0 4px rgba(139, 92, 246, 0.1);
-                        }
-                        66% {
-                          box-shadow: 0 0 24px rgba(236, 72, 153, 0.7), 0 0 0 4px rgba(236, 72, 153, 0.1);
-                        }
-                      }
-                      .ai-glow-button {
-                        animation: ai-pulse-glow 3s infinite ease-in-out;
-                      }
-                    `}</style>
-                    <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                      <span className="text-[11px] font-bold text-blue-600 pointer-events-none select-none">
-                        Crear con IA
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleGenerateAIDescription}
-                        disabled={isGeneratingDescription}
-                        className="w-9 h-9 bg-white text-blue-600 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-50 disabled:pointer-events-none cursor-pointer ai-glow-button"
-                        title="Crear descripción con IA"
-                      >
-                        {isGeneratingDescription ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                        ) : (
-                          <Sparkles className="h-4.5 w-4.5 text-blue-600 fill-current" />
-                        )}
-                      </button>
-                    </div>
-                  </>
+                  <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-blue-600 pointer-events-none select-none">
+                      Crear con IA
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleGenerateAIDescription}
+                      disabled={isGeneratingDescription}
+                      className="w-9 h-9 bg-white hover:bg-gray-50 border border-gray-200 text-blue-600 rounded-full flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none cursor-pointer shadow-sm"
+                      title="Crear descripción con IA"
+                    >
+                      {isGeneratingDescription ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                      ) : (
+                        <Sparkles className="h-4.5 w-4.5 text-blue-600 fill-current" />
+                      )}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -443,16 +439,39 @@ const CreateProductView = () => {
               </div>
             </div>
 
-            {/* Impuestos */}
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="font-semibold text-[15px]">Impuestos</p>
-                <p className="text-sm text-gray-500 mt-0.5">IVA (19%)</p>
+            {/* Ingredientes Base (Movido bajo la imagen) */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 mt-2">
+              <div className="flex-1 min-w-0 mb-3">
+                <h4 className="font-semibold text-[15px] text-gray-900">Ingredientes Base</h4>
+                <p className="text-sm text-gray-500 leading-relaxed">Selecciona los ingredientes que vienen incluidos por defecto en este artículo.</p>
               </div>
-              <Button variant="link" className="font-semibold text-gray-800 underline px-0 h-auto">Editar</Button>
+              {globalIngredients.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100 max-h-60 overflow-y-auto">
+                  {globalIngredients.map(ing => (
+                    <label key={`base-${ing.id}`} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300 transition-colors">
+                      <input 
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                        checked={baseIngredients.includes(ing.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setBaseIngredients([...baseIngredients, ing.id]);
+                          } else {
+                            setBaseIngredients(baseIngredients.filter(id => id !== ing.id));
+                          }
+                          setHasChanges(true);
+                        }}
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-900">{ing.name}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 italic">No hay ingredientes creados en el catálogo.</p>
+              )}
             </div>
-
-            <Separator />
 
             {/* SKU */}
             <div className="form-field flex items-center px-4 gap-2">
@@ -466,99 +485,146 @@ const CreateProductView = () => {
               <InfoIcon />
             </div>
 
-            {/* Secciones adicionales */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mt-2 divide-y divide-gray-100">
-              <SectionRow
-                title="Variantes"
-                description={variants.length > 0 ? <span className="font-semibold text-blue-600">{variants.length} variante(s) configurada(s)</span> : "Agrega opciones, como tamaños o sabores y, a continuación, establece los precios, los SKU y el inventario."}
-              >
-                <Button variant="outline" className="rounded-full gap-1.5 font-semibold h-9" onClick={() => {
-                  setShowVariants(true);
-                  if (variants.length === 0) {
-                    setDraftVariants([
-                      { id: Date.now(), name: '', price: '', status: 'available', sku: '' }
-                    ]);
-                  } else {
-                    setDraftVariants([...variants]);
-                  }
-                }}>
-                  {variants.length > 0 ? `Editar (${variants.length})` : 'Agregar'} <ChevronDown className="h-4 w-4" />
-                </Button>
-              </SectionRow>
-
-              <div className="p-4 sm:p-5 flex flex-col gap-6">
-                {/* Ingredientes Base */}
-                <div className="flex flex-col gap-3">
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-[15px]">Ingredientes Base</h4>
-                    <p className="text-sm text-gray-500 leading-relaxed">Selecciona los ingredientes que vienen incluidos por defecto en este artículo.</p>
-                  </div>
-                  {globalIngredients.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 bg-gray-50 p-4 rounded-xl border border-gray-100 max-h-60 overflow-y-auto">
-                      {globalIngredients.map(ing => (
-                        <label key={`base-${ing.id}`} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300 transition-colors">
-                          <input 
-                            type="checkbox"
-                            className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
-                            checked={baseIngredients.includes(ing.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setBaseIngredients([...baseIngredients, ing.id]);
-                              } else {
-                                setBaseIngredients(baseIngredients.filter(id => id !== ing.id));
-                              }
-                              setHasChanges(true);
-                            }}
-                          />
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium text-gray-900">{ing.name}</span>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-400 italic">No hay ingredientes creados en el catálogo.</p>
-                  )}
-                </div>
-
-                <div className="h-px bg-gray-100 w-full"></div>
-
-                {/* Ingredientes Extra */}
-                <div className="flex flex-col gap-3">
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-[15px]">Opciones Extras</h4>
-                    <p className="text-sm text-gray-500 leading-relaxed">Selecciona qué ingredientes adicionales se pueden agregar (se cobrará el precio extra).</p>
-                  </div>
-                  {globalIngredients.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 bg-gray-50 p-4 rounded-xl border border-gray-100 max-h-60 overflow-y-auto">
-                      {globalIngredients.map(ing => (
-                        <label key={`extra-${ing.id}`} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300 transition-colors">
-                          <input 
-                            type="checkbox"
-                            className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
-                            checked={extraIngredients.includes(ing.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setExtraIngredients([...extraIngredients, ing.id]);
-                              } else {
-                                setExtraIngredients(extraIngredients.filter(id => id !== ing.id));
-                              }
-                              setHasChanges(true);
-                            }}
-                          />
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium text-gray-900">{ing.name}</span>
-                            <span className="text-xs text-gray-500">+${ing.price}</span>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-400 italic">No hay ingredientes creados en el catálogo.</p>
-                  )}
-                </div>
+            {/* Sección: Variantes (Directo en el Card) */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 mt-2 space-y-4">
+              <div>
+                <h3 className="font-semibold text-[15px] text-gray-900">Variantes</h3>
+                <p className="text-sm text-gray-500 mt-0.5">Agrega opciones como tamaños o sabores, y establece sus precios y SKUs.</p>
               </div>
 
+              {variants.length > 0 && (
+                <div className="overflow-x-auto pb-2">
+                  <table className="w-full text-sm text-left border-collapse min-w-[550px]">
+                    <thead>
+                      <tr className="border-b border-gray-100 text-gray-900">
+                        <th className="py-3 font-bold text-[13px] w-[35%]">Nombre de Variante</th>
+                        <th className="py-3 font-bold text-[13px] w-[20%]">SKU</th>
+                        <th className="py-3 font-bold text-[13px] w-[25%]">Precio c/u</th>
+                        <th className="py-3 font-bold text-[13px] text-center w-[10%]">Estado</th>
+                        <th className="py-3 w-[10%]"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {variants.map((v) => (
+                        <tr key={v.id} className="hover:bg-gray-50/50">
+                          <td className="py-3 pr-2">
+                            <input 
+                              type="text" 
+                              placeholder="Ej: Familiar, Individual"
+                              value={v.name}
+                              onChange={(e) => {
+                                setVariants(variants.map(v2 => v2.id === v.id ? { ...v2, name: e.target.value } : v2));
+                                setHasChanges(true);
+                              }}
+                              className="w-full h-11 px-3.5 border border-gray-200 rounded-xl text-[14px] font-medium text-gray-900 focus:outline-none focus:border-black placeholder-gray-400"
+                            />
+                          </td>
+                          <td className="py-3 px-2">
+                            <input 
+                              type="text"
+                              value={v.sku}
+                              onChange={(e) => {
+                                setVariants(variants.map(v2 => v2.id === v.id ? { ...v2, sku: e.target.value } : v2));
+                                setHasChanges(true);
+                              }}
+                              placeholder="SKU"
+                              className="w-full h-11 px-3.5 border border-gray-200 rounded-xl text-[14px] font-medium text-gray-900 focus:outline-none focus:border-black placeholder-gray-400"
+                            />
+                          </td>
+                          <td className="py-3 px-2">
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-900 font-semibold text-sm">$</span>
+                              <input 
+                                type="text"
+                                value={v.price}
+                                onChange={(e) => {
+                                  setVariants(variants.map(v2 => v2.id === v.id ? { ...v2, price: e.target.value } : v2));
+                                  setHasChanges(true);
+                                }}
+                                placeholder="0"
+                                className="w-full h-11 pl-7 pr-3 border border-gray-200 rounded-xl text-[14px] font-bold text-right text-gray-900 focus:outline-none focus:border-black placeholder-gray-400"
+                              />
+                            </div>
+                          </td>
+                          <td className="py-3 text-center">
+                            <div className="flex justify-center items-center">
+                              <Switch 
+                                checked={v.status === 'available'}
+                                onCheckedChange={(checked) => {
+                                  setVariants(variants.map(v2 => v2.id === v.id ? { ...v2, status: checked ? 'available' : 'unavailable' } : v2));
+                                  setHasChanges(true);
+                                }}
+                              />
+                            </div>
+                          </td>
+                          <td className="py-3 text-right pl-2">
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                setVariants(variants.filter(v2 => v2.id !== v.id));
+                                setHasChanges(true);
+                              }} 
+                              className="p-2.5 text-gray-400 hover:text-red-500 transition-colors bg-white rounded-lg hover:bg-red-50 border border-gray-100"
+                            >
+                              <Trash2 className="h-4.5 w-4.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <button 
+                type="button"
+                onClick={() => {
+                  setVariants([...variants, { id: Date.now(), name: '', price: '', status: 'available', sku: '' }]);
+                  setHasChanges(true);
+                }}
+                className="text-[14px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5 py-1 rounded-lg transition-colors"
+              >
+                <Plus className="h-4 w-4" /> Agregar variantes
+              </button>
+            </div>
+
+            {/* Opciones Extras */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 mt-2">
+              <div className="flex-1 min-w-0 mb-3">
+                <h4 className="font-semibold text-[15px] text-gray-900">Opciones Extras</h4>
+                <p className="text-sm text-gray-500 leading-relaxed">Selecciona qué ingredientes adicionales se pueden agregar (se cobrará el precio extra).</p>
+              </div>
+              {globalIngredients.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100 max-h-60 overflow-y-auto">
+                  {globalIngredients.map(ing => (
+                    <label key={`extra-${ing.id}`} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300 transition-colors">
+                      <input 
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                        checked={extraIngredients.includes(ing.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setExtraIngredients([...extraIngredients, ing.id]);
+                          } else {
+                            setExtraIngredients(extraIngredients.filter(id => id !== ing.id));
+                          }
+                          setHasChanges(true);
+                        }}
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-900">{ing.name}</span>
+                        <span className="text-xs text-gray-500">+${ing.price}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 italic">No hay ingredientes creados en el catálogo.</p>
+              )}
+            </div>
+
+            {/* Paquetes y Atributos (Combinado en un card más limpio) */}
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mt-2 divide-y divide-gray-100">
               <SectionRow
                 title="Paquetes"
                 badge="Actualizar plan"
@@ -619,178 +685,100 @@ const CreateProductView = () => {
             </div>
 
             {/* Sucursales y canales */}
-            <div className="bg-white rounded-xl border border-gray-100 p-5">
-              <div className="flex items-start justify-between mb-5">
-                <p className="font-semibold text-[15px]">Sucursales y canales</p>
-                <button className="text-xs text-gray-500 underline text-right leading-tight">
+            <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
+              <div className="flex items-start justify-between pb-1">
+                <p className="font-semibold text-[15px] text-gray-900">Sucursales y canales</p>
+                <button className="text-xs text-gray-500 underline text-right leading-tight hover:text-gray-800">
                   Editar mosaico<br />del PDV
                 </button>
               </div>
 
-              <div className="flex items-center justify-between">
+              {/* Sucursales */}
+              <div className="flex items-center justify-between py-1">
                 <div className="flex items-center gap-3">
-                  <Store className="h-5 w-5 text-gray-900 mx-1.5" />
+                  <Store className="h-5 w-5 text-gray-700" />
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold">Sucursales</span>
-                      <span className="text-[11px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-full font-medium">Todas</span>
+                      <span className="text-sm font-semibold text-gray-900">Sucursales</span>
+                      <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-full font-bold">TODAS</span>
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">Digital Solutions</p>
                   </div>
                 </div>
-                <button className="text-sm font-semibold underline text-gray-700">Editar</button>
+                <button className="text-xs font-bold text-gray-800 hover:text-black underline">Editar</button>
               </div>
 
-              <Separator className="my-4" />
+              <Separator />
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Globe className="h-5 w-5 text-gray-900 mx-1.5" />
-                  <span className="text-sm font-semibold">Puntos de venta</span>
+              {/* Canales / Puntos de Venta */}
+              <div className="space-y-3.5 pt-1">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Canales de venta</p>
+                
+                {/* POS */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-[11px]">POS</div>
+                    <span className="text-sm font-medium text-gray-700">Puntos de venta (PDV)</span>
+                  </div>
+                  <Switch 
+                    checked={channels.pos} 
+                    onCheckedChange={(val) => { setChannels({ ...channels, pos: val }); setHasChanges(true); }} 
+                  />
                 </div>
-                <Switch defaultChecked />
+
+                {/* Mesa */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 font-bold text-[11px]">MES</div>
+                    <span className="text-sm font-medium text-gray-700">Mesa / Consumo Local</span>
+                  </div>
+                  <Switch 
+                    checked={channels.table} 
+                    onCheckedChange={(val) => { setChannels({ ...channels, table: val }); setHasChanges(true); }} 
+                  />
+                </div>
+
+                {/* Retiro */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 font-bold text-[11px]">RET</div>
+                    <span className="text-sm font-medium text-gray-700">Para Llevar / Retiro</span>
+                  </div>
+                  <Switch 
+                    checked={channels.pickup} 
+                    onCheckedChange={(val) => { setChannels({ ...channels, pickup: val }); setHasChanges(true); }} 
+                  />
+                </div>
+
+                {/* Ecommerce */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600 font-bold text-[11px]">ECO</div>
+                    <span className="text-sm font-medium text-gray-700">Ecommerce / Web Online</span>
+                  </div>
+                  <Switch 
+                    checked={channels.online} 
+                    onCheckedChange={(val) => { setChannels({ ...channels, online: val }); setHasChanges(true); }} 
+                  />
+                </div>
+
+                {/* WhatsApp */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 font-bold text-[11px]">WSP</div>
+                    <span className="text-sm font-medium text-gray-700">WhatsApp Orders</span>
+                  </div>
+                  <Switch 
+                    checked={channels.whatsapp} 
+                    onCheckedChange={(val) => { setChannels({ ...channels, whatsapp: val }); setHasChanges(true); }} 
+                  />
+                </div>
               </div>
-
-              <Separator className="my-4" />
-
-              <button className="flex items-center gap-3 w-full text-left">
-                <Plus className="h-5 w-5 text-gray-900 mx-1.5" />
-                <span className="text-sm font-semibold text-gray-700">Agregar canal</span>
-              </button>
             </div>
           </div>
           </div>
         )}
       </main>
-
-      <Modal 
-        isOpen={showVariants} 
-        onClose={() => setShowVariants(false)}
-        title={<h3 className="font-bold text-[22px] text-gray-900 tracking-tight">Agregar variantes</h3>}
-        maxWidth="max-w-5xl"
-      >
-        <div className="overflow-x-auto pb-4">
-          <table className="w-full text-sm text-left border-collapse min-w-[700px]">
-            <thead>
-              <tr className="border-b border-gray-100 text-gray-900 bg-white">
-                <th className="px-5 py-4 font-bold text-[14px] w-[35%]">Variantes</th>
-                <th className="px-5 py-4 font-bold text-[14px] w-[15%]">SKU</th>
-                <th className="px-5 py-4 font-bold text-[14px]">
-                  <div className="flex items-center gap-1 text-gray-900">
-                    Precio 
-                    <span className="underline decoration-gray-300 underline-offset-4 ml-1 cursor-pointer flex items-center gap-0.5">
-                      c/u <ChevronDown className="h-4 w-4" />
-                    </span>
-                  </div>
-                </th>
-                <th className="px-5 py-4 font-bold text-[14px] text-center w-[120px]">Estado</th>
-                <th className="pl-2 pr-6 py-4 w-[70px]"></th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
-              {draftVariants.map((v, idx) => (
-                <tr key={v.id} className="group hover:bg-gray-50/50 transition-colors">
-                  <td className="px-5 py-4 align-top">
-                    <div className="flex items-center gap-4">
-                      <div className="text-gray-300 cursor-grab active:cursor-grabbing mt-2.5">
-                        <svg width="12" height="16" viewBox="0 0 12 16" fill="currentColor">
-                          <circle cx="2" cy="2" r="1.5" />
-                          <circle cx="2" cy="8" r="1.5" />
-                          <circle cx="2" cy="14" r="1.5" />
-                          <circle cx="8" cy="2" r="1.5" />
-                          <circle cx="8" cy="8" r="1.5" />
-                          <circle cx="8" cy="14" r="1.5" />
-                        </svg>
-                      </div>
-                      <div className="relative flex-1">
-                        <input 
-                          type="text" 
-                          placeholder={idx === draftVariants.length - 1 ? "Agregar una variante" : "Nombre de la variante"}
-                          value={v.name}
-                          onChange={(e) => {
-                            const newVariants = draftVariants.map(v2 => v2.id === v.id ? { ...v2, name: e.target.value } : v2);
-                            setDraftVariants(newVariants);
-                          }}
-                          className="w-full h-[46px] px-4 border border-gray-200 rounded-xl text-[15px] font-medium text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400"
-                        />
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 align-top">
-                    <input 
-                      type="text"
-                      value={v.sku}
-                      onChange={(e) => {
-                        const newVariants = draftVariants.map(v2 => v2.id === v.id ? { ...v2, sku: e.target.value } : v2);
-                        setDraftVariants(newVariants);
-                      }}
-                      placeholder="SKU"
-                      className="w-full h-[46px] px-4 border border-gray-200 rounded-xl text-[15px] font-medium text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400"
-                    />
-                  </td>
-                  <td className="px-5 py-4 align-top">
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-900 font-semibold">$</span>
-                      <input 
-                        type="text"
-                        value={v.price}
-                        onChange={(e) => {
-                          const newVariants = draftVariants.map(v2 => v2.id === v.id ? { ...v2, price: e.target.value } : v2);
-                          setDraftVariants(newVariants);
-                        }}
-                        placeholder="0"
-                        className="w-full h-[46px] pl-8 pr-4 border border-gray-200 rounded-xl text-[15px] font-bold text-right text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-400"
-                      />
-                    </div>
-                  </td>
-                  <td className="px-5 py-4 text-center align-top pt-5">
-                    <div className="flex justify-center items-center h-full pt-1">
-                      <Switch 
-                        checked={v.status === 'available'}
-                        onCheckedChange={(checked) => {
-                          const newStatus = checked ? 'available' : 'unavailable';
-                          const newVariants = draftVariants.map(v2 => v2.id === v.id ? { ...v2, status: newStatus } : v2);
-                          setDraftVariants(newVariants);
-                        }}
-                      />
-                    </div>
-                  </td>
-                  <td className="pl-2 pr-6 py-4 text-center align-top pt-4">
-                    <button 
-                      onClick={() => setDraftVariants(draftVariants.filter(v2 => v2.id !== v.id))} 
-                      className="p-2.5 text-gray-400 hover:text-red-500 transition-all bg-white rounded-xl hover:bg-red-50 shadow-sm border border-gray-100"
-                      title="Eliminar variante"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between mt-4">
-            <button 
-              onClick={() => setDraftVariants([...draftVariants, { id: Date.now(), name: '', price: '', status: 'available', sku: '' }])} 
-              className="text-[15px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors"
-            >
-              <Plus className="h-5 w-5" /> Agregar otra variante
-            </button>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={() => setShowVariants(false)} className="rounded-full px-6 font-semibold">
-                Descartar
-              </Button>
-              <Button onClick={() => { 
-                const validVariants = draftVariants.filter(v => v.name && v.name.trim() !== '');
-                setVariants(validVariants);
-                setHasChanges(true);
-                setShowVariants(false); 
-              }} className="rounded-full px-6 bg-black text-white hover:bg-gray-800 font-semibold">
-                Guardar
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 };

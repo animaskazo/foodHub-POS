@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/button';
 
-const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, editingItem, onDelete }) => {
+const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, editingItem, onDelete, cartItems = [] }) => {
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [selectedIngredients, setSelectedIngredients] = useState([]);
   const [activeTab, setActiveTab] = useState('variants');
@@ -13,13 +13,23 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
         setSelectedVariant(editingItem.variant || null);
         setSelectedIngredients(editingItem.selectedIngredients || []);
       } else {
-        setSelectedVariant(null);
+        const alreadyInCart = cartItems.some(item => item.productId === product.id);
+        if (alreadyInCart) {
+          setSelectedVariant(null);
+        } else {
+          const activeVariants = product.variants?.filter(v => v.is_active) || [];
+          const cheapest = activeVariants.reduce((min, v) => {
+            if (!min) return v;
+            return (v.price_modifier || 0) < (min.price_modifier || 0) ? v : min;
+          }, null);
+          setSelectedVariant(cheapest);
+        }
         setSelectedIngredients([]);
       }
       const productHasVariants = product.variants && product.variants.length > 0 && product.variants.some(v => v.is_active);
       setActiveTab(productHasVariants ? 'variants' : 'ingredients');
     }
-  }, [isOpen, product, editingItem]);
+  }, [isOpen, product, editingItem, cartItems]);
 
   if (!product) return null;
 
@@ -89,17 +99,6 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
               <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Variante</p>
             )}
             <div className="grid grid-cols-1 gap-2">
-              <button
-                onClick={() => setSelectedVariant(null)}
-                className={`flex items-center justify-between p-4 border rounded-2xl transition-all text-left ${selectedVariant === null ? 'border-black bg-black text-white shadow-md' : 'border-gray-200 hover:border-gray-300 bg-white'}`}
-              >
-                <div>
-                  <span className={`block font-semibold ${selectedVariant === null ? 'text-white' : 'text-gray-900'}`}>Original (Por defecto)</span>
-                </div>
-                <span className={`font-bold ${selectedVariant === null ? 'text-white' : 'text-gray-900'}`}>
-                  ${Math.round(actualBasePrice * 1.19).toLocaleString('es-CL')}
-                </span>
-              </button>
 
               {product.variants.filter(v => v.is_active).map((variant) => {
                 const finalGrossPrice = Math.round((actualBasePrice + (variant.price_modifier || 0)) * 1.19);
@@ -172,6 +171,7 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
           <Button
             size="lg"
             onClick={handleConfirm}
+            disabled={hasVariants && !selectedVariant}
             className="w-full flex items-center justify-between"
           >
             <span>{editingItem ? 'Actualizar' : 'Agregar al carrito'}</span>

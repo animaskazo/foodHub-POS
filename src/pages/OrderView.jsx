@@ -166,6 +166,7 @@ const OrderView = () => {
       <div className="flex-1 flex flex-col min-h-0">
         {step === 1 && (
           <MenuSection
+            org={org}
             categories={categories}
             products={products}
             cartItems={cartItems}

@@ -11,6 +11,17 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
   const hasExtras = product.ingredients?.some(i => i.isExtra);
   const isConfigurable = hasVariants || hasExtras;
 
+  const displayPrice = useMemo(() => {
+    if (hasVariants) {
+      const minPrice = product.variants.reduce((min, v) => {
+        const price = product.price + (v.price_modifier || 0);
+        return price < min ? price : min;
+      }, Infinity);
+      return minPrice;
+    }
+    return product.price;
+  }, [product, hasVariants]);
+
   const handleTap = (e) => {
     if (e) e.stopPropagation();
     setTapped(true);
@@ -103,7 +114,9 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
         <div>
           {/* Price */}
           <div className="mb-1">
-            <span className="font-extrabold text-gray-900 text-base">${fmt(product.price)}</span>
+            <span className="font-extrabold text-gray-900 text-base">
+              {hasVariants ? 'Desde ' : ''}${fmt(displayPrice)}
+            </span>
           </div>
           
           {/* Name */}
@@ -123,7 +136,7 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
 
 
 // ── Menu Section (Step 1) ─────────────────────────────────────
-const MenuSection = ({ categories, products, cartItems, onAddItem, onUpdateQty, onRemoveItem, onViewCart }) => {
+const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdateQty, onRemoveItem, onViewCart }) => {
   const [activeCategory, setActiveCategory] = useState('all');
   const [search, setSearch] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -182,6 +195,49 @@ const MenuSection = ({ categories, products, cartItems, onAddItem, onUpdateQty, 
 
   return (
     <div className="flex flex-col min-h-0">
+      {/* Header del Negocio (Cover, Logo y Info) */}
+      {org && (
+        <div className="max-w-2xl mx-auto w-full px-4 pt-4 shrink-0">
+          <div 
+            className="w-full h-32 md:h-40 rounded-2xl bg-gray-100 bg-cover bg-center relative border border-gray-100 shadow-sm"
+            style={org.cover_url ? { backgroundImage: `url(${org.cover_url})` } : { backgroundImage: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)' }}
+          >
+            {/* Logo */}
+            <div 
+              className="absolute -bottom-6 left-5 w-16 h-16 md:w-20 md:h-20 rounded-full bg-white border-2 border-white shadow-md flex items-center justify-center overflow-hidden bg-cover bg-center"
+              style={org.logo_url ? { backgroundImage: `url(${org.logo_url})` } : {}}
+            >
+              {!org.logo_url && <span className="text-3xl">🏬</span>}
+            </div>
+          </div>
+
+          <div className="pt-8 pb-3">
+            <h1 className="font-black text-2xl md:text-3xl text-gray-900 leading-tight mb-1.5 px-1">{org.name}</h1>
+            {org.description && (
+              <p className="text-[13px] md:text-sm text-gray-500 leading-relaxed mb-3 px-1">{org.description}</p>
+            )}
+            
+            <div className="flex flex-wrap gap-2 px-1 text-[11px] font-bold text-gray-500">
+              {org.phone && (
+                <span className="flex items-center gap-1 bg-gray-100 px-2.5 py-1 rounded-full">
+                  📞 {org.phone}
+                </span>
+              )}
+              {org.email && (
+                <span className="flex items-center gap-1 bg-gray-100 px-2.5 py-1 rounded-full">
+                  ✉️ {org.email}
+                </span>
+              )}
+              {org.address && (
+                <span className="flex items-center gap-1 bg-gray-100 px-2.5 py-1 rounded-full truncate max-w-xs" title={org.address}>
+                  📍 {org.address}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Search */}
       <div className="sticky top-14 z-20 bg-white border-b border-gray-100">
         <div className="max-w-2xl mx-auto px-4 py-3">

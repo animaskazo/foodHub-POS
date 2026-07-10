@@ -6,7 +6,7 @@ export const getOrganizationByName = async (orgName) => {
 
   const { data, error } = await supabase
     .from('organizations')
-    .select('id, name, slug, logo_url, primary_color, phone, email, address, default_tax_rate, currency')
+    .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency')
     .ilike('name', decoded)
     .eq('is_active', true)
     .maybeSingle();
@@ -15,7 +15,7 @@ export const getOrganizationByName = async (orgName) => {
     // Try by slug as fallback
     const { data: bySlug, error: slugError } = await supabase
       .from('organizations')
-      .select('id, name, slug, logo_url, primary_color, phone, email, address, default_tax_rate, currency')
+      .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency')
       .ilike('slug', decoded)
       .eq('is_active', true)
       .maybeSingle();

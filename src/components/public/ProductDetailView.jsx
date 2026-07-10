@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
 const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, initialExtras = [], initialQuantity = 1 }) => {
@@ -7,7 +7,15 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
   const baseIngredients = product.ingredients?.filter(i => !i.isExtra) || [];
   const hasExtras = extraIngredients.length > 0;
 
-  const [selectedVariant, setSelectedVariant] = useState(initialVariant);
+  const cheapestVariant = useMemo(() => {
+    if (!product.variants || product.variants.length === 0) return null;
+    return product.variants.reduce((cheapest, v) => {
+      if (!cheapest) return v;
+      return (v.price_modifier || 0) < (cheapest.price_modifier || 0) ? v : cheapest;
+    }, null);
+  }, [product.variants]);
+
+  const [selectedVariant, setSelectedVariant] = useState(initialVariant || cheapestVariant);
   const [selectedExtras, setSelectedExtras] = useState(initialExtras);
   const [quantity, setQuantity] = useState(initialQuantity);
 
@@ -108,7 +116,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                   return (
                     <button
                       key={v.id}
-                      onClick={() => setSelectedVariant(isSelected ? null : v)}
+                      onClick={() => setSelectedVariant(v)}
                       className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left ${
                         isSelected ? 'border-black bg-black text-white' : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300'
                       }`}

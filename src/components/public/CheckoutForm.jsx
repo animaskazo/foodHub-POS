@@ -106,6 +106,39 @@ const CheckoutForm = ({ onSubmit, isSubmitting }) => {
             </div>
           </div>
 
+          {/* Section: Payment Method */}
+          <div className="space-y-3">
+            <h2 className="text-base font-bold text-gray-900">Método de pago</h2>
+            <div className="grid grid-cols-1 gap-3">
+              {/* Pago en local (activo por defecto) */}
+              <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border-2 border-black shadow-sm">
+                <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center shrink-0">
+                  <span className="text-lg">💵</span>
+                </div>
+                <div>
+                  <p className="font-bold text-gray-900 text-sm">Pago en local</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Paga en caja al retirar (Efectivo o Tarjeta)</p>
+                </div>
+              </div>
+
+              {/* Pago en línea (bloqueado) */}
+              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-200 opacity-60 cursor-not-allowed select-none">
+                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center shrink-0">
+                  <span className="text-lg">💳</span>
+                </div>
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-bold text-gray-400 text-sm">Pago en línea</p>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-gray-200 text-gray-500 rounded-full tracking-wide">
+                      Pronto podras pagar en línea
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">Webpay, Tarjeta de Crédito o Débito</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Section: Notes */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">

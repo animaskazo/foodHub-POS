@@ -6,7 +6,28 @@ import {
   updateOrganizationDetails,
   getStaff 
 } from '../services/organizationService';
+import { uploadImage } from '../services/storageService';
 import { Store, User, Clock, Check, Loader2, Save, Link, Copy, ExternalLink } from 'lucide-react';
+
+const daysTranslations = {
+  mon: 'Lunes',
+  tue: 'Martes',
+  wed: 'Miércoles',
+  thu: 'Jueves',
+  fri: 'Viernes',
+  sat: 'Sábado',
+  sun: 'Domingo'
+};
+
+const defaultHours = {
+  mon: { open: '09:00', close: '22:00', closed: false },
+  tue: { open: '09:00', close: '22:00', closed: false },
+  wed: { open: '09:00', close: '22:00', closed: false },
+  thu: { open: '09:00', close: '22:00', closed: false },
+  fri: { open: '09:00', close: '22:00', closed: false },
+  sat: { open: '09:00', close: '22:00', closed: false },
+  sun: { open: '09:00', close: '22:00', closed: true }
+};
 
 const SettingsView = () => {
   useDocumentTitle('Configuración');
@@ -19,13 +40,16 @@ const SettingsView = () => {
     name: '',
     description: '',
     logo_url: '',
+    cover_url: '',
     phone: '',
     email: '',
     address: ''
   });
   
-  const [businessHours, setBusinessHours] = useState({});
+  const [businessHours, setBusinessHours] = useState(defaultHours);
   const [staff, setStaff] = useState([]);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -46,12 +70,13 @@ const SettingsView = () => {
           name: orgData.name || '',
           description: orgData.description || '',
           logo_url: orgData.logo_url || '',
+          cover_url: orgData.cover_url || '',
           phone: orgData.phone || '',
           email: orgData.email || '',
           address: orgData.address || ''
         });
         
-        if (orgData.business_hours) {
+        if (orgData.business_hours && Object.keys(orgData.business_hours).length > 0) {
           setBusinessHours(orgData.business_hours);
         }
         setStaff(staffData);
@@ -63,38 +88,82 @@ const SettingsView = () => {
     }
   };
 
+  const handleImageUpload = async (e, type) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      if (type === 'logo') {
+        setIsUploadingLogo(true);
+        const url = await uploadImage(file, 'logo');
+        setFormData(prev => ({ ...prev, logo_url: url }));
+      } else {
+        setIsUploadingCover(true);
+        const url = await uploadImage(file, 'cover');
+        setFormData(prev => ({ ...prev, cover_url: url }));
+      }
+    } catch (error) {
+      console.error('Error uploading:', error);
+      alert('Error al subir la imagen');
+    } finally {
+      setIsUploadingLogo(false);
+      setIsUploadingCover(false);
+    }
+  };
+
   const handleSaveGeneral = async () => {
     if (!orgId) return;
     setSaving(true);
     try {
-      // First try to save everything
       await updateOrganizationDetails(orgId, {
         name: formData.name,
         description: formData.description,
         logo_url: formData.logo_url,
+        cover_url: formData.cover_url,
         phone: formData.phone,
         email: formData.email,
         address: formData.address
       });
       alert('Configuración guardada exitosamente');
     } catch (error) {
-      // If error is about 'description' column missing (migration not run yet), save without it
-      if (error?.message?.includes('description')) {
-        try {
-           await updateOrganizationDetails(orgId, {
-            name: formData.name,
-            logo_url: formData.logo_url,
-            phone: formData.phone,
-            email: formData.email,
-            address: formData.address
-          });
-          alert('Configuración guardada (nota: la descripción requiere actualización de base de datos)');
-        } catch (innerErr) {
-          alert('Error al guardar configuración');
-        }
-      } else {
-        alert('Error al guardar configuración');
+      console.error(error);
+      alert('Error al guardar configuración. Por favor, asegúrate de haber ejecutado la migración SQL 015 en el SQL Editor de tu consola Supabase.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDayClosedToggle = (dayKey, closedValue) => {
+    setBusinessHours(prev => ({
+      ...prev,
+      [dayKey]: {
+        ...prev[dayKey],
+        closed: closedValue
       }
+    }));
+  };
+
+  const handleDayTimeChange = (dayKey, field, value) => {
+    setBusinessHours(prev => ({
+      ...prev,
+      [dayKey]: {
+        ...prev[dayKey],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleSaveHours = async () => {
+    if (!orgId) return;
+    setSaving(true);
+    try {
+      await updateOrganizationDetails(orgId, {
+        business_hours: businessHours
+      });
+      alert('Horarios comerciales guardados exitosamente');
+    } catch (error) {
+      console.error(error);
+      alert('Error al guardar horarios. Por favor, asegúrate de haber ejecutado la migración SQL 015 en el SQL Editor de tu consola Supabase.');
     } finally {
       setSaving(false);
     }
@@ -122,7 +191,7 @@ const SettingsView = () => {
             <div className="bg-white rounded-xl border border-gray-100 p-2 space-y-1">
               <button
                 onClick={() => setActiveTab('general')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[15px] font-semibold transition-colors ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[15px] font-semibold transition-colors cursor-pointer ${
                   activeTab === 'general' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -131,7 +200,7 @@ const SettingsView = () => {
               </button>
               <button
                 onClick={() => setActiveTab('hours')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[15px] font-semibold transition-colors ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[15px] font-semibold transition-colors cursor-pointer ${
                   activeTab === 'hours' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -140,7 +209,7 @@ const SettingsView = () => {
               </button>
               <button
                 onClick={() => setActiveTab('staff')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[15px] font-semibold transition-colors ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[15px] font-semibold transition-colors cursor-pointer ${
                   activeTab === 'staff' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -154,6 +223,62 @@ const SettingsView = () => {
           <div className="flex-1 bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
             {activeTab === 'general' && (
               <div className="p-6 md:p-8 space-y-6">
+                
+                {/* Logo & Cover Image Uploaders */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Logotipo */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 flex flex-col items-center">
+                    <p className="font-semibold text-sm text-gray-700 mb-3 text-left w-full">Logotipo de la Empresa</p>
+                    <div 
+                      className="w-24 h-24 rounded-full bg-white border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden shadow-sm relative group"
+                      style={formData.logo_url ? { backgroundImage: `url(${formData.logo_url})` } : {}}
+                    >
+                      {!formData.logo_url && <span className="text-3xl">🏬</span>}
+                      {isUploadingLogo && (
+                        <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                        </div>
+                      )}
+                    </div>
+                    <label className="mt-4 px-4 py-1.5 bg-white border border-gray-200 rounded-full text-xs font-bold text-gray-700 shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                      {formData.logo_url ? 'Cambiar Logo' : 'Subir Logo'}
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e, 'logo')}
+                        disabled={isUploadingLogo}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+
+                  {/* Portada */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 flex flex-col items-center">
+                    <p className="font-semibold text-sm text-gray-700 mb-3 text-left w-full">Imagen de Portada (Cover)</p>
+                    <div 
+                      className="w-full h-24 rounded-xl bg-white border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden shadow-sm relative"
+                      style={formData.cover_url ? { backgroundImage: `url(${formData.cover_url})` } : {}}
+                    >
+                      {!formData.cover_url && <span className="text-3xl">🖼️</span>}
+                      {isUploadingCover && (
+                        <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                        </div>
+                      )}
+                    </div>
+                    <label className="mt-4 px-4 py-1.5 bg-white border border-gray-200 rounded-full text-xs font-bold text-gray-700 shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                      {formData.cover_url ? 'Cambiar Portada' : 'Subir Portada'}
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e, 'cover')}
+                        disabled={isUploadingCover}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre del Negocio</label>
                   <input
@@ -220,7 +345,7 @@ const SettingsView = () => {
                       </span>
                       <button
                         onClick={() => navigator.clipboard.writeText(`${window.location.origin}/order/${encodeURIComponent(formData.name.toLowerCase())}`)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors shrink-0"
+                        className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors shrink-0 cursor-pointer"
                         title="Copiar enlace"
                       >
                         <Copy className="h-4 w-4 text-gray-500" />
@@ -229,7 +354,7 @@ const SettingsView = () => {
                         href={`/order/${encodeURIComponent(formData.name.toLowerCase())}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors shrink-0"
+                        className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors shrink-0 cursor-pointer"
                         title="Abrir tienda"
                       >
                         <ExternalLink className="h-4 w-4 text-gray-500" />
@@ -242,7 +367,7 @@ const SettingsView = () => {
                   <button
                     onClick={handleSaveGeneral}
                     disabled={saving}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-black text-white rounded-lg font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 px-6 py-2.5 bg-black text-white rounded-lg font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
                     Guardar Cambios
@@ -252,10 +377,61 @@ const SettingsView = () => {
             )}
 
             {activeTab === 'hours' && (
-              <div className="p-6 md:p-8 flex flex-col items-center justify-center text-center h-64 text-gray-400">
-                <Clock className="h-12 w-12 mb-3 text-gray-300" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-1">Horarios</h3>
-                <p>La configuración detallada de horarios estará disponible pronto.</p>
+              <div className="p-6 md:p-8 space-y-6">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">Horario Comercial</h3>
+                  <p className="text-sm text-gray-500">Configura los días y horas de apertura de tu local.</p>
+                </div>
+
+                <div className="space-y-4">
+                  {Object.keys(daysTranslations).map((dayKey) => {
+                    const dayData = businessHours[dayKey] || { open: '09:00', close: '22:00', closed: false };
+                    return (
+                      <div key={dayKey} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 gap-4">
+                        <div className="flex items-center gap-3 min-w-[120px]">
+                          <input 
+                            type="checkbox"
+                            checked={!dayData.closed}
+                            onChange={(e) => handleDayClosedToggle(dayKey, !e.target.checked)}
+                            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                          />
+                          <span className="font-semibold text-sm capitalize text-gray-800">{daysTranslations[dayKey]}</span>
+                        </div>
+
+                        {!dayData.closed ? (
+                          <div className="flex items-center gap-2">
+                            <input 
+                              type="time"
+                              value={dayData.open || '09:00'}
+                              onChange={(e) => handleDayTimeChange(dayKey, 'open', e.target.value)}
+                              className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <span className="text-gray-400 font-semibold text-xs">a</span>
+                            <input 
+                              type="time"
+                              value={dayData.close || '22:00'}
+                              onChange={(e) => handleDayTimeChange(dayKey, 'close', e.target.value)}
+                              className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-xs font-bold text-red-500 uppercase bg-red-50 px-2.5 py-1 rounded">Cerrado</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="pt-6 border-t border-gray-100 flex justify-end">
+                  <button
+                    onClick={handleSaveHours}
+                    disabled={saving}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-black text-white rounded-lg font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+                    Guardar Horarios
+                  </button>
+                </div>
               </div>
             )}
 
@@ -263,7 +439,7 @@ const SettingsView = () => {
               <div className="p-6 md:p-8">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-lg font-semibold text-gray-900">Equipo</h3>
-                  <button className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg font-bold text-sm hover:bg-blue-100 transition-colors">
+                  <button className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg font-bold text-sm hover:bg-blue-100 transition-colors cursor-pointer">
                     + Invitar miembro
                   </button>
                 </div>
