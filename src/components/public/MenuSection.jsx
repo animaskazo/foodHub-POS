@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { X, Plus, Check } from 'lucide-react';
+import { X, Plus, Check, MapPin, ExternalLink } from 'lucide-react';
 import ProductDetailView from './ProductDetailView';
 
 const fmt = (n) => Math.round(n * 1.19).toLocaleString('es-CL');
@@ -204,31 +204,32 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
             >
               {!org.logo_url && <span className="text-3xl">🏬</span>}
             </div>
+
+            {/* Address button on cover */}
+            {org.address && (
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(org.address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute bottom-2.5 right-3 inline-flex items-center gap-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white transition-all px-2.5 py-1.5 rounded-full text-[11px] font-semibold cursor-pointer"
+              >
+                <MapPin className="h-3 w-3 shrink-0" />
+                <span className="truncate max-w-[160px]">{org.address}</span>
+              </a>
+            )}
           </div>
 
-          <div className="pt-8 pb-3">
-            <h1 className="font-black text-2xl md:text-3xl text-gray-900 leading-tight mb-1.5 px-1">{org.name}</h1>
-            {org.description && (
-              <p className="text-[13px] md:text-sm text-gray-500 leading-relaxed mb-3 px-1">{org.description}</p>
-            )}
+          <div className="pt-8 pb-4 px-2">
+            <h1 className="font-black text-3xl md:text-4xl text-gray-900 tracking-tight mb-2">
+              {org.name}
+            </h1>
             
-            <div className="flex flex-wrap gap-2 px-1 text-[11px] font-bold text-gray-500">
-              {org.phone && (
-                <span className="flex items-center gap-1 bg-gray-100 px-2.5 py-1 rounded-full">
-                  📞 {org.phone}
-                </span>
-              )}
-              {org.email && (
-                <span className="flex items-center gap-1 bg-gray-100 px-2.5 py-1 rounded-full">
-                  ✉️ {org.email}
-                </span>
-              )}
-              {org.address && (
-                <span className="flex items-center gap-1 bg-gray-100 px-2.5 py-1 rounded-full truncate max-w-xs" title={org.address}>
-                  📍 {org.address}
-                </span>
-              )}
-            </div>
+            {org.description && (
+              <p className="text-[14px] md:text-[15px] text-gray-600 leading-relaxed mb-4 max-w-2xl">
+                {org.description}
+              </p>
+            )}
+
           </div>
         </div>
       )}
