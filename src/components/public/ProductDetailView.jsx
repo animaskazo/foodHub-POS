@@ -56,18 +56,19 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-gray-50 fixed inset-0 z-50 overflow-hidden overscroll-none">
-      
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto pb-24">
-        {/* Header / Image Area */}
-        <div className="relative bg-transparent shrink-0">
+    <div className="fixed inset-0 z-50 flex justify-center sm:p-4 bg-gray-50 sm:bg-black/40 sm:backdrop-blur-sm">
+      <div className="w-full max-w-3xl h-[100dvh] sm:h-[90dvh] sm:rounded-3xl bg-gray-50 flex flex-col overflow-hidden relative shadow-2xl">
+        
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto pb-28">
+          {/* Header / Image Area */}
+          <div className="relative bg-transparent shrink-0">
           {product.image ? (
-            <div className="w-full h-[380px] relative bg-gray-100">
-              <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+            <div className="w-full h-[380px] sm:h-[450px] relative bg-gray-100">
+              <img src={product.image} alt={product.name} className="w-full h-full object-cover object-center" />
               <button 
                 onClick={onBack} 
-                className="absolute top-4 left-4 p-2.5 bg-white/90 backdrop-blur-md rounded-full hover:bg-white transition-colors shadow-sm"
+                className="absolute top-4 left-4 p-2.5 bg-white/90 backdrop-blur-md rounded-full hover:bg-white transition-colors shadow-sm z-10"
               >
                 <ArrowLeft className="h-6 w-6 text-gray-900" />
               </button>
@@ -162,8 +163,8 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
       </div>
 
       {/* Sticky Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-5 py-4 pb-8 z-50">
-        <div className="max-w-2xl mx-auto flex items-center gap-4">
+      <div className="absolute bottom-0 w-full bg-white border-t border-gray-100 px-5 py-4 pb-8 sm:pb-4 z-50">
+        <div className="flex items-center gap-4">
           <div className="flex items-center bg-gray-100 rounded-full h-14 p-1 shrink-0">
             <button
               onClick={() => setQuantity(q => Math.max(1, q - 1))}
@@ -186,6 +187,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 };

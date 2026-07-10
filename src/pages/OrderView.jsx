@@ -20,8 +20,20 @@ const OrderView = () => {
   const [error, setError] = useState(null);
 
   // Cart
-  const [cartItems, setCartItems] = useState([]);
+  const [cartItems, setCartItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`cart_${slug}`);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Error loading cart:', e);
+    }
+    return [];
+  });
   const [editingCartItem, setEditingCartItem] = useState(null);
+
+  useEffect(() => {
+    localStorage.setItem(`cart_${slug}`, JSON.stringify(cartItems));
+  }, [cartItems, slug]);
 
   // Submitted order
   const [submittedOrder, setSubmittedOrder] = useState(null);
@@ -152,11 +164,13 @@ const OrderView = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-[100dvh] bg-gray-200/40 flex flex-col justify-start items-center">
       {/* Set page title */}
       <title>{org?.name ? `${org.name} · Pedidos` : 'Pedir en línea'}</title>
 
-      <PublicHeader
+      {/* Centered Mobile App Frame for Desktop */}
+      <div className="w-full max-w-3xl mx-auto flex-1 flex flex-col bg-gray-50 md:shadow-[0_0_60px_rgba(0,0,0,0.05)] md:min-h-[100dvh] relative">
+        <PublicHeader
         org={org}
         cartCount={totalCartQty}
         step={step}
@@ -223,6 +237,7 @@ const OrderView = () => {
           onBack={() => setEditingCartItem(null)}
         />
       )}
+      </div>
     </div>
   );
 };

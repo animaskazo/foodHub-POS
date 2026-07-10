@@ -14,7 +14,7 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout 
     <div className="flex flex-col min-h-0">
       {/* Items list */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-4 py-4 space-y-3">
+        <div className="max-w-3xl mx-auto px-4 py-4 space-y-3">
           {cartItems.map((item) => {
             const itemGross = Math.round(item.price * 1.19);
             const extrasGross = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
@@ -104,7 +104,7 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout 
 
       {/* Checkout CTA */}
       <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-8">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <button
             onClick={onCheckout}
             className="w-full h-16 bg-black text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl hover:bg-gray-900 transition-colors active:scale-[0.98] px-8 text-[17px] tracking-wide"

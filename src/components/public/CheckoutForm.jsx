@@ -49,7 +49,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting }) => {
   return (
     <div className="flex flex-col min-h-0">
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+        <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
 
           {/* Section: Personal data */}
           <div className="space-y-4">
@@ -162,7 +162,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting }) => {
 
       {/* Submit CTA */}
       <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-8">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-3xl mx-auto">
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}

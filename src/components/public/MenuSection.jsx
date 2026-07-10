@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Search, X, Plus, Check } from 'lucide-react';
+import { X, Plus, Check } from 'lucide-react';
 import ProductDetailView from './ProductDetailView';
 
 const fmt = (n) => Math.round(n * 1.19).toLocaleString('es-CL');
@@ -138,7 +138,6 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
 // ── Menu Section (Step 1) ─────────────────────────────────────
 const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdateQty, onRemoveItem, onViewCart }) => {
   const [activeCategory, setActiveCategory] = useState('all');
-  const [search, setSearch] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const catBarRef = useRef(null);
   const catRefs = useRef({});
@@ -149,12 +148,8 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
   const filteredProducts = useMemo(() => {
     let list = products;
     if (activeCategory !== 'all') list = list.filter(p => p.categoryId === activeCategory);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(p => p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q));
-    }
     return list;
-  }, [products, activeCategory, search]);
+  }, [products, activeCategory]);
 
   const cartInfoMap = useMemo(() => {
     const map = {};
@@ -197,7 +192,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
     <div className="flex flex-col min-h-0">
       {/* Header del Negocio (Cover, Logo y Info) */}
       {org && (
-        <div className="max-w-2xl mx-auto w-full px-4 pt-4 shrink-0">
+        <div className="max-w-3xl mx-auto w-full px-4 pt-4 shrink-0">
           <div 
             className="w-full h-32 md:h-40 rounded-2xl bg-gray-100 bg-cover bg-center relative border border-gray-100 shadow-sm"
             style={org.cover_url ? { backgroundImage: `url(${org.cover_url})` } : { backgroundImage: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)' }}
@@ -238,26 +233,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
         </div>
       )}
 
-      {/* Search */}
-      <div className="sticky top-14 z-20 bg-white border-b border-gray-100">
-        <div className="max-w-2xl mx-auto px-4 py-3">
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-            <input
-              type="search"
-              placeholder="Buscar producto…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-10 pr-9 py-2.5 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-black/10 transition"
-            />
-            {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2">
-                <X className="h-4 w-4 text-gray-400" />
-              </button>
-            )}
-          </div>
-        </div>
-
+      <div className="sticky top-14 z-20 bg-white border-b border-gray-100 pt-3">
         {/* Category pills */}
         <div ref={catBarRef} className="flex gap-2 px-4 pb-3 overflow-x-auto hide-scrollbar">
           {[{ id: 'all', name: 'Todos' }, ...categories].map(cat => (
@@ -282,7 +258,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
 
       {/* Products grid */}
       <div className={`flex-1 ${selectedProduct ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-        <div className="max-w-2xl mx-auto px-4 py-4">
+        <div className="max-w-3xl mx-auto px-4 py-4">
           {filteredProducts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-gray-300">
               <span className="text-5xl mb-4">🔍</span>
@@ -349,7 +325,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
       {/* Floating cart button */}
       {totalQty > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-8">
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-3xl mx-auto">
             <button
               onClick={onViewCart}
               className="w-full h-16 bg-black text-white font-bold rounded-full flex items-center justify-between px-8 shadow-2xl hover:bg-gray-900 transition-colors active:scale-[0.98]"
