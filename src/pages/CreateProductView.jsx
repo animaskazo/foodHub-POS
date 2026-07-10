@@ -8,6 +8,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getFirstOrganizationId, createProduct, getProductById, updateProduct, getCategories, getIngredients } from '../services/catalogService';
 import { uploadImage } from '../services/storageService';
+import { generateProductDescription } from '../services/aiService';
 import Modal from '../components/ui/Modal';
 import { 
   Select,
@@ -17,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { 
-  X, Tag, ScanLine, Image as ImageIcon, Store, Globe, Plus, Search, Info, ChevronDown, Trash2, Loader2
+  X, Tag, ScanLine, Image as ImageIcon, Store, Globe, Plus, Search, Info, ChevronDown, Trash2, Loader2, Sparkles
 } from 'lucide-react';
 
 const InfoIcon = () => (
@@ -64,6 +65,7 @@ const CreateProductView = () => {
   const [extraIngredients, setExtraIngredients] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
 
   useDocumentTitle(isEditing ? 'Editar artículo' : 'Crear artículo');
 
@@ -146,6 +148,25 @@ const CreateProductView = () => {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setHasChanges(true);
+  };
+
+  const handleGenerateAIDescription = async () => {
+    if (!formData.name.trim()) {
+      toast.error("Ingresa un nombre para poder generar una descripción.");
+      return;
+    }
+    
+    setIsGeneratingDescription(true);
+    try {
+      const desc = await generateProductDescription(formData.name);
+      setFormData(prev => ({ ...prev, description: desc }));
+      setHasChanges(true);
+      toast.success("Descripción generada con éxito");
+    } catch (error) {
+      toast.error(error.message || "Error al generar la descripción");
+    } finally {
+      setIsGeneratingDescription(false);
+    }
   };
   const handleSelectChange = (name, value) => {
     setFormData({ ...formData, [name]: value });
@@ -334,14 +355,55 @@ const CreateProductView = () => {
             </div>
 
             {/* Descripción */}
-            <div className="form-field">
-              <textarea
-                className="w-full h-28 px-4 pt-4 bg-transparent text-[15px] outline-none placeholder-gray-400 resize-none"
-                placeholder="Descripción para el cliente"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-              />
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Descripción</label>
+              <div className="form-field relative">
+                <textarea
+                  className="w-full h-28 px-4 pt-4 bg-transparent text-[15px] outline-none placeholder-gray-400 resize-none pr-32"
+                  placeholder="Descripción para el cliente"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                />
+                {formData.name.trim() && (
+                  <>
+                    <style>{`
+                      @keyframes ai-pulse-glow {
+                        0%, 100% {
+                          box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+                        }
+                        33% {
+                          box-shadow: 0 0 24px rgba(139, 92, 246, 0.7), 0 0 0 4px rgba(139, 92, 246, 0.1);
+                        }
+                        66% {
+                          box-shadow: 0 0 24px rgba(236, 72, 153, 0.7), 0 0 0 4px rgba(236, 72, 153, 0.1);
+                        }
+                      }
+                      .ai-glow-button {
+                        animation: ai-pulse-glow 3s infinite ease-in-out;
+                      }
+                    `}</style>
+                    <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-blue-600 pointer-events-none select-none">
+                        Crear con IA
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleGenerateAIDescription}
+                        disabled={isGeneratingDescription}
+                        className="w-9 h-9 bg-white text-blue-600 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-50 disabled:pointer-events-none cursor-pointer ai-glow-button"
+                        title="Crear descripción con IA"
+                      >
+                        {isGeneratingDescription ? (
+                          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                        ) : (
+                          <Sparkles className="h-4.5 w-4.5 text-blue-600 fill-current" />
+                        )}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Imagen URL */}

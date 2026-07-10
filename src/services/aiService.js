@@ -103,3 +103,42 @@ Ten en cuenta que los precios deben ser números (sin símbolos). Si no hay ingr
     throw new Error(error.message || "Error desconocido al comunicarse con Claude.");
   }
 };
+
+/**
+ * Genera una descripción persuasiva y apetitosa para un plato basándose en su nombre.
+ */
+export const generateProductDescription = async (productName) => {
+  const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
+  if (!apiKey) throw new Error("API Key de Anthropic no configurada en las variables de entorno");
+
+  const anthropic = new Anthropic({
+    apiKey: apiKey,
+    baseURL: window.location.origin + '/api/anthropic',
+    dangerouslyAllowBrowser: true
+  });
+
+  const prompt = `
+Eres un redactor gastronómico experto. Escribe una descripción breve, muy atractiva y apetitosa (máximo 2 frases, idealmente en español de Chile) para un plato llamado "${productName}". 
+La descripción debe sonar natural, tentar al cliente y no superar las 2 líneas en pantalla. No uses hashtags ni formato markdown. Devuelve SOLO el texto de la descripción, sin introducciones ni comentarios adicionales.
+  `;
+
+  try {
+    const msg = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 150,
+      messages: [
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      thinking: { type: "disabled" }
+    });
+
+    return msg.content[0].text.trim();
+  } catch (error) {
+    console.error("Error al generar descripción con Claude:", error);
+    throw new Error(error.message || "Error al comunicarse con Claude.");
+  }
+};
+
