@@ -96,12 +96,12 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
           {/* Base Ingredients */}
           {baseIngredients.length > 0 && (
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2.5 px-1">Incluye</p>
-              <div className="flex flex-wrap gap-2">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mt-4 mb-3 px-1">Incluye</p>
+              <div className="flex flex-wrap gap-1.5">
                 {baseIngredients.map(i => (
                   <span
                     key={i.id || i.name}
-                    className="inline-flex items-center px-3 py-1.5 rounded-full bg-gray-100 text-gray-700 text-[12px] font-medium"
+                    className="inline-flex items-center px-3 py-1.5 rounded-full bg-white border border-gray-200 text-gray-600 text-[12px] font-semibold"
                   >
                     {i.name}
                   </span>
