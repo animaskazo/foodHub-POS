@@ -138,7 +138,7 @@ export const createPublicOrder = async ({ organizationId, cartItems, customer, n
       branch_id: branch.id,
       order_type: 'online',
       order_number: orderNumber,
-      status: 'pending',
+      status: 'confirmed',
       customer_name: customer.name,
       customer_phone: customer.phone || null,
       delivery_notes: notes || null,

@@ -226,7 +226,7 @@ export const getKitchenOrders = async () => {
         order_items(*, products(description), order_item_variants(variant_option_name), order_item_ingredients(ingredient_name))
       `)
       .eq('branch_id', branchData.id)
-      .in('status', ['confirmed', 'preparing'])
+      .in('status', ['pending', 'confirmed', 'preparing'])
       .order('created_at', { ascending: true });
 
     if (error) throw error;
@@ -253,6 +253,22 @@ export const updateOrderStatus = async (orderId, status) => {
   } catch (error) {
     console.error("Error updating order status:", error);
     throw error;
+  }
+};
+
+export const markOrderAsPaid = async (orderId) => {
+  try {
+    const { error } = await supabase
+      .from('payments')
+      .update({ status: 'completed' })
+      .eq('order_id', orderId)
+      .eq('status', 'pending');
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error marking order as paid:", error);
+    return false;
   }
 };
 

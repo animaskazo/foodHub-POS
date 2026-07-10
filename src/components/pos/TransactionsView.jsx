@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, ReceiptText, TrendingUp, RefreshCcw, X, Clock, CreditCard, ShoppingBag, Menu } from 'lucide-react';
 import Modal from '../ui/Modal';
-import { getOrders } from '../../services/orderService';
+import { getOrders, markOrderAsPaid } from '../../services/orderService';
 
 const TransactionsView = ({ onOpenMobileMenu }) => {
   const [orders, setOrders] = useState([]);
@@ -20,6 +20,26 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
     setTimeout(() => {
       setSelectedOrder(null);
     }, 300);
+  };
+
+  const [markingPaid, setMarkingPaid] = useState(false);
+
+  const handleMarkAsPaid = async (orderId) => {
+    setMarkingPaid(true);
+    const success = await markOrderAsPaid(orderId);
+    if (success) {
+      await fetchOrders();
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder(prev => {
+          if (!prev) return prev;
+          const newPayments = (prev.payments || []).map(p => 
+            p.status === 'pending' ? { ...p, status: 'completed' } : p
+          );
+          return { ...prev, payments: newPayments };
+        });
+      }
+    }
+    setMarkingPaid(false);
   };
 
   const fetchOrders = async (isBackground = false) => {
@@ -154,25 +174,26 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
             <thead>
               <tr className="bg-gray-50 text-gray-500 text-sm border-b border-gray-100">
                 <th className="px-6 py-4 font-semibold w-24">N° Orden</th>
+                <th className="px-6 py-4 font-semibold">Cliente</th>
                 <th className="px-6 py-4 font-semibold">Fecha</th>
                 <th className="px-6 py-4 font-semibold">Estado</th>
                 <th className="px-6 py-4 font-semibold">Método</th>
                 <th className="px-6 py-4 font-semibold text-center">T. Cocina</th>
-                <th className="px-6 py-4 font-semibold text-right">Subtotal</th>
-                <th className="px-6 py-4 font-semibold text-right">IVA (19%)</th>
+                <th className="px-6 py-4 font-semibold">Canal</th>
+                <th className="px-6 py-4 font-semibold">Estado Pago</th>
                 <th className="px-6 py-4 font-semibold text-right">Total</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan="9" className="px-6 py-12 text-center text-gray-400">
                     Cargando transacciones...
                   </td>
                 </tr>
               ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center text-gray-400">
+                  <td colSpan="9" className="px-6 py-12 text-center text-gray-400">
                     No se encontraron transacciones.
                   </td>
                 </tr>
@@ -190,6 +211,13 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                       className="border-b border-gray-50 hover:bg-gray-50 transition-colors text-sm cursor-pointer active:bg-gray-100"
                     >
                       <td className="px-6 py-4 font-semibold text-gray-900">#{order.order_number}</td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-medium text-gray-900 leading-tight">
+                            {order.customer_name || <span className="text-gray-400">—</span>}
+                          </span>
+                        </div>
+                      </td>
                       <td className="px-6 py-4 text-gray-600">{formattedDate}</td>
                       <td className="px-6 py-4">
                         {getStatusTag(order.status)}
@@ -200,8 +228,29 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center text-gray-600 font-medium whitespace-nowrap">{getKitchenTime(order)}</td>
-                      <td className="px-6 py-4 text-right text-gray-600">${fmt(order.subtotal || 0)}</td>
-                      <td className="px-6 py-4 text-right text-gray-600">${fmt(order.tax_amount || 0)}</td>
+                      <td className="px-6 py-4">
+                        {order.order_type === 'online' ? (
+                          <span className="inline-flex items-center px-2.5 py-1 bg-purple-100 text-purple-700 rounded-lg font-bold text-xs">
+                            🌐 Online
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-bold text-xs">
+                            🏪 Local
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {order.payments?.some(p => p.status === 'pending') ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-lg font-bold text-xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                            Pendiente
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-1 bg-green-100 text-green-700 rounded-lg font-bold text-xs">
+                            Pagado
+                          </span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 text-right font-bold text-gray-900">${fmt(order.total || 0)}</td>
                     </tr>
                   );
@@ -239,8 +288,24 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                       </span>
                     </div>
                     <span className="text-sm text-gray-500">{formattedDate}</span>
+                    {order.customer_name && (
+                      <span className="text-sm font-medium text-gray-900 mt-0.5">{order.customer_name}</span>
+                    )}
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {order.order_type === 'online' && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-bold">
+                          🌐 Online
+                        </span>
+                      )}
+                      {order.order_type === 'online' && order.payments?.some(p => p.status === 'pending') && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-bold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                          Pago pendiente
+                        </span>
+                      )}
+                    </div>
                     {order.ready_at && (
-                      <span className="text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md font-semibold w-max border border-orange-100">
+                      <span className="text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md font-semibold w-max border border-orange-100 mt-1">
                         Cocina: {getKitchenTime(order)}
                       </span>
                     )}
@@ -293,9 +358,17 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                     <CreditCard className="h-4 w-4" />
                     <span className="text-xs font-semibold uppercase tracking-wider">Pago</span>
                   </div>
-                  <span className="inline-flex items-center px-2.5 py-1 bg-white text-gray-700 rounded-lg font-bold text-sm border border-gray-200 shadow-sm">
-                    {getPaymentMethod(selectedOrder)}
-                  </span>
+                  <div className="flex flex-col gap-1 items-start">
+                    <span className="inline-flex items-center px-2.5 py-1 bg-white text-gray-700 rounded-lg font-bold text-sm border border-gray-200 shadow-sm">
+                      {getPaymentMethod(selectedOrder)}
+                    </span>
+                    {selectedOrder.payments?.some(p => p.status === 'pending') && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                        Pendiente
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
                   <div className="flex items-center gap-2 mb-2 text-gray-500">
@@ -364,7 +437,18 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                 </div>
               </div>
               <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                <span className="font-bold text-gray-900 text-lg">Total</span>
+                <div>
+                  <span className="font-bold text-gray-900 text-lg">Total</span>
+                  {selectedOrder.payments?.some(p => p.status === 'pending') && (
+                    <button
+                      onClick={() => handleMarkAsPaid(selectedOrder.id)}
+                      disabled={markingPaid}
+                      className="ml-4 px-4 py-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white rounded-lg font-bold text-sm transition-colors shadow-sm disabled:opacity-50"
+                    >
+                      {markingPaid ? 'Procesando...' : 'Marcar como Pagado'}
+                    </button>
+                  )}
+                </div>
                 <span className="font-black text-2xl text-blue-600">${fmt(selectedOrder.total || 0)}</span>
               </div>
             </div>

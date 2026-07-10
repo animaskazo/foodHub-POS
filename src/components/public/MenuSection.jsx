@@ -61,10 +61,10 @@ const ProductCard = ({ product, isInCart, onAdd }) => {
   );
 };
 
-// ── Product Options Modal (variants + extras) ─────────────────
 const ProductOptionsModal = ({ product, onAdd, onClose }) => {
   const hasVariants = product.variants?.length > 0;
   const extraIngredients = product.ingredients?.filter(i => i.isExtra) || [];
+  const baseIngredients = product.ingredients?.filter(i => !i.isExtra) || [];
   const hasExtras = extraIngredients.length > 0;
 
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -101,28 +101,53 @@ const ProductOptionsModal = ({ product, onAdd, onClose }) => {
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300">
 
+        {/* Optional Image Header */}
+        {product.image && (
+          <div className="w-full h-56 shrink-0 relative bg-gray-100">
+            <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+            <button onPointerDown={onClose} className="absolute top-4 right-4 p-2 bg-black/40 backdrop-blur-md rounded-full hover:bg-black/60 transition-colors">
+              <X className="h-5 w-5 text-white" />
+            </button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="px-5 pt-5 pb-4 shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <h2 className="font-bold text-xl text-gray-900 leading-tight">{product.name}</h2>
+              <h2 className="font-bold text-2xl text-gray-900 leading-tight">{product.name}</h2>
               {product.description && (
-                <p className="text-sm text-gray-500 mt-1">{product.description}</p>
+                <p className="text-sm text-gray-500 mt-1.5 leading-relaxed">{product.description}</p>
               )}
             </div>
-            <button onPointerDown={onClose} className="p-2 -mr-2 rounded-full hover:bg-gray-100">
-              <X className="h-5 w-5 text-gray-500" />
-            </button>
+            {!product.image && (
+              <button onPointerDown={onClose} className="p-2 -mr-2 rounded-full hover:bg-gray-100">
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            )}
           </div>
         </div>
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-5 pb-2">
 
+          {/* Base Ingredients */}
+          {baseIngredients.length > 0 && (
+            <div className="mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-2">Incluye</p>
+              <p className="text-sm text-gray-700 font-medium leading-relaxed">
+                {baseIngredients.map(i => i.name).join(', ')}
+              </p>
+            </div>
+          )}
+
           {/* Variants */}
           {hasVariants && (
-            <div className="mb-5">
-              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Variante</p>
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">Variante</p>
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-gray-100 text-gray-600 rounded">OBLIGATORIO</span>
+              </div>
               <div className="space-y-2">
                 {product.variants.map(v => {
                   const gross = Math.round((product.price + (v.price_modifier || 0)) * 1.19);
@@ -146,8 +171,8 @@ const ProductOptionsModal = ({ product, onAdd, onClose }) => {
 
           {/* Extras */}
           {hasExtras && (
-            <div className="mb-5">
-              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Extras</p>
+            <div className="mb-6">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">Extras</p>
               <div className="space-y-2">
                 {extraIngredients.map(ing => {
                   const selected = !!selectedExtras.find(i => i.id === ing.id);
@@ -171,29 +196,30 @@ const ProductOptionsModal = ({ product, onAdd, onClose }) => {
           )}
 
           {/* Quantity */}
-          <div className="flex items-center justify-between py-4 border-t border-gray-100">
-            <p className="font-semibold text-gray-700">Cantidad</p>
+          <div className="flex items-center justify-between py-5 border-t border-gray-100 mt-2">
+            <p className="font-bold text-gray-900">Cantidad</p>
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="w-9 h-9 rounded-full border-2 border-gray-200 flex items-center justify-center font-bold text-gray-700 hover:border-gray-300 transition-colors"
+                className="w-10 h-10 rounded-full border-2 border-gray-200 flex items-center justify-center font-bold text-gray-700 hover:border-gray-300 transition-colors"
               >−</button>
-              <span className="font-bold text-xl w-6 text-center">{quantity}</span>
+              <span className="font-black text-xl w-6 text-center">{quantity}</span>
               <button
                 onClick={() => setQuantity(q => q + 1)}
-                className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center font-bold hover:bg-gray-900 transition-colors"
+                className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-bold hover:bg-gray-900 transition-colors"
               >+</button>
             </div>
           </div>
         </div>
 
         {/* Footer CTA */}
-        <div className="px-5 py-4 border-t border-gray-100 shrink-0">
+        <div className="px-5 py-4 border-t border-gray-100 shrink-0 bg-white">
           <button
             onClick={handleConfirm}
-            className="w-full bg-black text-white font-bold py-4 rounded-full flex items-center justify-between px-6 hover:bg-gray-900 transition-colors active:scale-[0.98]"
+            disabled={hasVariants && !selectedVariant}
+            className="w-full bg-black text-white font-bold py-4 rounded-full flex items-center justify-between px-6 hover:bg-gray-900 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
           >
-            <span>{hasVariants || hasExtras ? 'Agregar al carrito' : 'Agregar'}</span>
+            <span>Agregar al pedido</span>
             <span>${(totalGross * quantity).toLocaleString('es-CL')}</span>
           </button>
         </div>
@@ -230,13 +256,7 @@ const MenuSection = ({ categories, products, cartItems, onAddItem, onViewCart })
   }, [cartItems]);
 
   const handleProductTap = (product) => {
-    const hasVariants = product.variants?.length > 0;
-    const hasExtras = product.ingredients?.some(i => i.isExtra);
-    if (hasVariants || hasExtras) {
-      setSelectedProduct(product);
-    } else {
-      onAddItem({ ...product, quantity: 1, selectedIngredients: [], variant: null });
-    }
+    setSelectedProduct(product);
   };
 
   const scrollCategoryIntoView = (catId) => {

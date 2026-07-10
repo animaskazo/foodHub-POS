@@ -160,36 +160,48 @@ const KitchenView = () => {
             <div 
               key={order.id} 
               className={`flex-shrink-0 w-80 h-full flex flex-col rounded-2xl border-2 shadow-xl bg-[#111] flex-nowrap ticket-enter ${
-                order.status === 'preparing' ? 'border-green-500/50' : 'border-blue-500/30'
+                order.status === 'preparing' ? 'border-green-500/50' : order.status === 'pending' ? 'border-amber-500/50' : 'border-blue-500/30'
               } ${isNew ? 'ring-4 ring-blue-500/20 shadow-blue-500/20' : ''}`}
             >
               {/* Ticket Header */}
-              <div className={`p-4 border-b shrink-0 flex justify-between items-center ${
-                order.status === 'preparing' ? 'bg-green-500/10 border-green-500/20' : 'bg-blue-500/10 border-blue-500/20'
+              <div className={`p-4 border-b shrink-0 ${
+                order.status === 'preparing' ? 'bg-green-500/10 border-green-500/20' : order.status === 'pending' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-blue-500/10 border-blue-500/20'
               }`}>
-                <div>
-                  <h2 className={`text-2xl font-black ${order.status === 'preparing' ? 'text-green-400' : 'text-blue-400'}`}>#{order.order_number}</h2>
-                  <div className="flex items-center gap-1.5 text-xs font-semibold mt-1">
-                    <span className={`px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                      order.status === 'preparing' ? 'bg-green-500 text-black' : 'bg-blue-600 text-white'
+                <div className="flex justify-between items-start">
+                  <div className="flex-1 min-w-0">
+                    <h2 className={`text-2xl font-black ${
+                      order.status === 'preparing' ? 'text-green-400' : order.status === 'pending' ? 'text-amber-400' : 'text-blue-400'
+                    }`}>#{order.order_number}</h2>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold mt-1 flex-wrap">
+                      <span className={`px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                        order.status === 'preparing' ? 'bg-green-500 text-black' : order.status === 'pending' ? 'bg-amber-500 text-black' : 'bg-blue-600 text-white'
+                      }`}>
+                        {order.status === 'preparing' ? 'Preparando' : order.status === 'pending' ? 'Pendiente' : 'Nuevo'}
+                      </span>
+                      {order.order_type === 'online' && (
+                        <span className="px-2 py-0.5 rounded-full bg-purple-600 text-white uppercase tracking-wider">
+                          🌐 Online
+                        </span>
+                      )}
+                    </div>
+                    {order.customer_name && (
+                      <p className="text-xs text-gray-400 mt-1.5 font-medium truncate">
+                        👤 {order.customer_name}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end text-right shrink-0 ml-2">
+                    <div className="flex items-center gap-1 text-gray-400">
+                      <Clock className="h-4 w-4" />
+                    </div>
+                    <span className={`text-sm font-medium mt-1 ${
+                      getElapsedTime(order.created_at).includes('min') && parseInt(getElapsedTime(order.created_at).match(/\d+/)?.[0] || 0) > 15 
+                        ? 'text-red-400 font-bold' 
+                        : 'text-gray-400'
                     }`}>
-                      {order.status === 'preparing' ? 'Preparando' : 'Nuevo'}
+                      {getElapsedTime(order.created_at)}
                     </span>
-                    <span className="text-gray-400">·</span>
-                    <span className="text-gray-400 capitalize">{order.order_type}</span>
                   </div>
-                </div>
-                <div className="flex flex-col items-end text-right">
-                  <div className="flex items-center gap-1 text-gray-400">
-                    <Clock className="h-4 w-4" />
-                  </div>
-                  <span className={`text-sm font-medium mt-1 ${
-                    getElapsedTime(order.created_at).includes('min') && parseInt(getElapsedTime(order.created_at).match(/\\d+/)?.[0] || 0) > 15 
-                      ? 'text-red-400 font-bold' 
-                      : 'text-gray-400'
-                  }`}>
-                    {getElapsedTime(order.created_at)}
-                  </span>
                 </div>
               </div>
 
@@ -231,7 +243,7 @@ const KitchenView = () => {
 
               {/* Ticket Actions */}
               <div className="p-4 border-t border-[#222] bg-[#111] rounded-b-2xl shrink-0">
-                {order.status === 'confirmed' ? (
+                {(order.status === 'confirmed' || order.status === 'pending') ? (
                   <button
                     onClick={() => handleUpdateStatus(order.id, 'preparing')}
                     className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition-colors shadow-lg shadow-blue-900/20"

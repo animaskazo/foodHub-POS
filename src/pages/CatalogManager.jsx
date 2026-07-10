@@ -282,7 +282,23 @@ const CatalogManager = () => {
                       className="bg-gray-100/80 hover:bg-gray-100 cursor-pointer border-t border-b border-gray-200 select-none" 
                       onClick={() => toggleCategory(catName)}
                     >
-                      <td colSpan={7} className="px-6 py-3 font-semibold text-gray-800">
+                      <td className="px-6 py-3" onClick={(e) => e.stopPropagation()}>
+                        <input 
+                          type="checkbox"
+                          className="h-5 w-5 rounded border-gray-300 cursor-pointer"
+                          checked={prods.every(p => selectedIds.includes(p.id))}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              const prodIds = prods.map(p => p.id);
+                              setSelectedIds(prev => Array.from(new Set([...prev, ...prodIds])));
+                            } else {
+                              const prodIds = prods.map(p => p.id);
+                              setSelectedIds(prev => prev.filter(id => !prodIds.includes(id)));
+                            }
+                          }}
+                        />
+                      </td>
+                      <td colSpan={6} className="px-2 py-3 font-semibold text-gray-800">
                         <div className="flex items-center gap-2">
                           <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} />
                           {catName} <span className="text-gray-500 text-sm font-normal">({prods.length})</span>
