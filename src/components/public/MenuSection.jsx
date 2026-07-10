@@ -21,10 +21,10 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
   return (
     <div
       onClick={handleTap}
-      className={`bg-white rounded-2xl overflow-hidden border border-gray-200/60 transition-all duration-200 active:scale-[0.97] cursor-pointer ${tapped ? 'scale-[0.97]' : ''}`}
+      className={`bg-white rounded-2xl overflow-hidden border border-gray-200/60 transition-all duration-200 active:scale-[0.97] cursor-pointer flex flex-col h-full ${tapped ? 'scale-[0.97]' : ''}`}
     >
       {/* Image */}
-      <div className="aspect-square bg-gray-100 relative overflow-hidden">
+      <div className="w-full h-28 sm:h-36 bg-gray-100 relative overflow-hidden">
         {product.image ? (
           <img
             src={product.image}
@@ -34,63 +34,69 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="text-4xl">🍽️</span>
+            <span className="text-3xl">🍽️</span>
           </div>
         )}
         {quantity > 0 && (
-          <div className="absolute top-3 right-3 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-black/25">
+          <div className="absolute top-2.5 right-2.5 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-black/25">
             <Check className="h-4.5 w-4.5 text-white" style={{ width: '18px', height: '18px' }} strokeWidth={3.5} />
           </div>
         )}
       </div>
 
       {/* Info */}
-      <div className="p-3">
-        <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 mb-1">
-          {product.name}
-        </p>
-        {product.description && (
-          <p className="text-xs text-gray-400 line-clamp-2 mb-3 leading-relaxed">{product.description}</p>
-        )}
-        <div className="flex items-center justify-between mt-1">
-          <span className="font-extrabold text-gray-900 text-base">${fmt(product.price)}</span>
+      <div className="p-3 flex flex-col justify-between flex-1">
+        <div>
+          <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 mb-1">
+            {product.name}
+          </p>
+          {product.description && (
+            <p className="text-xs text-gray-400 line-clamp-2 mb-2 leading-relaxed">{product.description}</p>
+          )}
+        </div>
+        
+        <div className="mt-auto">
+          <div className="mb-2">
+            <span className="font-extrabold text-gray-900 text-base">${fmt(product.price)}</span>
+          </div>
           
-          {quantity > 0 ? (
-            isConfigurable ? (
-              <button
-                onClick={handleTap}
-                className="h-8 px-3 bg-blue-600 text-white rounded-full flex items-center gap-1 font-bold text-xs shadow-sm hover:bg-blue-700 transition-colors"
-              >
-                <span>{quantity}</span>
-                <Plus className="h-3.5 w-3.5" />
-              </button>
-            ) : (
-              <div 
-                className="flex items-center bg-blue-600 text-white rounded-full h-8 p-0.5 gap-1.5 shadow-sm"
-                onClick={(e) => e.stopPropagation()}
-              >
+          <div className="flex justify-end">
+            {quantity > 0 ? (
+              isConfigurable ? (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (quantity === 1) {
-                      onRemoveItem(cartItemId);
-                    } else {
-                      onUpdateQty(cartItemId, quantity - 1);
-                    }
-                  }}
-                  className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
+                  onClick={handleTap}
+                  className="h-8 px-3 bg-blue-600 text-white rounded-full flex items-center gap-1 font-bold text-xs shadow-sm hover:bg-blue-700 transition-colors"
                 >
-                  −
+                  <span>{quantity}</span>
+                  <Plus className="h-3.5 w-3.5" />
                 </button>
-                <span className="font-extrabold text-sm min-w-[12px] text-center">{quantity}</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAddDirect();
-                  }}
-                  className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
+              ) : (
+                <div 
+                  className="flex items-center bg-blue-600 text-white rounded-full h-8 p-0.5 gap-1.5 shadow-sm"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  +
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (quantity === 1) {
+                        onRemoveItem(cartItemId);
+                      } else {
+                        onUpdateQty(cartItemId, quantity - 1);
+                      }
+                    }}
+                    className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
+                  >
+                    −
+                  </button>
+                  <span className="font-extrabold text-sm min-w-[12px] text-center">{quantity}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddDirect();
+                    }}
+                    className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
+                  >
+                    +
                 </button>
               </div>
             )
@@ -111,6 +117,7 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
               <Plus className="h-3.5 w-3.5" />
             </button>
           )}
+          </div>
         </div>
       </div>
     </div>
