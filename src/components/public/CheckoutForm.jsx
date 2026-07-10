@@ -133,7 +133,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting }) => {
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="w-full bg-black text-white font-bold py-4 rounded-full flex items-center justify-center gap-2 shadow-xl hover:bg-gray-900 transition-colors active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none"
+            className="w-full h-16 bg-black text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl hover:bg-gray-900 transition-colors active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none px-8 text-[17px] tracking-wide"
           >
             {isSubmitting ? (
               <><Loader2 className="h-5 w-5 animate-spin" /> Enviando pedido…</>
