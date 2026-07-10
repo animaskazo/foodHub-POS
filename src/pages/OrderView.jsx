@@ -169,7 +169,7 @@ const OrderView = () => {
       <title>{org?.name ? `${org.name} · Pedidos` : 'Pedir en línea'}</title>
 
       {/* Centered Mobile App Frame for Desktop */}
-      <div className="w-full max-w-3xl mx-auto flex-1 flex flex-col bg-gray-50 md:shadow-[0_0_60px_rgba(0,0,0,0.05)] md:min-h-[100dvh] relative">
+      <div className="w-full max-w-3xl mx-auto flex-1 flex flex-col bg-white md:shadow-[0_0_60px_rgba(0,0,0,0.05)] md:min-h-[100dvh] relative">
         <PublicHeader
         org={org}
         cartCount={totalCartQty}

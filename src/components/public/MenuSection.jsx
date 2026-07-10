@@ -138,6 +138,7 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
 // ── Menu Section (Step 1) ─────────────────────────────────────
 const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdateQty, onRemoveItem, onViewCart }) => {
   const [activeCategory, setActiveCategory] = useState('all');
+  const [logoFlipping, setLogoFlipping] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const catBarRef = useRef(null);
   const catRefs = useRef({});
@@ -197,12 +198,36 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
             className="w-full h-32 md:h-40 rounded-2xl bg-gray-100 bg-cover bg-center relative border border-gray-100 shadow-sm"
             style={org.cover_url ? { backgroundImage: `url(${org.cover_url})` } : { backgroundImage: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)' }}
           >
-            {/* Logo */}
-            <div 
-              className="absolute -bottom-6 left-5 w-16 h-16 md:w-20 md:h-20 rounded-full bg-white border-2 border-white shadow-md flex items-center justify-center overflow-hidden bg-cover bg-center"
-              style={org.logo_url ? { backgroundImage: `url(${org.logo_url})` } : {}}
+            {/* Logo - coin flip with two faces */}
+            <div
+              className={`absolute -bottom-8 left-5 w-20 h-20 md:w-24 md:h-24 cursor-pointer select-none ${logoFlipping ? 'logo-coin-flip' : ''}`}
+              style={{ transformStyle: 'preserve-3d', perspective: '600px' }}
+              onClick={() => {
+                if (logoFlipping) return;
+                setLogoFlipping(true);
+                setTimeout(() => setLogoFlipping(false), 1450);
+              }}
             >
-              {!org.logo_url && <span className="text-3xl">🏬</span>}
+              {/* Front face: logo */}
+              <div
+                className="absolute inset-0 rounded-full bg-white border-2 border-white shadow-md overflow-hidden bg-cover bg-center flex items-center justify-center"
+                style={{
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  ...(org.logo_url ? { backgroundImage: `url(${org.logo_url})` } : {})
+                }}
+              >
+                {!org.logo_url && <span className="text-4xl">🏬</span>}
+              </div>
+              {/* Back face: white */}
+              <div
+                className="absolute inset-0 rounded-full bg-white border-2 border-white shadow-md"
+                style={{
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  transform: 'rotateY(180deg)'
+                }}
+              />
             </div>
 
             {/* Address button on cover */}
@@ -219,7 +244,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
             )}
           </div>
 
-          <div className="pt-8 pb-4 px-2">
+          <div className="pt-10 pb-4 px-2">
             <h1 className="font-black text-3xl md:text-4xl text-gray-900 tracking-tight mb-2">
               {org.name}
             </h1>
@@ -234,7 +259,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
         </div>
       )}
 
-      <div className="sticky top-14 z-20 bg-white border-b border-gray-100 pt-3">
+      <div className="sticky top-14 z-20 bg-white pt-3">
         {/* Category pills */}
         <div ref={catBarRef} className="flex gap-2 px-4 pb-3 overflow-x-auto hide-scrollbar">
           {[{ id: 'all', name: 'Todos' }, ...categories].map(cat => (
@@ -274,7 +299,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
 
                 return (
                   <div key={cat.id} className="space-y-4">
-                    <h3 className="font-extrabold text-lg text-gray-900 border-b border-gray-100 pb-2 mb-1 px-1 sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10 pt-2">
+                    <h3 className="font-extrabold text-xl text-gray-900 pb-2 mb-1 px-1 sticky top-0 bg-white/90 backdrop-blur-sm z-10 pt-2">
                       {cat.name}
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -297,7 +322,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
 
               {renderFallback && (
                 <div className="space-y-4">
-                  <h3 className="font-extrabold text-lg text-gray-900 border-b border-gray-100 pb-2 mb-1 px-1 sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10 pt-2">
+                  <h3 className="font-extrabold text-xl text-gray-900 pb-2 mb-1 px-1 sticky top-0 bg-white/90 backdrop-blur-sm z-10 pt-2">
                     Otros
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
