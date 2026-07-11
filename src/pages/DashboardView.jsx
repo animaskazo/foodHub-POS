@@ -122,6 +122,7 @@ const DashboardView = () => {
           tax_amount,
           created_at,
           ready_at,
+          notes,
           customer_name,
           customer_phone,
           order_items (*),
@@ -338,8 +339,7 @@ const DashboardView = () => {
                 <th className="px-6 py-4 font-semibold">Estado</th>
                 <th className="px-6 py-4 font-semibold">Método</th>
                 <th className="px-6 py-4 font-semibold text-center">T. Cocina</th>
-                <th className="px-6 py-4 font-semibold text-right">Subtotal</th>
-                <th className="px-6 py-4 font-semibold text-right">IVA (19%)</th>
+                <th className="px-6 py-4 font-semibold">Canal</th>
                 <th className="px-6 py-4 font-semibold text-right">Total</th>
                 <th className="px-6 py-4 font-semibold text-center">Acciones</th>
               </tr>
@@ -347,7 +347,7 @@ const DashboardView = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                     Cargando ventas...
                   </td>
@@ -391,8 +391,25 @@ const DashboardView = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center text-gray-600 font-medium whitespace-nowrap">{getKitchenTime(order)}</td>
-                      <td className="px-6 py-4 text-right text-gray-600">${fmt(order.subtotal || 0)}</td>
-                      <td className="px-6 py-4 text-right text-gray-600">${fmt(order.tax_amount || 0)}</td>
+                      <td className="px-6 py-4">
+                        {(() => {
+                          const channelMap = {
+                            table:    { label: 'Local',    Icon: Store },
+                            takeaway: { label: 'Llevar',   Icon: ShoppingBag },
+                            pickup:   { label: 'Retiro',   Icon: ShoppingCart },
+                            online:   { label: 'Online',   Icon: Globe },
+                            whatsapp: { label: 'WhatsApp', Icon: MessageCircle },
+                          };
+                          const ch = channelMap[order.order_type];
+                          if (!ch) return <span className="text-gray-400 text-xs">{order.order_type}</span>;
+                          return (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs">
+                              <ch.Icon className="h-3.5 w-3.5" />
+                              {ch.label}
+                            </span>
+                          );
+                        })()}
+                      </td>
                       <td className="px-6 py-4 text-right font-bold text-gray-900">${fmt(order.total || 0)}</td>
                       <td className="px-6 py-4 text-center">
                         {order.order_type === 'online' && (() => {
@@ -419,7 +436,7 @@ const DashboardView = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="10" className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
                     No hay ventas registradas.
                   </td>
                 </tr>
@@ -550,6 +567,17 @@ const DashboardView = () => {
                   </span>
                 </div>
               </div>
+
+              {/* Notas del cliente */}
+              {selectedOrder.notes && (
+                <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                  <span className="text-amber-500 text-base shrink-0 mt-0.5">📝</span>
+                  <div>
+                    <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider mb-0.5">Nota del cliente</p>
+                    <p className="text-sm text-amber-900 font-medium leading-relaxed">{selectedOrder.notes}</p>
+                  </div>
+                </div>
+              )}
 
               {/* Lista de Productos */}
               <div>

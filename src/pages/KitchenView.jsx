@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { Clock, ChefHat, CheckCircle2, Play, RefreshCw, Volume2, VolumeX, BellRing } from 'lucide-react';
+import { Clock, ChefHat, CheckCircle2, Play, RefreshCw, Volume2, VolumeX, Store, ShoppingBag, ShoppingCart, Globe, MessageCircle, User, FileText } from 'lucide-react';
 import { getKitchenOrders, updateOrderStatus } from '../services/orderService';
 
 const KitchenView = () => {
@@ -153,141 +153,199 @@ const KitchenView = () => {
               <p className="text-sm mt-2 opacity-60">La cocina está al día.</p>
             </div>
           )}
-
           {orders.map(order => {
-            const isNew = getElapsedTime(order.created_at) === 'Ahora mismo';
+            const elapsed = getElapsedTime(order.created_at);
+            const elapsedMins = elapsed.includes('min') ? parseInt(elapsed.match(/\d+/)?.[0] || 0) : 0;
+            const isUrgent  = elapsedMins >= 15;
+            const isWarning = elapsedMins >= 8 && elapsedMins < 15;
+
+            // Clean, low-contrast UI configs
+            const statusConfig = {
+              preparing: {
+                border:   'border-emerald-500/30',
+                glow:     'shadow-black/40',
+                headerBg: 'bg-[#22c55e]/[0.02]',
+                label:    'Preparando',
+                labelCls: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+                btnClass: 'bg-[#10b981] hover:bg-[#059669] text-white',
+              },
+              pending: {
+                border:   'border-amber-500/30',
+                glow:     'shadow-black/40',
+                headerBg: 'bg-[#f59e0b]/[0.02]',
+                label:    'Pendiente',
+                labelCls: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+                btnClass: 'bg-zinc-800 hover:bg-zinc-700 text-white',
+              },
+              confirmed: {
+                border:   'border-zinc-800',
+                glow:     'shadow-black/40',
+                headerBg: 'bg-zinc-900',
+                label:    'Nuevo',
+                labelCls: 'bg-zinc-800 text-zinc-300 border border-zinc-700',
+                btnClass: 'bg-white hover:bg-zinc-100 text-zinc-950',
+              },
+            };
+            const cfg = statusConfig[order.status] || statusConfig.confirmed;
+
+            const channelConfig = {
+              online:   { label: 'Online',   Icon: Globe },
+              whatsapp: { label: 'WhatsApp', Icon: MessageCircle },
+              table:    { label: 'Local',    Icon: Store },
+              takeaway: { label: 'Llevar',   Icon: ShoppingBag },
+              pickup:   { label: 'Retiro',   Icon: ShoppingCart },
+            };
+            const channel = channelConfig[order.order_type] || { label: order.order_type, Icon: Store };
+
             return (
-            <div 
-              key={order.id} 
-              className={`flex-shrink-0 w-80 h-full flex flex-col rounded-2xl border-2 shadow-xl bg-[#111] flex-nowrap ticket-enter ${
-                order.status === 'preparing' ? 'border-green-500/50' : order.status === 'pending' ? 'border-amber-500/50' : 'border-blue-500/30'
-              } ${isNew ? 'ring-4 ring-blue-500/20 shadow-blue-500/20' : ''}`}
+            <div
+              key={order.id}
+              className={`flex-shrink-0 w-[22rem] h-full flex flex-col rounded-2xl border ${cfg.border} shadow-lg ${cfg.glow} bg-zinc-950 overflow-hidden ticket-enter`}
             >
-              {/* Ticket Header */}
-              <div className={`p-4 border-b shrink-0 ${
-                order.status === 'preparing' ? 'bg-green-500/10 border-green-500/20' : order.status === 'pending' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-blue-500/10 border-blue-500/20'
-              }`}>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1 min-w-0">
-                    <h2 className={`text-2xl font-black ${
-                      order.status === 'preparing' ? 'text-green-400' : order.status === 'pending' ? 'text-amber-400' : 'text-blue-400'
-                    }`}>#{order.order_number}</h2>
-                    <div className="flex items-center gap-1.5 text-xs font-semibold mt-1 flex-wrap">
-                      <span className={`px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                        order.status === 'preparing' ? 'bg-green-500 text-black' : order.status === 'pending' ? 'bg-amber-500 text-black' : 'bg-blue-600 text-white'
-                      }`}>
-                        {order.status === 'preparing' ? 'Preparando' : order.status === 'pending' ? 'Pendiente' : 'Nuevo'}
-                      </span>
-                      {order.order_type === 'online' && (
-                        <span className="px-2 py-0.5 rounded-full bg-purple-600 text-white uppercase tracking-wider">
-                          🌐 Online
-                        </span>
-                      )}
-                    </div>
-                    {order.customer_name && (
-                      <p className="text-xs text-gray-400 mt-1.5 font-medium truncate">
-                        👤 {order.customer_name}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end text-right shrink-0 ml-2">
-                    <div className="flex items-center gap-1 text-gray-400">
-                      <Clock className="h-4 w-4" />
-                    </div>
-                    <span className={`text-sm font-medium mt-1 ${
-                      getElapsedTime(order.created_at).includes('min') && parseInt(getElapsedTime(order.created_at).match(/\d+/)?.[0] || 0) > 15 
-                        ? 'text-red-400 font-bold' 
-                        : 'text-gray-400'
-                    }`}>
-                      {getElapsedTime(order.created_at)}
-                    </span>
-                  </div>
+              {/* ── Header ── */}
+              <div className={`${cfg.headerBg} px-4 pt-4 pb-3.5 border-b border-zinc-900 shrink-0 space-y-3`}>
+
+                {/* Row 1: order number + timer */}
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-3xl font-black text-white tracking-tight leading-none">
+                    #{order.order_number}
+                  </h2>
+                  <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold tabular-nums ${
+                    isUrgent  ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                    isWarning ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                'bg-zinc-900 text-zinc-400 border border-zinc-800'
+                  }`}>
+                    <Clock className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                    {elapsed}{isUrgent && ' ⚠'}
+                  </span>
                 </div>
-              </div>
 
-              {/* Ticket Items */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                {order.order_items?.map(item => {
-                  const variants = item.order_item_variants?.map(v => v.variant_option_name).join(', ');
-                  return (
-                  <div key={item.id} className="flex gap-3 items-start bg-[#222]/50 p-3 rounded-xl border border-[#333]">
-                    <div className="w-8 h-8 rounded-lg bg-[#333] text-white flex items-center justify-center font-bold text-lg shrink-0">
-                      {item.quantity}
-                    </div>
-                    <div className="flex-1 pt-1">
-                      <p className="font-semibold text-white leading-snug">{item.product_name}</p>
-                      {variants && (
-                        <p className="text-sm text-gray-300 mt-1 font-medium bg-[#111] p-1.5 rounded border border-[#333]">
-                          <span className="text-gray-500 mr-1">Con:</span> {variants}
-                        </p>
-                      )}
-                      {item.order_item_ingredients?.length > 0 && (
-                        <p className="text-sm text-orange-300 mt-1 font-medium bg-orange-900/20 p-1.5 rounded border border-orange-500/30">
-                          <span className="text-orange-500/80 mr-1">Extra:</span> {item.order_item_ingredients.map(ing => ing.ingredient_name).join(', ')}
-                        </p>
-                      )}
-                      {item.products?.description && !variants && (
-                        <p className="text-xs text-gray-400 mt-0.5 leading-snug">
-                          {item.products.description}
-                        </p>
-                      )}
-                      {item.notes && (
-                        <p className="text-xs text-black mt-1.5 bg-gray-200 p-1.5 rounded-md border border-gray-300 font-medium">
-                          {item.notes}
-                        </p>
-                      )}
-                    </div>
+                {/* Row 2: status + channel chips */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${cfg.labelCls}`}>
+                    {cfg.label}
+                  </span>
+                  {order.order_type !== 'table' && (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-900 text-zinc-400 border border-zinc-800">
+                      <channel.Icon className="h-3 w-3" />
+                      {channel.label}
+                    </span>
+                  )}
+                </div>
+
+                {/* Row 3: customer */}
+                {order.customer_name && (
+                  <p className="text-sm text-zinc-300 font-semibold truncate flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-zinc-900 border border-zinc-850 inline-flex items-center justify-center shrink-0">
+                      <User className="h-3 w-3 text-zinc-500" />
+                    </span>
+                    {order.customer_name}
+                  </p>
+                )}
+
+                {/* Row 4: order notes (minimalist & readable) */}
+                {order.notes && (
+                  <div className="flex items-start gap-2 bg-amber-500/[0.04] border border-amber-500/20 rounded-xl px-3 py-2">
+                    <FileText className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-300/90 font-medium leading-relaxed">{order.notes}</p>
                   </div>
-                )})}
+                )}
               </div>
 
-              {/* Ticket Actions */}
-              <div className="p-4 border-t border-[#222] bg-[#111] rounded-b-2xl shrink-0">
+              {/* ── Items list (Clean & unified style) ── */}
+              <div className="flex-1 overflow-y-auto py-3 px-3 space-y-2.5 custom-scrollbar bg-zinc-950">
+                {order.order_items?.map((item) => {
+                  const variants = item.order_item_variants?.map(v => v.variant_option_name).join(', ');
+                  const extras   = item.order_item_ingredients?.map(i => i.ingredient_name);
+                  const hasModifiers = variants || (extras && extras.length > 0) || item.notes;
+                  return (
+                    <div key={item.id} className="rounded-xl bg-zinc-900/60 border border-zinc-900 overflow-hidden">
+                      {/* qty + name */}
+                      <div className="flex items-start gap-3 px-3.5 pt-3 pb-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-zinc-800 text-white flex items-center justify-center font-extrabold text-base shrink-0 shadow-sm">
+                          {item.quantity}
+                        </div>
+                        <p className="font-bold text-white text-[15px] leading-snug pt-0.5 flex-1">
+                          {item.product_name}
+                        </p>
+                      </div>
+
+                      {/* modifiers - clean & unified */}
+                      {hasModifiers && (
+                        <div className="px-3.5 pb-3.5 space-y-2 border-t border-zinc-900/30 pt-2">
+                          {variants && (
+                            <div className="flex items-baseline gap-1 text-xs">
+                              <span className="text-zinc-500 font-bold shrink-0">Opción:</span>
+                              <span className="text-zinc-300 font-medium">{variants}</span>
+                            </div>
+                          )}
+                          {extras && extras.length > 0 && (
+                            <div className="flex items-baseline gap-1 text-xs">
+                              <span className="text-zinc-500 font-bold shrink-0">Extra:</span>
+                              <span className="text-zinc-300 font-medium">{extras.join(', ')}</span>
+                            </div>
+                          )}
+                          {item.notes && (
+                            <div className="flex items-start gap-1.5 bg-zinc-950/60 border border-zinc-850 rounded-lg px-2.5 py-1.5 text-xs text-zinc-300">
+                              <FileText className="h-3.5 w-3.5 text-zinc-500 shrink-0 mt-0.5" />
+                              <span className="font-medium leading-relaxed">{item.notes}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── Footer ── */}
+              <div className="flex items-center justify-between px-4 py-2.5 border-t border-zinc-900 shrink-0">
+                <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">
+                  {order.order_items?.reduce((s, i) => s + i.quantity, 0)} productos
+                </span>
+                <span className="text-[11px] text-zinc-500 font-medium tabular-nums">
+                  {new Date(order.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+
+              {/* ── Action button ── */}
+              <div className="px-4 pb-4 shrink-0">
                 {(order.status === 'confirmed' || order.status === 'pending') ? (
                   <button
                     onClick={() => handleUpdateStatus(order.id, 'preparing')}
-                    className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex justify-center items-center gap-2 transition-colors shadow-lg shadow-blue-900/20"
+                    className={`w-full py-3.5 ${cfg.btnClass} rounded-xl font-bold flex justify-center items-center gap-2 transition-all text-sm tracking-wide active:scale-[0.98] shadow-md`}
                   >
-                    <Play className="h-5 w-5 fill-current" />
-                    Empezar a Preparar
+                    <Play className="h-4 w-4 fill-current" />
+                    Empezar Preparación
                   </button>
                 ) : (
                   <button
                     onClick={() => handleUpdateStatus(order.id, 'ready')}
-                    className="w-full py-3.5 bg-green-500 hover:bg-green-400 text-gray-900 rounded-xl font-black flex justify-center items-center gap-2 transition-colors shadow-lg shadow-green-900/20"
+                    className={`w-full py-3.5 ${cfg.btnClass} rounded-xl font-extrabold flex justify-center items-center gap-2 transition-all text-sm tracking-wide active:scale-[0.98] shadow-md`}
                   >
-                    <CheckCircle2 className="h-6 w-6" strokeWidth={3} />
-                    Marcar Listo
+                    <CheckCircle2 className="h-5 w-5" strokeWidth={2.5} />
+                    Marcar como Listo
                   </button>
                 )}
               </div>
             </div>
-          )})}
+            );
+          })}
         </div>
       </main>
 
-      {/* Add a subtle custom scrollbar style */}
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(0,0,0,0.1);
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255,255,255,0.1);
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255,255,255,0.2);
-        }
-        
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
         @keyframes slideInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
+          from { opacity: 0; transform: translateY(24px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
         }
         .ticket-enter {
-          animation: slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: slideInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
       `}</style>
     </div>
