@@ -3,7 +3,7 @@ import { Banknote, CreditCard, CheckCircle2, Coffee, Package, Loader2 } from 'lu
 import Modal from '../ui/Modal';
 import { Button } from '../ui/button';
 
-const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer }) => {
+const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, confirmOnly = false, confirmTotal = null }) => {
   const [status, setStatus] = useState('idle'); // 'idle' | 'success'
   const [orderNumber, setOrderNumber] = useState(null);
   const [orderId, setOrderId] = useState(null);
@@ -36,24 +36,29 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer })
 
   const paymentMethods = [
     { id: 'cash', name: 'Efectivo', icon: Banknote },
-    { id: 'debit', name: 'Débito', icon: CreditCard },
-    { id: 'credit', name: 'Crédito', icon: CreditCard },
+    { id: 'card', name: 'Tarjeta (Déb/Créd)', icon: CreditCard },
+    { id: 'transfer', name: 'Transferencia', icon: CreditCard },
   ];
 
   const handlePayment = async (methodId) => {
-    if (processingMethod) return; // Evitar multiples clicks
+    if (processingMethod) return;
     setProcessingMethod(methodId);
     try {
-      const order = await onConfirm(methodId, orderType);
-      if (order) {
-        setOrderNumber(order.order_number);
-        setOrderId(order.id);
-        setStatus('success');
+      if (confirmOnly) {
+        // Dashboard mode: just confirm the payment method, no order creation
+        await onConfirm(methodId);
+        onClose();
       } else {
-        setProcessingMethod(null);
+        const order = await onConfirm(methodId, orderType);
+        if (order) {
+          setOrderNumber(order.order_number);
+          setOrderId(order.id);
+          setStatus('success');
+        } else {
+          setProcessingMethod(null);
+        }
       }
     } catch (e) {
-      // error handled by parent
       setProcessingMethod(null);
     }
   };
@@ -164,41 +169,52 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer })
     <Modal 
       isOpen={isOpen} 
       onClose={onClose} 
-      title="Confirmar Pago" 
+      title={confirmOnly ? 'Confirmar Pago en Caja' : 'Confirmar Pago'}
       maxWidth="max-w-md"
     >
       <div className="p-6 flex flex-col gap-6">
         <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
-          <span className="text-sm text-gray-500 font-medium mb-1">Total a Pagar</span>
-          <span className="text-4xl font-black text-gray-900">${fmt(total)}</span>
+          <span className="text-sm text-gray-500 font-medium mb-1">
+            {confirmOnly ? 'Total del Pedido Online' : 'Total a Pagar'}
+          </span>
+          <span className="text-4xl font-black text-gray-900">${fmt(confirmOnly ? (confirmTotal ?? 0) : total)}</span>
+          {confirmOnly && (
+            <span className="text-xs text-amber-600 font-semibold mt-1.5 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+              Selecciona el método recibido en caja
+            </span>
+          )}
         </div>
 
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider ml-1">Tipo de Pedido</h3>
-          <div className="grid grid-cols-2 gap-2 md:gap-3 mb-6">
-            <button
-              onClick={() => setOrderType('table')}
-              className={`flex items-center justify-center p-2.5 md:p-3.5 rounded-full border-2 transition-all ${
-                orderType === 'table'
-                  ? 'border-black bg-black text-white shadow-md'
-                  : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <Coffee className={`h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 ${orderType === 'table' ? 'text-white' : 'text-gray-500'}`} />
-              <span className="font-bold text-sm md:text-base whitespace-nowrap">Para Servir</span>
-            </button>
-            <button
-              onClick={() => setOrderType('takeaway')}
-              className={`flex items-center justify-center p-2.5 md:p-3.5 rounded-full border-2 transition-all ${
-                orderType === 'takeaway'
-                  ? 'border-black bg-black text-white shadow-md'
-                  : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <Package className={`h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 ${orderType === 'takeaway' ? 'text-white' : 'text-gray-500'}`} />
-              <span className="font-bold text-sm md:text-base whitespace-nowrap">Para Llevar</span>
-            </button>
-          </div>
+          {!confirmOnly && (
+            <>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider ml-1">Tipo de Pedido</h3>
+              <div className="grid grid-cols-2 gap-2 md:gap-3 mb-6">
+                <button
+                  onClick={() => setOrderType('table')}
+                  className={`flex items-center justify-center p-2.5 md:p-3.5 rounded-full border-2 transition-all ${
+                    orderType === 'table'
+                      ? 'border-black bg-black text-white shadow-md'
+                      : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <Coffee className={`h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 ${orderType === 'table' ? 'text-white' : 'text-gray-500'}`} />
+                  <span className="font-bold text-sm md:text-base whitespace-nowrap">Para Servir</span>
+                </button>
+                <button
+                  onClick={() => setOrderType('takeaway')}
+                  className={`flex items-center justify-center p-2.5 md:p-3.5 rounded-full border-2 transition-all ${
+                    orderType === 'takeaway'
+                      ? 'border-black bg-black text-white shadow-md'
+                      : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <Package className={`h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 ${orderType === 'takeaway' ? 'text-white' : 'text-gray-500'}`} />
+                  <span className="font-bold text-sm md:text-base whitespace-nowrap">Para Llevar</span>
+                </button>
+              </div>
+            </>
+          )}
 
           <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider ml-1">Método de Pago</h3>
           <div className="grid grid-cols-1 gap-3">

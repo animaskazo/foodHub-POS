@@ -19,6 +19,7 @@ import {
   ReceiptText
 } from 'lucide-react';
 import Modal from '../components/ui/Modal';
+import PaymentModal from '../components/pos/PaymentModal';
 
 const DashboardView = () => {
   const { organization, loading: authLoading } = useAuth();
@@ -29,6 +30,8 @@ const DashboardView = () => {
   const [dateRange, setDateRange] = useState('today'); // today, 7days, 30days
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [pendingPaymentOrder, setPendingPaymentOrder] = useState(null);
+  const [isPaymentConfirmOpen, setIsPaymentConfirmOpen] = useState(false);
 
   const handleOpenModal = (order) => {
     setSelectedOrder(order);
@@ -40,6 +43,42 @@ const DashboardView = () => {
     setTimeout(() => {
       setSelectedOrder(null);
     }, 300);
+  };
+
+  const handleOpenPaymentConfirm = (e, order) => {
+    e.stopPropagation();
+    setPendingPaymentOrder(order);
+    setIsPaymentConfirmOpen(true);
+  };
+
+  const handleConfirmOnlinePayment = async (method) => {
+    if (!pendingPaymentOrder) return;
+    try {
+      const payment = pendingPaymentOrder.payments?.find(p => p.status === 'pending');
+      const now = new Date().toISOString();
+      if (payment) {
+        const { error } = await supabase
+          .from('payments')
+          .update({ method, status: 'paid', paid_at: now })
+          .eq('id', payment.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('payments').insert({
+          order_id: pendingPaymentOrder.id,
+          method,
+          amount: pendingPaymentOrder.total,
+          status: 'paid',
+          paid_at: now,
+        });
+        if (error) throw error;
+      }
+      setIsPaymentConfirmOpen(false);
+      setPendingPaymentOrder(null);
+      await fetchOrders();
+    } catch (err) {
+      console.error('Error confirmando pago:', err);
+      alert(`No se pudo confirmar el pago: ${err.message || JSON.stringify(err)}`);
+    }
   };
 
   useEffect(() => {
@@ -302,6 +341,7 @@ const DashboardView = () => {
                 <th className="px-6 py-4 font-semibold text-right">Subtotal</th>
                 <th className="px-6 py-4 font-semibold text-right">IVA (19%)</th>
                 <th className="px-6 py-4 font-semibold text-right">Total</th>
+                <th className="px-6 py-4 font-semibold text-center">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -354,12 +394,32 @@ const DashboardView = () => {
                       <td className="px-6 py-4 text-right text-gray-600">${fmt(order.subtotal || 0)}</td>
                       <td className="px-6 py-4 text-right text-gray-600">${fmt(order.tax_amount || 0)}</td>
                       <td className="px-6 py-4 text-right font-bold text-gray-900">${fmt(order.total || 0)}</td>
+                      <td className="px-6 py-4 text-center">
+                        {order.order_type === 'online' && (() => {
+                          const hasPending = order.payments?.some(p => p.status === 'pending');
+                          const isConfirmed = order.payments?.some(p => p.status === 'paid');
+                          if (isConfirmed) return (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                              ✓ Pagado
+                            </span>
+                          );
+                          if (hasPending) return (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-full transition-colors whitespace-nowrap"
+                            >
+                              Confirmar pago
+                            </button>
+                          );
+                          return null;
+                        })()}
+                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan="9" className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan="10" className="px-6 py-12 text-center text-gray-500">
                     No hay ventas registradas.
                   </td>
                 </tr>
@@ -406,6 +466,24 @@ const DashboardView = () => {
                   <div className="flex flex-col items-end gap-2">
                     <span className="font-black text-gray-900 text-lg">${fmt(order.total || 0)}</span>
                     {getStatusTag(order.status)}
+                    {order.order_type === 'online' && (() => {
+                      const hasPending = order.payments?.some(p => p.status === 'pending');
+                      const isConfirmed = order.payments?.some(p => p.status === 'completed');
+                      if (isConfirmed) return (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                          ✓ Pagado
+                        </span>
+                      );
+                      if (hasPending) return (
+                        <button
+                          onClick={(e) => handleOpenPaymentConfirm(e, order)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-full transition-colors"
+                        >
+                          Confirmar pago
+                        </button>
+                      );
+                      return null;
+                    })()}
                   </div>
                 </div>
               );
@@ -536,6 +614,18 @@ const DashboardView = () => {
           </div>
         )}
       </Modal>
+
+      {/* Modal confirmar pago online en caja */}
+      {pendingPaymentOrder && (
+        <PaymentModal
+          isOpen={isPaymentConfirmOpen}
+          onClose={() => { setIsPaymentConfirmOpen(false); setPendingPaymentOrder(null); }}
+          cartItems={pendingPaymentOrder.order_items?.map(i => ({ price: i.unit_price, quantity: i.quantity })) || []}
+          onConfirm={handleConfirmOnlinePayment}
+          confirmOnly={true}
+          confirmTotal={pendingPaymentOrder.total}
+        />
+      )}
     </div>
   );
 };
