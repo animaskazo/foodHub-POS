@@ -11,7 +11,7 @@ async function test() {
     .from('orders')
     .select(`
       *,
-      order_items(*, products(description), order_item_variants(variant_option_name), order_item_ingredients(ingredient_name))
+      order_items(*, products(description, product_images(url)), order_item_variants(variant_option_name), order_item_ingredients(ingredient_name))
     `)
     .limit(1);
 

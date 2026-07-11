@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import PaymentModal from '../components/pos/PaymentModal';
+import PageHeader from '../components/ui/PageHeader';
 
 const DashboardView = () => {
   const { organization, loading: authLoading } = useAuth();
@@ -220,31 +221,27 @@ const DashboardView = () => {
 
   return (
     <div className="flex-1 overflow-auto bg-gray-50 p-6 md:p-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {organization ? organization.name : 'Cargando Negocio...'}
-          </h1>
-          <p className="text-gray-500">
-            {dateRange === 'today' ? 'Resumen de ventas del día de hoy.' : 
-             dateRange === '7days' ? 'Resumen de ventas de los últimos 7 días.' : 
-             'Resumen de ventas de los últimos 30 días.'}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3 items-center">
-          <select 
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-            className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-lg font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer shadow-sm appearance-none pr-8 relative"
-            style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
-          >
-            <option value="today">Hoy</option>
-            <option value="7days">Últimos 7 días</option>
-            <option value="30days">Últimos 30 días</option>
-          </select>
-        </div>
-      </div>
+      <div className="max-w-7xl mx-auto space-y-6">
+        <PageHeader 
+          title={organization ? organization.name : 'Cargando Negocio...'}
+          subtitle={
+            dateRange === 'today' ? 'Resumen de ventas del día de hoy.' : 
+            dateRange === '7days' ? 'Resumen de ventas de los últimos 7 días.' : 
+            'Resumen de ventas de los últimos 30 días.'
+          }
+          actions={
+            <select 
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value)}
+              className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-lg font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer appearance-none pr-8 relative"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
+            >
+              <option value="today">Hoy</option>
+              <option value="7days">Últimos 7 días</option>
+              <option value="30days">Últimos 30 días</option>
+            </select>
+          }
+        />
 
       {error && (
         <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl border border-red-100">
@@ -267,10 +264,10 @@ const DashboardView = () => {
           <Store className="h-4 w-4" /> Local
         </button>
         <button 
-          onClick={() => setChannelFilter('pickup')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'pickup' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          onClick={() => setChannelFilter('takeaway')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'takeaway' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
         >
-          <ShoppingCart className="h-4 w-4" /> Retiro
+          <ShoppingBag className="h-4 w-4" /> Retiro
         </button>
         <button 
           onClick={() => setChannelFilter('online')}
@@ -553,7 +550,7 @@ const DashboardView = () => {
                     <CreditCard className="h-4 w-4" />
                     <span className="text-xs font-semibold uppercase tracking-wider">Pago</span>
                   </div>
-                  <span className="inline-flex items-center px-2.5 py-1 bg-white text-gray-700 rounded-lg font-bold text-sm border border-gray-200 shadow-sm">
+                  <span className="inline-flex items-center px-2.5 py-1 bg-white text-gray-700 rounded-lg font-bold text-sm border border-gray-200">
                     {getPaymentMethod(selectedOrder)}
                   </span>
                 </div>
@@ -654,6 +651,7 @@ const DashboardView = () => {
           confirmTotal={pendingPaymentOrder.total}
         />
       )}
+      </div>
     </div>
   );
 };

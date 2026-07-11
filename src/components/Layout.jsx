@@ -15,7 +15,8 @@ import {
   Menu,
   X,
   MonitorPlay,
-  ChefHat
+  ChefHat,
+  Users
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -150,6 +151,21 @@ const Layout = () => {
                   </li>
                 </ul>
               )}
+            </li>
+
+            <li className="pt-2">
+              <NavLink 
+                to="/customers" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={({ isActive }) => 
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${
+                    isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                  }`
+                }
+              >
+                <Users className="h-[18px] w-[18px]" />
+                Clientes
+              </NavLink>
             </li>
 
             <li className="pt-2">

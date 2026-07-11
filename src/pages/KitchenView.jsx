@@ -112,7 +112,7 @@ const KitchenView = () => {
   return (
     <div className="flex flex-col h-screen bg-black text-gray-100 overflow-hidden font-sans">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-[#111] border-b border-[#222] shadow-md">
+      <header className="flex items-center justify-between px-6 py-4 bg-[#111] border-b border-[#222]">
         <div className="flex items-center gap-3">
           <div className="bg-white p-2 rounded-lg text-black">
             <ChefHat className="h-6 w-6" />
@@ -200,7 +200,7 @@ const KitchenView = () => {
             return (
             <div
               key={order.id}
-              className={`flex-shrink-0 w-[22rem] h-full flex flex-col rounded-2xl border ${cfg.border} shadow-lg ${cfg.glow} bg-zinc-950 overflow-hidden ticket-enter`}
+              className={`flex-shrink-0 w-[22rem] h-full flex flex-col rounded-2xl border ${cfg.border} bg-zinc-950 overflow-hidden ticket-enter`}
             >
               {/* ── Header ── */}
               <div className={`${cfg.headerBg} px-4 pt-4 pb-3.5 border-b border-zinc-900 shrink-0 space-y-3`}>
@@ -210,43 +210,35 @@ const KitchenView = () => {
                   <h2 className="text-3xl font-black text-white tracking-tight leading-none">
                     #{order.order_number}
                   </h2>
-                  <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold tabular-nums ${
-                    isUrgent  ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                    isWarning ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                                'bg-zinc-900 text-zinc-400 border border-zinc-800'
-                  }`}>
-                    <Clock className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
-                    {elapsed}{isUrgent && ' ⚠'}
-                  </span>
+                  <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 text-zinc-300 font-mono text-sm font-semibold px-2.5 py-1 rounded-md shrink-0 select-none">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>{elapsed}</span>
+                  </div>
                 </div>
 
-                {/* Row 2: status + channel chips */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${cfg.labelCls}`}>
+                {/* Row 2: badge status + user */}
+                <div className="flex items-center justify-between">
+                  <span className={`text-[11px] uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-full ${cfg.labelCls}`}>
                     {cfg.label}
                   </span>
-                  {order.order_type !== 'table' && (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-zinc-900 text-zinc-400 border border-zinc-800">
-                      <channel.Icon className="h-3 w-3" />
-                      {channel.label}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1 text-xs text-zinc-400 font-medium">
+                    <User className="h-3.5 w-3.5 fill-current" />
+                    <span>{order.customer_name || 'Sin Nombre'}</span>
+                  </div>
                 </div>
 
-                {/* Row 3: customer */}
-                {order.customer_name && (
-                  <p className="text-sm text-zinc-300 font-semibold truncate flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-zinc-900 border border-zinc-850 inline-flex items-center justify-center shrink-0">
-                      <User className="h-3 w-3 text-zinc-500" />
-                    </span>
-                    {order.customer_name}
-                  </p>
-                )}
+                {/* Row 3: type + channel badges */}
+                <div className="flex items-center justify-between pt-1 border-t border-zinc-900/60 text-xs text-zinc-400">
+                  <span className="capitalize">{order.order_type === 'table' ? 'Local' : order.order_type}</span>
+                  <div className="flex items-center gap-1">
+                    <channel.Icon className="h-3.5 w-3.5" />
+                    <span>{channel.label}</span>
+                  </div>
+                </div>
 
-                {/* Row 4: order notes (minimalist & readable) */}
+                {/* Customer order notes */}
                 {order.notes && (
-                  <div className="flex items-start gap-2 bg-amber-500/[0.04] border border-amber-500/20 rounded-xl px-3 py-2">
-                    <FileText className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                  <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                     <p className="text-xs text-amber-300/90 font-medium leading-relaxed">{order.notes}</p>
                   </div>
                 )}
@@ -260,35 +252,54 @@ const KitchenView = () => {
                   const hasModifiers = variants || (extras && extras.length > 0) || item.notes;
                   return (
                     <div key={item.id} className="rounded-xl bg-zinc-900/60 border border-zinc-900 overflow-hidden">
-                      {/* qty + name */}
+                      {/* qty + image + name */}
                       <div className="flex items-start gap-3 px-3.5 pt-3 pb-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-zinc-800 text-white flex items-center justify-center font-extrabold text-base shrink-0 shadow-sm">
+                        <div className="w-8 h-8 rounded-lg bg-zinc-800 text-white flex items-center justify-center font-extrabold text-base shrink-0">
                           {item.quantity}
                         </div>
-                        <p className="font-bold text-white text-[15px] leading-snug pt-0.5 flex-1">
-                          {item.product_name}
-                        </p>
+                        {item.products?.product_images?.[0]?.url ? (
+                          <img 
+                            src={item.products.product_images[0].url} 
+                            alt={item.product_name} 
+                            className="w-10 h-10 rounded-lg object-cover shrink-0 border border-zinc-800"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-zinc-850 flex items-center justify-center shrink-0 border border-zinc-800/40">
+                            <ChefHat className="h-5 w-5 text-zinc-600" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0 pt-0.5">
+                          <p className="text-[15px] font-bold text-white truncate">{item.product_name}</p>
+                        </div>
                       </div>
 
-                      {/* modifiers - clean & unified */}
+                      {/* modifiers block */}
                       {hasModifiers && (
-                        <div className="px-3.5 pb-3.5 space-y-2 border-t border-zinc-900/30 pt-2">
+                        <div className="px-3.5 pb-3 pt-0.5 border-t border-zinc-900/40 space-y-2 text-[13px]">
                           {variants && (
-                            <div className="flex items-baseline gap-1 text-xs">
-                              <span className="text-zinc-500 font-bold shrink-0">Opción:</span>
-                              <span className="text-zinc-300 font-medium">{variants}</span>
+                            <div className="flex items-baseline gap-1 text-zinc-400 font-medium">
+                              <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-extrabold select-none shrink-0">Opción:</span>
+                              <span className="truncate">{variants}</span>
                             </div>
                           )}
                           {extras && extras.length > 0 && (
-                            <div className="flex items-baseline gap-1 text-xs">
-                              <span className="text-zinc-500 font-bold shrink-0">Extra:</span>
-                              <span className="text-zinc-300 font-medium">{extras.join(', ')}</span>
+                            <div className="space-y-1">
+                              <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-extrabold select-none block">Agregados:</span>
+                              <div className="flex flex-wrap gap-1">
+                                {extras.map((extra, idx) => (
+                                  <span key={idx} className="inline-block bg-zinc-900 border border-zinc-800 text-zinc-300 px-2 py-0.5 rounded-md text-[12px] font-semibold">
+                                    + {extra}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
                           )}
                           {item.notes && (
-                            <div className="flex items-start gap-1.5 bg-zinc-950/60 border border-zinc-850 rounded-lg px-2.5 py-1.5 text-xs text-zinc-300">
-                              <FileText className="h-3.5 w-3.5 text-zinc-500 shrink-0 mt-0.5" />
-                              <span className="font-medium leading-relaxed">{item.notes}</span>
+                            <div className="p-2 bg-[#ffc107]/[0.03] border border-[#ffc107]/10 rounded-lg">
+                              <p className="text-[12px] text-amber-200/90 font-medium leading-relaxed">
+                                <span className="font-bold text-[#ffc107] block select-none mb-0.5 text-[10px] uppercase tracking-wider">Nota ítem:</span>
+                                {item.notes}
+                              </p>
                             </div>
                           )}
                         </div>
@@ -298,22 +309,12 @@ const KitchenView = () => {
                 })}
               </div>
 
-              {/* ── Footer ── */}
-              <div className="flex items-center justify-between px-4 py-2.5 border-t border-zinc-900 shrink-0">
-                <span className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wider">
-                  {order.order_items?.reduce((s, i) => s + i.quantity, 0)} productos
-                </span>
-                <span className="text-[11px] text-zinc-500 font-medium tabular-nums">
-                  {new Date(order.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-
               {/* ── Action button ── */}
               <div className="px-4 pb-4 shrink-0">
                 {(order.status === 'confirmed' || order.status === 'pending') ? (
                   <button
                     onClick={() => handleUpdateStatus(order.id, 'preparing')}
-                    className={`w-full py-3.5 ${cfg.btnClass} rounded-xl font-bold flex justify-center items-center gap-2 transition-all text-sm tracking-wide active:scale-[0.98] shadow-md`}
+                    className={`w-full py-3.5 ${cfg.btnClass} rounded-xl font-bold flex justify-center items-center gap-2 transition-all text-sm tracking-wide active:scale-[0.98]`}
                   >
                     <Play className="h-4 w-4 fill-current" />
                     Empezar Preparación
@@ -321,7 +322,7 @@ const KitchenView = () => {
                 ) : (
                   <button
                     onClick={() => handleUpdateStatus(order.id, 'ready')}
-                    className={`w-full py-3.5 ${cfg.btnClass} rounded-xl font-extrabold flex justify-center items-center gap-2 transition-all text-sm tracking-wide active:scale-[0.98] shadow-md`}
+                    className={`w-full py-3.5 ${cfg.btnClass} rounded-xl font-extrabold flex justify-center items-center gap-2 transition-all text-sm tracking-wide active:scale-[0.98]`}
                   >
                     <CheckCircle2 className="h-5 w-5" strokeWidth={2.5} />
                     Marcar como Listo

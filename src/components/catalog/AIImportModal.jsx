@@ -1,23 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Loader2, Upload, Key, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Loader2, Upload, Sparkles, CheckCircle2 } from 'lucide-react';
 import { extractMenuFromImage } from '../../services/aiService';
 import { processAndSaveMenu } from '../../services/importService';
 import { toast } from 'sonner';
 
 const AIImportModal = ({ isOpen, onClose, onSuccess }) => {
   const [step, setStep] = useState('upload'); // upload, processing, preview, saving
-  const [apiKey, setApiKey] = useState('');
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [extractedData, setExtractedData] = useState(null);
-
-  useEffect(() => {
-    const savedKey = localStorage.getItem('claude_api_key');
-    if (savedKey) setApiKey(savedKey);
-  }, []);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files?.[0];
@@ -28,20 +21,15 @@ const AIImportModal = ({ isOpen, onClose, onSuccess }) => {
   };
 
   const handleAnalyze = async () => {
-    if (!apiKey) {
-      toast.error("Necesitas ingresar tu API Key de Claude");
-      return;
-    }
     if (!file) {
       toast.error("Necesitas subir una imagen del menú");
       return;
     }
 
-    localStorage.setItem('claude_api_key', apiKey);
     setStep('processing');
 
     try {
-      const data = await extractMenuFromImage(file, apiKey);
+      const data = await extractMenuFromImage(file);
       setExtractedData(data);
       setStep('preview');
     } catch (error) {
@@ -84,23 +72,6 @@ const AIImportModal = ({ isOpen, onClose, onSuccess }) => {
       <div className="p-6">
         {step === 'upload' && (
           <div className="space-y-6">
-            <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex gap-3">
-              <Key className="text-blue-600 h-5 w-5 shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-semibold text-blue-900 text-[15px]">API Key de Claude</h4>
-                <p className="text-sm text-blue-700 mb-3 mt-1">
-                  Tu clave se guarda localmente en tu navegador. Puedes obtenerla gratis en Anthropic.
-                </p>
-                <Input 
-                  type="password" 
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="AIzaSy..."
-                  className="bg-white"
-                />
-              </div>
-            </div>
-
             <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center hover:bg-gray-50 transition-colors">
               <input 
                 type="file" 
@@ -125,7 +96,7 @@ const AIImportModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
 
             <div className="flex justify-end pt-4">
-              <Button onClick={handleAnalyze} disabled={!file || !apiKey} className="rounded-full bg-black text-white hover:bg-gray-800 px-8 py-6 text-[15px]">
+              <Button onClick={handleAnalyze} disabled={!file} className="rounded-full bg-black text-white hover:bg-gray-800 px-8 py-6 text-[15px]">
                 <Sparkles className="mr-2 h-5 w-5" /> Analizar Menú
               </Button>
             </div>

@@ -12,6 +12,8 @@ import ActionMenu from '../components/ui/ActionMenu';
 import ConfirmDeleteModal from '../components/ui/ConfirmDeleteModal';
 import { toast } from 'sonner';
 
+import PageHeader from '../components/ui/PageHeader';
+
 const CategoriesList = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -91,14 +93,16 @@ const CategoriesList = () => {
 
 
   return (
-    <div className="flex-1 bg-white flex flex-col h-full">
-      {/* Header H1 */}
-      <div className="px-6 pt-6 pb-2">
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Categorías</h1>
-      </div>
+    <div className="flex-1 overflow-auto bg-gray-50 p-6 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <PageHeader 
+          title="Categorías"
+          subtitle="Organiza tus artículos de comida en grupos y categorías."
+        />
 
-      {/* Action Bar */}
-      {selectedIds.length > 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex flex-col">
+        {/* Action Bar */}
+        {selectedIds.length > 0 ? (
         <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b bg-blue-50/50">
           <div className="flex items-center gap-3">
             <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none font-medium text-sm px-3 py-1">
@@ -106,7 +110,7 @@ const CategoriesList = () => {
             </Badge>
           </div>
           <div className="flex items-center gap-3">
-            <Button className="rounded-full bg-red-600 text-white hover:bg-red-700 shadow-sm" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
+            <Button className="rounded-full bg-red-600 text-white hover:bg-red-700" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
               <Trash2 className="h-4 w-4 mr-2" /> Eliminar seleccionadas
             </Button>
           </div>
@@ -218,7 +222,7 @@ const CategoriesList = () => {
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button 
-                        className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-full hover:bg-gray-50 transition-colors shadow-sm active:bg-gray-100"
+                        className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-full hover:bg-gray-50 transition-colors active:bg-gray-100"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/categories/${category.id}`);
@@ -238,6 +242,7 @@ const CategoriesList = () => {
           </tbody>
         </table>
       </div>
+      </div>
       <ConfirmDeleteModal 
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal(prev => ({ ...prev, isOpen: false }))}
@@ -249,6 +254,7 @@ const CategoriesList = () => {
           : `¿Estás seguro de que deseas eliminar las ${selectedIds.length} categorías seleccionadas? Sus artículos quedarán sin categoría asignada.`
         }
       />
+      </div>
     </div>
   );
 };

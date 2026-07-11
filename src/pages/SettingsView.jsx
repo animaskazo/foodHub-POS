@@ -8,6 +8,7 @@ import {
 } from '../services/organizationService';
 import { uploadImage } from '../services/storageService';
 import { Store, User, Clock, Check, Loader2, Save, Link, Copy, ExternalLink } from 'lucide-react';
+import PageHeader from '../components/ui/PageHeader';
 
 const daysTranslations = {
   mon: 'Lunes',
@@ -178,21 +179,21 @@ const SettingsView = () => {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-gray-50/50 p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Configuración del Negocio</h1>
-          <p className="text-gray-500 mt-1">Gestiona la información pública de tu local y tu equipo.</p>
-        </div>
+    <div className="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        <PageHeader 
+          title="Configuración del Negocio"
+          subtitle="Gestiona la información pública de tu local y tu equipo."
+        />
 
         <div className="flex flex-col md:flex-row gap-6">
           {/* Tabs Sidebar */}
           <div className="w-full md:w-64 shrink-0">
-            <div className="bg-white rounded-xl border border-gray-100 p-2 space-y-1">
+            <div className="bg-white rounded-2xl border border-gray-200 p-3 space-y-1">
               <button
                 onClick={() => setActiveTab('general')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[15px] font-semibold transition-colors cursor-pointer ${
-                  activeTab === 'general' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[15px] font-semibold transition-colors cursor-pointer ${
+                  activeTab === 'general' ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 <Store className="h-5 w-5" />
@@ -200,8 +201,8 @@ const SettingsView = () => {
               </button>
               <button
                 onClick={() => setActiveTab('hours')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[15px] font-semibold transition-colors cursor-pointer ${
-                  activeTab === 'hours' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[15px] font-semibold transition-colors cursor-pointer ${
+                  activeTab === 'hours' ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 <Clock className="h-5 w-5" />
@@ -209,8 +210,8 @@ const SettingsView = () => {
               </button>
               <button
                 onClick={() => setActiveTab('staff')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[15px] font-semibold transition-colors cursor-pointer ${
-                  activeTab === 'staff' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[15px] font-semibold transition-colors cursor-pointer ${
+                  activeTab === 'staff' ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 <User className="h-5 w-5" />
@@ -220,7 +221,7 @@ const SettingsView = () => {
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+          <div className="flex-1 bg-white rounded-2xl border border-gray-200 overflow-hidden">
             {activeTab === 'general' && (
               <div className="p-6 md:p-8 space-y-6">
                 
@@ -230,7 +231,7 @@ const SettingsView = () => {
                   <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 flex flex-col items-center">
                     <p className="font-semibold text-sm text-gray-700 mb-3 text-left w-full">Logotipo de la Empresa</p>
                     <div 
-                      className="w-24 h-24 rounded-full bg-white border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden shadow-sm relative group"
+                      className="w-24 h-24 rounded-full bg-white border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden relative group"
                       style={formData.logo_url ? { backgroundImage: `url(${formData.logo_url})` } : {}}
                     >
                       {!formData.logo_url && <span className="text-3xl">🏬</span>}
@@ -240,7 +241,7 @@ const SettingsView = () => {
                         </div>
                       )}
                     </div>
-                    <label className="mt-4 px-4 py-1.5 bg-white border border-gray-200 rounded-full text-xs font-bold text-gray-700 shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                    <label className="mt-4 px-4 py-1.5 bg-white border border-gray-200 rounded-full text-xs font-bold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors">
                       {formData.logo_url ? 'Cambiar Logo' : 'Subir Logo'}
                       <input 
                         type="file" 
@@ -256,7 +257,7 @@ const SettingsView = () => {
                   <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 flex flex-col items-center">
                     <p className="font-semibold text-sm text-gray-700 mb-3 text-left w-full">Imagen de Portada (Cover)</p>
                     <div 
-                      className="w-full h-24 rounded-xl bg-white border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden shadow-sm relative"
+                      className="w-full h-24 rounded-xl bg-white border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden relative"
                       style={formData.cover_url ? { backgroundImage: `url(${formData.cover_url})` } : {}}
                     >
                       {!formData.cover_url && <span className="text-3xl">🖼️</span>}
@@ -266,7 +267,7 @@ const SettingsView = () => {
                         </div>
                       )}
                     </div>
-                    <label className="mt-4 px-4 py-1.5 bg-white border border-gray-200 rounded-full text-xs font-bold text-gray-700 shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                    <label className="mt-4 px-4 py-1.5 bg-white border border-gray-200 rounded-full text-xs font-bold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors">
                       {formData.cover_url ? 'Cambiar Portada' : 'Subir Portada'}
                       <input 
                         type="file" 

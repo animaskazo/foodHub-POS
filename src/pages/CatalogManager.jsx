@@ -14,6 +14,7 @@ import ConfirmDeleteModal from '../components/ui/ConfirmDeleteModal';
 import BulkActionMenu from '../components/ui/BulkActionMenu';
 import Modal from '../components/ui/Modal';
 import { toast } from 'sonner';
+import PageHeader from '../components/ui/PageHeader';
 
 const CatalogManager = () => {
   const [products, setProducts] = useState([]);
@@ -54,22 +55,20 @@ const CatalogManager = () => {
 
   const handleStatusChange = async (productId, newStatus) => {
     try {
-      await quickUpdateProductStatus(productId, newStatus);
+      const isAvailable = newStatus === 'available';
+      await quickUpdateProductStatus(productId, isAvailable);
       setProducts(prev => prev.map(p => 
-        p.id === productId ? { ...p, status: newStatus === 'available' ? 'Disponible' : 'No disponible' } : p
+        p.id === productId ? { ...p, status: isAvailable ? 'available' : 'unavailable' } : p
       ));
     } catch (error) {
       alert("Error al actualizar estado");
     }
   };
 
-  const handleCategoryChange = async (productId, newCategoryId) => {
+  const handleCategoryChange = async (productId, categoryId) => {
     try {
-      await quickUpdateProductCategory(productId, newCategoryId);
-      const cat = categories.find(c => c.id === newCategoryId);
-      setProducts(prev => prev.map(p => 
-        p.id === productId ? { ...p, categoryId: newCategoryId, category: cat ? cat.name : 'General' } : p
-      ));
+      await quickUpdateProductCategory(productId, categoryId === 'none' ? null : categoryId);
+      loadData(false);
     } catch (error) {
       alert("Error al actualizar categoría");
     }
@@ -92,10 +91,10 @@ const CatalogManager = () => {
     try {
       if (deleteModal.mode === 'single') {
         await deleteProduct(deleteModal.targetId);
-        toast.success("Producto eliminado");
+        toast.success("Artículo eliminado");
       } else {
         await bulkDeleteProducts(selectedIds);
-        toast.success(`${selectedIds.length} productos eliminados`);
+        toast.success(`${selectedIds.length} artículos eliminados`);
         setSelectedIds([]);
       }
       loadData(false);
@@ -109,10 +108,10 @@ const CatalogManager = () => {
   const handleDuplicate = async (id) => {
     try {
       await duplicateProduct(id);
-      toast.success("Producto duplicado con éxito");
+      toast.success("Artículo duplicado con éxito");
       loadData(false);
     } catch (err) {
-      toast.error("Error al duplicar producto");
+      toast.error("Error al duplicar artículo");
     }
   };
 
@@ -130,11 +129,12 @@ const CatalogManager = () => {
   const handleBulkAssignCategory = async () => {
     setAssignCategoryModal(prev => ({ ...prev, isUpdating: true }));
     try {
-      await bulkUpdateProductCategory(selectedIds, assignCategoryModal.selectedCategory);
-      toast.success(`Categoría asignada a ${selectedIds.length} productos`);
+      const catId = assignCategoryModal.selectedCategory === 'none' ? null : assignCategoryModal.selectedCategory;
+      await bulkUpdateProductCategory(selectedIds, catId);
+      toast.success(`Categoría asignada a ${selectedIds.length} artículos`);
       setSelectedIds([]);
       loadData(false);
-    } catch (error) {
+    } catch (err) {
       toast.error("Error al asignar categoría");
     } finally {
       setAssignCategoryModal({ isOpen: false, selectedCategory: 'none', isUpdating: false });
@@ -145,32 +145,34 @@ const CatalogManager = () => {
 
 
   return (
-    <div className="flex-1 bg-white flex flex-col h-full">
-      {/* Header H1 */}
-      <div className="px-6 pt-6 pb-2">
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Artículos</h1>
-      </div>
+    <div className="flex-1 overflow-auto bg-gray-50 p-6 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <PageHeader 
+          title="Artículos"
+          subtitle="Administra la lista de comida, bebidas y adiciones de tu local."
+        />
 
-      {/* Action Bar */}
-      {selectedIds.length > 0 ? (
-        <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b bg-blue-50/50">
-          <div className="flex items-center gap-3">
-            <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none font-medium text-sm px-3 py-1">
-              {selectedIds.length} seleccionados
-            </Badge>
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex flex-col">
+        {/* Action Bar */}
+        {selectedIds.length > 0 ? (
+          <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b bg-blue-50/50">
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none font-medium text-sm px-3 py-1">
+                {selectedIds.length} seleccionados
+              </Badge>
+            </div>
+            <div className="flex items-center gap-3">
+              <BulkActionMenu 
+                actions={[
+                  { label: "Asignar a categoría", icon: <FolderInput className="h-4 w-4" />, onClick: () => setAssignCategoryModal({ isOpen: true, selectedCategory: 'none', isUpdating: false }) },
+                  { label: "Activar", icon: <CheckCircle className="h-4 w-4" />, onClick: () => handleBulkStatusChange('available') },
+                  { label: "Desactivar", icon: <XCircle className="h-4 w-4" />, onClick: () => handleBulkStatusChange('unavailable') },
+                  { label: "Eliminar", icon: <Trash2 className="h-4 w-4" />, onClick: () => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false }), destructive: true },
+                ]}
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <BulkActionMenu 
-              actions={[
-                { label: "Asignar a categoría", icon: <FolderInput className="h-4 w-4" />, onClick: () => setAssignCategoryModal({ isOpen: true, selectedCategory: 'none', isUpdating: false }) },
-                { label: "Activar", icon: <CheckCircle className="h-4 w-4" />, onClick: () => handleBulkStatusChange('available') },
-                { label: "Desactivar", icon: <XCircle className="h-4 w-4" />, onClick: () => handleBulkStatusChange('unavailable') },
-                { label: "Eliminar", icon: <Trash2 className="h-4 w-4" />, onClick: () => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false }), destructive: true },
-              ]}
-            />
-          </div>
-        </div>
-      ) : (
+        ) : (
         <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
@@ -216,10 +218,10 @@ const CatalogManager = () => {
 
       {/* Table Section */}
       <div className="flex-1 overflow-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-white border-b text-gray-500 font-medium sticky top-0 z-10">
-            <tr>
-              <th className="px-6 py-3 w-10">
+        <table className="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr className="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider border-b border-gray-150 sticky top-0 z-10">
+              <th className="px-6 py-4 w-10">
                 <input 
                   type="checkbox" 
                   className="h-5 w-5 rounded border-gray-300 cursor-pointer"
@@ -227,15 +229,11 @@ const CatalogManager = () => {
                   onChange={(e) => handleToggleSelectAll(e, products)}
                 />
               </th>
-              <th className="px-6 py-3 font-medium">Artículo</th>
-              <th className="px-6 py-3 font-medium">Categoría de informes</th>
-              <th className="px-6 py-3 font-medium text-center">Estado</th>
-              <th className="px-6 py-3 font-medium text-right">Precio (Neto / Final)</th>
-              <th className="px-6 py-3 w-10 text-center">
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 rounded-full hover:bg-gray-100">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </th>
+              <th className="px-6 py-4 font-bold">Artículo</th>
+              <th className="px-6 py-4 font-bold">Categoría de informes</th>
+              <th className="px-6 py-4 font-bold text-center">Estado</th>
+              <th className="px-6 py-4 font-bold text-right">Precio (Neto / Final)</th>
+              <th className="px-6 py-4 w-10 text-center"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -282,7 +280,7 @@ const CatalogManager = () => {
                       className="bg-gray-100/80 hover:bg-gray-100 cursor-pointer border-t border-b border-gray-200 select-none" 
                       onClick={() => toggleCategory(catName)}
                     >
-                      <td className="px-6 py-3" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                         <input 
                           type="checkbox"
                           className="h-5 w-5 rounded border-gray-300 cursor-pointer"
@@ -298,7 +296,7 @@ const CatalogManager = () => {
                           }}
                         />
                       </td>
-                      <td colSpan={6} className="px-2 py-3 font-semibold text-gray-800">
+                      <td colSpan={6} className="px-2 py-4 font-semibold text-gray-850">
                         <div className="flex items-center gap-2">
                           <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} />
                           {catName} <span className="text-gray-500 text-sm font-normal">({prods.length})</span>
@@ -360,7 +358,7 @@ const CatalogManager = () => {
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <button 
-                              className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-full hover:bg-gray-50 transition-colors shadow-sm active:bg-gray-100"
+                              className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-full hover:bg-gray-50 transition-colors active:bg-gray-100"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigate(`/products/${product.id}`);
@@ -382,6 +380,7 @@ const CatalogManager = () => {
             })()}
           </tbody>
         </table>
+      </div>
       </div>
       <AIImportModal 
         isOpen={isAIModalOpen} 
@@ -430,6 +429,7 @@ const CatalogManager = () => {
           </Button>
         </div>
       </Modal>
+      </div>
     </div>
   );
 };

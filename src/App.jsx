@@ -13,6 +13,7 @@ import SuperAdminView from './pages/SuperAdminView';
 import DashboardView from './pages/DashboardView';
 import SettingsView from './pages/SettingsView';
 import OrderView from './pages/OrderView';
+import CustomersView from './pages/CustomersView';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Toaster } from 'sonner';
@@ -37,6 +38,7 @@ function App() {
           <Route path="ingredients" element={<IngredientsManager />} />
           <Route path="products" element={<CatalogManager />} />
           <Route path="settings" element={<SettingsView />} />
+          <Route path="customers" element={<CustomersView />} />
         </Route>
         
         {/* Full-screen Modals & Views (Outside Layout) */}

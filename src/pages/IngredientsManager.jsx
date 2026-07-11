@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import Modal from '../components/ui/Modal';
 import ActionMenu from '../components/ui/ActionMenu';
 import ConfirmDeleteModal from '../components/ui/ConfirmDeleteModal';
+import PageHeader from '../components/ui/PageHeader';
 
 const IngredientsManager = () => {
   const [ingredients, setIngredients] = useState([]);
@@ -26,12 +27,8 @@ const IngredientsManager = () => {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-
-  useEffect(() => {
-    loadIngredients();
-  }, []);
+  const [isSaving, setIsSaving] = useState(false);
 
   const loadIngredients = async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -43,16 +40,92 @@ const IngredientsManager = () => {
     if (showLoading) setLoading(false);
   };
 
-  const handleStatusChange = async (id, newStatus) => {
+  useEffect(() => {
+    loadIngredients();
+  }, []);
+
+  const handleStatusChange = async (ingredientId, newStatus) => {
     try {
       const isActive = newStatus === 'active';
-      const ingredient = ingredients.find(i => i.id === id);
-      await updateIngredient(id, { ...ingredient, is_active: isActive });
-      setIngredients(prev => prev.map(c => 
-        c.id === id ? { ...c, is_active: isActive } : c
+      await updateIngredient(ingredientId, { is_active: isActive });
+      setIngredients(prev => prev.map(i => 
+        i.id === ingredientId ? { ...i, is_active: isActive } : i
       ));
     } catch (error) {
       alert("Error al actualizar estado");
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingImage(true);
+    try {
+      const url = await uploadImage(file);
+      setImageUrl(url);
+      toast.success("Imagen subida con éxito");
+    } catch (error) {
+      toast.error("Error al subir imagen");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      const orgId = await getFirstOrganizationId();
+      if (!orgId) throw new Error("No organization found");
+      
+      const payload = {
+        name,
+        price: parseFloat(price) || 0,
+        image_url: imageUrl || null
+      };
+
+      if (editingIngredient) {
+        await updateIngredient(editingIngredient.id, payload);
+        toast.success("Ingrediente actualizado");
+      } else {
+        await createIngredient(orgId, payload);
+        toast.success("Ingrediente creado");
+      }
+      closeModal();
+      loadIngredients(false);
+    } catch (error) {
+      toast.error("Error al guardar");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    setDeleteModal(prev => ({ ...prev, isDeleting: true }));
+    try {
+      if (deleteModal.mode === 'single') {
+        await deleteIngredient(deleteModal.targetId);
+        toast.success("Ingrediente eliminado");
+      } else {
+        await bulkDeleteIngredients(selectedIds);
+        toast.success(`${selectedIds.length} ingredientes eliminados`);
+        setSelectedIds([]);
+      }
+      loadIngredients(false);
+    } catch (err) {
+      toast.error("Error al eliminar");
+    } finally {
+      setDeleteModal({ isOpen: false, mode: 'single', targetId: null, isDeleting: false });
+    }
+  };
+
+  const handleDuplicate = async (id) => {
+    try {
+      await duplicateIngredient(id);
+      toast.success("Ingrediente duplicado con éxito");
+      loadIngredients(false);
+    } catch (err) {
+      toast.error("Error al duplicar ingrediente");
     }
   };
 
@@ -71,59 +144,17 @@ const IngredientsManager = () => {
     setIsModalOpen(true);
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setIsUploadingImage(true);
-      const url = await uploadImage(file, 'ingredients');
-      setImageUrl(url);
-    } catch (error) {
-      alert("Error al subir la imagen. Por favor intenta de nuevo.");
-      console.error(error);
-    } finally {
-      setIsUploadingImage(false);
-    }
-  };
-
   const closeModal = () => {
     setIsModalOpen(false);
-    setEditingIngredient(null);
+    setTimeout(() => {
+      setEditingIngredient(null);
+      setName('');
+      setPrice('');
+      setImageUrl('');
+    }, 300);
   };
 
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    
-    setIsSaving(true);
-    try {
-      const orgId = await getFirstOrganizationId();
-      const payload = {
-        name: name.trim(),
-        price: parseFloat(price) || 0,
-        is_active: true,
-        image_url: imageUrl
-      };
-
-      if (editingIngredient) {
-        payload.is_active = editingIngredient.is_active;
-        const updated = await updateIngredient(editingIngredient.id, payload);
-        setIngredients(prev => prev.map(i => i.id === updated.id ? updated : i));
-        toast.success("Ingrediente actualizado");
-      } else {
-        const created = await createIngredient(orgId, payload);
-        setIngredients(prev => [...prev, created]);
-        toast.success("Ingrediente creado");
-      }
-      closeModal();
-    } catch (error) {
-      console.error(error);
-      alert("Error al guardar el ingrediente");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  useDocumentTitle('Ingredientes');
 
   const handleToggleSelect = (id) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
@@ -137,60 +168,30 @@ const IngredientsManager = () => {
     }
   };
 
-  const handleDeleteConfirm = async () => {
-    setDeleteModal(prev => ({ ...prev, isDeleting: true }));
-    try {
-      if (deleteModal.mode === 'single') {
-        await deleteIngredient(deleteModal.targetId);
-        toast.success("Ingrediente eliminado");
-      } else {
-        await bulkDeleteIngredients(selectedIds);
-        toast.success(`${selectedIds.length} ingredientes eliminados`);
-        setSelectedIds([]);
-      }
-      loadIngredients(false);
-    } catch (err) {
-      toast.error("Error al eliminar ingrediente. Es posible que esté en uso.");
-    } finally {
-      setDeleteModal({ isOpen: false, mode: 'single', targetId: null, isDeleting: false });
-    }
-  };
-
-  const handleDuplicate = async (ingredient) => {
-    try {
-      await duplicateIngredient(ingredient.id);
-      toast.success("Ingrediente duplicado con éxito");
-      loadIngredients(false);
-    } catch (error) {
-      toast.error("Error al duplicar el ingrediente.");
-    }
-  };
-
-  useDocumentTitle('Ingredientes Adicionales');
-
-
   return (
-    <div className="flex-1 bg-white flex flex-col h-full">
-      {/* Header H1 */}
-      <div className="px-6 pt-6 pb-2">
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Ingredientes Adicionales</h1>
-      </div>
+    <div className="flex-1 overflow-auto bg-gray-50 p-6 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <PageHeader 
+          title="Ingredientes Adicionales"
+          subtitle="Agrega extras, aderezos o ingredientes opcionales a tus comidas."
+        />
 
-      {/* Action Bar */}
-      {selectedIds.length > 0 ? (
-        <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b bg-blue-50/50">
-          <div className="flex items-center gap-3">
-            <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none font-medium text-sm px-3 py-1">
-              {selectedIds.length} seleccionados
-            </Badge>
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex flex-col">
+        {/* Action Bar */}
+        {selectedIds.length > 0 ? (
+          <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b bg-blue-50/50">
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none font-medium text-sm px-3 py-1">
+                {selectedIds.length} seleccionados
+              </Badge>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button className="rounded-full bg-red-600 text-white hover:bg-red-700" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
+                <Trash2 className="h-4 w-4 mr-2" /> Eliminar seleccionados
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Button className="rounded-full bg-red-600 text-white hover:bg-red-700 shadow-sm" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
-              <Trash2 className="h-4 w-4 mr-2" /> Eliminar seleccionados
-            </Button>
-          </div>
-        </div>
-      ) : (
+        ) : (
         <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
@@ -300,7 +301,7 @@ const IngredientsManager = () => {
                     <div className="flex items-center justify-end gap-2">
                       <button 
                         onClick={() => openModal(ingredient)}
-                        className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-full hover:bg-gray-50 transition-colors shadow-sm active:bg-gray-100"
+                        className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-full hover:bg-gray-50 transition-colors active:bg-gray-100"
                       >
                         Editar
                       </button>
@@ -315,6 +316,7 @@ const IngredientsManager = () => {
             )}
           </tbody>
         </table>
+      </div>
       </div>
 
       {/* Modal Crear/Editar */}
@@ -399,6 +401,7 @@ const IngredientsManager = () => {
           : `¿Estás seguro de que deseas eliminar los ${selectedIds.length} ingredientes seleccionados? Podría afectar los artículos que los usan.`
         }
       />
+      </div>
     </div>
   );
 };
