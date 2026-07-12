@@ -70,7 +70,7 @@ Ten en cuenta que los precios deben ser números (sin símbolos). Si no hay ingr
           "content-type": "application/json"
         },
         body: JSON.stringify({
-          model: "claude-3-5-sonnet-20241022",
+          model: "claude-haiku-4-5-20251001",
           max_tokens: 4096,
           temperature: 1,
           messages: [
@@ -134,7 +134,7 @@ La descripción debe sonar natural, tentar al cliente y no superar las 2 líneas
           "content-type": "application/json"
         },
         body: JSON.stringify({
-          model: "claude-3-5-haiku-20241022",
+          model: "claude-haiku-4-5-20251001",
           max_tokens: 150,
           messages: [
             {
