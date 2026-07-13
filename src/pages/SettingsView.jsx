@@ -39,6 +39,7 @@ const SettingsView = () => {
   
   const [formData, setFormData] = useState({
     name: '',
+    slug: '',
     description: '',
     logo_url: '',
     cover_url: '',
@@ -72,6 +73,7 @@ const SettingsView = () => {
         
         setFormData({
           name: orgData.name || '',
+          slug: orgData.slug || '',
           description: orgData.description || '',
           logo_url: orgData.logo_url || '',
           cover_url: orgData.cover_url || '',
@@ -135,8 +137,10 @@ const SettingsView = () => {
     if (!orgId) return;
     setSaving(true);
     try {
+      const formattedSlug = formData.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
       await updateOrganizationDetails(orgId, {
         name: formData.name,
+        slug: formattedSlug,
         description: formData.description,
         logo_url: formData.logo_url,
         cover_url: formData.cover_url,
@@ -145,6 +149,7 @@ const SettingsView = () => {
         address: formData.address,
         accepts_online_payments: formData.accepts_online_payments
       });
+      setFormData(prev => ({ ...prev, slug: formattedSlug }));
       alert('Configuración guardada exitosamente');
     } catch (error) {
       console.error(error);
@@ -300,15 +305,32 @@ const SettingsView = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre del Negocio</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
-                    placeholder="Ej: Pizza Nostra"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre del Negocio</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
+                      placeholder="Ej: Pizza Nostra"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Slug de la Tienda (URL)</label>
+                    <input
+                      type="text"
+                      value={formData.slug}
+                      onChange={(e) => {
+                        const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                        setFormData({...formData, slug: val});
+                      }}
+                      className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
+                      placeholder="ej: pizza-nostra"
+                      required
+                    />
+                  </div>
                 </div>
                 
                 <div>
@@ -382,7 +404,7 @@ const SettingsView = () => {
                 </div>
 
                 {/* Public store link */}
-                {formData.name && (
+                {formData.slug && (
                   <div className="bg-gray-50 rounded-2xl border border-gray-200 p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Link className="h-4 w-4 text-gray-500" />
@@ -391,17 +413,17 @@ const SettingsView = () => {
                     <p className="text-xs text-gray-500 mb-3">Comparte este enlace con tus clientes para que puedan hacer pedidos en línea.</p>
                     <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5 mb-4">
                       <span className="text-sm text-gray-600 flex-1 truncate">
-                        {window.location.origin}/order/{encodeURIComponent(formData.name.toLowerCase())}
+                        {window.location.origin}/order/{formData.slug}
                       </span>
                       <button
-                        onClick={() => navigator.clipboard.writeText(`${window.location.origin}/order/${encodeURIComponent(formData.name.toLowerCase())}`)}
+                        onClick={() => navigator.clipboard.writeText(`${window.location.origin}/order/${formData.slug}`)}
                         className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors shrink-0 cursor-pointer"
                         title="Copiar enlace"
                       >
                         <Copy className="h-4 w-4 text-gray-500" />
                       </button>
                       <a
-                        href={`/order/${encodeURIComponent(formData.name.toLowerCase())}`}
+                        href={`/order/${formData.slug}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors shrink-0 cursor-pointer"
@@ -415,7 +437,7 @@ const SettingsView = () => {
                     <div className="border-t border-gray-200 pt-4 flex flex-col sm:flex-row items-center gap-4">
                       <div className="p-3 bg-white border border-gray-200 rounded-2xl shrink-0">
                         <img 
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${window.location.origin}/order/${encodeURIComponent(formData.name.toLowerCase())}`)}`}
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${window.location.origin}/order/${formData.slug}`)}`}
                           alt="Código QR de la tienda"
                           className="w-28 h-28 md:w-32 md:h-32 object-contain"
                         />
@@ -427,7 +449,7 @@ const SettingsView = () => {
                         </p>
                         <button
                           onClick={async () => {
-                            const url = `${window.location.origin}/order/${encodeURIComponent(formData.name.toLowerCase())}`;
+                            const url = `${window.location.origin}/order/${formData.slug}`;
                             const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(url)}`;
                             try {
                               const response = await fetch(qrApiUrl);
@@ -435,7 +457,7 @@ const SettingsView = () => {
                               const blobUrl = URL.createObjectURL(blob);
                               const link = document.createElement('a');
                               link.href = blobUrl;
-                              link.download = `qr-${formData.name.toLowerCase().replace(/\s+/g, '-')}.png`;
+                              link.download = `qr-${formData.slug}.png`;
                               document.body.appendChild(link);
                               link.click();
                               document.body.removeChild(link);
