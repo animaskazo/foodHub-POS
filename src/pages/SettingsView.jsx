@@ -7,7 +7,7 @@ import {
   getStaff 
 } from '../services/organizationService';
 import { uploadImage } from '../services/storageService';
-import { Store, User, Clock, Check, Loader2, Save, Link, Copy, ExternalLink } from 'lucide-react';
+import { Store, User, Clock, Check, Loader2, Save, Link, Copy, ExternalLink, Download } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 
 const daysTranslations = {
@@ -340,7 +340,7 @@ const SettingsView = () => {
                       <p className="text-sm font-bold text-gray-700">Tu tienda pública</p>
                     </div>
                     <p className="text-xs text-gray-500 mb-3">Comparte este enlace con tus clientes para que puedan hacer pedidos en línea.</p>
-                    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5">
+                    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5 mb-4">
                       <span className="text-sm text-gray-600 flex-1 truncate">
                         {window.location.origin}/order/{encodeURIComponent(formData.name.toLowerCase())}
                       </span>
@@ -360,6 +360,47 @@ const SettingsView = () => {
                       >
                         <ExternalLink className="h-4 w-4 text-gray-500" />
                       </a>
+                    </div>
+
+                    {/* QR Code Section */}
+                    <div className="border-t border-gray-200 pt-4 flex flex-col sm:flex-row items-center gap-4">
+                      <div className="p-3 bg-white border border-gray-200 rounded-2xl shrink-0">
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${window.location.origin}/order/${encodeURIComponent(formData.name.toLowerCase())}`)}`}
+                          alt="Código QR de la tienda"
+                          className="w-28 h-28 md:w-32 md:h-32 object-contain"
+                        />
+                      </div>
+                      <div className="text-center sm:text-left space-y-2">
+                        <p className="font-bold text-sm text-gray-800">Código QR de tu Menú</p>
+                        <p className="text-xs text-gray-500 leading-relaxed max-w-sm">
+                          Imprime este código y colócalo en las mesas o vitrina de tu local. Tus clientes podrán escanearlo para ver la carta y pedir directamente.
+                        </p>
+                        <button
+                          onClick={async () => {
+                            const url = `${window.location.origin}/order/${encodeURIComponent(formData.name.toLowerCase())}`;
+                            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(url)}`;
+                            try {
+                              const response = await fetch(qrApiUrl);
+                              const blob = await response.blob();
+                              const blobUrl = URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = blobUrl;
+                              link.download = `qr-${formData.name.toLowerCase().replace(/\s+/g, '-')}.png`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              URL.revokeObjectURL(blobUrl);
+                            } catch (e) {
+                              window.open(qrApiUrl, '_blank');
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-black hover:bg-gray-850 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Descargar código QR (PNG)
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
