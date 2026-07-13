@@ -28,6 +28,10 @@ serve(async (req) => {
         // Fallback obligatorio para entornos locales (http://localhost, http://192.x, etc.)
         validReturnUrl = "https://tu-dominio.com/pago-completado"; 
     }
+    
+    // Klap a veces rechaza URLs muy largas o con parámetros complejos para el cancel_url.
+    // Usamos una URL limpia para evitar el error "cancel_url is not a valid url".
+    const cleanCancelUrl = validReturnUrl.split('?')[0];
 
     const apiKey = Deno.env.get("KLAP_API_KEY") || "mKaTZ4yBm3rVFapqNctziKCvXsjD6fDO";
 
@@ -47,7 +51,7 @@ serve(async (req) => {
         methods: ["tarjetas"],
         urls: {
           return_url: validReturnUrl,
-          cancel_url: validReturnUrl
+          cancel_url: cleanCancelUrl
         },
         webhooks: {
           webhook_confirm: "https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/klap-webhook",

@@ -54,7 +54,7 @@ const OrderView = () => {
       setCartItems([]);
       localStorage.removeItem(`cart_${slug}`);
       // Clean url
-      window.history.replaceState({}, '', `/p/${slug}`);
+      window.history.replaceState({}, '', `/order/${slug}`);
     }
   }, [slug, searchParams]);
 
@@ -151,7 +151,7 @@ const OrderView = () => {
           return acc + (itemGross + extrasGross) * item.quantity;
         }, 0);
 
-        const returnUrl = window.location.origin + `/p/${slug}?orderId=${order.id}&status=success`;
+        const returnUrl = window.location.origin + `/order/${slug}?orderId=${order.id}&status=success`;
 
         const { data, error } = await supabase.functions.invoke('klap-create-payment', {
           body: { orderId: order.id, amount: totalAmount, returnUrl }
