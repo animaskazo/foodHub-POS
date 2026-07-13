@@ -21,7 +21,7 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout 
             const lineTotal = (itemGross + extrasGross) * item.quantity;
 
             return (
-              <div key={item.cartItemId} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex gap-4">
+              <div key={item.cartItemId} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-4">
                 {/* Image */}
                 <div
                   className="w-16 h-16 rounded-xl shrink-0 bg-gray-100 bg-cover bg-center"
@@ -90,7 +90,7 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout 
           })}
 
           {/* Total summary */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
             <div className="flex justify-between items-center">
               <span className="font-bold text-gray-900 text-base">Total a pagar</span>
               <span className="font-black text-gray-900 text-xl">${fmt(total)}</span>

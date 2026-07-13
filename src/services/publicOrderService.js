@@ -276,3 +276,25 @@ export const getPublicOrderById = async (orderId) => {
   if (error) throw error;
   return data;
 };
+
+// ── Search public customer profile by organization and phone number ──
+export const getCustomerByPhone = async (organizationId, phone) => {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length < 9) return null;
+
+  const suffix = digits.slice(-9);
+  const spacedPattern = `%${suffix[0]}%${suffix.slice(1, 5)}%${suffix.slice(5)}`;
+
+  const { data, error } = await supabase
+    .from('customers')
+    .select('full_name, email')
+    .eq('organization_id', organizationId)
+    .or(`phone.eq.${suffix},phone.eq.+56${suffix},phone.eq.56${suffix},phone.ilike.${spacedPattern}`)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching customer by phone:', error);
+    return null;
+  }
+  return data;
+};

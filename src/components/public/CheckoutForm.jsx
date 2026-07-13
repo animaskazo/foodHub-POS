@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard } from 'lucide-react';
+import { getCustomerByPhone } from '../../services/publicOrderService';
 
-const InputField = ({ icon: Icon, label, ...props }) => (
+const InputField = ({ icon: Icon, label, isLoading, ...props }) => (
   <div className="relative">
     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">{label}</label>
     <div className="relative">
       <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-        <Icon className="h-4 w-4 text-gray-400" />
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+        ) : (
+          <Icon className="h-4 w-4 text-gray-400" />
+        )}
       </div>
       <input
         className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-gray-200 rounded-2xl text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-black transition-colors"
@@ -18,7 +23,45 @@ const InputField = ({ icon: Icon, label, ...props }) => (
 
 const fmt = (n) => n.toLocaleString('es-CL');
 
-const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePayments = true }) => {
+export const formatChileanPhone = (value) => {
+  if (!value) return '';
+  let digits = value.replace(/\D/g, '');
+  const hasPlus = value.startsWith('+');
+
+  if (digits.startsWith('56') || (hasPlus && digits.length > 0)) {
+    if (!digits.startsWith('56')) {
+      digits = '56' + digits;
+    }
+    
+    let formatted = '+56';
+    if (digits.length > 2) {
+      const remaining = digits.slice(2);
+      if (remaining.length > 0) {
+        formatted += ' ' + remaining.slice(0, 1);
+      }
+      if (remaining.length > 1) {
+        formatted += ' ' + remaining.slice(1, 5);
+      }
+      if (remaining.length > 5) {
+        formatted += ' ' + remaining.slice(5, 9);
+      }
+    }
+    return formatted;
+  } else {
+    if (digits.length === 0) return hasPlus ? '+' : '';
+    
+    let formatted = digits.slice(0, 1);
+    if (digits.length > 1) {
+      formatted += ' ' + digits.slice(1, 5);
+    }
+    if (digits.length > 5) {
+      formatted += ' ' + digits.slice(5, 9);
+    }
+    return formatted;
+  }
+};
+
+const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePayments = true, organizationId }) => {
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -27,9 +70,42 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     paymentMethod: 'local', // local or online
   });
   const [errors, setErrors] = useState({});
+  const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
+
+  useEffect(() => {
+    if (!organizationId) return;
+
+    const cleanDigits = form.phone.replace(/\D/g, '');
+    // Trigger online search only if the user typed 9 digits (local) or 11 digits (with country code 56)
+    if (cleanDigits.length !== 9 && cleanDigits.length !== 11) return;
+
+    const timer = setTimeout(async () => {
+      setIsSearchingCustomer(true);
+      try {
+        const customer = await getCustomerByPhone(organizationId, form.phone);
+        if (customer) {
+          setForm(f => ({
+            ...f,
+            name: f.name.trim() === '' ? (customer.full_name || '') : f.name,
+            email: f.email.trim() === '' ? (customer.email || '') : f.email
+          }));
+        }
+      } catch (e) {
+        console.error('Error fetching customer by phone:', e);
+      } finally {
+        setIsSearchingCustomer(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [form.phone, organizationId]);
 
   const update = (field, value) => {
-    setForm(f => ({ ...f, [field]: value }));
+    let finalValue = value;
+    if (field === 'phone') {
+      finalValue = formatChileanPhone(value);
+    }
+    setForm(f => ({ ...f, [field]: finalValue }));
     if (errors[field]) setErrors(e => ({ ...e, [field]: null }));
   };
 
@@ -58,7 +134,25 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
 
           {/* Section: Personal data */}
           <div className="space-y-4">
-            <h2 className="text-base font-bold text-gray-900">Tus datos</h2>
+            <div>
+              <h2 className="text-base font-bold text-gray-900">Tus datos</h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Ingresa tu teléfono primero. Si ya has comprado antes, completaremos tus datos automáticamente.
+              </p>
+            </div>
+
+            <div>
+              <InputField
+                icon={Phone}
+                label="Teléfono *"
+                type="tel"
+                placeholder="+56 9 1234 5678"
+                value={form.phone}
+                isLoading={isSearchingCustomer}
+                onChange={e => update('phone', e.target.value)}
+              />
+              {errors.phone && <p className="text-xs text-red-500 mt-1 ml-1">{errors.phone}</p>}
+            </div>
 
             <div>
               <InputField
@@ -70,18 +164,6 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                 onChange={e => update('name', e.target.value)}
               />
               {errors.name && <p className="text-xs text-red-500 mt-1 ml-1">{errors.name}</p>}
-            </div>
-
-            <div>
-              <InputField
-                icon={Phone}
-                label="Teléfono *"
-                type="tel"
-                placeholder="+56 9 1234 5678"
-                value={form.phone}
-                onChange={e => update('phone', e.target.value)}
-              />
-              {errors.phone && <p className="text-xs text-red-500 mt-1 ml-1">{errors.phone}</p>}
             </div>
 
             <InputField
