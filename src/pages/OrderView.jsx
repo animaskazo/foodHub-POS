@@ -163,6 +163,12 @@ const OrderView = () => {
     );
   }
 
+  const totalAmount = cartItems.reduce((acc, item) => {
+    const itemGross = Math.round(item.price * 1.19);
+    const extrasGross = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
+    return acc + (itemGross + extrasGross) * item.quantity;
+  }, 0);
+
   return (
     <div className="min-h-[100dvh] bg-gray-200/40 flex flex-col justify-start items-center">
       {/* Set page title */}
@@ -203,6 +209,7 @@ const OrderView = () => {
           <CheckoutForm
             onSubmit={handleCheckout}
             isSubmitting={isSubmitting}
+            totalAmount={totalAmount}
           />
         )}
         {step === 4 && (

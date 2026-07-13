@@ -36,7 +36,10 @@ const OrderConfirmation = ({ order, cartItems, org }) => {
           className={`text-center transition-all duration-500 delay-300 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
         >
           <h1 className="text-3xl font-black text-gray-900 mb-1">¡Pedido enviado!</h1>
-          <p className="text-gray-500 font-medium">Orden #{order?.order_number}</p>
+          <p className="text-gray-500 font-medium mb-2">Orden #{order?.order_number}</p>
+          <div className="inline-block bg-green-50 text-green-700 px-4 py-1.5 rounded-full font-black text-xl border border-green-200">
+            ${fmt(total)}
+          </div>
         </div>
 
         {/* Info cards */}

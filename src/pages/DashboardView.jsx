@@ -28,6 +28,7 @@ const DashboardView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [channelFilter, setChannelFilter] = useState('all'); // all, table, pickup, online, whatsapp
+  const [kitchenStatusFilter, setKitchenStatusFilter] = useState('all'); // all, pending, preparing, ready, delivered, cancelled
   const [dateRange, setDateRange] = useState('today'); // today, 7days, 30days
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -144,11 +145,17 @@ const DashboardView = () => {
     }
   };
 
-  // Filter orders based on selected channel
+  // Filter orders based on selected channel and kitchen status
   const filteredOrders = useMemo(() => {
-    if (channelFilter === 'all') return orders;
-    return orders.filter(order => order.order_type === channelFilter);
-  }, [orders, channelFilter]);
+    let result = orders;
+    if (channelFilter !== 'all') {
+      result = result.filter(order => order.order_type === channelFilter);
+    }
+    if (kitchenStatusFilter !== 'all') {
+      result = result.filter(order => order.status === kitchenStatusFilter);
+    }
+    return result;
+  }, [orders, channelFilter, kitchenStatusFilter]);
 
   // Calculate Metrics
   const metrics = useMemo(() => {
@@ -321,8 +328,20 @@ const DashboardView = () => {
       {/* Sales Record */}
       <div className="md:bg-white md:rounded-2xl md:border md:border-gray-200 overflow-hidden flex flex-col">
         {/* Toolbar */}
-        <div className="pb-4 md:p-6 md:border-b">
+        <div className="pb-4 md:p-6 md:border-b flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-900">Registro Diario</h2>
+          <select 
+            value={kitchenStatusFilter}
+            onChange={(e) => setKitchenStatusFilter(e.target.value)}
+            className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white shadow-sm focus:outline-none focus:border-gray-300"
+          >
+            <option value="all">Todos los estados</option>
+            <option value="pending">Pendientes</option>
+            <option value="preparing">En preparación</option>
+            <option value="ready">Listos</option>
+            <option value="delivered">Entregados</option>
+            <option value="cancelled">Cancelados</option>
+          </select>
         </div>
 
         {/* Desktop Table View */}

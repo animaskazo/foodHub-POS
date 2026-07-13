@@ -223,12 +223,12 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
                 key={method.id}
                 onClick={() => handlePayment(method.id)}
                 disabled={processingMethod !== null}
-                className={`flex items-center p-4 bg-white border-2 rounded-full transition-all text-left ${
+                className={`flex items-center p-4 border-2 rounded-full transition-all text-left ${
                   processingMethod && processingMethod !== method.id
-                    ? 'border-gray-100 opacity-50 cursor-not-allowed grayscale'
+                    ? 'border-gray-100 bg-white opacity-50 cursor-not-allowed grayscale'
                     : processingMethod === method.id
                     ? 'border-black bg-black shadow-md'
-                    : 'border-gray-200 hover:border-black hover:bg-gray-50 active:scale-[0.98] group'
+                    : 'border-gray-200 bg-white hover:border-black hover:bg-gray-50 active:scale-[0.98] group'
                 }`}
               >
                 {processingMethod === method.id ? (

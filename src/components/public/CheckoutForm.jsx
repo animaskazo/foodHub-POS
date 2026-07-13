@@ -16,7 +16,9 @@ const InputField = ({ icon: Icon, label, ...props }) => (
   </div>
 );
 
-const CheckoutForm = ({ onSubmit, isSubmitting }) => {
+const fmt = (n) => n.toLocaleString('es-CL');
+
+const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount }) => {
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -171,7 +173,15 @@ const CheckoutForm = ({ onSubmit, isSubmitting }) => {
             {isSubmitting ? (
               <><Loader2 className="h-5 w-5 animate-spin" /> Enviando pedido…</>
             ) : (
-              'Confirmar Pedido'
+              <div className="flex items-center justify-center w-full">
+                <span>Confirmar Pedido</span>
+                {totalAmount != null && (
+                  <>
+                    <div className="w-1.5 h-1.5 rounded-full bg-white/40 mx-3"></div>
+                    <span>${fmt(totalAmount)}</span>
+                  </>
+                )}
+              </div>
             )}
           </button>
         </div>
