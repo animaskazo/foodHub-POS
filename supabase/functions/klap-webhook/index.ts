@@ -18,10 +18,13 @@ serve(async (req) => {
 
     // Si llegó a webhook_confirm, significa que fue autorizado.
     // Marcar orden como pagada
+    // Extraemos el UUID original de la orden (los primeros 5 segmentos separados por guion)
+    const orderId = reference_id.split('-').slice(0, 5).join('-');
+
     const { error } = await supabase
       .from('payments')
       .update({ status: 'paid', paid_at: new Date().toISOString() })
-      .eq('order_id', reference_id) // reference_id mapped to order.id
+      .eq('order_id', orderId)
       .eq('method', 'online');
 
     if (error) throw error;

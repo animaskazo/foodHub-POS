@@ -88,6 +88,27 @@ const OrderView = () => {
     handleReturn();
   }, []);
 
+  // Load Klap Checkout Flex JS library dynamically (Once only)
+  useEffect(() => {
+    const scriptId = 'klap-flex-checkout-script';
+    if (document.getElementById(scriptId)) return;
+
+    const isSandbox = window.location.hostname.includes('localhost') || 
+                      window.location.hostname.includes('sandbox') || 
+                      window.location.hostname.includes('127.0.0.1') ||
+                      window.location.hostname.includes('digital-solutions.work');
+    const scriptUrl = isSandbox 
+      ? "https://sandbox.mcdesaqa.cl/pagos/checkout-flex/v1/main.min.js" 
+      : "https://klap.cl/pagos/checkout-flex/v1/main.min.js";
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = scriptUrl;
+    script.type = "text/javascript";
+    script.async = true;
+    document.body.appendChild(script);
+  }, []);
+
   // ── Load catalog ──────────────────────────────────────────
   // ── Load catalog and handle return ────────────────────────
   useEffect(() => {
@@ -222,7 +243,14 @@ const OrderView = () => {
           throw new Error(error?.message || data?.error || 'Error al iniciar pago con Klap');
         }
 
-        window.location.href = data.redirect_url;
+        if (window.KLAP_FLEX && data.klap_order_id) {
+          window.KLAP_FLEX.init({
+            orderId: data.klap_order_id,
+            useModal: true
+          });
+        } else {
+          window.location.href = data.redirect_url;
+        }
         return; 
       }
 

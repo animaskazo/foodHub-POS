@@ -22,11 +22,11 @@ serve(async (req) => {
       });
     }
 
-    // Asegurar que la URL sea válida para Klap (Klap rechaza IPs o URLs sin http/https o con espacios literales)
+    // Asegurar que la URL sea válida para Klap (Klap acepta localhost en Sandbox, pero requiere https para producción)
     let validReturnUrl = encodeURI((returnUrl || "").trim());
-    if (!validReturnUrl || !validReturnUrl.startsWith('https://')) {
-        // Fallback obligatorio para entornos locales (http://localhost, http://192.x, etc.)
-        validReturnUrl = "https://tu-dominio.com/pago-completado"; 
+    if (!validReturnUrl || (!validReturnUrl.startsWith('https://') && !validReturnUrl.startsWith('http://localhost') && !validReturnUrl.startsWith('http://127.0.0.1'))) {
+        // Fallback obligatorio para otros entornos no seguros
+        validReturnUrl = "https://food-admin.digital-solutions.work"; 
     }
     
     // Klap cancel_url será la misma que la returnUrl pero con status=error 
@@ -86,7 +86,11 @@ serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ success: true, redirect_url: redirectUrl }), {
+    return new Response(JSON.stringify({ 
+      success: true, 
+      redirect_url: redirectUrl,
+      klap_order_id: data.order_id
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
 
