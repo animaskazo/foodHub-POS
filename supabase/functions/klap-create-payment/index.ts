@@ -22,21 +22,40 @@ serve(async (req) => {
       });
     }
 
+    // Asegurar que la URL sea válida para Klap (Klap rechaza IPs o URLs sin http/https)
+    let validReturnUrl = returnUrl;
+    if (!validReturnUrl || !validReturnUrl.startsWith('https://')) {
+        // Fallback obligatorio para entornos locales (http://localhost, http://192.x, etc.)
+        validReturnUrl = "https://tu-dominio.com/pago-completado"; 
+    }
+
     const apiKey = Deno.env.get("KLAP_API_KEY") || "mKaTZ4yBm3rVFapqNctziKCvXsjD6fDO";
 
     // Llamada estándar a la API de Klap (Multicaja)
-    // Nota: El endpoint exacto y payload podrían requerir ajustes menores según la documentación final.
-    const klapResponse = await fetch("https://api.pasarela.multicaja.cl/api/v1/payments", {
+    const klapResponse = await fetch("https://api-pasarela-sandbox.mcdesaqa.cl/payment-gateway/v1/orders", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
+        "apikey": apiKey
       },
       body: JSON.stringify({
-        amount: amount,
-        buy_order: orderId,
-        session_id: `session-${orderId}`,
-        return_url: returnUrl
+        reference_id: orderId.toString(),
+        amount: {
+          currency: "CLP",
+          total: amount
+        },
+        methods: ["tarjetas"],
+        urls: {
+          return_url: validReturnUrl,
+          cancel_url: validReturnUrl
+        },
+        webhooks: {
+          webhook_confirm: "https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/klap-webhook",
+          webhook_reject: "https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/klap-webhook"
+        },
+        customs: [
+          { key: "tarjetas_expiration_minutes", value: "30" }
+        ]
       })
     });
 

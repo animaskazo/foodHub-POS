@@ -5,11 +5,10 @@ serve(async (req) => {
   try {
     const payload = await req.json();
     
-    // Klap envía notificación. Dependiendo de la estructura, extraer el estado.
-    // Asumiremos que envía { buy_order: "...", status: "AUTHORIZED" o "REJECTED" }
-    const { buy_order, status } = payload;
+    // Klap envía notificación. 
+    const { reference_id } = payload;
     
-    if (!buy_order || !status) {
+    if (!reference_id) {
       return new Response("Invalid payload", { status: 400 });
     }
 
@@ -17,16 +16,15 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    if (status === 'AUTHORIZED' || status === 'paid' || status === 'APPROVED') {
-      // Marcar orden como pagada
-      const { error } = await supabase
-        .from('payments')
-        .update({ status: 'paid', paid_at: new Date().toISOString() })
-        .eq('order_id', buy_order) // asumiendo que buy_order coincide con order.id
-        .eq('method', 'online');
+    // Si llegó a webhook_confirm, significa que fue autorizado.
+    // Marcar orden como pagada
+    const { error } = await supabase
+      .from('payments')
+      .update({ status: 'paid', paid_at: new Date().toISOString() })
+      .eq('order_id', reference_id) // reference_id mapped to order.id
+      .eq('method', 'online');
 
-      if (error) throw error;
-    }
+    if (error) throw error;
 
     return new Response("OK", { status: 200 });
 
