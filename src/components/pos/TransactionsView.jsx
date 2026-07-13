@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ReceiptText, TrendingUp, RefreshCcw, X, Clock, CreditCard, ShoppingBag, Menu } from 'lucide-react';
+import { Search, ReceiptText, TrendingUp, RefreshCcw, X, Clock, CreditCard, ShoppingBag, Menu, Store, Globe, MessageCircle } from 'lucide-react';
 import Modal from '../ui/Modal';
-import { getOrders, markOrderAsPaid } from '../../services/orderService';
+import { getOrders } from '../../services/orderService';
+import { supabase } from '../../lib/supabase';
+import PaymentModal from './PaymentModal';
 
 const TransactionsView = ({ onOpenMobileMenu }) => {
   const [orders, setOrders] = useState([]);
@@ -22,24 +24,40 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
     }, 300);
   };
 
-  const [markingPaid, setMarkingPaid] = useState(false);
+  const [pendingPaymentOrder, setPendingPaymentOrder] = useState(null);
+  const [isPaymentConfirmOpen, setIsPaymentConfirmOpen] = useState(false);
 
-  const handleMarkAsPaid = async (orderId) => {
-    setMarkingPaid(true);
-    const success = await markOrderAsPaid(orderId);
-    if (success) {
-      await fetchOrders();
-      if (selectedOrder && selectedOrder.id === orderId) {
-        setSelectedOrder(prev => {
-          if (!prev) return prev;
-          const newPayments = (prev.payments || []).map(p => 
-            p.status === 'pending' ? { ...p, status: 'completed' } : p
-          );
-          return { ...prev, payments: newPayments };
+  const handleConfirmOnlinePayment = async (method) => {
+    if (!pendingPaymentOrder) return;
+    try {
+      const payment = pendingPaymentOrder.payments?.find(p => p.status === 'pending');
+      const now = new Date().toISOString();
+      if (payment) {
+        const { error } = await supabase
+          .from('payments')
+          .update({ method, status: 'paid', paid_at: now })
+          .eq('order_id', pendingPaymentOrder.id)
+          .eq('status', 'pending');
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('payments').insert({
+          order_id: pendingPaymentOrder.id,
+          method,
+          amount: pendingPaymentOrder.total,
+          status: 'paid',
+          paid_at: now,
         });
+        if (error) throw error;
       }
+      setIsPaymentConfirmOpen(false);
+      setPendingPaymentOrder(null);
+      setIsModalOpen(false);
+      setSelectedOrder(null);
+      await fetchOrders();
+    } catch (err) {
+      console.error('Error confirmando pago:', err);
+      alert(`No se pudo confirmar el pago: ${err.message || JSON.stringify(err)}`);
     }
-    setMarkingPaid(false);
   };
 
   const fetchOrders = async (isBackground = false) => {
@@ -173,15 +191,15 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50 text-gray-500 text-sm border-b border-gray-100">
-                <th className="px-6 py-4 font-semibold w-24">N° Orden</th>
-                <th className="px-6 py-4 font-semibold">Cliente</th>
-                <th className="px-6 py-4 font-semibold">Fecha</th>
-                <th className="px-6 py-4 font-semibold">Estado</th>
-                <th className="px-6 py-4 font-semibold">Método</th>
-                <th className="px-6 py-4 font-semibold text-center">T. Cocina</th>
-                <th className="px-6 py-4 font-semibold">Canal</th>
-                <th className="px-6 py-4 font-semibold">Estado Pago</th>
-                <th className="px-6 py-4 font-semibold text-right">Total</th>
+                <th className="px-6 py-4 font-semibold w-[10%]">N° Orden</th>
+                <th className="px-6 py-4 font-semibold w-[20%]">Cliente</th>
+                <th className="px-6 py-4 font-semibold w-[15%]">Fecha</th>
+                <th className="px-6 py-4 font-semibold w-[12%]">Estado</th>
+                <th className="px-6 py-4 font-semibold text-center w-[10%]">T. Cocina</th>
+                <th className="px-6 py-4 font-semibold w-[10%]">Canal</th>
+                <th className="px-6 py-4 font-semibold w-[10%]">Estado Pago</th>
+                <th className="px-6 py-4 font-semibold w-[10%]">Método</th>
+                <th className="px-6 py-4 font-semibold text-right w-[8%]">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -222,22 +240,25 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                       <td className="px-6 py-4">
                         {getStatusTag(order.status)}
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs">
-                          {getPaymentMethod(order)}
-                        </span>
-                      </td>
                       <td className="px-6 py-4 text-center text-gray-600 font-medium whitespace-nowrap">{getKitchenTime(order)}</td>
                       <td className="px-6 py-4">
-                        {order.order_type === 'online' ? (
-                          <span className="inline-flex items-center px-2.5 py-1 bg-purple-100 text-purple-700 rounded-lg font-bold text-xs">
-                            🌐 Online
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-bold text-xs">
-                            🏪 Local
-                          </span>
-                        )}
+                        {(() => {
+                          const channelMap = {
+                            table:    { label: 'Local',    Icon: Store },
+                            takeaway: { label: 'Llevar',   Icon: ShoppingBag },
+                            pickup:   { label: 'Retiro',   Icon: ShoppingBag },
+                            online:   { label: 'Online',   Icon: Globe },
+                            whatsapp: { label: 'WhatsApp', Icon: MessageCircle },
+                          };
+                          const ch = channelMap[order.order_type];
+                          if (!ch) return <span className="text-gray-400 text-xs">{order.order_type}</span>;
+                          return (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs">
+                              <ch.Icon className="h-3.5 w-3.5" />
+                              {ch.label}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-6 py-4">
                         {order.payments?.some(p => p.status === 'pending') ? (
@@ -250,6 +271,11 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                             Pagado
                           </span>
                         )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs">
+                          {getPaymentMethod(order)}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-right font-bold text-gray-900">${fmt(order.total || 0)}</td>
                     </tr>
@@ -441,11 +467,13 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                   <span className="font-bold text-gray-900 text-lg">Total</span>
                   {selectedOrder.payments?.some(p => p.status === 'pending') && (
                     <button
-                      onClick={() => handleMarkAsPaid(selectedOrder.id)}
-                      disabled={markingPaid}
-                      className="ml-4 px-4 py-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white rounded-lg font-bold text-sm transition-colors shadow-sm disabled:opacity-50"
+                      onClick={() => {
+                        setPendingPaymentOrder(selectedOrder);
+                        setIsPaymentConfirmOpen(true);
+                      }}
+                      className="ml-4 px-4 py-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white rounded-lg font-bold text-sm transition-colors shadow-sm"
                     >
-                      {markingPaid ? 'Procesando...' : 'Marcar como Pagado'}
+                      Marcar como Pagado
                     </button>
                   )}
                 </div>
@@ -455,6 +483,18 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
           </div>
         )}
       </Modal>
+
+      {/* Modal confirmar pago online en caja */}
+      {pendingPaymentOrder && (
+        <PaymentModal
+          isOpen={isPaymentConfirmOpen}
+          onClose={() => { setIsPaymentConfirmOpen(false); setPendingPaymentOrder(null); }}
+          cartItems={pendingPaymentOrder.order_items?.map(i => ({ price: i.unit_price, quantity: i.quantity })) || []}
+          onConfirm={handleConfirmOnlinePayment}
+          confirmOnly={true}
+          confirmTotal={pendingPaymentOrder.total}
+        />
+      )}
     </div>
   );
 };

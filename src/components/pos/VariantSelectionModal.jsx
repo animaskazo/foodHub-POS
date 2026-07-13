@@ -99,20 +99,27 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
               <p className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Variante</p>
             )}
             <div className="grid grid-cols-1 gap-2">
-
               {product.variants.filter(v => v.is_active).map((variant) => {
                 const finalGrossPrice = Math.round((actualBasePrice + (variant.price_modifier || 0)) * 1.19);
+                const isSelected = selectedVariant?.id === variant.id;
 
                 return (
                   <button
                     key={variant.id}
                     onClick={() => setSelectedVariant(variant)}
-                    className={`flex items-center justify-between p-4 border rounded-2xl transition-all text-left ${selectedVariant?.id === variant.id ? 'border-black bg-black text-white shadow-md' : 'border-gray-200 hover:border-gray-300 bg-white'}`}
+                    className={`flex items-center justify-between p-4 border-2 rounded-2xl transition-all text-left ${
+                      isSelected ? 'border-blue-600 bg-blue-50/30' : 'border-gray-200 hover:border-gray-300 bg-white'
+                    }`}
                   >
-                    <div>
-                      <span className={`block font-semibold ${selectedVariant?.id === variant.id ? 'text-white' : 'text-gray-900'}`}>{variant.name}</span>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                        isSelected ? 'border-blue-600 bg-blue-600' : 'border-gray-300 bg-white'
+                      }`}>
+                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                      <span className="font-bold text-sm text-gray-900">{variant.name}</span>
                     </div>
-                    <span className={`font-bold ${selectedVariant?.id === variant.id ? 'text-white' : 'text-gray-900'}`}>
+                    <span className="font-bold text-sm text-gray-900">
                       ${finalGrossPrice.toLocaleString('es-CL')}
                     </span>
                   </button>
@@ -131,23 +138,29 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
               {extraIngredients.map((ing) => {
                 const isSelected = selectedIngredients.some(i => i.id === ing.id);
                 return (
-                  <label
+                  <div
                     key={ing.id}
-                    className={`flex items-center justify-between p-4 border rounded-xl transition-all cursor-pointer ${isSelected ? 'border-orange-500 bg-orange-50 ring-1 ring-orange-500' : 'border-gray-200 hover:border-gray-300'}`}
+                    onClick={() => toggleIngredient(ing)}
+                    className={`flex items-center justify-between p-4 border-2 rounded-xl transition-all cursor-pointer select-none ${
+                      isSelected ? 'border-blue-600 bg-blue-50/30' : 'border-gray-200 hover:border-gray-300 bg-white'
+                    }`}
                   >
                     <div className="flex items-center gap-3">
-                      <input 
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleIngredient(ing)}
-                        className="h-5 w-5 rounded border-gray-300 text-orange-600 focus:ring-orange-600"
-                      />
-                      <span className="block font-semibold text-gray-900">{ing.name}</span>
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                        isSelected ? 'border-blue-600 bg-blue-600' : 'border-gray-300 bg-white'
+                      }`}>
+                        {isSelected && (
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3.5} stroke="currentColor" className="w-3 h-3 text-white">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="font-bold text-sm text-gray-900">{ing.name}</span>
                     </div>
-                    <span className="font-bold text-gray-900">
+                    <span className="font-bold text-sm text-gray-900">
                       +${Math.round(ing.price).toLocaleString('es-CL')}
                     </span>
-                  </label>
+                  </div>
                 );
               })}
             </div>

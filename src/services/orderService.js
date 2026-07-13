@@ -183,7 +183,7 @@ export const getOrders = async () => {
       .from('orders')
       .select(`
         *,
-        payments(method, status),
+        payments(*),
         order_items(*, order_item_variants(*), order_item_ingredients(*))
       `)
       .eq('branch_id', branchData.id)

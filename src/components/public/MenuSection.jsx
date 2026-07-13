@@ -193,9 +193,9 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
     <div className="flex flex-col min-h-0">
       {/* Header del Negocio (Cover, Logo y Info) */}
       {org && (
-        <div className="max-w-3xl mx-auto w-full px-4 pt-4 shrink-0">
+        <div className="max-w-3xl mx-auto w-full shrink-0">
           <div 
-            className="w-full h-32 md:h-40 rounded-2xl bg-gray-100 bg-cover bg-center relative border border-gray-100 shadow-sm"
+            className="w-full h-32 md:h-40 bg-gray-100 bg-cover bg-center relative border-b border-gray-200/50 shadow-sm"
             style={org.cover_url ? { backgroundImage: `url(${org.cover_url})` } : { backgroundImage: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)' }}
           >
             {/* Logo - coin flip with two faces */}
@@ -229,7 +229,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                 }}
               />
             </div>
-
+ 
             {/* Address button on cover */}
             {org.address && (
               <a
@@ -243,8 +243,8 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
               </a>
             )}
           </div>
-
-          <div className="pt-10 pb-4 px-2">
+ 
+          <div className="pt-10 pb-4 px-6">
             <h1 className="font-black text-3xl md:text-4xl text-gray-900 tracking-tight mb-2">
               {org.name}
             </h1>
@@ -254,7 +254,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                 {org.description}
               </p>
             )}
-
+ 
           </div>
         </div>
       )}

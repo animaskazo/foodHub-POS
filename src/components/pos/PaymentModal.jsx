@@ -7,7 +7,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
   const [status, setStatus] = useState('idle'); // 'idle' | 'success'
   const [orderNumber, setOrderNumber] = useState(null);
   const [orderId, setOrderId] = useState(null);
-  const [orderType, setOrderType] = useState('table'); // 'table' | 'takeaway'
+  const [orderType, setOrderType] = useState('table'); // 'table' | 'pickup'
   const [processingMethod, setProcessingMethod] = useState(null);
 
   const [customerName, setCustomerName] = useState('');
@@ -202,14 +202,14 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
                   <span className="font-bold text-sm md:text-base whitespace-nowrap">Para Servir</span>
                 </button>
                 <button
-                  onClick={() => setOrderType('takeaway')}
+                  onClick={() => setOrderType('pickup')}
                   className={`flex items-center justify-center p-2.5 md:p-3.5 rounded-full border-2 transition-all ${
-                    orderType === 'takeaway'
+                    orderType === 'pickup'
                       ? 'border-black bg-black text-white shadow-md'
                       : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  <Package className={`h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 ${orderType === 'takeaway' ? 'text-white' : 'text-gray-500'}`} />
+                  <Package className={`h-4 w-4 md:h-5 md:w-5 mr-1.5 md:mr-2 ${orderType === 'pickup' ? 'text-white' : 'text-gray-500'}`} />
                   <span className="font-bold text-sm md:text-base whitespace-nowrap">Para Llevar</span>
                 </button>
               </div>

@@ -217,7 +217,7 @@ const DashboardView = () => {
   const getChannelIcon = (type) => {
     switch (type) {
       case 'table': return <Store className="h-4 w-4" />;
-      case 'pickup': return <ShoppingCart className="h-4 w-4" />;
+      case 'pickup': return <ShoppingBag className="h-4 w-4" />;
       case 'online': return <Globe className="h-4 w-4" />;
       case 'whatsapp': return <MessageCircle className="h-4 w-4" />;
       default: return <Filter className="h-4 w-4" />;
@@ -271,8 +271,8 @@ const DashboardView = () => {
           <Store className="h-4 w-4" /> Local
         </button>
         <button 
-          onClick={() => setChannelFilter('takeaway')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'takeaway' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          onClick={() => setChannelFilter('pickup')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'pickup' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
         >
           <ShoppingBag className="h-4 w-4" /> Retiro
         </button>
@@ -349,15 +349,15 @@ const DashboardView = () => {
           <table className="w-full text-left border-collapse min-w-[600px]">
             <thead>
               <tr className="bg-gray-50 text-gray-500 text-sm border-b border-gray-100">
-                <th className="px-6 py-4 font-semibold w-24">N° Orden</th>
-                <th className="px-6 py-4 font-semibold">Cliente</th>
-                <th className="px-6 py-4 font-semibold">Fecha</th>
-                <th className="px-6 py-4 font-semibold">Estado</th>
-                <th className="px-6 py-4 font-semibold">Método</th>
-                <th className="px-6 py-4 font-semibold text-center">T. Cocina</th>
-                <th className="px-6 py-4 font-semibold">Canal</th>
-                <th className="px-6 py-4 font-semibold text-right">Total</th>
-                <th className="px-6 py-4 font-semibold text-center">Acciones</th>
+                <th className="px-6 py-4 font-semibold w-[10%]">N° Orden</th>
+                <th className="px-6 py-4 font-semibold w-[20%]">Cliente</th>
+                <th className="px-6 py-4 font-semibold w-[15%]">Fecha</th>
+                <th className="px-6 py-4 font-semibold w-[12%]">Estado</th>
+                <th className="px-6 py-4 font-semibold text-center w-[10%]">T. Cocina</th>
+                <th className="px-6 py-4 font-semibold w-[10%]">Canal</th>
+                <th className="px-6 py-4 font-semibold w-[10%]">Método</th>
+                <th className="px-6 py-4 font-semibold text-right w-[8%]">Total</th>
+                <th className="px-6 py-4 font-semibold text-center w-[5%]">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -401,18 +401,13 @@ const DashboardView = () => {
                       <td className="px-6 py-4">
                         {getStatusTag(order.status)}
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs">
-                          {getPaymentMethod(order)}
-                        </span>
-                      </td>
                       <td className="px-6 py-4 text-center text-gray-600 font-medium whitespace-nowrap">{getKitchenTime(order)}</td>
                       <td className="px-6 py-4">
                         {(() => {
                           const channelMap = {
                             table:    { label: 'Local',    Icon: Store },
                             takeaway: { label: 'Llevar',   Icon: ShoppingBag },
-                            pickup:   { label: 'Retiro',   Icon: ShoppingCart },
+                            pickup:   { label: 'Retiro',   Icon: ShoppingBag },
                             online:   { label: 'Online',   Icon: Globe },
                             whatsapp: { label: 'WhatsApp', Icon: MessageCircle },
                           };
@@ -425,6 +420,11 @@ const DashboardView = () => {
                             </span>
                           );
                         })()}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs">
+                          {getPaymentMethod(order)}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-right font-bold text-gray-900">${fmt(order.total || 0)}</td>
                       <td className="px-6 py-4 text-center">

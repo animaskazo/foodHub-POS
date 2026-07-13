@@ -62,8 +62,9 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
           <div className="divide-y divide-gray-100">
             {items.map((item) => {
               const hasVariants = item.variants && item.variants.length > 0 && item.variants.some(v => v.is_active);
-              const hasIngredients = item.ingredients && item.ingredients.length > 0;
-              const hasOptions = hasVariants || hasIngredients;
+              const hasExtras = item.ingredients && item.ingredients.length > 0 && item.ingredients.some(i => i.isExtra);
+              const hasOptions = hasVariants || hasExtras;
+              const baseIngredients = item.ingredients?.filter(i => i.isBase) || [];
               
               return (
                 <div key={item.cartItemId} className="flex items-center gap-3 px-5 py-4">
@@ -76,6 +77,11 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
                   {/* Name + Controls */}
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-[14px] leading-snug truncate">{item.name}</p>
+                    {baseIngredients.length > 0 && (
+                      <p className="text-[11px] text-gray-400 mt-0.5 font-medium">
+                        {baseIngredients.map(i => i.name).join(', ')}
+                      </p>
+                    )}
                     {item.selectedIngredients && item.selectedIngredients.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {item.selectedIngredients.map(i => (

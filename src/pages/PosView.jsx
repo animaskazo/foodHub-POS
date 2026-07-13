@@ -61,9 +61,9 @@ const PosView = () => {
 
   const handleProductClick = (product) => {
     const hasVariants = product.variants && product.variants.length > 0 && product.variants.some(v => v.is_active);
-    const hasIngredients = product.ingredients && product.ingredients.length > 0;
+    const hasExtras = product.ingredients && product.ingredients.length > 0 && product.ingredients.some(i => i.isExtra);
     
-    if (hasVariants || hasIngredients) {
+    if (hasVariants || hasExtras) {
       setSelectedProductForVariant(product);
       return;
     }
@@ -220,8 +220,8 @@ const PosView = () => {
                 onCloseMobile={() => setIsMobileCartOpen(false)}
                 onItemClick={(item) => {
                   const hasVariants = item.variants && item.variants.length > 0 && item.variants.some(v => v.is_active);
-                  const hasIngredients = item.ingredients && item.ingredients.length > 0;
-                  if (hasVariants || hasIngredients) {
+                  const hasExtras = item.ingredients && item.ingredients.length > 0 && item.ingredients.some(i => i.isExtra);
+                  if (hasVariants || hasExtras) {
                     setSelectedProductForVariant(item);
                     setEditingCartItem(item);
                   }

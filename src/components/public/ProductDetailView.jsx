@@ -126,11 +126,18 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                       key={v.id}
                       onClick={() => setSelectedVariant(v)}
                       className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left ${
-                        isSelected ? 'border-black bg-black text-white' : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300'
+                        isSelected ? 'border-black bg-gray-50/50' : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300'
                       }`}
                     >
-                      <span className="font-semibold text-base">{v.name}</span>
-                      <span className="font-bold text-base">${gross.toLocaleString('es-CL')}</span>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          isSelected ? 'border-black bg-black' : 'border-gray-300 bg-white'
+                        }`}>
+                          {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        </div>
+                        <span className="font-bold text-sm text-gray-900">{v.name}</span>
+                      </div>
+                      <span className="font-bold text-sm text-gray-900">${gross.toLocaleString('es-CL')}</span>
                     </button>
                   );
                 })}
@@ -153,11 +160,22 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                       key={ing.id}
                       onClick={() => toggleExtra(ing)}
                       className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left ${
-                        selected ? 'border-black bg-black text-white' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        selected ? 'border-black bg-gray-50/50' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                       }`}
                     >
-                      <span className="font-semibold text-base">{ing.name}</span>
-                      <span className="font-bold text-base">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                          selected ? 'border-black bg-black' : 'border-gray-300 bg-white'
+                        }`}>
+                          {selected && (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3.5} stroke="currentColor" className="w-3 h-3 text-white">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="font-bold text-sm text-gray-900">{ing.name}</span>
+                      </div>
+                      <span className="font-bold text-sm text-gray-900">
                         {ing.price ? `+$${Math.round(ing.price).toLocaleString('es-CL')}` : 'Gratis'}
                       </span>
                     </button>
