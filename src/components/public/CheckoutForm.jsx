@@ -24,6 +24,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount }) => {
     phone: '',
     email: '',
     notes: '',
+    paymentMethod: 'local', // local or online
   });
   const [errors, setErrors] = useState({});
 
@@ -43,6 +44,8 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount }) => {
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
+      // scroll to top to show errors
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     onSubmit(form);
@@ -112,32 +115,43 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount }) => {
           <div className="space-y-3">
             <h2 className="text-base font-bold text-gray-900">Método de pago</h2>
             <div className="grid grid-cols-1 gap-3">
-              {/* Pago en local (activo por defecto) */}
-              <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border-2 border-black shadow-sm">
-                <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center shrink-0">
+              {/* Pago en local */}
+              <button 
+                onClick={() => update('paymentMethod', 'local')}
+                className={`flex items-center w-full text-left gap-4 p-4 rounded-2xl border-2 transition-colors ${
+                  form.paymentMethod === 'local' ? 'bg-white border-black shadow-sm' : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                  form.paymentMethod === 'local' ? 'bg-black' : 'bg-gray-200'
+                }`}>
                   <span className="text-lg">💵</span>
                 </div>
                 <div>
-                  <p className="font-bold text-gray-900 text-sm">Pago en local</p>
+                  <p className={`font-bold text-sm transition-colors ${form.paymentMethod === 'local' ? 'text-gray-900' : 'text-gray-500'}`}>Pago en local</p>
                   <p className="text-xs text-gray-500 mt-0.5">Paga en caja al retirar (Efectivo o Tarjeta)</p>
                 </div>
-              </div>
+              </button>
 
-              {/* Pago en línea (bloqueado) */}
-              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-200 opacity-60 cursor-not-allowed select-none">
-                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center shrink-0">
+              {/* Pago en línea via Klap */}
+              <button 
+                onClick={() => update('paymentMethod', 'online')}
+                className={`flex items-center w-full text-left gap-4 p-4 rounded-2xl border-2 transition-colors ${
+                  form.paymentMethod === 'online' ? 'bg-white border-black shadow-sm' : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                  form.paymentMethod === 'online' ? 'bg-black' : 'bg-gray-200'
+                }`}>
                   <span className="text-lg">💳</span>
                 </div>
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-bold text-gray-400 text-sm">Pago en línea</p>
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 bg-gray-200 text-gray-500 rounded-full tracking-wide">
-                      Pronto podras pagar en línea
-                    </span>
+                    <p className={`font-bold text-sm transition-colors ${form.paymentMethod === 'online' ? 'text-gray-900' : 'text-gray-500'}`}>Pago en línea</p>
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5">Webpay, Tarjeta de Crédito o Débito</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Webpay, Tarjeta de Crédito o Débito vía Klap</p>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
 

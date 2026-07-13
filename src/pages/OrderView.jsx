@@ -7,10 +7,13 @@ import CheckoutForm from '../components/public/CheckoutForm';
 import OrderConfirmation from '../components/public/OrderConfirmation';
 import ProductDetailView from '../components/public/ProductDetailView';
 import { getOrganizationByName, getPublicCatalog, createPublicOrder } from '../services/publicOrderService';
+import { supabase } from '../lib/supabase';
 
 const OrderView = () => {
   const { slug } = useParams();
-  const [step, setStep] = useState(1); // 1: menu, 2: cart, 3: checkout, 4: confirmation
+  const searchParams = new URLSearchParams(window.location.search);
+  const initialStep = searchParams.get('orderId') ? 4 : 1;
+  const [step, setStep] = useState(initialStep); // 1: menu, 2: cart, 3: checkout, 4: confirmation
 
   // Data
   const [org, setOrg] = useState(null);
@@ -36,8 +39,24 @@ const OrderView = () => {
   }, [cartItems, slug]);
 
   // Submitted order
-  const [submittedOrder, setSubmittedOrder] = useState(null);
+  const [submittedOrder, setSubmittedOrder] = useState(() => {
+    const orderId = searchParams.get('orderId');
+    if (orderId) {
+      return { id: orderId, order_number: orderId.split('-')[0].toUpperCase() };
+    }
+    return null;
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('orderId')) {
+      // Clear cart on successful return from payment
+      setCartItems([]);
+      localStorage.removeItem(`cart_${slug}`);
+      // Clean url
+      window.history.replaceState({}, '', `/p/${slug}`);
+    }
+  }, [slug, searchParams]);
 
   // ── Load catalog ──────────────────────────────────────────
   useEffect(() => {
@@ -124,11 +143,33 @@ const OrderView = () => {
         },
         notes: customerForm.notes,
       });
+
+      if (customerForm.paymentMethod === 'online') {
+        const totalAmount = cartItems.reduce((acc, item) => {
+          const itemGross = Math.round(item.price * 1.19);
+          const extrasGross = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
+          return acc + (itemGross + extrasGross) * item.quantity;
+        }, 0);
+
+        const returnUrl = window.location.origin + `/p/${slug}?orderId=${order.id}&status=success`;
+
+        const { data, error } = await supabase.functions.invoke('klap-create-payment', {
+          body: { orderId: order.id, amount: totalAmount, returnUrl }
+        });
+
+        if (error || !data?.success) {
+          throw new Error(error?.message || data?.error || 'Error al iniciar pago con Klap');
+        }
+
+        window.location.href = data.redirect_url;
+        return; // Detener ejecución para que la redirección tome efecto
+      }
+
       setSubmittedOrder(order);
       setStep(4);
     } catch (e) {
       console.error(e);
-      alert('Error al enviar el pedido. Intenta nuevamente.');
+      alert('Error al enviar el pedido. Intenta nuevamente. ' + (e.message || ''));
     } finally {
       setIsSubmitting(false);
     }
