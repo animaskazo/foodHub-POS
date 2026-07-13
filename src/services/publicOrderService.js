@@ -91,7 +91,7 @@ export const getPublicCatalog = async (organizationId) => {
 };
 
 // ── Create a public (online) order ──
-export const createPublicOrder = async ({ organizationId, cartItems, customer, notes }) => {
+export const createPublicOrder = async ({ organizationId, cartItems, customer, notes, paymentMethod = 'cash', paymentStatus = 'pending' }) => {
   // Get first active branch
   const { data: branch, error: branchError } = await supabase
     .from('branches')
@@ -208,11 +208,11 @@ export const createPublicOrder = async ({ organizationId, cartItems, customer, n
     await supabase.from('order_item_ingredients').insert(ingInserts);
   }
 
-  // Insert pending payment (cash on pickup)
+  // Insert payment
   await supabase.from('payments').insert([{
     order_id: order.id,
-    method: 'cash',
-    status: 'pending',
+    method: paymentMethod,
+    status: paymentStatus,
     amount: total,
   }]);
 

@@ -5,6 +5,7 @@ import MenuSection from '../components/public/MenuSection';
 import CartSummary from '../components/public/CartSummary';
 import CheckoutForm from '../components/public/CheckoutForm';
 import OrderConfirmation from '../components/public/OrderConfirmation';
+import OrderError from '../components/public/OrderError';
 import ProductDetailView from '../components/public/ProductDetailView';
 import { getOrganizationByName, getPublicCatalog, createPublicOrder } from '../services/publicOrderService';
 import { supabase } from '../lib/supabase';
@@ -12,8 +13,13 @@ import { supabase } from '../lib/supabase';
 const OrderView = () => {
   const { slug } = useParams();
   const searchParams = new URLSearchParams(window.location.search);
-  const initialStep = searchParams.get('orderId') ? 4 : 1;
-  const [step, setStep] = useState(initialStep); // 1: menu, 2: cart, 3: checkout, 4: confirmation
+  
+  let initialStep = 1;
+  if (searchParams.get('orderId')) {
+    initialStep = searchParams.get('status') === 'error' ? 5 : 4;
+  }
+  
+  const [step, setStep] = useState(initialStep); // 1: menu, 2: cart, 3: checkout, 4: confirmation, 5: error
 
   // Data
   const [org, setOrg] = useState(null);
@@ -41,24 +47,49 @@ const OrderView = () => {
   // Submitted order
   const [submittedOrder, setSubmittedOrder] = useState(() => {
     const orderId = searchParams.get('orderId');
-    if (orderId) {
-      return { id: orderId, order_number: orderId.split('-')[0].toUpperCase() };
+    const orderNumberStr = searchParams.get('orderNumber');
+    if (orderId && orderNumberStr) {
+      return { id: orderId, order_number: orderNumberStr };
     }
     return null;
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get('orderId')) {
-      // Clear cart on successful return from payment
-      setCartItems([]);
-      localStorage.removeItem(`cart_${slug}`);
-      // Clean url
-      window.history.replaceState({}, '', `/order/${slug}`);
-    }
-  }, [slug, searchParams]);
+    const handleReturn = async () => {
+      const orderId = searchParams.get('orderId');
+      const status = searchParams.get('status');
+      
+      if (!orderId) return;
+
+      if (status === 'error') {
+        // Just clean URL for error, state is already step 5
+        window.history.replaceState({}, '', `/order/${slug}`);
+        return;
+      }
+
+      if (status === 'success' && !submittedOrder?.order_number) {
+        // Attempt to recover pending order
+        try {
+          const pendingData = localStorage.getItem(`pending_order_${slug}`);
+          if (pendingData) {
+            setIsSubmitting(true);
+            const { cartItems: pendingCart, customerForm, totalAmount } = JSON.parse(pendingData);
+            
+            // Only create if we have the org loaded or we can wait
+            // Since this runs on mount, org might be null. 
+            // We should ensure org is loaded before creating.
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    };
+    handleReturn();
+  }, []);
 
   // ── Load catalog ──────────────────────────────────────────
+  // ── Load catalog and handle return ────────────────────────
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -74,6 +105,32 @@ const OrderView = () => {
         const { categories: cats, products: prods } = await getPublicCatalog(orgData.id);
         setCategories(cats);
         setProducts(prods);
+        
+        // Handle Return from Klap Success (Requires orgData)
+        const orderId = searchParams.get('orderId');
+        const status = searchParams.get('status');
+        
+        if (orderId && status === 'success') {
+          const pendingData = localStorage.getItem(`pending_order_${slug}`);
+          if (pendingData) {
+            const { cartItems: pendingCart, customerForm } = JSON.parse(pendingData);
+            const order = await createPublicOrder({
+              organizationId: orgData.id,
+              cartItems: pendingCart,
+              customer: customerForm.customer,
+              notes: customerForm.notes,
+              paymentMethod: 'online',
+              paymentStatus: 'paid'
+            });
+            
+            setSubmittedOrder({ id: orderId, order_number: order.order_number });
+            setCartItems([]);
+            localStorage.removeItem(`cart_${slug}`);
+            localStorage.removeItem(`pending_order_${slug}`);
+            window.history.replaceState({}, '', `/order/${slug}?orderId=${orderId}&orderNumber=${order.order_number}&status=success`);
+          }
+        }
+        
       } catch (e) {
         console.error(e);
         setError('Error al cargar el menú. Intenta nuevamente.');
@@ -133,6 +190,43 @@ const OrderView = () => {
   const handleCheckout = async (customerForm) => {
     setIsSubmitting(true);
     try {
+      if (customerForm.paymentMethod === 'online') {
+        const totalAmount = cartItems.reduce((acc, item) => {
+          const itemGross = Math.round(item.price * 1.19);
+          const extrasGross = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
+          return acc + (itemGross + extrasGross) * item.quantity;
+        }, 0);
+
+        const tempOrderId = crypto.randomUUID();
+        const returnUrl = window.location.origin + `/order/${slug}?orderId=${tempOrderId}&status=success`;
+        
+        // Save pending order locally
+        localStorage.setItem(`pending_order_${slug}`, JSON.stringify({
+          cartItems,
+          customerForm: {
+            customer: {
+              name: customerForm.name,
+              phone: customerForm.phone,
+              email: customerForm.email,
+            },
+            notes: customerForm.notes
+          },
+          totalAmount
+        }));
+
+        const { data, error } = await supabase.functions.invoke('klap-create-payment', {
+          body: { orderId: tempOrderId, amount: totalAmount, returnUrl }
+        });
+
+        if (error || !data?.success) {
+          throw new Error(error?.message || data?.error || 'Error al iniciar pago con Klap');
+        }
+
+        window.location.href = data.redirect_url;
+        return; 
+      }
+
+      // Offline flow
       const order = await createPublicOrder({
         organizationId: org.id,
         cartItems,
@@ -142,30 +236,13 @@ const OrderView = () => {
           email: customerForm.email,
         },
         notes: customerForm.notes,
+        paymentMethod: 'cash',
+        paymentStatus: 'pending'
       });
 
-      if (customerForm.paymentMethod === 'online') {
-        const totalAmount = cartItems.reduce((acc, item) => {
-          const itemGross = Math.round(item.price * 1.19);
-          const extrasGross = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
-          return acc + (itemGross + extrasGross) * item.quantity;
-        }, 0);
-
-        const returnUrl = window.location.origin + `/order/${slug}?orderId=${order.id}&status=success`;
-
-        const { data, error } = await supabase.functions.invoke('klap-create-payment', {
-          body: { orderId: order.id, amount: totalAmount, returnUrl }
-        });
-
-        if (error || !data?.success) {
-          throw new Error(error?.message || data?.error || 'Error al iniciar pago con Klap');
-        }
-
-        window.location.href = data.redirect_url;
-        return; // Detener ejecución para que la redirección tome efecto
-      }
-
       setSubmittedOrder(order);
+      setCartItems([]);
+      localStorage.removeItem(`cart_${slug}`);
       setStep(4);
     } catch (e) {
       console.error(e);
@@ -258,6 +335,14 @@ const OrderView = () => {
             order={submittedOrder}
             cartItems={cartItems}
             org={org}
+          />
+        )}
+        {step === 5 && (
+          <OrderError 
+            onRetry={() => {
+              window.history.replaceState({}, '', `/order/${slug}`);
+              setStep(2);
+            }} 
           />
         )}
       </div>

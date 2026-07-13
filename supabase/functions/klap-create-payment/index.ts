@@ -23,15 +23,15 @@ serve(async (req) => {
     }
 
     // Asegurar que la URL sea válida para Klap (Klap rechaza IPs o URLs sin http/https)
-    let validReturnUrl = returnUrl;
+    let validReturnUrl = (returnUrl || "").trim();
     if (!validReturnUrl || !validReturnUrl.startsWith('https://')) {
         // Fallback obligatorio para entornos locales (http://localhost, http://192.x, etc.)
         validReturnUrl = "https://tu-dominio.com/pago-completado"; 
     }
     
-    // Klap a veces rechaza URLs muy largas o con parámetros complejos para el cancel_url.
-    // Usamos una URL limpia para evitar el error "cancel_url is not a valid url".
-    const cleanCancelUrl = validReturnUrl.split('?')[0];
+    // Klap cancel_url será la misma que la returnUrl pero con status=error 
+    // para que el frontend detecte el rechazo de forma unificada.
+    const cleanCancelUrl = validReturnUrl.replace('status=success', 'status=error');
 
     const apiKey = Deno.env.get("KLAP_API_KEY") || "mKaTZ4yBm3rVFapqNctziKCvXsjD6fDO";
 
@@ -43,7 +43,10 @@ serve(async (req) => {
         "apikey": apiKey
       },
       body: JSON.stringify({
-        reference_id: orderId.toString(),
+        // Klap no permite reutilizar el mismo reference_id en múltiples intentos de pago.
+        // Agregamos un timestamp para garantizar que cada intento sea único, 
+        // evitando el error engañoso "Conflicts creating order".
+        reference_id: `${orderId}-${Date.now()}`,
         amount: {
           currency: "CLP",
           total: amount
