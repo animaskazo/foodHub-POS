@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Phone, Mail, MessageSquare, Store, Loader2 } from 'lucide-react';
+import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard } from 'lucide-react';
 
 const InputField = ({ icon: Icon, label, ...props }) => (
   <div className="relative">
@@ -97,61 +97,62 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount }) => {
           {/* Divider */}
           <div className="h-px bg-gray-100" />
 
-          {/* Section: Pickup method */}
+          {/* Section: Delivery and Payment */}
           <div className="space-y-3">
-            <h2 className="text-base font-bold text-gray-900">Método de retiro</h2>
-            <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border-2 border-black shadow-sm">
-              <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center shrink-0">
-                <Store className="h-5 w-5 text-white" />
+            <h2 className="text-base font-bold text-gray-900">Entrega y pago</h2>
+
+            {/* Pickup method */}
+            <div className="flex items-center justify-between p-3.5 bg-gray-50 border border-gray-200 rounded-2xl">
+              <div className="flex items-center gap-2.5">
+                <Store className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-semibold text-gray-600">Método de retiro</span>
               </div>
-              <div>
-                <p className="font-bold text-gray-900 text-sm">Retiro en Local</p>
-                <p className="text-xs text-gray-500 mt-0.5">Te avisaremos cuando esté listo · Pago al retirar</p>
-              </div>
+              <span className="text-sm font-bold text-gray-900 bg-gray-200/50 px-2.5 py-1 rounded-lg">Retiro en local</span>
             </div>
-          </div>
 
-          {/* Section: Payment Method */}
-          <div className="space-y-3">
-            <h2 className="text-base font-bold text-gray-900">Método de pago</h2>
-            <div className="grid grid-cols-1 gap-3">
-              {/* Pago en local */}
-              <button 
+            {/* Payment Methods as radio rows */}
+            <div className="space-y-2">
+              <label 
                 onClick={() => update('paymentMethod', 'local')}
-                className={`flex items-center w-full text-left gap-4 p-4 rounded-2xl border-2 transition-colors ${
-                  form.paymentMethod === 'local' ? 'bg-white border-black shadow-sm' : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
+                  form.paymentMethod === 'local' 
+                    ? 'bg-white border-black shadow-sm' 
+                    : 'bg-gray-50/50 border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                  form.paymentMethod === 'local' ? 'bg-black' : 'bg-gray-200'
-                }`}>
-                  <span className="text-lg">💵</span>
+                <div className="flex items-center gap-2.5">
+                  <Banknote className={`h-4.5 w-4.5 transition-colors ${form.paymentMethod === 'local' ? 'text-gray-900' : 'text-gray-400'}`} />
+                  <span className={`text-sm font-bold ${form.paymentMethod === 'local' ? 'text-gray-900' : 'text-gray-500'}`}>En Caja (Efectivo / Tarjeta)</span>
                 </div>
-                <div>
-                  <p className={`font-bold text-sm transition-colors ${form.paymentMethod === 'local' ? 'text-gray-900' : 'text-gray-500'}`}>Pago en local</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Paga en caja al retirar (Efectivo o Tarjeta)</p>
-                </div>
-              </button>
+                <input 
+                  type="radio" 
+                  name="paymentMethod"
+                  checked={form.paymentMethod === 'local'}
+                  onChange={() => {}} // Handled by container click
+                  className="h-4 w-4 accent-black text-black border-gray-300 focus:ring-black"
+                />
+              </label>
 
-              {/* Pago en línea via Klap */}
-              <button 
+              <label 
                 onClick={() => update('paymentMethod', 'online')}
-                className={`flex items-center w-full text-left gap-4 p-4 rounded-2xl border-2 transition-colors ${
-                  form.paymentMethod === 'online' ? 'bg-white border-black shadow-sm' : 'bg-gray-50 border-gray-200 hover:border-gray-300'
+                className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
+                  form.paymentMethod === 'online' 
+                    ? 'bg-white border-black shadow-sm' 
+                    : 'bg-gray-50/50 border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                  form.paymentMethod === 'online' ? 'bg-black' : 'bg-gray-200'
-                }`}>
-                  <span className="text-lg">💳</span>
+                <div className="flex items-center gap-2.5">
+                  <CreditCard className={`h-4.5 w-4.5 transition-colors ${form.paymentMethod === 'online' ? 'text-gray-900' : 'text-gray-400'}`} />
+                  <span className={`text-sm font-bold ${form.paymentMethod === 'online' ? 'text-gray-900' : 'text-gray-500'}`}>En Línea (Webpay / Tarjetas)</span>
                 </div>
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className={`font-bold text-sm transition-colors ${form.paymentMethod === 'online' ? 'text-gray-900' : 'text-gray-500'}`}>Pago en línea</p>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-0.5">Webpay, Tarjeta de Crédito o Débito vía Klap</p>
-                </div>
-              </button>
+                <input 
+                  type="radio" 
+                  name="paymentMethod"
+                  checked={form.paymentMethod === 'online'}
+                  onChange={() => {}} // Handled by container click
+                  className="h-4 w-4 accent-black text-black border-gray-300 focus:ring-black"
+                />
+              </label>
             </div>
           </div>
 
