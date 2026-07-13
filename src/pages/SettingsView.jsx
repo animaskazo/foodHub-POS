@@ -44,13 +44,16 @@ const SettingsView = () => {
     cover_url: '',
     phone: '',
     email: '',
-    address: ''
+    address: '',
+    accepts_online_payments: true,
+    online_payments_allowed: false
   });
   
   const [businessHours, setBusinessHours] = useState(defaultHours);
   const [staff, setStaff] = useState([]);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [currentUser, setCurrentUser] = useState({ role: 'cashier', email: '' });
 
   useEffect(() => {
     loadData();
@@ -74,13 +77,29 @@ const SettingsView = () => {
           cover_url: orgData.cover_url || '',
           phone: orgData.phone || '',
           email: orgData.email || '',
-          address: orgData.address || ''
+          address: orgData.address || '',
+          accepts_online_payments: orgData.accepts_online_payments !== false,
+          online_payments_allowed: orgData.online_payments_allowed === true
         });
         
         if (orgData.business_hours && Object.keys(orgData.business_hours).length > 0) {
           setBusinessHours(orgData.business_hours);
         }
         setStaff(staffData);
+
+        // Obtener el rol del usuario logueado actualmente
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: staffMember } = await supabase
+            .from('staff')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+          setCurrentUser({
+            role: staffMember?.role || 'cashier',
+            email: user.email || ''
+          });
+        }
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -123,7 +142,8 @@ const SettingsView = () => {
         cover_url: formData.cover_url,
         phone: formData.phone,
         email: formData.email,
-        address: formData.address
+        address: formData.address,
+        accepts_online_payments: formData.accepts_online_payments
       });
       alert('Configuración guardada exitosamente');
     } catch (error) {
@@ -330,6 +350,35 @@ const SettingsView = () => {
                     onChange={(e) => setFormData({...formData, address: e.target.value})}
                     className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
                   />
+                </div>
+
+                {/* Switch para habilitar/deshabilitar pago online */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-sm text-gray-800">Habilitar Pago en Línea (Klap)</p>
+                      {!formData.online_payments_allowed && (
+                        <span className="text-[10px] bg-gray-200 text-gray-600 font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
+                          Pronto
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 max-w-sm mt-0.5">
+                      {!formData.online_payments_allowed 
+                        ? 'Esta característica estará disponible próximamente en tu cuenta.' 
+                        : 'Permite que tus clientes paguen con tarjetas de crédito o débito a través de la web.'}
+                    </p>
+                  </div>
+                  <label className={`relative inline-flex items-center select-none ${(!formData.online_payments_allowed || currentUser.role !== 'owner') ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                    <input 
+                      type="checkbox" 
+                      checked={formData.accepts_online_payments && formData.online_payments_allowed}
+                      disabled={!formData.online_payments_allowed || currentUser.role !== 'owner'}
+                      onChange={(e) => setFormData({...formData, accepts_online_payments: e.target.checked})}
+                      className="sr-only peer"
+                    />
+                    <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black ${(!formData.online_payments_allowed || currentUser.role !== 'owner') ? 'opacity-40' : ''}`}></div>
+                  </label>
                 </div>
 
                 {/* Public store link */}

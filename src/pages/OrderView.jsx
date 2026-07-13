@@ -356,6 +356,7 @@ const OrderView = () => {
             onSubmit={handleCheckout}
             isSubmitting={isSubmitting}
             totalAmount={totalAmount}
+            acceptsOnlinePayments={org?.online_payments_allowed === true && org?.accepts_online_payments !== false}
           />
         )}
         {step === 4 && (

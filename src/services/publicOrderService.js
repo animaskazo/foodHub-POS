@@ -6,16 +6,16 @@ export const getOrganizationByName = async (orgName) => {
 
   const { data, error } = await supabase
     .from('organizations')
-    .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency')
+    .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed')
     .ilike('name', decoded)
     .eq('is_active', true)
     .maybeSingle();
-
+  
   if (error || !data) {
     // Try by slug as fallback
     const { data: bySlug, error: slugError } = await supabase
       .from('organizations')
-      .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency')
+      .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed')
       .ilike('slug', decoded)
       .eq('is_active', true)
       .maybeSingle();

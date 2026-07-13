@@ -18,7 +18,7 @@ const InputField = ({ icon: Icon, label, ...props }) => (
 
 const fmt = (n) => n.toLocaleString('es-CL');
 
-const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount }) => {
+const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePayments = true }) => {
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -134,23 +134,35 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount }) => {
               </label>
 
               <label 
-                onClick={() => update('paymentMethod', 'online')}
-                className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
-                  form.paymentMethod === 'online' 
-                    ? 'bg-white border-black shadow-sm' 
-                    : 'bg-gray-50/50 border-gray-200 hover:border-gray-300'
+                onClick={() => acceptsOnlinePayments && update('paymentMethod', 'online')}
+                className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all ${
+                  !acceptsOnlinePayments 
+                    ? 'bg-gray-50/30 border-gray-100 opacity-60 cursor-not-allowed' 
+                    : form.paymentMethod === 'online' 
+                      ? 'bg-white border-black shadow-sm cursor-pointer' 
+                      : 'bg-gray-50/50 border-gray-200 hover:border-gray-300 cursor-pointer'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <CreditCard className={`h-4.5 w-4.5 transition-colors ${form.paymentMethod === 'online' ? 'text-gray-900' : 'text-gray-400'}`} />
-                  <span className={`text-sm font-bold ${form.paymentMethod === 'online' ? 'text-gray-900' : 'text-gray-500'}`}>En Línea (Webpay / Tarjetas)</span>
+                  <CreditCard className={`h-4.5 w-4.5 transition-colors ${form.paymentMethod === 'online' && acceptsOnlinePayments ? 'text-gray-900' : 'text-gray-400'}`} />
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-sm font-bold ${form.paymentMethod === 'online' && acceptsOnlinePayments ? 'text-gray-900' : 'text-gray-500'}`}>
+                      En Línea (Webpay / Tarjetas)
+                    </span>
+                    {!acceptsOnlinePayments && (
+                      <span className="text-[10px] bg-gray-200 text-gray-600 font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider">
+                        Pronto
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <input 
                   type="radio" 
                   name="paymentMethod"
-                  checked={form.paymentMethod === 'online'}
+                  disabled={!acceptsOnlinePayments}
+                  checked={form.paymentMethod === 'online' && acceptsOnlinePayments}
                   onChange={() => {}} // Handled by container click
-                  className="h-4 w-4 accent-black text-black border-gray-300 focus:ring-black"
+                  className="h-4 w-4 accent-black text-black border-gray-300 focus:ring-black cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </label>
             </div>
