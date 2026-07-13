@@ -362,7 +362,6 @@ const OrderView = () => {
         {step === 4 && (
           <OrderConfirmation
             order={submittedOrder}
-            cartItems={cartItems}
             org={org}
           />
         )}

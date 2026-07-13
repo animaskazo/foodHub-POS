@@ -244,3 +244,35 @@ export const createPublicOrder = async ({ organizationId, cartItems, customer, n
 
   return order;
 };
+
+// ── Get public order details by its ID (for confirmation page) ──
+export const getPublicOrderById = async (orderId) => {
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      id,
+      order_number,
+      total,
+      subtotal,
+      tax_amount,
+      notes,
+      order_items (
+        id,
+        product_name,
+        quantity,
+        unit_price,
+        total_price,
+        order_item_variants (
+          variant_option_name
+        ),
+        order_item_ingredients (
+          ingredient_name
+        )
+      )
+    `)
+    .eq('id', orderId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+};

@@ -97,9 +97,9 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           {/* Divider */}
           <div className="h-px bg-gray-100" />
 
-          {/* Section: Delivery and Payment */}
+          {/* Section: Entrega */}
           <div className="space-y-3">
-            <h2 className="text-base font-bold text-gray-900">Entrega y pago</h2>
+            <h2 className="text-base font-bold text-gray-900">Entrega</h2>
 
             {/* Pickup method */}
             <div className="flex items-center justify-between p-3.5 bg-gray-50 border border-gray-200 rounded-2xl">
@@ -109,6 +109,14 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               </div>
               <span className="text-sm font-bold text-gray-900 bg-gray-200/50 px-2.5 py-1 rounded-lg">Retiro en local</span>
             </div>
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-gray-100" />
+
+          {/* Section: Pago */}
+          <div className="space-y-3">
+            <h2 className="text-base font-bold text-gray-900">Método de pago</h2>
 
             {/* Payment Methods as radio rows */}
             <div className="space-y-2">
