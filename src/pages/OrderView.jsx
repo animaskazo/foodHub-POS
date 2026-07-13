@@ -198,7 +198,7 @@ const OrderView = () => {
         }, 0);
 
         const tempOrderId = crypto.randomUUID();
-        const returnUrl = window.location.origin + `/order/${slug}?orderId=${tempOrderId}&status=success`;
+        const returnUrl = encodeURI(window.location.origin + `/order/${slug}?orderId=${tempOrderId}&status=success`);
         
         // Save pending order locally
         localStorage.setItem(`pending_order_${slug}`, JSON.stringify({

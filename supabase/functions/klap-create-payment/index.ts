@@ -22,8 +22,8 @@ serve(async (req) => {
       });
     }
 
-    // Asegurar que la URL sea válida para Klap (Klap rechaza IPs o URLs sin http/https)
-    let validReturnUrl = (returnUrl || "").trim();
+    // Asegurar que la URL sea válida para Klap (Klap rechaza IPs o URLs sin http/https o con espacios literales)
+    let validReturnUrl = encodeURI((returnUrl || "").trim());
     if (!validReturnUrl || !validReturnUrl.startsWith('https://')) {
         // Fallback obligatorio para entornos locales (http://localhost, http://192.x, etc.)
         validReturnUrl = "https://tu-dominio.com/pago-completado"; 
