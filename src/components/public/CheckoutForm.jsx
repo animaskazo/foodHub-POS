@@ -76,8 +76,8 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     if (!organizationId) return;
 
     const cleanDigits = form.phone.replace(/\D/g, '');
-    // Trigger online search only if the user typed 9 digits (local) or 11 digits (with country code 56)
-    if (cleanDigits.length !== 9 && cleanDigits.length !== 11) return;
+    // Trigger online search once they have typed at least a full phone number (9 digits)
+    if (cleanDigits.length < 9) return;
 
     const timer = setTimeout(async () => {
       setIsSearchingCustomer(true);
@@ -86,8 +86,8 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
         if (customer) {
           setForm(f => ({
             ...f,
-            name: f.name.trim() === '' ? (customer.full_name || '') : f.name,
-            email: f.email.trim() === '' ? (customer.email || '') : f.email
+            name: customer.full_name || f.name,
+            email: customer.email || f.email
           }));
         }
       } catch (e) {
@@ -101,11 +101,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   }, [form.phone, organizationId]);
 
   const update = (field, value) => {
-    let finalValue = value;
-    if (field === 'phone') {
-      finalValue = formatChileanPhone(value);
-    }
-    setForm(f => ({ ...f, [field]: finalValue }));
+    setForm(f => ({ ...f, [field]: value }));
     if (errors[field]) setErrors(e => ({ ...e, [field]: null }));
   };
 
@@ -150,6 +146,10 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                 value={form.phone}
                 isLoading={isSearchingCustomer}
                 onChange={e => update('phone', e.target.value)}
+                onBlur={e => {
+                  const formatted = formatChileanPhone(e.target.value);
+                  update('phone', formatted);
+                }}
               />
               {errors.phone && <p className="text-xs text-red-500 mt-1 ml-1">{errors.phone}</p>}
             </div>
