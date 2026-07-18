@@ -22,7 +22,7 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
           <div className="flex items-center gap-3">
             {isMobile && (
               <button 
-                onPointerDown={onCloseMobile}
+                onClick={onCloseMobile}
                 className="p-2 -ml-2 text-gray-500 active:bg-gray-100 rounded-full md:hidden select-none"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
@@ -41,7 +41,7 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
           <Button
             size="sm"
             variant="outline"
-            onPointerDown={onNewOrder}
+            onClick={onNewOrder}
           >
             + Nueva orden
           </Button>
@@ -112,7 +112,7 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
                       <Button
                         size="icon-sm"
                         variant="secondary"
-                        onPointerDown={() => onUpdateQty && onUpdateQty(item.cartItemId, item.quantity - 1)}
+                        onClick={() => onUpdateQty && onUpdateQty(item.cartItemId, item.quantity - 1)}
                       >
                         <Minus />
                       </Button>
@@ -120,7 +120,7 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
                       <Button
                         size="icon-sm"
                         variant="secondary"
-                        onPointerDown={() => onUpdateQty && onUpdateQty(item.cartItemId, item.quantity + 1)}
+                        onClick={() => onUpdateQty && onUpdateQty(item.cartItemId, item.quantity + 1)}
                       >
                         <Plus />
                       </Button>
@@ -135,7 +135,7 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
                         <Button
                           size="icon-sm"
                           variant="secondary"
-                          onPointerDown={() => onItemClick && onItemClick(item)}
+                          onClick={() => onItemClick && onItemClick(item)}
                         >
                           <Edit2 />
                         </Button>
@@ -144,7 +144,7 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
                         size="icon-sm"
                         variant="ghost"
                         className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                        onPointerDown={() => onRemove && onRemove(item.cartItemId)}
+                        onClick={() => onRemove && onRemove(item.cartItemId)}
                       >
                         <Trash2 />
                       </Button>
@@ -181,7 +181,7 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
         {/* Charge Button */}
         <Button
           size="lg"
-          onPointerDown={onCharge}
+          onClick={onCharge}
           disabled={items.length === 0}
           className="w-full text-lg"
         >

@@ -133,7 +133,7 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
         <div className="px-5 mb-5 flex gap-3 items-center">
           {/* Mobile Burger Menu Trigger */}
           <button
-            onPointerDown={onOpenMobileMenu}
+            onClick={onOpenMobileMenu}
             className="md:hidden p-2 -ml-2 rounded-lg text-gray-700 active:bg-gray-100 shrink-0 select-none"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
@@ -168,7 +168,7 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
             />
             {search ? (
               <button
-                onPointerDown={handleClearSearch}
+                onClick={handleClearSearch}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-gray-300 active:bg-gray-400 select-none"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
@@ -176,7 +176,7 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
               </button>
             ) : (
               <button
-                onPointerDown={() => setShowKeyboard(true)}
+                onClick={() => setShowKeyboard(true)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 p-1"
               >
                 <ScanLine className="h-5 w-5" />
@@ -197,7 +197,7 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
             {categories.map((cat) => (
               <button
                 key={cat.id}
-                onPointerDown={() => setActiveCategory(cat.id)}
+                onClick={() => setActiveCategory(cat.id)}
                 className={`
                   snap-start shrink-0 px-6 py-2.5 rounded-full font-bold text-[14px] whitespace-nowrap transition-colors select-none
                   ${activeCategory === cat.id 
@@ -242,7 +242,7 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
               return (
                 <button
                   key={product.id}
-                  onPointerDown={() => handleTap(product)}
+                  onClick={() => handleTap(product)}
                   className={`
                     relative bg-white rounded-2xl overflow-hidden shadow-sm border select-none transition-transform
                     ${tapped === product.id ? 'scale-[0.97] brightness-95' : ''}
@@ -296,7 +296,7 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
               </span>
             </div>
             <button
-              onPointerDown={() => setShowKeyboard(false)}
+              onClick={() => setShowKeyboard(false)}
               className="px-4 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-bold active:bg-blue-700 select-none"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
