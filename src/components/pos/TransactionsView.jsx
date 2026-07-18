@@ -416,32 +416,61 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                 
                 <div className="space-y-3">
                   {selectedOrder.order_items?.length > 0 ? (
-                    selectedOrder.order_items.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-gray-100 text-gray-600 font-bold flex items-center justify-center text-sm">
-                            {item.quantity}
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900 text-sm">
-                              {item.product_name}
-                              {item.order_item_variants && item.order_item_variants.length > 0 && (
-                                <span className="text-gray-500 font-normal"> ({item.order_item_variants[0].variant_option_name})</span>
-                              )}
-                            </p>
-                            {item.order_item_ingredients && item.order_item_ingredients.length > 0 && (
-                              <p className="text-[11px] text-gray-500 mt-0.5 leading-tight">
-                                + {item.order_item_ingredients.map(ing => ing.ingredient_name).join(', ')}
-                              </p>
+                    selectedOrder.order_items
+                      .filter(item => !item.parent_item_id)
+                      .map((item, idx) => {
+                        const childItems = selectedOrder.order_items.filter(child => child.parent_item_id === item.id);
+                        return (
+                          <div key={idx} className="py-2.5 border-b border-gray-50 last:border-0">
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-gray-100 text-gray-600 font-bold flex items-center justify-center text-sm">
+                                  {item.quantity}
+                                </div>
+                                <div>
+                                  <p className="font-medium text-gray-900 text-sm">
+                                    {item.product_name}
+                                    {item.order_item_variants && item.order_item_variants.length > 0 && (
+                                      <span className="text-gray-500 font-normal"> ({item.order_item_variants[0].variant_option_name})</span>
+                                    )}
+                                  </p>
+                                  {item.order_item_ingredients && item.order_item_ingredients.length > 0 && (
+                                    <p className="text-[11px] text-gray-500 mt-0.5 leading-tight">
+                                      + {item.order_item_ingredients.map(ing => ing.ingredient_name).join(', ')}
+                                    </p>
+                                  )}
+                                  <p className="text-xs text-gray-500 mt-0.5">${fmt(Math.round(item.unit_price * 1.19))} c/u</p>
+                                </div>
+                              </div>
+                              <span className="font-semibold text-gray-900 text-sm">
+                                ${fmt(Math.round(item.unit_price * 1.19) * item.quantity)}
+                              </span>
+                            </div>
+
+                            {/* Renderizar componentes del combo de forma anidada */}
+                            {childItems.length > 0 && (
+                              <div className="ml-11 mt-2 pl-3 border-l-2 border-gray-250 space-y-1">
+                                {childItems.map((child, cIdx) => (
+                                  <div key={cIdx} className="text-xs text-gray-500 font-medium">
+                                    <span className="font-bold text-gray-700">{child.quantity / item.quantity}x</span> {child.product_name}
+                                    {child.order_item_variants && child.order_item_variants.length > 0 && (
+                                      <span className="text-gray-400"> ({child.order_item_variants[0].variant_option_name})</span>
+                                    )}
+                                    {child.order_item_ingredients && child.order_item_ingredients.length > 0 && (
+                                      <span className="text-orange-500 ml-1">
+                                        (+ {child.order_item_ingredients.map(i => i.ingredient_name).join(', ')})
+                                      </span>
+                                    )}
+                                    {child.unit_price > 0 && (
+                                      <span className="text-gray-400 font-bold ml-1">(+${fmt(Math.round(child.unit_price * 1.19))})</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
                             )}
-                            <p className="text-xs text-gray-500 mt-0.5">${fmt(Math.round(item.unit_price * 1.19))} c/u</p>
                           </div>
-                        </div>
-                        <span className="font-semibold text-gray-900 text-sm">
-                          ${fmt(Math.round(item.unit_price * 1.19) * item.quantity)}
-                        </span>
-                      </div>
-                    ))
+                        );
+                      })
                   ) : (
                     <p className="text-gray-400 text-sm italic">Detalle de productos no disponible.</p>
                   )}

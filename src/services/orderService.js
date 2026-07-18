@@ -64,30 +64,29 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
 
     if (orderError) throw orderError;
 
-    // 4. Insert order items
-    const itemsToInsert = cartItems.map(item => ({
-      order_id: order.id,
-      product_id: item.productId || item.id,
-      product_name: item.name,
-      quantity: item.quantity,
-      unit_price: item.price,
-      total_price: item.price * item.quantity,
-    }));
+    // 4. Insert order items & their variants/ingredients
+    for (const item of cartItems) {
+      // Insert parent item
+      const { data: insertedItem, error: itemError } = await supabase
+        .from('order_items')
+        .insert({
+          order_id: order.id,
+          product_id: item.productId || item.id,
+          product_name: item.name,
+          quantity: item.quantity,
+          unit_price: item.price,
+          total_price: item.price * item.quantity,
+        })
+        .select()
+        .single();
 
-    const { data: insertedItems, error: itemsError } = await supabase
-      .from('order_items')
-      .insert(itemsToInsert)
-      .select();
+      if (itemError) throw itemError;
 
-    if (itemsError) throw itemsError;
-
-    // 4.1 Insert variants
-    const variantInserts = [];
-    cartItems.forEach((item, index) => {
+      // Insert parent variants
       if (item.variant) {
-        const insertedItem = insertedItems[index];
-        if (insertedItem) {
-          variantInserts.push({
+        const { error: variantError } = await supabase
+          .from('order_item_variants')
+          .insert({
             order_item_id: insertedItem.id,
             variant_group_id: item.variant.variant_group_id || null,
             variant_option_id: item.variant.id,
@@ -95,40 +94,77 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
             variant_option_name: item.variant.name,
             price_modifier: item.variant.price_modifier || 0
           });
-        }
+        if (variantError) console.error("Error inserting parent variant:", variantError);
       }
-    });
 
-    if (variantInserts.length > 0) {
-      const { error: variantError } = await supabase
-        .from('order_item_variants')
-        .insert(variantInserts);
-      if (variantError) console.error("Error inserting variants:", variantError);
-    }
-
-    // 4.2 Insert ingredients
-    const ingredientInserts = [];
-    cartItems.forEach((item, index) => {
+      // Insert parent ingredients
       if (item.selectedIngredients && item.selectedIngredients.length > 0) {
-        const insertedItem = insertedItems[index];
-        if (insertedItem) {
-          item.selectedIngredients.forEach(ing => {
-            ingredientInserts.push({
-              order_item_id: insertedItem.id,
+        const ingredientInserts = item.selectedIngredients.map(ing => ({
+          order_item_id: insertedItem.id,
+          ingredient_id: ing.id,
+          ingredient_name: ing.name,
+          price: ing.price || 0
+        }));
+        const { error: ingError } = await supabase
+          .from('order_item_ingredients')
+          .insert(ingredientInserts);
+        if (ingError) console.error("Error inserting parent ingredients:", ingError);
+      }
+
+      // If it is a bundle/combo, insert child options
+      if (item.type === 'bundle' && item.selectedOptions && item.selectedOptions.length > 0) {
+        for (const option of item.selectedOptions) {
+          const childQty = (option.quantity || 1) * item.quantity;
+          const childPrice = option.price || 0;
+          const { data: insertedChild, error: childError } = await supabase
+            .from('order_items')
+            .insert({
+              order_id: order.id,
+              product_id: option.productId || option.id,
+              product_name: option.name,
+              quantity: childQty,
+              unit_price: childPrice,
+              total_price: childPrice * childQty,
+              parent_item_id: insertedItem.id
+            })
+            .select()
+            .single();
+
+          if (childError) {
+            console.error("Error inserting child bundle option:", childError);
+            continue;
+          }
+
+          // Insert child variant (if any)
+          if (option.variant) {
+            const { error: variantError } = await supabase
+              .from('order_item_variants')
+              .insert({
+                order_item_id: insertedChild.id,
+                variant_group_id: option.variant.variant_group_id || null,
+                variant_option_id: option.variant.id,
+                variant_group_name: 'Variantes',
+                variant_option_name: option.variant.name,
+                price_modifier: option.variant.price_modifier || 0
+              });
+            if (variantError) console.error("Error inserting child variant:", variantError);
+          }
+
+          // Insert child ingredients (if any)
+          if (option.selectedIngredients && option.selectedIngredients.length > 0) {
+            const ingredientInserts = option.selectedIngredients.map(ing => ({
+              order_item_id: insertedChild.id,
               ingredient_id: ing.id,
               ingredient_name: ing.name,
               price: ing.price || 0
-            });
-          });
+            }));
+            const { error: ingError } = await supabase
+              .from('order_item_ingredients')
+              .insert(ingredientInserts);
+            if (ingError) console.error("Error inserting child ingredients:", ingError);
+          }
         }
       }
-    });
-
-    if (ingredientInserts.length > 0) {
-      const { error: ingError } = await supabase
-        .from('order_item_ingredients')
-        .insert(ingredientInserts);
-      if (ingError) console.error("Error inserting ingredients:", ingError);
     }
 
     // 5. Insert payment

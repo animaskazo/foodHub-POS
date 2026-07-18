@@ -6,6 +6,7 @@ import BottomNav from '../components/pos/BottomNav';
 import PaymentModal from '../components/pos/PaymentModal';
 import TransactionsView from '../components/pos/TransactionsView';
 import VariantSelectionModal from '../components/pos/VariantSelectionModal';
+import BundleSelectionModal from '../components/pos/BundleSelectionModal';
 import Modal from '../components/ui/Modal';
 import { NAV_ITEMS } from '../components/pos/BottomNav';
 import { X, LogOut, Menu } from 'lucide-react';
@@ -18,6 +19,8 @@ const PosView = () => {
   const [activeTab, setActiveTab] = useState('pago');
   const [selectedProductForVariant, setSelectedProductForVariant] = useState(null);
   const [editingCartItem, setEditingCartItem] = useState(null);
+  const [selectedProductForBundle, setSelectedProductForBundle] = useState(null);
+  const [editingBundleItem, setEditingBundleItem] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -60,6 +63,73 @@ const PosView = () => {
   };
 
   const handleProductClick = (product) => {
+    if (product.type === 'bundle') {
+      const hasChoices = product.bundleSlots?.some(slot => 
+        (slot.options?.length > 1) || 
+        slot.options?.some(opt => 
+          (opt.variants && opt.variants.length > 0 && !opt.variantId) || 
+          (opt.ingredients && opt.ingredients.some(i => i.isExtra))
+        )
+      );
+
+      if (!hasChoices) {
+        // Generar selecciones por defecto y agregar directamente calculando precios y variantes correctas
+        const baseNet = product.price || 0;
+        let totalGross = Math.round(baseNet * 1.19);
+
+        const defaultOptionsList = product.bundleSlots?.map(slot => {
+          const opt = slot.options?.find(o => o.isDefault) || slot.options?.[0];
+          if (!opt) return null;
+
+          const activeVariants = opt.variants?.filter(v => v.is_active) || [];
+          const lockedVariant = opt.variantId ? activeVariants.find(v => v.id === opt.variantId) : null;
+          const chosenVariant = lockedVariant || activeVariants.reduce((min, v) => {
+            if (!min) return v;
+            return (v.price_modifier || 0) < (min.price_modifier || 0) ? v : min;
+          }, null);
+
+          // Sumar modificadores al precio bruto
+          totalGross += Math.round((opt.priceModifier || 0) * 1.19);
+          if (chosenVariant) {
+            totalGross += Math.round((chosenVariant.price_modifier || 0) * 1.19);
+          }
+
+          let fullName = opt.name;
+          if (chosenVariant) {
+            fullName += ` (${chosenVariant.name})`;
+          }
+
+          const optPriceNet = (opt.priceModifier || 0) + (chosenVariant?.price_modifier || 0);
+
+          return {
+            slotId: slot.id,
+            slotName: slot.name,
+            optionId: opt.id,
+            productId: opt.productId,
+            name: fullName,
+            originalName: opt.name,
+            price: optPriceNet,
+            quantity: 1,
+            variant: chosenVariant,
+            selectedIngredients: []
+          };
+        }).filter(Boolean) || [];
+
+        const comboTotalNet = Math.round(totalGross / 1.19);
+
+        handleBundleSelect({
+          ...product,
+          price: comboTotalNet,
+          selectedOptions: defaultOptionsList,
+          editingItem: null
+        });
+        return;
+      }
+
+      setSelectedProductForBundle(product);
+      return;
+    }
+
     const hasVariants = product.variants && product.variants.length > 0 && product.variants.some(v => v.is_active);
     const hasExtras = product.ingredients && product.ingredients.length > 0 && product.ingredients.some(i => i.isExtra);
     
@@ -113,6 +183,60 @@ const PosView = () => {
     } else if (selectedProductForVariant) {
       addToCart(selectedProductForVariant, variant, ingredients);
       setSelectedProductForVariant(null);
+    }
+  };
+
+  const handleBundleSelect = (configuredBundle) => {
+    const { editingItem } = configuredBundle;
+    
+    // Generar un cartItemId único para esta configuración específica del combo.
+    const selectionsKey = configuredBundle.selectedOptions
+      .map(opt => {
+        const varId = opt.variant ? '-' + opt.variant.id : '';
+        const ingIds = opt.selectedIngredients?.map(i => i.id).sort().join(',') || '';
+        return `${opt.optionId}:${opt.productId}${varId}${ingIds ? '-ing-' + ingIds : ''}`;
+      })
+      .sort()
+      .join('|');
+
+    const cartItemId = `${configuredBundle.id}-bundle-${selectionsKey}`;
+
+    if (editingItem) {
+      setCartItems(prev => {
+        const withoutOld = prev.filter(i => i.cartItemId !== editingItem.cartItemId);
+        const existing = withoutOld.find(i => i.cartItemId === cartItemId);
+        
+        if (existing) {
+          return withoutOld.map(i =>
+            i.cartItemId === cartItemId ? { ...i, quantity: i.quantity + editingItem.quantity } : i
+          );
+        } else {
+          return [...withoutOld, { 
+            ...configuredBundle, 
+            cartItemId, 
+            productId: configuredBundle.id, 
+            quantity: editingItem.quantity
+          }];
+        }
+      });
+      setSelectedProductForBundle(null);
+      setEditingBundleItem(null);
+    } else {
+      setCartItems(prev => {
+        const existing = prev.find(i => i.cartItemId === cartItemId);
+        if (existing) {
+          return prev.map(i =>
+            i.cartItemId === cartItemId ? { ...i, quantity: i.quantity + 1 } : i
+          );
+        }
+        return [...prev, { 
+          ...configuredBundle, 
+          cartItemId, 
+          productId: configuredBundle.id, 
+          quantity: 1
+        }];
+      });
+      setSelectedProductForBundle(null);
     }
   };
 
@@ -219,6 +343,12 @@ const PosView = () => {
                 isMobile={true}
                 onCloseMobile={() => setIsMobileCartOpen(false)}
                 onItemClick={(item) => {
+                  if (item.type === 'bundle') {
+                    setSelectedProductForBundle(item);
+                    setEditingBundleItem(item);
+                    return;
+                  }
+                  
                   const hasVariants = item.variants && item.variants.length > 0 && item.variants.some(v => v.is_active);
                   const hasExtras = item.ingredients && item.ingredients.length > 0 && item.ingredients.some(i => i.isExtra);
                   if (hasVariants || hasExtras) {
@@ -319,6 +449,22 @@ const PosView = () => {
           handleRemove(cartItemId);
           setEditingCartItem(null);
           setSelectedProductForVariant(null);
+        }}
+      />
+
+      <BundleSelectionModal
+        isOpen={selectedProductForBundle !== null}
+        onClose={() => {
+          setSelectedProductForBundle(null);
+          setEditingBundleItem(null);
+        }}
+        product={selectedProductForBundle}
+        onConfirm={handleBundleSelect}
+        editingItem={editingBundleItem}
+        onDelete={(cartItemId) => {
+          handleRemove(cartItemId);
+          setEditingBundleItem(null);
+          setSelectedProductForBundle(null);
         }}
       />
 

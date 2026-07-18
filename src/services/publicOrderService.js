@@ -42,6 +42,7 @@ export const getPublicCatalog = async (organizationId) => {
         base_price,
         description,
         status,
+        type,
         product_categories (
           categories ( id, name )
         ),
@@ -53,6 +54,36 @@ export const getPublicCatalog = async (organizationId) => {
         product_ingredients (
           is_base, is_extra,
           ingredients ( id, name, price, is_active )
+        ),
+        bundle_slots (
+          id,
+          bundle_id,
+          name,
+          min_selections,
+          max_selections,
+          sort_order,
+          bundle_slot_options (
+            id,
+            bundle_slot_id,
+            product_id,
+            variant_id,
+            price_modifier,
+            is_default,
+            sort_order,
+            products (
+              id,
+              name,
+              base_price,
+              variant_groups (
+                id, name,
+                variant_options ( id, variant_group_id, name, price_modifier, is_active )
+              ),
+              product_ingredients (
+                is_base, is_extra,
+                ingredients ( id, name, price, is_active )
+              )
+            )
+          )
         )
       `)
       .eq('organization_id', organizationId)
@@ -71,11 +102,42 @@ export const getPublicCatalog = async (organizationId) => {
       ? p.variant_groups[p.variant_groups.length - 1]
       : null;
 
+    // Map bundle slots if they exist
+    const bundleSlots = p.bundle_slots?.length > 0
+      ? p.bundle_slots.map(slot => ({
+          id: slot.id,
+          name: slot.name,
+          minSelections: slot.min_selections,
+          maxSelections: slot.max_selections,
+          options: (slot.bundle_slot_options || []).map(opt => {
+            const prod = opt.products;
+            const pVariantGroup = prod?.variant_groups?.length > 0
+              ? prod.variant_groups[prod.variant_groups.length - 1]
+              : null;
+            return {
+              id: opt.id,
+              slotId: opt.bundle_slot_id,
+              productId: opt.product_id,
+              variantId: opt.variant_id || null,
+              name: prod?.name || '',
+              priceModifier: Number(opt.price_modifier || 0),
+              isDefault: opt.is_default,
+              variants: pVariantGroup?.variant_options?.filter(v => v.is_active) || [],
+              ingredients: (prod?.product_ingredients || []).map(pi => {
+                if (!pi.ingredients || !pi.ingredients.is_active) return null;
+                return { ...pi.ingredients, isBase: pi.is_base, isExtra: pi.is_extra };
+              }).filter(Boolean)
+            };
+          }).sort((a,b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
+        })).sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0))
+      : [];
+
     return {
       id: p.id,
       name: p.name,
       price: p.base_price,
       description: p.description,
+      type: p.type || 'physical',
       category: catInfo?.name || 'General',
       categoryId: catInfo?.id || 'none',
       image: p.product_images?.[0]?.url || null,
@@ -83,7 +145,8 @@ export const getPublicCatalog = async (organizationId) => {
       ingredients: (p.product_ingredients || []).map(pi => {
         if (!pi.ingredients || !pi.ingredients.is_active) return null;
         return { ...pi.ingredients, isBase: pi.is_base, isExtra: pi.is_extra };
-      }).filter(Boolean)
+      }).filter(Boolean),
+      bundleSlots
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
 

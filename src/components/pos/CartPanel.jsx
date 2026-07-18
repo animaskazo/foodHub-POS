@@ -63,7 +63,7 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
             {items.map((item) => {
               const hasVariants = item.variants && item.variants.length > 0 && item.variants.some(v => v.is_active);
               const hasExtras = item.ingredients && item.ingredients.length > 0 && item.ingredients.some(i => i.isExtra);
-              const hasOptions = hasVariants || hasExtras;
+              const hasOptions = item.type === 'bundle' || hasVariants || hasExtras;
               const baseIngredients = item.ingredients?.filter(i => i.isBase) || [];
               
               return (
@@ -88,6 +88,20 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
                           <span key={i.id} className="text-[10px] text-orange-600 font-bold bg-orange-100 px-1.5 py-0.5 rounded">
                             + {i.name}
                           </span>
+                        ))}
+                      </div>
+                    )}
+                    {item.type === 'bundle' && item.selectedOptions && item.selectedOptions.length > 0 && (
+                      <div className="mt-1.5 space-y-1 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                        {item.selectedOptions.map((opt, idx) => (
+                          <div key={idx} className="text-[11px] text-gray-600 font-medium">
+                            <span className="text-blue-500 font-bold">•</span> {opt.name}
+                            {opt.selectedIngredients && opt.selectedIngredients.length > 0 && (
+                              <span className="text-[10px] text-orange-600 font-semibold ml-1">
+                                (+ {opt.selectedIngredients.map(i => i.name).join(', ')})
+                              </span>
+                            )}
+                          </div>
                         ))}
                       </div>
                     )}

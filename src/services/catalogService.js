@@ -55,6 +55,7 @@ export const getProducts = async (organizationId, filters = {}) => {
       name,
       base_price,
       description,
+      type,
       status,
       product_categories (
         categories (
@@ -86,6 +87,47 @@ export const getProducts = async (organizationId, filters = {}) => {
           price,
           is_active
         )
+      ),
+      bundle_slots (
+        id,
+        name,
+        min_selections,
+        max_selections,
+        bundle_slot_options (
+          id,
+          product_id,
+          variant_id,
+          price_modifier,
+          is_default,
+          products (
+            id,
+            name,
+            base_price,
+            status,
+            variant_groups(
+              id,
+              name,
+              variant_options(
+                id,
+                variant_group_id,
+                name,
+                sku,
+                price_modifier,
+                is_active
+              )
+            ),
+            product_ingredients (
+              is_base,
+              is_extra,
+              ingredients (
+                id,
+                name,
+                price,
+                is_active
+              )
+            )
+          )
+        )
       )
     `)
     .eq('organization_id', organizationId);
@@ -113,6 +155,7 @@ export const getProducts = async (organizationId, filters = {}) => {
       name: product.name,
       price: product.base_price,
       description: product.description,
+      type: product.type || 'physical',
       category: categoryInfo?.name || 'General',
       categoryId: categoryInfo?.id || 'none',
       image: product.product_images?.[0]?.url || null,
@@ -125,7 +168,36 @@ export const getProducts = async (organizationId, filters = {}) => {
           isBase: pi.is_base !== false,
           isExtra: pi.is_extra === true
         };
-      }).filter(Boolean) || []
+      }).filter(Boolean) || [],
+      bundleSlots: product.bundle_slots?.map(slot => ({
+        id: slot.id,
+        name: slot.name,
+        minSelections: slot.min_selections,
+        maxSelections: slot.max_selections,
+        options: slot.bundle_slot_options?.map(opt => {
+          const optProd = opt.products;
+          const optVariants = optProd?.variant_groups?.[optProd.variant_groups.length - 1]?.variant_options || [];
+          return {
+            id: opt.id,
+            productId: opt.product_id,
+            variantId: opt.variant_id || null,
+            priceModifier: parseFloat(opt.price_modifier || 0),
+            isDefault: opt.is_default || false,
+            name: optProd?.name || '',
+            basePrice: optProd?.base_price || 0,
+            status: optProd?.status || 'available',
+            variants: optVariants,
+            ingredients: optProd?.product_ingredients?.map(pi => {
+              if (!pi.ingredients) return null;
+              return {
+                ...pi.ingredients,
+                isBase: pi.is_base !== false,
+                isExtra: pi.is_extra === true
+              };
+            }).filter(Boolean) || []
+          };
+        }) || []
+      })) || []
     };
   });
 
@@ -168,7 +240,7 @@ export const createProduct = async (organizationId, productData) => {
         base_price: productData.price || 0,
         sku: productData.sku || null,
         gtin: productData.gtin || null,
-        type: productData.type === 'Servicio' ? 'service' : 'physical',
+        type: productData.type === 'Servicio' ? 'service' : (productData.type === 'Combo / Promoción' || productData.type === 'bundle' ? 'bundle' : 'physical'),
         status: 'available'
       }
     ])
@@ -249,6 +321,47 @@ export const createProduct = async (organizationId, productData) => {
       if (ingError) console.error('Error assigning ingredients:', ingError);
     }
   }
+
+  // Guardar slots y opciones de combo
+  if ((productData.type === 'Combo / Promoción' || productData.type === 'bundle') && productData.bundleSlots && productData.bundleSlots.length > 0) {
+    for (const slot of productData.bundleSlots) {
+      const { data: insertedSlot, error: slotError } = await supabase
+        .from('bundle_slots')
+        .insert([{
+          bundle_id: product.id,
+          name: slot.name,
+          min_selections: slot.minSelections !== undefined ? slot.minSelections : (slot.min_selections || 1),
+          max_selections: slot.maxSelections !== undefined ? slot.maxSelections : (slot.max_selections || 1),
+          sort_order: slot.sort_order || 0
+        }])
+        .select()
+        .single();
+
+      if (slotError) {
+        console.error('Error creating bundle slot:', slotError);
+        continue;
+      }
+
+      if (slot.options && slot.options.length > 0) {
+        const optionsToInsert = slot.options.map(opt => ({
+          bundle_slot_id: insertedSlot.id,
+          product_id: opt.productId || opt.product_id,
+          variant_id: opt.variantId || opt.variant_id || null,
+          price_modifier: opt.priceModifier !== undefined ? opt.priceModifier : (opt.price_modifier || 0),
+          is_default: opt.isDefault !== undefined ? opt.isDefault : (opt.is_default || false),
+          sort_order: opt.sort_order || 0
+        }));
+
+        const { error: optsError } = await supabase
+          .from('bundle_slot_options')
+          .insert(optionsToInsert);
+
+        if (optsError) {
+          console.error('Error creating bundle slot options:', optsError);
+        }
+      }
+    }
+  }
   
   return product;
 };
@@ -302,6 +415,22 @@ export const getProductById = async (id) => {
         ingredient_id,
         is_base,
         is_extra
+      ),
+      bundle_slots (
+        id,
+        name,
+        min_selections,
+        max_selections,
+        bundle_slot_options (
+          id,
+          product_id,
+          variant_id,
+          price_modifier,
+          is_default,
+          products (
+            name
+          )
+        )
       )
     `)
     .eq('id', id)
@@ -323,6 +452,26 @@ export const getProductById = async (id) => {
     // Extraer ingredientes
     data.baseIngredients = data.product_ingredients?.filter(pi => pi.is_base !== false).map(pi => pi.ingredient_id) || [];
     data.extraIngredients = data.product_ingredients?.filter(pi => pi.is_extra === true).map(pi => pi.ingredient_id) || [];
+
+    // Extraer slots y opciones de combo
+    if (data.bundle_slots) {
+      data.bundleSlots = data.bundle_slots.map(slot => ({
+        id: slot.id,
+        name: slot.name,
+        minSelections: slot.min_selections,
+        maxSelections: slot.max_selections,
+        options: slot.bundle_slot_options?.map(opt => ({
+          id: opt.id,
+          productId: opt.product_id,
+          variantId: opt.variant_id || null,
+          priceModifier: parseFloat(opt.price_modifier || 0),
+          isDefault: opt.is_default || false,
+          name: opt.products?.name || ''
+        })) || []
+      }));
+    } else {
+      data.bundleSlots = [];
+    }
   }
   return data;
 };
@@ -336,7 +485,7 @@ export const updateProduct = async (id, productData) => {
       base_price: productData.price || 0,
       sku: productData.sku || null,
       gtin: productData.gtin || null,
-      type: productData.type === 'Servicio' ? 'service' : 'physical',
+      type: productData.type === 'Servicio' ? 'service' : (productData.type === 'Combo / Promoción' || productData.type === 'bundle' ? 'bundle' : 'physical'),
     })
     .eq('id', id)
     .select()
@@ -419,6 +568,52 @@ export const updateProduct = async (id, productData) => {
         .from('product_ingredients')
         .insert(ingredientsToInsert);
       if (ingError) console.error('Error updating ingredients:', ingError);
+    }
+  }
+
+  // Actualizar slots y opciones de combo
+  if (productData.type === 'Combo / Promoción' || productData.type === 'bundle' || productData.bundleSlots) {
+    // Eliminar slots actuales (elimina opciones en cascada)
+    await supabase.from('bundle_slots').delete().eq('bundle_id', id);
+
+    if (productData.bundleSlots && productData.bundleSlots.length > 0) {
+      for (const slot of productData.bundleSlots) {
+        const { data: insertedSlot, error: slotError } = await supabase
+          .from('bundle_slots')
+          .insert([{
+            bundle_id: id,
+            name: slot.name,
+            min_selections: slot.minSelections !== undefined ? slot.minSelections : (slot.min_selections || 1),
+            max_selections: slot.maxSelections !== undefined ? slot.maxSelections : (slot.max_selections || 1),
+            sort_order: slot.sort_order || 0
+          }])
+          .select()
+          .single();
+
+        if (slotError) {
+          console.error('Error creating bundle slot in update:', slotError);
+          continue;
+        }
+
+        if (slot.options && slot.options.length > 0) {
+          const optionsToInsert = slot.options.map(opt => ({
+            bundle_slot_id: insertedSlot.id,
+            product_id: opt.productId || opt.product_id,
+            variant_id: opt.variantId || opt.variant_id || null,
+            price_modifier: opt.priceModifier !== undefined ? opt.priceModifier : (opt.price_modifier || 0),
+            is_default: opt.isDefault !== undefined ? opt.isDefault : (opt.is_default || false),
+            sort_order: opt.sort_order || 0
+          }));
+
+          const { error: optsError } = await supabase
+            .from('bundle_slot_options')
+            .insert(optionsToInsert);
+
+          if (optsError) {
+            console.error('Error creating bundle slot options in update:', optsError);
+          }
+        }
+      }
     }
   }
 

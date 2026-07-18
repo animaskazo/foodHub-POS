@@ -244,12 +244,12 @@ const KitchenView = () => {
                 )}
               </div>
 
-              {/* ── Items list (Clean & unified style) ── */}
               <div className="flex-1 overflow-y-auto py-3 px-3 space-y-2.5 custom-scrollbar bg-zinc-950">
-                {order.order_items?.map((item) => {
+                {order.order_items?.filter(item => !item.parent_item_id).map((item) => {
+                  const childItems = order.order_items?.filter(child => child.parent_item_id === item.id) || [];
                   const variants = item.order_item_variants?.map(v => v.variant_option_name).join(', ');
                   const extras   = item.order_item_ingredients?.map(i => i.ingredient_name);
-                  const hasModifiers = variants || (extras && extras.length > 0) || item.notes;
+                  const hasModifiers = variants || (extras && extras.length > 0) || item.notes || childItems.length > 0;
                   return (
                     <div key={item.id} className="rounded-xl bg-zinc-900/60 border border-zinc-900 overflow-hidden">
                       {/* qty + image + name */}
@@ -275,7 +275,31 @@ const KitchenView = () => {
 
                       {/* modifiers block */}
                       {hasModifiers && (
-                        <div className="px-3.5 pb-3 pt-0.5 border-t border-zinc-900/40 space-y-2 text-[13px]">
+                        <div className="px-3.5 pb-3 pt-0.5 border-t border-zinc-900/40 space-y-2.5 text-[13px]">
+                          {/* Render combo child options first, clean and structured */}
+                          {childItems.length > 0 && (
+                            <div className="space-y-1.5 bg-black/30 p-2.5 rounded-lg border border-zinc-800/50">
+                              <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-extrabold select-none block mb-1">Componentes:</span>
+                              {childItems.map((child, cIdx) => {
+                                const childVars = child.order_item_variants?.map(v => v.variant_option_name).join(', ');
+                                const childExtras = child.order_item_ingredients?.map(i => i.ingredient_name);
+                                return (
+                                  <div key={cIdx} className="text-zinc-300 font-medium text-xs leading-normal">
+                                    <span className="text-emerald-400 font-bold">• {child.quantity / item.quantity}x</span> {child.product_name}
+                                    {childVars && (
+                                      <span className="text-zinc-500"> ({childVars})</span>
+                                    )}
+                                    {childExtras && childExtras.length > 0 && (
+                                      <span className="text-amber-500 ml-1 font-semibold">
+                                        (+ {childExtras.join(', ')})
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
                           {variants && (
                             <div className="flex items-baseline gap-1 text-zinc-400 font-medium">
                               <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-extrabold select-none shrink-0">Opción:</span>

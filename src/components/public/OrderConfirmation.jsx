@@ -98,31 +98,55 @@ const OrderConfirmation = ({ order, org }) => {
           {/* Order summary */}
           <div className="bg-white rounded-2xl border border-gray-100 p-4">
             <p className="font-bold text-gray-900 text-sm mb-3">Resumen de tu pedido</p>
-            <div className="space-y-2">
-              {items.map((item) => {
-                const variants = item.order_item_variants || [];
-                const ingredients = item.order_item_ingredients || [];
-                return (
-                  <div key={item.id} className="flex justify-between items-start text-sm">
-                    <div className="flex-1 min-w-0 mr-4">
-                      <span className="font-medium text-gray-800">
-                        {item.quantity}× {item.product_name}
-                      </span>
-                      {variants.length > 0 && (
-                        <span className="text-xs text-gray-500 ml-1.5 font-medium">
-                          ({variants.map(v => v.variant_option_name).join(', ')})
-                        </span>
-                      )}
-                      {ingredients.length > 0 && (
-                        <p className="text-xs text-gray-400">
-                          + {ingredients.map(i => i.ingredient_name).join(', ')}
-                        </p>
+            <div className="space-y-3">
+              {items
+                .filter(item => !item.parent_item_id)
+                .map((item) => {
+                  const childItems = items.filter(child => child.parent_item_id === item.id);
+                  const variants = item.order_item_variants || [];
+                  const ingredients = item.order_item_ingredients || [];
+                  return (
+                    <div key={item.id} className="py-1">
+                      <div className="flex justify-between items-start text-sm">
+                        <div className="flex-1 min-w-0 mr-4">
+                          <span className="font-bold text-gray-800">
+                            {item.quantity}× {item.product_name}
+                          </span>
+                          {variants.length > 0 && (
+                            <span className="text-xs text-gray-500 ml-1.5 font-medium">
+                              ({variants.map(v => v.variant_option_name).join(', ')})
+                            </span>
+                          )}
+                          {ingredients.length > 0 && (
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              + {ingredients.map(i => i.ingredient_name).join(', ')}
+                            </p>
+                          )}
+                        </div>
+                        <span className="font-semibold text-gray-900 shrink-0">${fmt(item.total_price)}</span>
+                      </div>
+
+                      {/* Renderizar componentes del combo del cliente */}
+                      {childItems.length > 0 && (
+                        <div className="ml-5 mt-1.5 pl-3 border-l border-gray-200 space-y-1">
+                          {childItems.map((child, cIdx) => (
+                            <div key={cIdx} className="text-xs text-gray-500 font-medium">
+                              <span className="font-bold text-gray-600">{child.quantity / item.quantity}x</span> {child.product_name}
+                              {child.order_item_variants && child.order_item_variants.length > 0 && (
+                                <span className="text-gray-400"> ({child.order_item_variants.map(v => v.variant_option_name).join(', ')})</span>
+                              )}
+                              {child.order_item_ingredients && child.order_item_ingredients.length > 0 && (
+                                <span className="text-orange-500 ml-1 font-semibold">
+                                  (+ {child.order_item_ingredients.map(i => i.ingredient_name).join(', ')})
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
-                    <span className="font-semibold text-gray-900 shrink-0">${fmt(item.total_price)}</span>
-                  </div>
-                );
-              })}
+                  );
+                })}
               <div className="pt-2 border-t border-gray-100 flex justify-between">
                 <span className="font-bold text-gray-900">Total</span>
                 <span className="font-black text-gray-900">${fmt(displayTotal)}</span>

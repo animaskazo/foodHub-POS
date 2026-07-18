@@ -160,6 +160,106 @@ La descripción debe sonar natural, tentar al cliente y no superar las 2 líneas
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
 
+    } else if (action === 'generate_image') {
+      const { productName, description, comboItems, geminiApiKey, imageDetails } = payload;
+      if (!productName) {
+        return new Response(JSON.stringify({ success: false, error: "Falta el parámetro productName" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const apiKeyToUse = geminiApiKey || Deno.env.get("GEMINI_API_KEY");
+      if (!apiKeyToUse) {
+        return new Response(JSON.stringify({ success: false, error: "No se proporcionó la API Key de Gemini" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      let imagePrompt = `A professional gourmet food photography of ${productName}`;
+      if (description) {
+        imagePrompt += `. ${description.replace(/["]/g, '')}`;
+      }
+      if (comboItems && comboItems.length > 0) {
+        imagePrompt += `. Placed next to: ${comboItems.join(', ')}`;
+      }
+      if (imageDetails) {
+        imagePrompt += `. Style/Details: ${imageDetails.replace(/["]/g, '')}`;
+      }
+      imagePrompt += `. Premium restaurant presentation, top-down clean food shot, beautiful color grading, studio lighting, hyper-realistic, extremely detailed`;
+
+      try {
+        let url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json"
+        };
+        
+        if (apiKeyToUse.startsWith("AIzaSy")) {
+          url += `?key=${apiKeyToUse}`;
+        } else {
+          headers["Authorization"] = `Bearer ${apiKeyToUse}`;
+        }
+
+        const geminiRes = await fetch(url, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: `Generate a detailed Stable Diffusion prompt in English to create a realistic food photo of: "${productName}". Description: "${description}". Combo items: "${comboItems.join(', ')}".${imageDetails ? ` Requested style details: "${imageDetails}".` : ''} Return ONLY the prompt text, no intro, no comments, no quotes.`
+                  }
+                ]
+              }
+            ]
+          })
+        });
+
+        if (geminiRes.ok) {
+          const resData = await geminiRes.json();
+          const responseText = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (responseText && responseText.trim()) {
+            imagePrompt = responseText.trim();
+          }
+        } else {
+          console.warn("Gemini API returned error:", geminiRes.status, await geminiRes.text());
+        }
+      } catch (geminiError) {
+        console.warn("Gemini request failed in edge function, using fallback prompt:", geminiError);
+      }
+
+      // Normalizar texto: remover acentos, eñes y caracteres especiales, y acortar la longitud del prompt
+      const cleanPrompt = imagePrompt.trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remueve acentos
+        .replace(/[^a-zA-Z0-9\s,._-]/g, "") // Mantener letras, números, espacios y signos básicos
+        .replace(/\.+$/, "") // Evitar punto final
+        .substring(0, 300); // Cortar para evitar URL excesiva
+
+      const encodedPrompt = encodeURIComponent(cleanPrompt);
+      const randomSeed = Math.floor(Math.random() * 999999999);
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=800&height=800&nologo=true&seed=${randomSeed}`;
+
+      const imageRes = await fetch(imageUrl);
+      if (!imageRes.ok) {
+        throw new Error(`Error al obtener imagen de Pollinations: ${imageRes.status}`);
+      }
+      
+      const arrayBuffer = await imageRes.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      let binary = '';
+      const len = uint8Array.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(uint8Array[i]);
+      }
+      const base64Image = btoa(binary);
+
+      return new Response(JSON.stringify({ success: true, imageBase64: base64Image, mimeType: 'image/jpeg' }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+
     } else {
       return new Response(JSON.stringify({ success: false, error: "Acción no soportada" }), {
         status: 200,

@@ -46,7 +46,22 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout 
                     </div>
                   )}
 
-                  {(item.variants?.length > 0 || item.ingredients?.some(i => i.isExtra)) && (
+                  {item.type === 'bundle' && item.selectedOptions && item.selectedOptions.length > 0 && (
+                    <div className="mt-1.5 space-y-1 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                      {item.selectedOptions.map((opt, idx) => (
+                        <div key={idx} className="text-[11px] text-gray-600 font-medium">
+                          <span className="text-blue-500 font-bold">•</span> {opt.name}
+                          {opt.selectedIngredients && opt.selectedIngredients.length > 0 && (
+                            <span className="text-[10px] text-orange-600 font-semibold ml-1">
+                              (+ {opt.selectedIngredients.map(i => i.name).join(', ')})
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {(item.type === 'bundle' || item.variants?.length > 0 || item.ingredients?.some(i => i.isExtra)) && (
                     <button
                       onClick={() => onEditItem(item)}
                       className="text-xs font-bold text-blue-600 hover:text-blue-700 mt-2.5 inline-flex items-center"

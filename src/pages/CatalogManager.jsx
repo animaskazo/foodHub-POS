@@ -3,7 +3,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, ChevronDown, ListFilter, Plus, MoreHorizontal, Sparkles, Trash2, FolderInput, CheckCircle, XCircle } from 'lucide-react';
+import { Search, ChevronDown, ListFilter, Plus, MoreHorizontal, Sparkles, Trash2, FolderInput, CheckCircle, XCircle, Tag } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getFirstOrganizationId, getProducts, getCategories, quickUpdateProductStatus, quickUpdateProductCategory, deleteProduct, bulkDeleteProducts, duplicateProduct, bulkUpdateProductCategory, bulkUpdateProductStatus } from '../services/catalogService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -26,6 +26,7 @@ const CatalogManager = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, mode: 'single', targetId: null, isDeleting: false });
   const [assignCategoryModal, setAssignCategoryModal] = useState({ isOpen: false, selectedCategory: 'none', isUpdating: false });
+  const [isTypeSelectionModalOpen, setIsTypeSelectionModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const toggleCategory = (catName) => {
@@ -209,7 +210,7 @@ const CatalogManager = () => {
             <Button variant="outline" className="rounded-full">
               Acciones <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
-            <Button className="rounded-full bg-black text-white hover:bg-gray-800" onClick={() => navigate('/products/new')}>
+            <Button className="rounded-full bg-black text-white hover:bg-gray-800" onClick={() => setIsTypeSelectionModalOpen(true)}>
               <Plus className="h-4 w-4 mr-2" /> Nuevo artículo
             </Button>
           </div>
@@ -427,6 +428,51 @@ const CatalogManager = () => {
           <Button className="rounded-full bg-black text-white hover:bg-gray-800" onClick={handleBulkAssignCategory} disabled={assignCategoryModal.isUpdating}>
             {assignCategoryModal.isUpdating ? "Asignando..." : "Asignar"}
           </Button>
+        </div>
+      </Modal>
+
+      {/* Modal de Selección del Tipo de Producto */}
+      <Modal
+        isOpen={isTypeSelectionModalOpen}
+        onClose={() => setIsTypeSelectionModalOpen(false)}
+        title="Crear nuevo artículo"
+      >
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-gray-500">Selecciona el tipo de artículo que deseas registrar en el catálogo:</p>
+          
+          <div className="grid grid-cols-1 gap-3">
+            <button
+              onClick={() => {
+                setIsTypeSelectionModalOpen(false);
+                navigate('/products/new?type=physical');
+              }}
+              className="flex items-start text-left p-4 border border-gray-200 rounded-2xl hover:border-black hover:bg-gray-50 transition-all gap-4 w-full cursor-pointer"
+            >
+              <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shrink-0">
+                <Tag className="h-6 w-6" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-gray-900">Producto Único</h4>
+                <p className="text-xs text-gray-500 mt-1 leading-relaxed">Registra un plato, bebida o servicio individual con variantes, ingredientes extra y control de inventario.</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                setIsTypeSelectionModalOpen(false);
+                navigate('/products/new?type=bundle');
+              }}
+              className="flex items-start text-left p-4 border border-gray-200 rounded-2xl hover:border-black hover:bg-gray-50 transition-all gap-4 w-full cursor-pointer"
+            >
+              <div className="p-3 bg-purple-50 text-purple-600 rounded-xl shrink-0">
+                <Plus className="h-6 w-6" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-gray-900">Producto Múltiple (Combo)</h4>
+                <p className="text-xs text-gray-500 mt-1 leading-relaxed">Crea una promoción, paquete o combo que contenga otros productos en su interior (ej: Pizza + Bebida).</p>
+              </div>
+            </button>
+          </div>
         </div>
       </Modal>
       </div>

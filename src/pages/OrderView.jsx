@@ -165,14 +165,16 @@ const OrderView = () => {
   // ── Cart operations ───────────────────────────────────────
   const handleAddItem = useCallback((product) => {
     setCartItems(prev => {
-      // Check if same product + same variant + same extras
+      // Check if same product + same variant + same extras + same combo options
       const variantId = product.variant?.id || null;
       const extraIds = (product.selectedIngredients || []).map(i => i.id).sort().join(',');
+      const optionIds = (product.selectedOptions || []).map(o => `${o.optionId}-${o.variant?.id || ''}-${(o.selectedIngredients || []).map(x => x.id).sort().join(',')}`).sort().join('|');
 
       const existing = prev.find(i =>
         i.id === product.id &&
         (i.variant?.id || null) === variantId &&
-        (i.selectedIngredients || []).map(x => x.id).sort().join(',') === extraIds
+        (i.selectedIngredients || []).map(x => x.id).sort().join(',') === extraIds &&
+        (i.selectedOptions || []).map(o => `${o.optionId}-${o.variant?.id || ''}-${(o.selectedIngredients || []).map(x => x.id).sort().join(',')}`).sort().join('|') === optionIds
       );
 
       if (existing) {
@@ -189,6 +191,7 @@ const OrderView = () => {
         quantity: product.quantity || 1,
         selectedIngredients: product.selectedIngredients || [],
         variant: product.variant || null,
+        selectedOptions: product.selectedOptions || null,
       }];
     });
   }, []);

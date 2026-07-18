@@ -9,7 +9,7 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
   const [tapped, setTapped] = useState(false);
   const hasVariants = product.variants?.length > 0;
   const hasExtras = product.ingredients?.some(i => i.isExtra);
-  const isConfigurable = hasVariants || hasExtras;
+  const isConfigurable = product.type === 'bundle' || hasVariants || hasExtras;
 
   const displayPrice = useMemo(() => {
     if (hasVariants) {
@@ -177,6 +177,36 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
     setSelectedProduct(product);
   };
 
+  const handleAddDirect = (p) => {
+    if (p.type === 'bundle') {
+      const defaultOptionsList = p.bundleSlots?.map(slot => {
+        const opt = slot.options?.find(o => o.isDefault) || slot.options?.[0];
+        if (!opt) return null;
+        return {
+          slotId: slot.id,
+          slotName: slot.name,
+          optionId: opt.id,
+          productId: opt.productId,
+          name: opt.name,
+          originalName: opt.name,
+          price: opt.priceModifier || 0,
+          quantity: 1,
+          variant: null,
+          selectedIngredients: []
+        };
+      }).filter(Boolean) || [];
+
+      onAddItem({
+        ...p,
+        quantity: 1,
+        price: p.price,
+        selectedOptions: defaultOptionsList
+      });
+    } else {
+      onAddItem({ ...p, quantity: 1, selectedIngredients: [], variant: null });
+    }
+  };
+
   const scrollCategoryIntoView = (catId) => {
     if (catRefs.current[catId] && catBarRef.current) {
       catRefs.current[catId].scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
@@ -310,7 +340,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                           quantity={cartInfoMap[p.id]?.quantity || 0}
                           cartItemId={cartInfoMap[p.id]?.cartItemId || null}
                           onAdd={handleProductTap}
-                          onAddDirect={() => onAddItem({ ...p, quantity: 1, selectedIngredients: [], variant: null })}
+                          onAddDirect={() => handleAddDirect(p)}
                           onUpdateQty={onUpdateQty}
                           onRemoveItem={onRemoveItem}
                         />
@@ -333,7 +363,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                         quantity={cartInfoMap[p.id]?.quantity || 0}
                         cartItemId={cartInfoMap[p.id]?.cartItemId || null}
                         onAdd={handleProductTap}
-                        onAddDirect={() => onAddItem({ ...p, quantity: 1, selectedIngredients: [], variant: null })}
+                        onAddDirect={() => handleAddDirect(p)}
                         onUpdateQty={onUpdateQty}
                         onRemoveItem={onRemoveItem}
                       />
