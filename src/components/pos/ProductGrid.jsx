@@ -187,13 +187,13 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
 
         {/* Category Tabs */}
         {loading ? (
-          <div className="flex px-5 gap-3 opacity-50 overflow-hidden">
+          <div className="flex ml-4 px-5 gap-3 opacity-50 overflow-hidden">
             <div className="h-10 w-24 bg-gray-200 rounded-full animate-pulse shrink-0"></div>
             <div className="h-10 w-28 bg-gray-200 rounded-full animate-pulse shrink-0"></div>
             <div className="h-10 w-20 bg-gray-200 rounded-full animate-pulse shrink-0"></div>
           </div>
         ) : (
-          <div className="flex px-5 gap-3 overflow-x-auto no-scrollbar snap-x relative">
+          <div className="flex ml-4 px-5 gap-3 overflow-x-auto no-scrollbar snap-x relative">
             {categories.map((cat) => (
               <button
                 key={cat.id}
