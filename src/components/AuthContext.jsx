@@ -7,6 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [organization, setOrganization] = useState(null);
+  const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         setIsSuperAdmin(false);
         setOrganization(null);
+        setRole(null);
       }
       
       setLoading(false);
@@ -47,12 +49,17 @@ export const AuthProvider = ({ children }) => {
       try {
         const { data } = await supabase
           .from('staff')
-          .select('organizations ( id, name )')
+          .select('organizations ( id, name ), role')
           .eq('id', userId)
           .single();
         
-        if (data && data.organizations) {
-          setOrganization(data.organizations);
+        if (data) {
+          if (data.organizations) {
+            setOrganization(data.organizations);
+          }
+          if (data.role) {
+            setRole(data.role);
+          }
         }
       } catch (err) {
         console.error('Error fetching org:', err);
@@ -74,6 +81,7 @@ export const AuthProvider = ({ children }) => {
         } else {
           setIsSuperAdmin(false);
           setOrganization(null);
+          setRole(null);
         }
       }
     );
@@ -82,7 +90,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isSuperAdmin, organization, loading }}>
+    <AuthContext.Provider value={{ user, isSuperAdmin, organization, role, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );

@@ -19,11 +19,12 @@ import {
   Users
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import FeedbackBubble from './FeedbackBubble';
 
 const Layout = () => {
   const [isProductsOpen, setIsProductsOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, role } = useAuth();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -226,6 +227,7 @@ const Layout = () => {
 
         <Outlet />
       </main>
+      {(isSuperAdmin || role === 'owner') && <FeedbackBubble />}
     </div>
   );
 };

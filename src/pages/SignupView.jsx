@@ -41,7 +41,8 @@ const SignupView = () => {
         options: {
           data: {
             full_name: formData.name,
-          }
+          },
+          emailRedirectTo: window.location.origin
         }
       });
 
