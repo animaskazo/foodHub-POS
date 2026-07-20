@@ -246,13 +246,10 @@ const OrderView = () => {
           throw new Error(error?.message || data?.error || 'Error al iniciar pago con Klap');
         }
 
-        if (window.KLAP_FLEX && data.klap_order_id) {
-          window.KLAP_FLEX.init({
-            orderId: data.klap_order_id,
-            useModal: true
-          });
-        } else {
+        if (data.redirect_url) {
           window.location.href = data.redirect_url;
+        } else {
+          throw new Error('Klap no retornó una URL de pago válida');
         }
         return; 
       }
