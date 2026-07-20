@@ -62,10 +62,9 @@ serve(async (req) => {
         "apikey": apiKey
       },
       body: JSON.stringify({
-        // Klap no permite reutilizar el mismo reference_id en múltiples intentos de pago.
-        // Agregamos un timestamp para garantizar que cada intento sea único, 
-        // evitando el error engañoso "Conflicts creating order".
+        // Klap no permite reutilizar el mismo reference_id en múltiples intentos.
         reference_id: `${orderId}-${Date.now()}`,
+        generate_token: "optional",
         description: `Pago de Orden ${orderId}`,
         amount: {
           currency: "CLP",
@@ -77,11 +76,14 @@ serve(async (req) => {
           cancel_url: cancelUrl
         },
         webhooks: {
-          webhook_confirm: "https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/klap-webhook",
-          webhook_reject: "https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/klap-webhook"
+          webhook_confirm: "https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/klap-webhook?event=confirm",
+          webhook_reject:  "https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/klap-webhook?event=reject"
         },
         customs: [
-          { key: "tarjetas_expiration_minutes", value: "30" }
+          { key: "tarjetas_expiration_minutes",  value: "30" },
+          { key: "tarjetas_payment_indicator",   value: "typed" },
+          { key: "notify_payment_user",          value: "true" },
+          { key: "notify_payment_merchant",      value: "true" }
         ]
       })
     });

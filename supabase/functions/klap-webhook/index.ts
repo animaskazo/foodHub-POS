@@ -49,13 +49,12 @@ serve(async (req) => {
       }
     }
 
-    // ── Determinar si es confirm o reject por el path de la URL ──────────────
-    // Klap llama al webhook_confirm o webhook_reject según el resultado.
-    // Usamos el path de la request URL para distinguirlo.
+    // ── Determinar si es confirm o reject ────────────────────────────────────
+    // Usamos el query param ?event= que enviamos al crear la orden en Klap,
+    // o como fallback miramos si el payload trae payment_method (solo en confirm)
     const url = new URL(req.url);
-    const isConfirm = url.pathname.includes("confirm") || !!payment_method;
-    // (Fallback: si el payload trae payment_method es una confirmación;
-    //  si trae code/message es un rechazo)
+    const eventParam = url.searchParams.get("event"); // "confirm" | "reject"
+    const isConfirm = eventParam === "confirm" || (!eventParam && !!payment_method);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
