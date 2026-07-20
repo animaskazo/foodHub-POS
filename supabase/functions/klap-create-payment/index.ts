@@ -47,6 +47,7 @@ serve(async (req) => {
         // Agregamos un timestamp para garantizar que cada intento sea único, 
         // evitando el error engañoso "Conflicts creating order".
         reference_id: `${orderId}-${Date.now()}`,
+        description: `Pago de Orden ${orderId}`,
         amount: {
           currency: "CLP",
           total: amount
