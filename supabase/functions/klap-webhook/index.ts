@@ -1,38 +1,110 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
 
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   try {
     const payload = await req.json();
-    
-    // Klap envía notificación. 
-    const { reference_id } = payload;
-    
-    if (!reference_id) {
-      return new Response("Invalid payload", { status: 400 });
+    console.log("Klap Webhook Payload recibido:", JSON.stringify(payload, null, 2));
+
+    const { order_id, reference_id, code, message, amount, payment_method } = payload;
+
+    if (!reference_id || !order_id) {
+      console.error("Payload inválido: faltan order_id o reference_id");
+      return new Response(JSON.stringify({ status: "error", message: "Invalid payload" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    // ── Verificar autenticidad del webhook ────────────────────────────────────
+    // Klap envía un header 'Apikey' = sha256(reference_id + order_id + private_apikey)
+    const privateApiKey = Deno.env.get("KLAP_API_KEY") || "mKaTZ4yBm3rVFapqNctziKCvXsjD6fDO";
+    const receivedApikey = req.headers.get("Apikey") || req.headers.get("apikey") || "";
+
+    if (receivedApikey) {
+      const rawKey = reference_id + order_id + privateApiKey;
+      const encoded = new TextEncoder().encode(rawKey);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
+      const hashHex = Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("");
+
+      if (hashHex !== receivedApikey) {
+        console.error("Webhook: Apikey no válida. Recibida:", receivedApikey, "Esperada:", hashHex);
+        return new Response(JSON.stringify({ status: "error", message: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+    }
+
+    // ── Determinar si es confirm o reject por el path de la URL ──────────────
+    // Klap llama al webhook_confirm o webhook_reject según el resultado.
+    // Usamos el path de la request URL para distinguirlo.
+    const url = new URL(req.url);
+    const isConfirm = url.pathname.includes("confirm") || !!payment_method;
+    // (Fallback: si el payload trae payment_method es una confirmación;
+    //  si trae code/message es un rechazo)
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Si llegó a webhook_confirm, significa que fue autorizado.
-    // Marcar orden como pagada
-    // Extraemos el UUID original de la orden (los primeros 5 segmentos separados por guion)
+    // Extraer el UUID original de la orden desde reference_id
+    // El reference_id se genera como `${orderId}-${Date.now()}`, entonces
+    // los primeros 5 segmentos separados por guion forman el UUID v4.
     const orderId = reference_id.split('-').slice(0, 5).join('-');
 
-    const { error } = await supabase
-      .from('payments')
-      .update({ status: 'paid', paid_at: new Date().toISOString() })
-      .eq('order_id', orderId)
-      .eq('method', 'online');
+    if (isConfirm) {
+      // ── Pago exitoso: marcar como pagado ──
+      console.log(`Klap CONFIRM: orden ${orderId} | klap_order: ${order_id} | monto: ${amount}`);
 
-    if (error) throw error;
+      const { error } = await supabase
+        .from('payments')
+        .update({
+          status: 'paid',
+          paid_at: new Date().toISOString(),
+          gateway_order_id: order_id,
+        })
+        .eq('order_id', orderId)
+        .eq('method', 'online_gateway');
 
-    return new Response("OK", { status: 200 });
+      if (error) {
+        console.error("Error actualizando pago:", error);
+        throw error;
+      }
+
+      console.log(`Orden ${orderId} marcada como pagada exitosamente.`);
+    } else {
+      // ── Pago rechazado: solo registrar en logs ──
+      console.log(`Klap REJECT: orden ${orderId} | code: ${code} | message: ${message}`);
+      // Aquí podrías actualizar el estado de la orden a 'rejected' si quisieras.
+    }
+
+    // Klap requiere respuesta JSON entre 200-299 dentro de 10 segundos
+    return new Response(JSON.stringify({ status: "ok" }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
 
   } catch (error) {
     console.error("Webhook error:", error.message);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    // Responder 200 igual para evitar que Klap haga refund automático por error de servidor
+    return new Response(JSON.stringify({ status: "error", message: error.message }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
   }
 });
+

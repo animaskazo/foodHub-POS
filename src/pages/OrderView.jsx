@@ -140,7 +140,7 @@ const OrderView = () => {
               cartItems: pendingCart,
               customer: customerForm.customer,
               notes: customerForm.notes,
-              paymentMethod: 'online',
+              paymentMethod: 'online_gateway',
               paymentStatus: 'paid'
             });
             
@@ -222,7 +222,7 @@ const OrderView = () => {
         }, 0);
 
         const tempOrderId = crypto.randomUUID();
-        const returnUrl = encodeURI(window.location.origin + `/order/${slug}?orderId=${tempOrderId}&status=success`);
+        const returnUrl = window.location.origin + `/order/${slug}?orderId=${tempOrderId}&status=success`;
         
         // Save pending order locally
         localStorage.setItem(`pending_order_${slug}`, JSON.stringify({
@@ -238,12 +238,21 @@ const OrderView = () => {
           totalAmount
         }));
 
+        console.log('[Klap Debug] Sending:', { orderId: tempOrderId, amount: totalAmount, returnUrl });
+
         const { data, error } = await supabase.functions.invoke('klap-create-payment', {
           body: { orderId: tempOrderId, amount: totalAmount, returnUrl }
         });
 
+        console.log('[Klap Debug] Response data:', JSON.stringify(data));
+        console.log('[Klap Debug] Response error:', error);
+
         if (error || !data?.success) {
-          throw new Error(error?.message || data?.error || 'Error al iniciar pago con Klap');
+          // Mostrar el detalle exacto de Klap para diagnóstico
+          const klapDetails = data?.details ? JSON.stringify(data.details) : '';
+          const errMsg = `${data?.error || error?.message || 'Error desconocido'}${klapDetails ? ` | Klap: ${klapDetails}` : ''}`;
+          console.error('[Klap Debug] Full error:', errMsg);
+          throw new Error(errMsg);
         }
 
         if (data.redirect_url) {

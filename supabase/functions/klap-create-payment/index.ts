@@ -22,16 +22,35 @@ serve(async (req) => {
       });
     }
 
-    // Asegurar que la URL sea válida para Klap (Klap acepta localhost en Sandbox, pero requiere https para producción)
-    let validReturnUrl = encodeURI((returnUrl || "").trim());
-    if (!validReturnUrl || (!validReturnUrl.startsWith('https://') && !validReturnUrl.startsWith('http://localhost') && !validReturnUrl.startsWith('http://127.0.0.1'))) {
-        // Fallback obligatorio para otros entornos no seguros
-        validReturnUrl = "https://food-admin.digital-solutions.work"; 
-    }
+    // ── Construir URLs de retorno internamente ────────────────────────────────
+    // Klap requiere URLs https:// públicas. No confiamos en el returnUrl del cliente
+    // ya que puede ser localhost en desarrollo.
+    // El cliente envía el returnUrl como referencia para extraer el slug y el orderId.
+    const rawReturnUrl = (returnUrl || "").trim();
     
-    // Klap cancel_url será la misma que la returnUrl pero con status=error 
-    // para que el frontend detecte el rechazo de forma unificada.
-    const cleanCancelUrl = validReturnUrl.replace('status=success', 'status=error');
+    // Extraer el slug del returnUrl del cliente (ej: "pizza-nostra" de "/order/pizza-nostra")
+    let slug = "";
+    try {
+      const urlObj = new URL(rawReturnUrl);
+      const match = urlObj.pathname.match(/\/order\/([^/?]+)/);
+      if (match) slug = match[1];
+    } catch { /* ignore */ }
+
+    // Usar APP_URL del entorno, o la URL de producción por defecto
+    const appBaseUrl = (Deno.env.get("APP_URL") || "https://food-admin.digital-solutions.work").replace(/\/$/, "");
+    
+    const validReturnUrl = slug
+      ? `${appBaseUrl}/order/${slug}?orderId=${orderId}&status=success`
+      : `${appBaseUrl}?orderId=${orderId}&status=success`;
+
+    const cancelUrl = slug
+      ? `${appBaseUrl}/order/${slug}?orderId=${orderId}&status=error`
+      : `${appBaseUrl}?status=error`;
+
+    console.log("return_url →", validReturnUrl);
+    console.log("cancel_url →", cancelUrl);
+
+
 
     const apiKey = Deno.env.get("KLAP_API_KEY") || "mKaTZ4yBm3rVFapqNctziKCvXsjD6fDO";
 
@@ -55,7 +74,7 @@ serve(async (req) => {
         methods: ["tarjetas"],
         urls: {
           return_url: validReturnUrl,
-          cancel_url: cleanCancelUrl
+          cancel_url: cancelUrl
         },
         webhooks: {
           webhook_confirm: "https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/klap-webhook",
@@ -67,12 +86,18 @@ serve(async (req) => {
       })
     });
 
-    const data = await klapResponse.json();
+    const responseText = await klapResponse.text();
+    console.log("Klap HTTP Status:", klapResponse.status);
+    console.log("Klap Raw Response:", responseText);
+
+    let data: any;
+    try { data = JSON.parse(responseText); } catch { data = { raw: responseText }; }
 
     if (!klapResponse.ok) {
       console.error("Error desde Klap:", data);
-      return new Response(JSON.stringify({ error: "Error al crear pago en Klap", details: data }), {
-        status: 400,
+      // Retornamos 200 con success:false para que el cliente pueda leer el error
+      return new Response(JSON.stringify({ success: false, error: "Error al crear pago en Klap", details: data }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
@@ -81,8 +106,9 @@ serve(async (req) => {
     const redirectUrl = data.payment_url || data.url || data.redirect_url;
 
     if (!redirectUrl) {
-      return new Response(JSON.stringify({ error: "Klap no retornó una URL de redirección válida", data }), {
-        status: 500,
+      console.error("Klap no retornó redirect_url. Data:", data);
+      return new Response(JSON.stringify({ success: false, error: "Klap no retornó una URL de redirección válida", data }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
