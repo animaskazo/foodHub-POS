@@ -53,8 +53,8 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
         const activeCatIds = activeCats.map(c => c.id);
         
         const activeProds = prods.filter(p => {
-          if (!p.product_categories || p.product_categories.length === 0) return true; // uncategorized
-          return p.product_categories.some(pc => activeCatIds.includes(pc.category_id));
+          if (p.categoryId === 'none') return true; // uncategorized
+          return activeCatIds.includes(p.categoryId);
         });
         
         setCategories([{ id: 'all', name: 'Todos' }, ...activeCats]);
@@ -64,6 +64,56 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
     };
     loadCatalog();
   }, []);
+
+  const renderProductCard = (product) => {
+    const qty = getCartQty(product.id);
+    const hasImage = !!product.image;
+    const activeVariants = product.variants?.filter(v => v.is_active) || [];
+    const hasVariants = activeVariants.length > 0;
+    const displayPrice = hasVariants
+      ? activeVariants.reduce((min, v) => {
+          const price = product.price + (v.price_modifier || 0);
+          return price < min ? price : min;
+        }, Infinity)
+      : product.price;
+    
+    return (
+      <button
+        key={product.id}
+        onClick={() => handleTap(product)}
+        className={`
+          relative bg-white rounded-2xl overflow-hidden shadow-sm border select-none transition-transform
+          ${tapped === product.id ? 'scale-[0.97] brightness-95' : ''}
+          ${qty > 0 ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200'}
+        `}
+        style={{ aspectRatio: '1/1', WebkitTapHighlightColor: 'transparent' }}
+      >
+        {qty > 0 && (
+          <div className="absolute top-2 right-2 bg-blue-600 text-white font-bold text-sm w-7 h-7 rounded-full flex items-center justify-center z-10 shadow-sm border-2 border-white">
+            {qty}
+          </div>
+        )}
+        
+        {hasImage ? (
+          <div className="absolute inset-0">
+            <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+          </div>
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent"></div>
+          </div>
+        )}
+
+        <div className="absolute inset-x-0 bottom-0 p-3 text-white text-left z-10">
+          <p className="font-semibold text-sm leading-tight line-clamp-2">{product.name}</p>
+          <p className="text-xs mt-0.5 opacity-90 font-medium">
+            {hasVariants ? 'Desde ' : ''}${Math.round(displayPrice * 1.19).toLocaleString('es-CL')}
+          </p>
+        </div>
+      </button>
+    );
+  };
 
   const filtered = products.filter(p => {
     const matchesCategory = activeCategory === 'all' || p.categoryId === activeCategory;
@@ -233,58 +283,34 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
             <p className="font-medium text-lg">No se encontraron artículos</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filtered.map((product) => {
-              const qty = getCartQty(product.id);
-              // Fallback placeholder pattern for products without images
-              const hasImage = !!product.image;
-              const activeVariants = product.variants?.filter(v => v.is_active) || [];
-              const hasVariants = activeVariants.length > 0;
-              const displayPrice = hasVariants
-                ? activeVariants.reduce((min, v) => {
-                    const price = product.price + (v.price_modifier || 0);
-                    return price < min ? price : min;
-                  }, Infinity)
-                : product.price;
-              
-              return (
-                <button
-                  key={product.id}
-                  onClick={() => handleTap(product)}
-                  className={`
-                    relative bg-white rounded-2xl overflow-hidden shadow-sm border select-none transition-transform
-                    ${tapped === product.id ? 'scale-[0.97] brightness-95' : ''}
-                    ${qty > 0 ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200'}
-                  `}
-                  style={{ aspectRatio: '1/1', WebkitTapHighlightColor: 'transparent' }}
-                >
-                  {/* Badge de cantidad */}
-                  {qty > 0 && (
-                    <div className="absolute top-2 right-2 bg-blue-600 text-white font-bold text-sm w-7 h-7 rounded-full flex items-center justify-center z-10 shadow-sm border-2 border-white">
-                      {qty}
+          <div>
+            {activeCategory === 'all' ? (
+              (() => {
+                const grouped = filtered.reduce((acc, p) => {
+                  const cat = categories.find(c => c.id === p.categoryId)?.name || 'General';
+                  if (!acc[cat]) acc[cat] = [];
+                  acc[cat].push(p);
+                  return acc;
+                }, {});
+                const sortedCats = Object.keys(grouped).sort((a, b) => {
+                  if (a === 'General') return 1;
+                  if (b === 'General') return -1;
+                  return a.localeCompare(b);
+                });
+                return sortedCats.map(catName => (
+                  <div key={catName} className="mb-8">
+                    <h3 className="font-bold text-[17px] text-gray-900 mb-4 px-1">{catName}</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {grouped[catName].map(renderProductCard)}
                     </div>
-                  )}
-                  
-                  {hasImage ? (
-                    <div className="absolute inset-0">
-                      <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                    </div>
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200">
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent"></div>
-                    </div>
-                  )}
-
-                  <div className="absolute inset-x-0 bottom-0 p-3 text-white text-left z-10">
-                    <p className="font-semibold text-sm leading-tight line-clamp-2">{product.name}</p>
-                    <p className="text-xs mt-0.5 opacity-90 font-medium">
-                      {hasVariants ? 'Desde ' : ''}${Math.round(displayPrice * 1.19).toLocaleString('es-CL')}
-                    </p>
                   </div>
-                </button>
-              );
-            })}
+                ));
+              })()
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filtered.map(renderProductCard)}
+              </div>
+            )}
           </div>
         )}
       </div>

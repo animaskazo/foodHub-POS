@@ -30,7 +30,7 @@ export const getFirstOrganizationId = async () => {
 export const getCategories = async (organizationId) => {
   const { data, error } = await supabase
     .from('categories')
-    .select('id, name, is_active, image_url, product_categories(product_id)')
+    .select('id, name, is_active, image_url, show_in_pos, show_online, show_in_whatsapp, product_categories(product_id)')
     .eq('organization_id', organizationId)
     .order('name');
     

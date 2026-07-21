@@ -119,7 +119,7 @@ const SuperAdminView = () => {
   const fetchProducts = async () => {
     const { data, error } = await supabase
       .from('products')
-      .select('id, name, sku, base_price, status, organization_id')
+      .select('id, name, sku, base_price, status, organization_id, product_images(url)')
       .order('name');
     if (!error && data) setProducts(data);
   };
@@ -435,7 +435,13 @@ const SuperAdminView = () => {
                         <tr key={prod.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <Package className="h-5 w-5 text-gray-400" />
+                              {prod.product_images?.[0]?.url ? (
+                                <img src={prod.product_images[0].url} alt={prod.name} className="h-10 w-10 rounded-lg object-cover bg-gray-100 border border-gray-200" />
+                              ) : (
+                                <div className="h-10 w-10 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
+                                  <Package className="h-5 w-5 text-gray-400" />
+                                </div>
+                              )}
                               <span className="font-medium text-gray-900">{prod.name}</span>
                             </div>
                           </td>
