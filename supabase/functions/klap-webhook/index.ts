@@ -43,7 +43,7 @@ serve(async (req) => {
       if (hashHex !== receivedApikey) {
         console.error("Webhook: Apikey no válida. Recibida:", receivedApikey, "Esperada:", hashHex);
         return new Response(JSON.stringify({ status: "error", message: "Unauthorized" }), {
-          status: 401,
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }

@@ -1,6 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const KAPSO_API_URL = "https://api.kapso.io/v1/messages";
 const KAPSO_API_KEY = Deno.env.get("KAPSO_API_KEY");
 
 const CORS = {
@@ -60,8 +59,8 @@ Deno.serve(async (req) => {
     let customerName = record.customer_name ? record.customer_name.split(" ")[0] : "";
     const greeting = customerName ? `¡Hola, ${customerName}! 👋` : "¡Hola! 👋";
     
-    let instructions = "Ya puedes pasar a retirarlo.";
-    if (record.order_type === "online" || record.order_type === "whatsapp") {
+    let instructions = "Ya puedes pasar a retirarlo por el local.";
+    if (record.order_type === "online") {
       instructions = "En breve te contactarán para la entrega.";
     } else if (record.order_type === "table") {
       instructions = "En breve te lo llevaremos a la mesa.";
@@ -71,14 +70,16 @@ Deno.serve(async (req) => {
 
     // Enviar a Kapso
     if (KAPSO_API_KEY) {
-      const res = await fetch(KAPSO_API_URL, {
+      const kapsoUrl = `https://api.kapso.ai/meta/whatsapp/v24.0/${org.whatsapp_phone_number_id}/messages`;
+      const res = await fetch(kapsoUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${KAPSO_API_KEY}`,
+          "X-API-Key": KAPSO_API_KEY,
         },
         body: JSON.stringify({
-          phone_number_id: org.whatsapp_phone_number_id,
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
           to: record.customer_phone,
           type: "text",
           text: {

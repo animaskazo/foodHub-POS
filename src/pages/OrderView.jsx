@@ -132,23 +132,17 @@ const OrderView = () => {
         const status = searchParams.get('status');
         
         if (orderId && status === 'success') {
-          const pendingData = localStorage.getItem(`pending_order_${slug}`);
-          if (pendingData) {
-            const { cartItems: pendingCart, customerForm } = JSON.parse(pendingData);
-            const order = await createPublicOrder({
-              organizationId: orgData.id,
-              cartItems: pendingCart,
-              customer: customerForm.customer,
-              notes: customerForm.notes,
-              paymentMethod: 'online_gateway',
-              paymentStatus: 'paid'
-            });
-            
-            setSubmittedOrder({ id: orderId, order_number: order.order_number });
+          const { getPublicOrderById } = await import('../services/publicOrderService');
+          const orderData = await getPublicOrderById(orderId);
+          if (orderData) {
+            setSubmittedOrder(orderData);
             setCartItems([]);
             localStorage.removeItem(`cart_${slug}`);
-            localStorage.removeItem(`pending_order_${slug}`);
-            window.history.replaceState({}, '', `/order/${slug}?orderId=${orderId}&orderNumber=${order.order_number}&status=success`);
+            setStep(4); // Move to confirmation step
+            // Clean URL to prevent re-fetching on refresh
+            window.history.replaceState({}, '', `/order/${slug}`);
+          } else {
+            setError('No se pudo cargar la información del pedido.');
           }
         }
         
@@ -211,44 +205,35 @@ const OrderView = () => {
   }, []);
 
   // ── Checkout ──────────────────────────────────────────────
-  const handleCheckout = async (customerForm) => {
     setIsSubmitting(true);
     try {
+      // First, create the order in the database with status pending
+      const order = await createPublicOrder({
+        organizationId: org.id,
+        cartItems,
+        customer: {
+          name: customerForm.name,
+          phone: customerForm.phone,
+          email: customerForm.email,
+        },
+        notes: customerForm.notes,
+        paymentMethod: customerForm.paymentMethod === 'online' ? 'online_gateway' : 'cash',
+        paymentStatus: 'pending'
+      });
+
       if (customerForm.paymentMethod === 'online') {
-        const totalAmount = cartItems.reduce((acc, item) => {
-          const itemGross = Math.round(item.price * 1.19);
-          const extrasGross = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
-          return acc + (itemGross + extrasGross) * item.quantity;
-        }, 0);
-
-        const tempOrderId = crypto.randomUUID();
-        const returnUrl = window.location.origin + `/order/${slug}?orderId=${tempOrderId}&status=success`;
+        const returnUrl = window.location.origin + `/order/${slug}?orderId=${order.id}&status=success`;
         
-        // Save pending order locally
-        localStorage.setItem(`pending_order_${slug}`, JSON.stringify({
-          cartItems,
-          customerForm: {
-            customer: {
-              name: customerForm.name,
-              phone: customerForm.phone,
-              email: customerForm.email,
-            },
-            notes: customerForm.notes
-          },
-          totalAmount
-        }));
-
-        console.log('[Klap Debug] Sending:', { orderId: tempOrderId, amount: totalAmount, returnUrl });
+        console.log('[Klap Debug] Sending:', { orderId: order.id, amount: order.total, returnUrl });
 
         const { data, error } = await supabase.functions.invoke('klap-create-payment', {
-          body: { orderId: tempOrderId, amount: totalAmount, returnUrl }
+          body: { orderId: order.id, amount: order.total, returnUrl }
         });
 
         console.log('[Klap Debug] Response data:', JSON.stringify(data));
         console.log('[Klap Debug] Response error:', error);
 
         if (error || !data?.success) {
-          // Mostrar el detalle exacto de Klap para diagnóstico
           const klapDetails = data?.details ? JSON.stringify(data.details) : '';
           const errMsg = `${data?.error || error?.message || 'Error desconocido'}${klapDetails ? ` | Klap: ${klapDetails}` : ''}`;
           console.error('[Klap Debug] Full error:', errMsg);
@@ -263,20 +248,7 @@ const OrderView = () => {
         return; 
       }
 
-      // Offline flow
-      const order = await createPublicOrder({
-        organizationId: org.id,
-        cartItems,
-        customer: {
-          name: customerForm.name,
-          phone: customerForm.phone,
-          email: customerForm.email,
-        },
-        notes: customerForm.notes,
-        paymentMethod: 'cash',
-        paymentStatus: 'pending'
-      });
-
+      // Offline flow: order is already created above, just show confirmation
       setSubmittedOrder(order);
       setCartItems([]);
       localStorage.removeItem(`cart_${slug}`);
