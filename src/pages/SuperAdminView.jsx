@@ -67,7 +67,7 @@ const SuperAdminView = () => {
   const fetchOrganizations = async () => {
     const { data, error: fetchError } = await supabase
       .from('organizations')
-      .select('id, name, created_at, orders(total)')
+      .select('id, name, slug, created_at, orders(total)')
       .order('created_at', { ascending: false });
 
     if (fetchError) throw fetchError;
@@ -78,6 +78,7 @@ const SuperAdminView = () => {
       return {
         id: org.id,
         name: org.name,
+        slug: org.slug,
         createdAt: org.created_at,
         orderCount: ordersArray.length,
         totalSales: totalSales,
@@ -240,10 +241,22 @@ const SuperAdminView = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-3xl font-bold text-gray-900">{selectedOrganization.name}</h2>
-                  <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
-                    <Calendar className="h-4 w-4" /> 
-                    Registrado el {new Date(selectedOrganization.createdAt).toLocaleDateString()}
-                  </p>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 mt-2">
+                    <p className="text-sm text-gray-500 flex items-center gap-1.5">
+                      <Calendar className="h-4 w-4 text-gray-400" /> 
+                      Registrado el {new Date(selectedOrganization.createdAt).toLocaleDateString()}
+                    </p>
+                    
+                    <a 
+                      href={`/order/${selectedOrganization.slug || encodeURIComponent(selectedOrganization.name)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md transition-colors w-fit"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      Ver eCommerce
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
