@@ -197,30 +197,8 @@ async function processMessage(
           const totalAmount = confirmData.total ?? cartSnapshot.reduce((s, i) => s + i.unit_price * i.quantity, 0);
           const total = money(totalAmount);
 
-          // Generar link de pago Klap
+          // Generar link de pago Klap (temporalmente deshabilitado)
           let paymentLinkMsg = "";
-          if (confirmData.order_id) {
-            try {
-              const klapRes = await fetch("https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/klap-create-payment", {
-                method: "POST",
-                headers: { 
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`
-                },
-                body: JSON.stringify({
-                  orderId: confirmData.order_id,
-                  amount: totalAmount,
-                  returnUrl: `https://food-admin.digital-solutions.work/order/${session.org_slug}?orderId=${confirmData.order_id}&status=success`
-                })
-              });
-              const klapData = await klapRes.json();
-              if (klapData.redirect_url) {
-                paymentLinkMsg = `\n💳 *Paga en línea aquí:*\n${klapData.redirect_url}\n`;
-              }
-            } catch (e) {
-              console.error("Error generando link de pago Klap:", e);
-            }
-          }
 
           replyText =
             `✅ *Pedido confirmado*\n` +

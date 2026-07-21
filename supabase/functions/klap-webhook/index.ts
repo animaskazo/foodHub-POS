@@ -74,7 +74,7 @@ serve(async (req) => {
         .update({
           status: 'paid',
           paid_at: new Date().toISOString(),
-          gateway_order_id: order_id,
+          reference_code: order_id,
           method: 'online_gateway'
         })
         .eq('order_id', orderId);

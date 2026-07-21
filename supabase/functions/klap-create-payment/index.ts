@@ -64,7 +64,6 @@ serve(async (req) => {
       body: JSON.stringify({
         // Klap no permite reutilizar el mismo reference_id en múltiples intentos.
         reference_id: `${orderId}-${Date.now()}`,
-        generate_token: "optional",
         description: `Pago de Orden ${orderId}`,
         amount: {
           currency: "CLP",
@@ -80,10 +79,7 @@ serve(async (req) => {
           webhook_reject:  "https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/klap-webhook?event=reject"
         },
         customs: [
-          { key: "tarjetas_expiration_minutes",  value: "30" },
-          { key: "tarjetas_payment_indicator",   value: "typed" },
-          { key: "notify_payment_user",          value: "true" },
-          { key: "notify_payment_merchant",      value: "true" }
+          { key: "tarjetas_expiration_minutes", value: "30" }
         ]
       })
     });

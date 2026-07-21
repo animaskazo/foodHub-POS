@@ -268,8 +268,8 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                           </span>
                         ) : (
                           <span 
-                            title={order.payments?.find(p => p.gateway_order_id)?.gateway_order_id ? `ID Klap: ${order.payments.find(p => p.gateway_order_id).gateway_order_id}` : ''}
-                            className={`inline-flex items-center px-2.5 py-1 bg-green-100 text-green-700 rounded-lg font-bold text-xs ${order.payments?.find(p => p.gateway_order_id) ? 'cursor-help' : ''}`}
+                            title={order.payments?.find(p => p.reference_code)?.reference_code ? `ID Klap: ${order.payments.find(p => p.reference_code).reference_code}` : ''}
+                            className={`inline-flex items-center px-2.5 py-1 bg-green-100 text-green-700 rounded-lg font-bold text-xs ${order.payments?.find(p => p.reference_code) ? 'cursor-help' : ''}`}
                           >
                             Pagado
                           </span>
@@ -277,8 +277,8 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                       </td>
                       <td className="px-6 py-4">
                         <span 
-                          title={order.payments?.find(p => p.gateway_order_id)?.gateway_order_id ? `ID Klap: ${order.payments.find(p => p.gateway_order_id).gateway_order_id}` : ''}
-                          className={`inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs ${order.payments?.find(p => p.gateway_order_id) ? 'cursor-help border border-blue-200' : ''}`}
+                          title={order.payments?.find(p => p.reference_code)?.reference_code ? `ID Klap: ${order.payments.find(p => p.reference_code).reference_code}` : ''}
+                          className={`inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs ${order.payments?.find(p => p.reference_code) ? 'cursor-help border border-blue-200' : ''}`}
                         >
                           {getPaymentMethod(order)}
                         </span>

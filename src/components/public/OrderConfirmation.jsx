@@ -65,6 +65,11 @@ const OrderConfirmation = ({ order, org }) => {
           <div className="inline-block bg-green-50 text-green-700 px-3.5 py-1 rounded-full font-black text-lg border border-green-200">
             ${fmt(displayTotal)}
           </div>
+          <div className="text-xs text-left mt-4 text-red-500 max-w-full overflow-hidden break-all">
+            DEBUG: order={JSON.stringify(order)}
+            <br/>
+            dbOrder={JSON.stringify(dbOrder)}
+          </div>
         </div>
 
         {/* Info cards */}
