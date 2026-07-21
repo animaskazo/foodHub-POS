@@ -213,7 +213,10 @@ export const createCategory = async (organizationId, categoryData) => {
       { 
         organization_id: organizationId,
         name: categoryData.name,
-        is_active: categoryData.posEnabled !== false,
+        is_active: true, // global switch, kept true by default
+        show_in_pos: categoryData.show_in_pos !== false,
+        show_online: categoryData.show_online !== false,
+        show_in_whatsapp: categoryData.show_in_whatsapp !== false,
         image_url: categoryData.imageUrl || null
       }
     ])
@@ -223,6 +226,19 @@ export const createCategory = async (organizationId, categoryData) => {
     console.error('Error creating category:', error);
     throw error;
   }
+  
+  const categoryId = data[0].id;
+  
+  // Assign items if provided
+  if (categoryData.items && categoryData.items.length > 0) {
+    const pcData = categoryData.items.map(productId => ({
+      product_id: productId,
+      category_id: categoryId
+    }));
+    const { error: pcError } = await supabase.from('product_categories').insert(pcData);
+    if (pcError) console.error('Error linking products to category:', pcError);
+  }
+  
   return data[0];
 };
 
@@ -369,7 +385,10 @@ export const createProduct = async (organizationId, productData) => {
 export const getCategoryById = async (id) => {
   const { data, error } = await supabase
     .from('categories')
-    .select('*')
+    .select(`
+      *,
+      product_categories(product_id)
+    `)
     .eq('id', id)
     .single();
     
@@ -382,13 +401,32 @@ export const updateCategory = async (id, categoryData) => {
     .from('categories')
     .update({ 
       name: categoryData.name,
-      is_active: categoryData.posEnabled !== false,
+      show_in_pos: categoryData.show_in_pos !== false,
+      show_online: categoryData.show_online !== false,
+      show_in_whatsapp: categoryData.show_in_whatsapp !== false,
       image_url: categoryData.imageUrl || null
     })
     .eq('id', id)
     .select();
     
   if (error) throw error;
+  
+  // Update items if provided
+  if (categoryData.items) {
+    // Delete all current associations for this category
+    await supabase.from('product_categories').delete().eq('category_id', id);
+    
+    // Insert new ones
+    if (categoryData.items.length > 0) {
+      const pcData = categoryData.items.map(productId => ({
+        product_id: productId,
+        category_id: id
+      }));
+      const { error: pcError } = await supabase.from('product_categories').insert(pcData);
+      if (pcError) console.error('Error linking products to category:', pcError);
+    }
+  }
+
   return data[0];
 };
 

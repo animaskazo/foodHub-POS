@@ -49,8 +49,16 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
         const cats = await getCategories(orgId);
         const prods = await getProducts(orgId, { status: 'available' });
         
-        setCategories([{ id: 'all', name: 'Todos' }, ...cats]);
-        setProducts(prods);
+        const activeCats = cats.filter(c => c.show_in_pos !== false && c.is_active !== false);
+        const activeCatIds = activeCats.map(c => c.id);
+        
+        const activeProds = prods.filter(p => {
+          if (!p.product_categories || p.product_categories.length === 0) return true; // uncategorized
+          return p.product_categories.some(pc => activeCatIds.includes(pc.category_id));
+        });
+        
+        setCategories([{ id: 'all', name: 'Todos' }, ...activeCats]);
+        setProducts(activeProds);
       }
       setLoading(false);
     };

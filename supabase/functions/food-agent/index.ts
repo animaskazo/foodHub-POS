@@ -26,7 +26,16 @@ async function getContext(slug: string) {
   const branches = await db(`branches?organization_id=eq.${organization.id}&is_active=eq.true&select=id,name,accepts_online`);
   const branch = branches.find((item: { accepts_online: boolean }) => item.accepts_online) || branches[0];
   if (!branch) throw new Error("Este negocio no tiene una sucursal activa.");
-  const products: Product[] = await db(`products?organization_id=eq.${organization.id}&is_active=eq.true&status=eq.available&select=id,name,description,base_price,status,is_active&order=name.asc`);
+  
+  const categories = await db(`categories?organization_id=eq.${organization.id}&is_active=eq.true&show_in_whatsapp=eq.true&select=id`);
+  const activeCatIds = categories.map((c: any) => c.id);
+  
+  const rawProducts = await db(`products?organization_id=eq.${organization.id}&is_active=eq.true&status=eq.available&select=id,name,description,base_price,status,is_active,product_categories(category_id)&order=name.asc`);
+  const products: Product[] = rawProducts.filter((p: any) => 
+    !p.product_categories?.length || 
+    p.product_categories.some((pc: any) => activeCatIds.includes(pc.category_id))
+  );
+
   const ids = products.map((product) => product.id);
   const variants = ids.length ? await db(`variant_groups?product_id=in.(${ids.join(",")})&select=id,product_id,name,is_required,variant_options(id,name,price_modifier,is_active)`) : [];
   const ingredients = ids.length ? await db(`product_ingredients?product_id=in.(${ids.join(",")})&select=product_id,ingredients(name)`) : [];

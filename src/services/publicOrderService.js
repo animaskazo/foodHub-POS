@@ -30,9 +30,11 @@ export const getPublicCatalog = async (organizationId) => {
   const [categoriesResult, productsResult] = await Promise.all([
     supabase
       .from('categories')
-      .select('id, name, image_url')
+      .select('id, name, image_url, sort_order, parent_id, is_active, show_online')
       .eq('organization_id', organizationId)
       .eq('is_active', true)
+      .eq('show_online', true)
+      .order('sort_order')
       .order('name'),
     supabase
       .from('products')
@@ -148,7 +150,8 @@ export const getPublicCatalog = async (organizationId) => {
       }).filter(Boolean),
       bundleSlots
     };
-  }).sort((a, b) => a.name.localeCompare(b.name));
+  }).filter(p => p.categoryId === 'none' || categories.some(c => c.id === p.categoryId))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return { categories, products };
 };
