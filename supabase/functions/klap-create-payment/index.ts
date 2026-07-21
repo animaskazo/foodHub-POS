@@ -75,8 +75,8 @@ serve(async (req) => {
           cancel_url: cancelUrl
         },
         webhooks: {
-          webhook_confirm: "https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/klap-webhook?event=confirm",
-          webhook_reject:  "https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/klap-webhook?event=reject"
+          webhook_confirm: "https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/klap-webhook",
+          webhook_reject:  "https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/klap-webhook"
         },
         customs: [
           { key: "tarjetas_expiration_minutes", value: "30" }
