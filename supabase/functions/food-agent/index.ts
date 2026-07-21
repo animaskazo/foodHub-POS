@@ -129,7 +129,10 @@ async function confirmOrder(cart: unknown, customer: any, context: Awaited<Retur
   await db("order_items", { method: "POST", body: JSON.stringify(orderItems) });
   const variants = items.flatMap((item, index) => item.options.map((selected: any) => ({ order_item_id: "", itemIndex: index, variant_group_id: selected.group.id, variant_option_id: selected.option.id, variant_group_name: selected.group.name, variant_option_name: selected.option.name, price_modifier: toNumber(selected.option.price_modifier) })));
   if (variants.length) { const createdItems = await db(`order_items?order_id=eq.${order.id}&select=id,product_id&order=created_at.asc`); const rows = variants.map(({ itemIndex, ...variant }: any) => ({ ...variant, order_item_id: createdItems[itemIndex]?.id })).filter((variant: any) => variant.order_item_id); if (rows.length) await db("order_item_variants", { method: "POST", body: JSON.stringify(rows) }); }
-  return { order_number: order.order_number, total: grossTotal };
+  
+  await db("payments", { method: "POST", body: JSON.stringify({ order_id: order.id, method: "cash", status: "pending", amount: grossTotal }) });
+
+  return { order_id: order.id, order_number: order.order_number, total: grossTotal };
 }
 
 Deno.serve(async (request) => {

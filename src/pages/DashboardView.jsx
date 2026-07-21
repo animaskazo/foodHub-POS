@@ -650,9 +650,22 @@ const DashboardView = () => {
                   <span>${fmt(selectedOrder.tax_amount || 0)}</span>
                 </div>
               </div>
-              <div className="flex justify-between items-center text-lg font-black text-gray-900 pt-4 border-t border-gray-200">
-                <span>Total</span>
-                <span>${fmt(selectedOrder.total || 0)}</span>
+              <div className="flex justify-between items-center text-lg pt-4 border-t border-gray-200">
+                <div>
+                  <span className="font-bold text-gray-900 text-lg">Total</span>
+                  {selectedOrder.payments?.some(p => p.status === 'pending') && (
+                    <button
+                      onClick={() => {
+                        setPendingPaymentOrder(selectedOrder);
+                        setIsPaymentConfirmOpen(true);
+                      }}
+                      className="ml-4 px-4 py-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white rounded-lg font-bold text-sm transition-colors shadow-sm"
+                    >
+                      Marcar como Pagado
+                    </button>
+                  )}
+                </div>
+                <span className="font-black text-gray-900">${fmt(selectedOrder.total || 0)}</span>
               </div>
             </div>
           </div>
