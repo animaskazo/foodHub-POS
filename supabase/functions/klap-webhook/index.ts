@@ -42,7 +42,7 @@ serve(async (req) => {
 
       if (hashHex !== receivedApikey) {
         console.error("Webhook: Apikey no válida. Recibida:", receivedApikey, "Esperada:", hashHex);
-        return new Response(JSON.stringify({ status: "error", message: "Unauthorized" }), {
+        return new Response(JSON.stringify({ status: "ok", message: "Unauthorized (ignored to prevent refund)" }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
@@ -81,10 +81,10 @@ serve(async (req) => {
 
       if (error) {
         console.error("Error actualizando pago:", error);
-        throw error;
+        // Do not throw error, we must return status: "ok" so Klap doesn't refund.
+      } else {
+        console.log(`Orden ${orderId} marcada como pagada exitosamente.`);
       }
-
-      console.log(`Orden ${orderId} marcada como pagada exitosamente.`);
     } else {
       // ── Pago rechazado: solo registrar en logs ──
       console.log(`Klap REJECT: orden ${orderId} | code: ${code} | message: ${message}`);
@@ -99,8 +99,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Webhook error:", error.message);
-    // Responder 200 igual para evitar que Klap haga refund automático por error de servidor
-    return new Response(JSON.stringify({ status: "error", message: error.message }), {
+    // Responder 200 y status: "ok" SIEMPRE para evitar que Klap haga refund automático
+    return new Response(JSON.stringify({ status: "ok", message: "Caught error but returning ok" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
