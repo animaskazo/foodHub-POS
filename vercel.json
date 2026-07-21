@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/food-agent-test.html",
+      "destination": "/food-agent-test.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
