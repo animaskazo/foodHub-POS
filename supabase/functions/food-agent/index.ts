@@ -113,8 +113,6 @@ async function confirmOrder(cart: unknown, customer: any, context: Awaited<Retur
   const netTotal = items.reduce((sum, item) => sum + item.netUnitPrice * item.quantity, 0);
   const grossTotal = Math.round(netTotal * (1 + taxRate));
   const taxAmount = grossTotal - netTotal;
-
-  const orderNumber = `WEB-${Date.now().toString().slice(-8)}`;
   
   const custQuery = await db(`customers?organization_id=eq.${context.organization.id}&phone=eq.${encodeURIComponent(phone)}&select=id`);
   let customerId = custQuery?.[0]?.id;
@@ -125,7 +123,7 @@ async function confirmOrder(cart: unknown, customer: any, context: Awaited<Retur
     await db(`customers?id=eq.${customerId}`, { method: "PATCH", body: JSON.stringify({ full_name: customerName }) });
   }
 
-  const orderRows = await db("orders", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ organization_id: context.organization.id, branch_id: context.branch.id, customer_id: customerId || null, order_type: orderType, order_number: orderNumber, status: "pending", customer_name: customerName, customer_phone: phone, notes: text(customer?.notes).slice(0, 280), subtotal: netTotal, tax_amount: taxAmount, total: grossTotal }) });
+  const orderRows = await db("orders", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ organization_id: context.organization.id, branch_id: context.branch.id, customer_id: customerId || null, order_type: orderType, status: "pending", customer_name: customerName, customer_phone: phone, notes: text(customer?.notes).slice(0, 280), subtotal: netTotal, tax_amount: taxAmount, total: grossTotal }) });
   const order = orderRows[0];
   const orderItems = items.map((item) => ({ order_id: order.id, product_id: item.product.id, product_name: item.product.name, quantity: item.quantity, unit_price: item.netUnitPrice, total_price: item.netUnitPrice * item.quantity, notes: item.notes || null }));
   await db("order_items", { method: "POST", body: JSON.stringify(orderItems) });

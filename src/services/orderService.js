@@ -27,22 +27,7 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
     const branchId = branchData.id;
 
     // 2. Generate an order number sequentially per branch
-    const { data: lastOrder } = await supabase
-      .from('orders')
-      .select('order_number')
-      .eq('branch_id', branchId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    let nextNumber = 0;
-    if (lastOrder && lastOrder.order_number) {
-      const parsed = parseInt(lastOrder.order_number, 10);
-      if (!isNaN(parsed)) {
-        nextNumber = parsed + 1;
-      }
-    }
-    const orderNumber = nextNumber.toString().padStart(4, '0');
+    // (Handled automatically by database trigger `set_order_number_trigger`)
 
     // 3. Insert order
     const { data: order, error: orderError } = await supabase
@@ -52,7 +37,6 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
           organization_id: organizationId,
           branch_id: branchId,
           order_type: orderType,
-          order_number: orderNumber,
           status: 'confirmed', 
           subtotal: subtotal,
           tax_amount: tax,

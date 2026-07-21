@@ -166,22 +166,7 @@ export const createPublicOrder = async ({ organizationId, cartItems, customer, n
 
   if (branchError || !branch) throw new Error('No se encontró una sucursal activa.');
 
-  // Generate order number
-  const { data: lastOrder } = await supabase
-    .from('orders')
-    .select('order_number')
-    .eq('branch_id', branch.id)
-    .not('order_number', 'ilike', 'WEB-%')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  let nextNumber = 1;
-  if (lastOrder?.order_number) {
-    const parsed = parseInt(lastOrder.order_number.replace(/\D/g, ''), 10);
-    if (!isNaN(parsed)) nextNumber = parsed + 1;
-  }
-  const orderNumber = nextNumber.toString().padStart(4, '0');
+  // Database trigger `set_order_number_trigger` will automatically generate the order_number
 
   // Calculate totals (all prices already include IVA for display)
   const total = cartItems.reduce((acc, item) => {
@@ -201,7 +186,6 @@ export const createPublicOrder = async ({ organizationId, cartItems, customer, n
       organization_id: organizationId,
       branch_id: branch.id,
       order_type: 'online',
-      order_number: orderNumber,
       status: 'confirmed',
       customer_name: customer.name,
       customer_phone: customer.phone || null,
