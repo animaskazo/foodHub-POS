@@ -75,9 +75,9 @@ serve(async (req) => {
           status: 'paid',
           paid_at: new Date().toISOString(),
           gateway_order_id: order_id,
+          method: 'online_gateway'
         })
-        .eq('order_id', orderId)
-        .eq('method', 'online_gateway');
+        .eq('order_id', orderId);
 
       if (error) {
         console.error("Error actualizando pago:", error);

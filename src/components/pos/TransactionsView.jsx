@@ -228,7 +228,7 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                       onClick={() => handleOpenModal(order)}
                       className="border-b border-gray-50 hover:bg-gray-50 transition-colors text-sm cursor-pointer active:bg-gray-100"
                     >
-                      <td className="px-6 py-4 font-semibold text-gray-900">#{order.order_number}</td>
+                      <td className="px-6 py-4 font-semibold text-gray-900">{order.order_number}</td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
                           <span className="font-medium text-gray-900 leading-tight">
@@ -267,13 +267,19 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                             Pendiente
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2.5 py-1 bg-green-100 text-green-700 rounded-lg font-bold text-xs">
+                          <span 
+                            title={order.payments?.find(p => p.gateway_order_id)?.gateway_order_id ? `ID Klap: ${order.payments.find(p => p.gateway_order_id).gateway_order_id}` : ''}
+                            className={`inline-flex items-center px-2.5 py-1 bg-green-100 text-green-700 rounded-lg font-bold text-xs ${order.payments?.find(p => p.gateway_order_id) ? 'cursor-help' : ''}`}
+                          >
                             Pagado
                           </span>
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs">
+                        <span 
+                          title={order.payments?.find(p => p.gateway_order_id)?.gateway_order_id ? `ID Klap: ${order.payments.find(p => p.gateway_order_id).gateway_order_id}` : ''}
+                          className={`inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs ${order.payments?.find(p => p.gateway_order_id) ? 'cursor-help border border-blue-200' : ''}`}
+                        >
                           {getPaymentMethod(order)}
                         </span>
                       </td>
@@ -308,7 +314,7 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                 >
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-gray-900 text-lg">#{order.order_number}</span>
+                      <span className="font-bold text-gray-900 text-lg">{order.order_number}</span>
                       <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md font-medium">
                         {getPaymentMethod(order)}
                       </span>

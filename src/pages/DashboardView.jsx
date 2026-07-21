@@ -381,7 +381,7 @@ const DashboardView = () => {
                       onClick={() => handleOpenModal(order)}
                       className="border-b border-gray-50 hover:bg-gray-50 transition-colors text-sm cursor-pointer active:bg-gray-100 group"
                     >
-                      <td className="px-6 py-4 font-semibold text-gray-900">#{order.order_number}</td>
+                      <td className="px-6 py-4 font-semibold text-gray-900">{order.order_number}</td>
                       <td className="px-6 py-4">
                         {order.customer_name ? (
                           <div className="flex flex-col gap-1">
@@ -422,13 +422,16 @@ const DashboardView = () => {
                         })()}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs">
+                        <span 
+                          title={order.payments?.find(p => p.gateway_order_id)?.gateway_order_id ? `ID Klap: ${order.payments.find(p => p.gateway_order_id).gateway_order_id}` : ''}
+                          className={`inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs ${order.payments?.find(p => p.gateway_order_id) ? 'cursor-help border border-blue-200' : ''}`}
+                        >
                           {getPaymentMethod(order)}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right font-bold text-gray-900">${fmt(order.total || 0)}</td>
                       <td className="px-6 py-4 text-center">
-                        {order.order_type === 'online' && (() => {
+                        {['online', 'whatsapp'].includes(order.order_type) && (() => {
                           const hasPending = order.payments?.some(p => p.status === 'pending');
                           const isConfirmed = order.payments?.some(p => p.status === 'paid');
                           if (isConfirmed) return (
@@ -484,8 +487,11 @@ const DashboardView = () => {
                 >
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-gray-900 text-lg">#{order.order_number}</span>
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md font-medium">
+                      <span className="font-bold text-gray-900 text-lg">{order.order_number}</span>
+                      <span 
+                        title={order.payments?.find(p => p.gateway_order_id)?.gateway_order_id ? `ID Klap: ${order.payments.find(p => p.gateway_order_id).gateway_order_id}` : ''}
+                        className={`text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md font-medium ${order.payments?.find(p => p.gateway_order_id) ? 'cursor-help border border-blue-200' : ''}`}
+                      >
                         {getPaymentMethod(order)}
                       </span>
                     </div>
@@ -499,9 +505,9 @@ const DashboardView = () => {
                   <div className="flex flex-col items-end gap-2">
                     <span className="font-black text-gray-900 text-lg">${fmt(order.total || 0)}</span>
                     {getStatusTag(order.status)}
-                    {order.order_type === 'online' && (() => {
+                    {['online', 'whatsapp'].includes(order.order_type) && (() => {
                       const hasPending = order.payments?.some(p => p.status === 'pending');
-                      const isConfirmed = order.payments?.some(p => p.status === 'completed');
+                      const isConfirmed = order.payments?.some(p => p.status === 'paid');
                       if (isConfirmed) return (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
                           ✓ Pagado
