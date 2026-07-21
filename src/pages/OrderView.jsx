@@ -205,6 +205,7 @@ const OrderView = () => {
   }, []);
 
   // ── Checkout ──────────────────────────────────────────────
+  const handleCheckout = async (customerForm) => {
     setIsSubmitting(true);
     try {
       // First, create the order in the database with status pending
@@ -255,7 +256,14 @@ const OrderView = () => {
       setStep(4);
     } catch (e) {
       console.error(e);
-      alert('Error al enviar el pedido. Intenta nuevamente. ' + (e.message || ''));
+      if (e.message && e.message.includes('violates foreign key constraint')) {
+        alert('Lo sentimos, uno o más productos de tu carrito ya no están disponibles. Tu carrito ha sido actualizado.');
+        setCartItems([]);
+        localStorage.removeItem(`cart_${slug}`);
+        setStep(1);
+      } else {
+        alert('Error al enviar el pedido. Intenta nuevamente. ' + (e.message || ''));
+      }
     } finally {
       setIsSubmitting(false);
     }

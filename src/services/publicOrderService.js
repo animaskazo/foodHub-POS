@@ -171,13 +171,14 @@ export const createPublicOrder = async ({ organizationId, cartItems, customer, n
     .from('orders')
     .select('order_number')
     .eq('branch_id', branch.id)
+    .not('order_number', 'ilike', 'WEB-%')
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  let nextNumber = 0;
+  let nextNumber = 1;
   if (lastOrder?.order_number) {
-    const parsed = parseInt(lastOrder.order_number, 10);
+    const parsed = parseInt(lastOrder.order_number.replace(/\D/g, ''), 10);
     if (!isNaN(parsed)) nextNumber = parsed + 1;
   }
   const orderNumber = nextNumber.toString().padStart(4, '0');

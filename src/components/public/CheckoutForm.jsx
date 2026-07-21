@@ -62,12 +62,27 @@ export const formatChileanPhone = (value) => {
 };
 
 const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePayments = true, organizationId }) => {
-  const [form, setForm] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    notes: '',
-    paymentMethod: 'local', // local or online
+  const [form, setForm] = useState(() => {
+    try {
+      const saved = localStorage.getItem('checkout_customer_form');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          name: parsed.name || '',
+          phone: parsed.phone || '',
+          email: parsed.email || '',
+          notes: '',
+          paymentMethod: 'local',
+        };
+      }
+    } catch (e) {}
+    return {
+      name: '',
+      phone: '',
+      email: '',
+      notes: '',
+      paymentMethod: 'local', // local or online
+    };
   });
   const [errors, setErrors] = useState({});
   const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
@@ -120,6 +135,15 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
+    
+    try {
+      localStorage.setItem('checkout_customer_form', JSON.stringify({
+        name: form.name,
+        phone: form.phone,
+        email: form.email
+      }));
+    } catch (e) {}
+
     onSubmit(form);
   };
 
