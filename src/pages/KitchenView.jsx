@@ -13,6 +13,41 @@ const KitchenView = () => {
   const audioCtxRef = useRef(null);
   const prevOrdersRef = useRef([]);
   const [leavingOrders, setLeavingOrders] = useState(new Set());
+  const [newOrderIds, setNewOrderIds] = useState(new Set());
+
+  // Fetch kitchen orders and track newly arrived orders for blink animation
+  const fetchOrders = async (isBackground = false) => {
+    try {
+      const data = await getKitchenOrders();
+      // Determine newly added orders (status pending or confirmed)
+      const prevIds = prevOrdersRef.current.map(o => o.id);
+      const added = data.filter(o => !prevIds.includes(o.id) && (o.status === 'pending' || o.status === 'confirmed'));
+      if (added.length > 0) {
+        // Add their IDs to the blink set
+        setNewOrderIds(prev => {
+          const next = new Set(prev);
+          added.forEach(o => next.add(o.id));
+          return next;
+        });
+        // Remove after animation duration (1.5s)
+        setTimeout(() => {
+          setNewOrderIds(prev => {
+            const next = new Set(prev);
+            added.forEach(o => next.delete(o.id));
+            return next;
+          });
+        }, 1500);
+        initAudio();
+        playBellSound();
+      }
+      // Update orders and previous reference
+      setOrders(data);
+      prevOrdersRef.current = data;
+    } catch (e) {
+      console.error('Error fetching kitchen orders', e);
+      if (!isBackground) alert('Error al cargar órdenes de cocina');
+    }
+  };
 
   // Audio Context must be resumed after user interaction
   const initAudio = () => {
@@ -69,23 +104,6 @@ const KitchenView = () => {
     };
   }, []);
 
-  const fetchOrders = async (isBackground = false) => {
-    if (!isBackground) setLoading(true);
-    const data = await getKitchenOrders();
-
-    // Check for new orders
-    if (isBackground && prevOrdersRef.current.length > 0) {
-      const prevIds = new Set(prevOrdersRef.current.map(o => o.id));
-      const hasNew = data.some(o => !prevIds.has(o.id));
-      if (hasNew) {
-        playBellSound();
-      }
-    }
-
-    setOrders(data);
-    prevOrdersRef.current = data;
-    if (!isBackground) setLoading(false);
-  };
 
   useDocumentTitle('Cocina');
 
@@ -191,10 +209,10 @@ const KitchenView = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 w-full items-start pb-20">
           {orders.length === 0 && !loading && (
-            <div className="w-full h-full flex flex-col items-center justify-center text-gray-500">
-              <ChefHat className="h-16 w-16 mb-4 opacity-20" />
-              <p className="text-xl font-medium">No hay órdenes pendientes en este momento.</p>
-              <p className="text-sm mt-2 opacity-60">La cocina está al día.</p>
+            <div className="flex flex-col items-center justify-center w-full h-full py-20 col-span-full">
+              <ChefHat className="h-24 w-24 mb-6 text-gray-400" />
+              <p className="text-xl font-medium text-center text-gray-500">No hay órdenes pendientes en este momento.</p>
+              <p className="text-sm mt-2 text-center text-gray-400">La cocina está al día.</p>
             </div>
           )}
           {orders.map(order => {
@@ -241,12 +259,13 @@ const KitchenView = () => {
             };
             const channel = channelConfig[order.order_type] || { label: order.order_type, Icon: Store };
 
+            const isNew = newOrderIds.has(order.id);
             const isLeaving = leavingOrders.has(order.id);
 
             return (
               <div
                 key={order.id}
-                className={`w-full flex flex-col rounded-2xl border ${cfg.border} bg-zinc-950 overflow-hidden shadow-lg md:h-[calc(100vh-170px)] ${isLeaving ? 'ticket-leave' : 'ticket-enter'}`}
+                className={`w-full flex flex-col rounded-2xl border ${cfg.border} bg-zinc-950 overflow-hidden shadow-lg md:h-[calc(100vh-170px)] ${isLeaving ? 'ticket-leave' : isNew ? 'ticket-enter-new' : (order.status === 'pending' || order.status === 'confirmed') ? 'ticket-enter-pending' : 'ticket-enter'}`}
               >
                 {/* ── Header ── */}
                 <div className={`${cfg.headerBg} px-4 pt-4 pb-3.5 border-b border-zinc-900 shrink-0 space-y-3`}>
@@ -422,9 +441,13 @@ const KitchenView = () => {
           50% { filter: invert(1); }
         }
         .ticket-enter {
-          animation: 
-            slideInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards,
-            blinkBg 1s ease-in-out 3;
+          animation: slideInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .ticket-enter-pending {
+          animation: slideInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .ticket-enter-new {
+          animation: slideInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards, blinkBg 0.8s ease-in-out 2;
         }
         .ticket-leave {
           animation: slideOutUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
