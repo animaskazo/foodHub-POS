@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard } from 'lucide-react';
 import { getCustomerByPhone } from '../../services/publicOrderService';
+import { geocodeAddress, calculateDistance } from '../../utils/geo';
+import { MapPin, Info } from 'lucide-react';
 
 const InputField = ({ icon: Icon, label, isLoading, ...props }) => (
   <div className="relative">
@@ -82,10 +84,15 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       email: '',
       notes: '',
       paymentMethod: 'local', // local or online
+      deliveryType: 'pickup', // pickup or delivery
+      deliveryAddress: '',
+      deliveryFee: 0,
     };
   });
   const [errors, setErrors] = useState({});
   const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [distanceError, setDistanceError] = useState(null);
 
   useEffect(() => {
     if (!organizationId) return;
@@ -147,6 +154,34 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     onSubmit(form);
   };
 
+  const handleAddressBlur = async () => {
+    if (!form.deliveryAddress.trim() || !org?.store_lat || !org?.store_lng) return;
+    
+    setIsGeocoding(true);
+    setDistanceError(null);
+    try {
+      const coords = await geocodeAddress(form.deliveryAddress);
+      if (coords) {
+        const distance = calculateDistance(org.store_lat, org.store_lng, coords.lat, coords.lng);
+        if (distance > (org.delivery_radius_km || 5)) {
+          setDistanceError(`Estás a ${distance.toFixed(1)}km. Superas el radio máximo de ${org.delivery_radius_km}km.`);
+          update('deliveryFee', 0);
+        } else {
+          setDistanceError(null);
+          update('deliveryFee', org.delivery_fee || 0);
+        }
+      } else {
+        setDistanceError('No pudimos encontrar la dirección. Asegúrate de incluir tu comuna o ciudad.');
+        update('deliveryFee', 0);
+      }
+    } catch (error) {
+      setDistanceError('Error al verificar la dirección.');
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+
   return (
     <div className="flex flex-col min-h-0">
       <div className="flex-1 overflow-y-auto">
@@ -207,14 +242,76 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           <div className="space-y-3">
             <h2 className="text-base font-bold text-gray-900">Entrega</h2>
 
-            {/* Pickup method */}
-            <div className="flex items-center justify-between p-3.5 bg-gray-50 border border-gray-200 rounded-2xl">
-              <div className="flex items-center gap-2.5">
-                <Store className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-semibold text-gray-600">Método de retiro</span>
+            {org?.delivery_enabled ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <label 
+                    onClick={() => {
+                      update('deliveryType', 'pickup');
+                      update('deliveryFee', 0);
+                      setDistanceError(null);
+                    }}
+                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer text-center ${
+                      form.deliveryType === 'pickup' 
+                        ? 'bg-white border-black shadow-sm text-black' 
+                        : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    <Store className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'pickup' ? 'text-black' : 'text-gray-400'}`} />
+                    <span className="text-sm font-bold">Retiro en Local</span>
+                  </label>
+
+                  <label 
+                    onClick={() => update('deliveryType', 'delivery')}
+                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer text-center ${
+                      form.deliveryType === 'delivery' 
+                        ? 'bg-white border-black shadow-sm text-black' 
+                        : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    <MapPin className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'delivery' ? 'text-black' : 'text-gray-400'}`} />
+                    <span className="text-sm font-bold">Delivery</span>
+                  </label>
+                </div>
+
+                {form.deliveryType === 'delivery' && (
+                  <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl space-y-3">
+                    <InputField
+                      icon={MapPin}
+                      label="Dirección de entrega *"
+                      type="text"
+                      placeholder="Ej: Av. Providencia 1234, Depto 45"
+                      value={form.deliveryAddress}
+                      onChange={e => update('deliveryAddress', e.target.value)}
+                      onBlur={handleAddressBlur}
+                      isLoading={isGeocoding}
+                    />
+                    
+                    {distanceError && (
+                      <div className="flex items-start gap-2 bg-red-50 text-red-600 p-3 rounded-xl border border-red-100">
+                        <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                        <p className="text-xs font-semibold leading-relaxed">{distanceError}</p>
+                      </div>
+                    )}
+                    
+                    {!distanceError && form.deliveryFee > 0 && (
+                      <div className="flex items-center justify-between text-sm bg-blue-50 text-blue-700 px-3 py-2 rounded-xl">
+                        <span className="font-semibold">Costo de envío:</span>
+                        <span className="font-bold">${fmt(form.deliveryFee)}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              <span className="text-sm font-bold text-gray-900 bg-gray-200/50 px-2.5 py-1 rounded-lg">Retiro en local</span>
-            </div>
+            ) : (
+              <div className="flex items-center justify-between p-3.5 bg-gray-50 border border-gray-200 rounded-2xl">
+                <div className="flex items-center gap-2.5">
+                  <Store className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-semibold text-gray-600">Método de retiro</span>
+                </div>
+                <span className="text-sm font-bold text-gray-900 bg-gray-200/50 px-2.5 py-1 rounded-lg">Retiro en local</span>
+              </div>
+            )}
           </div>
 
           {/* Divider */}
@@ -304,12 +401,31 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       </div>
 
       {/* Submit CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-8">
-        <div className="max-w-3xl mx-auto flex flex-col items-center">
+      <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-8 pointer-events-none">
+        <div className="max-w-3xl mx-auto flex flex-col items-center pointer-events-auto space-y-3">
+          
+          {form.deliveryFee > 0 && form.deliveryType === 'delivery' && (
+            <div className="w-full flex justify-between items-center text-sm font-bold text-gray-700 px-4 bg-white/80 backdrop-blur-md py-2 rounded-xl shadow-sm border border-gray-100">
+              <span>Subtotal (Productos)</span>
+              <span>${fmt(totalAmount)}</span>
+            </div>
+          )}
+
+          {form.deliveryType === 'delivery' && totalAmount < (org?.delivery_min_order || 0) && (
+            <div className="bg-red-50 text-red-600 px-4 py-2 rounded-xl border border-red-100 w-full text-center text-xs font-bold shadow-sm">
+              El pedido mínimo para delivery es de ${fmt(org.delivery_min_order)}.
+            </div>
+          )}
+
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting || !isOpen}
-            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-colors active:scale-[0.98] px-8 text-[17px] tracking-wide ${(!isOpen || isSubmitting) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900'}`}
+            disabled={
+              isSubmitting || 
+              !isOpen || 
+              (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim())) ||
+              (form.deliveryType === 'delivery' && (totalAmount < (org?.delivery_min_order || 0)))
+            }
+            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-all px-8 text-[17px] tracking-wide ${(!isOpen || isSubmitting || (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim() || totalAmount < (org?.delivery_min_order || 0)))) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900 active:scale-[0.98]'}`}
           >
             {isSubmitting ? (
               <><Loader2 className="h-5 w-5 animate-spin" /> Enviando pedido…</>
@@ -321,7 +437,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                 {totalAmount != null && (
                   <>
                     <div className="w-1.5 h-1.5 rounded-full bg-white/40 mx-3"></div>
-                    <span>${fmt(totalAmount)}</span>
+                    <span>${fmt(totalAmount + (form.deliveryType === 'delivery' ? form.deliveryFee : 0))}</span>
                   </>
                 )}
               </div>

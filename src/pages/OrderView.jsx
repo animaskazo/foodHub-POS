@@ -366,6 +366,7 @@ const OrderView = () => {
             acceptsOnlinePayments={org?.online_payments_allowed === true && org?.accepts_online_payments !== false}
             organizationId={org?.id}
             isOpen={isOpen}
+            org={org}
           />
         )}
         {step === 4 && (

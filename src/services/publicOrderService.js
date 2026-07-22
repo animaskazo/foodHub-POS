@@ -6,7 +6,7 @@ export const getOrganizationByName = async (orgName) => {
 
   const { data, error } = await supabase
     .from('organizations')
-    .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, business_hours')
+    .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, business_hours, delivery_enabled, store_lat, store_lng, delivery_radius_km, delivery_fee, delivery_min_order')
     .ilike('name', decoded)
     .eq('is_active', true)
     .maybeSingle();
@@ -15,7 +15,7 @@ export const getOrganizationByName = async (orgName) => {
     // Try by slug as fallback
     const { data: bySlug, error: slugError } = await supabase
       .from('organizations')
-      .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, business_hours')
+      .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, business_hours, delivery_enabled, store_lat, store_lng, delivery_radius_km, delivery_fee, delivery_min_order')
       .ilike('slug', decoded)
       .eq('is_active', true)
       .maybeSingle();
@@ -157,7 +157,17 @@ export const getPublicCatalog = async (organizationId) => {
 };
 
 // ── Create a public (online) order ──
-export const createPublicOrder = async ({ organizationId, cartItems, customer, notes, paymentMethod = 'cash', paymentStatus = 'pending' }) => {
+export const createPublicOrder = async ({ 
+  organizationId, 
+  cartItems, 
+  customer, 
+  notes, 
+  paymentMethod = 'cash', 
+  paymentStatus = 'pending',
+  deliveryType = 'pickup',
+  deliveryAddress = null,
+  deliveryFee = 0
+}) => {
   // Get first active branch
   const { data: branch, error: branchError } = await supabase
     .from('branches')
@@ -176,7 +186,7 @@ export const createPublicOrder = async ({ organizationId, cartItems, customer, n
     const itemPrice = Math.round(item.price);
     const extrasPrice = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
     return acc + (itemPrice + extrasPrice) * item.quantity;
-  }, 0);
+  }, 0) + (deliveryFee || 0);
 
   const taxRate = 0.19;
   const subtotal = Math.round(total / (1 + taxRate));
@@ -196,6 +206,9 @@ export const createPublicOrder = async ({ organizationId, cartItems, customer, n
       subtotal,
       tax_amount: tax,
       total,
+      delivery_type: deliveryType,
+      delivery_address: deliveryAddress,
+      delivery_fee: deliveryFee || 0,
     }])
     .select()
     .single();
