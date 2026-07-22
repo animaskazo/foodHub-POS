@@ -7,7 +7,7 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
   const items = cartItems;
 
   const totalQty = items.reduce((acc, i) => acc + i.quantity, 0);
-  const total = items.reduce((acc, i) => acc + (Math.round(i.price * 1.19) * i.quantity), 0);
+  const total = items.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
   const subtotal = Math.round(total / 1.19);
   const tax = total - subtotal;
 
@@ -105,7 +105,7 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
                         ))}
                       </div>
                     )}
-                    <p className="text-xs text-gray-400 mt-1">${fmt(Math.round(item.price * 1.19))} c/u</p>
+                    <p className="text-xs text-gray-400 mt-1">${fmt(Math.round(item.price))} c/u</p>
 
                     {/* Qty Controls */}
                     <div className="flex items-center gap-3 mt-2">
@@ -129,7 +129,7 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
 
                   {/* Price + Actions */}
                   <div className="flex flex-col items-end gap-2 shrink-0">
-                    <span className="font-bold text-[15px]">${fmt(Math.round(item.price * 1.19) * item.quantity)}</span>
+                    <span className="font-bold text-[15px]">${fmt(Math.round(item.price) * item.quantity)}</span>
                     <div className="flex items-center gap-1.5 mt-1">
                       {hasOptions && (
                         <Button

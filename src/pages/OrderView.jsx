@@ -280,7 +280,7 @@ const OrderView = () => {
   }
 
   const totalAmount = cartItems.reduce((acc, item) => {
-    const itemGross = Math.round(item.price * 1.19);
+    const itemGross = Math.round(item.price);
     const extrasGross = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
     return acc + (itemGross + extrasGross) * item.quantity;
   }, 0);

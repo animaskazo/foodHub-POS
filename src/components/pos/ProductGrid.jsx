@@ -108,7 +108,7 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
         <div className="absolute inset-x-0 bottom-0 p-3 text-white text-left z-10">
           <p className="font-semibold text-sm leading-tight line-clamp-2">{product.name}</p>
           <p className="text-xs mt-0.5 opacity-90 font-medium">
-            {hasVariants ? 'Desde ' : ''}${Math.round(displayPrice * 1.19).toLocaleString('es-CL')}
+            {hasVariants ? 'Desde ' : ''}${Math.round(displayPrice).toLocaleString('es-CL')}
           </p>
         </div>
       </button>

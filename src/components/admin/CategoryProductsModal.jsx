@@ -116,7 +116,7 @@ const CategoryProductsModal = ({ isOpen, onClose, onSave, allProducts, selectedP
                           )}
                         </div>
                         <div className="text-sm font-semibold text-gray-900 shrink-0">
-                          ${Math.round(product.base_price * 1.19).toLocaleString('es-CL')}
+                          ${Math.round(product.base_price).toLocaleString('es-CL')}
                         </div>
                       </label>
                     ))}

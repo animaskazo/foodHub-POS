@@ -104,23 +104,25 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
 
   const calculateTotal = () => {
     const baseNet = product.price || 0;
-    let totalGross = Math.round(baseNet * 1.19);
+    let totalGross = Math.round(baseNet);
 
     Object.keys(selections).forEach(slotId => {
       const sel = selections[slotId];
       if (sel) {
         // Sumar modificador de la opción en combo (bruto)
-        totalGross += Math.round((sel.priceModifier || 0) * 1.19);
+        totalGross += Math.round(sel.priceModifier || 0);
 
         // Sumar modificador de variante si corresponde (bruto)
         if (sel.variant) {
-          totalGross += Math.round((sel.variant.price_modifier || 0) * 1.19);
+          totalGross += Math.round(sel.variant.price_modifier || 0);
         }
 
         // Sumar modificador de ingredientes extras (bruto)
         if (sel.selectedIngredients) {
           sel.selectedIngredients.forEach(ing => {
-            totalGross += Math.round((ing.price || 0) * 1.19);
+            if (ing.isExtra) {
+              totalGross += Math.round(ing.price || 0);
+            }
           });
         }
       }
@@ -165,7 +167,7 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
       };
     }).filter(Boolean) || [];
 
-    const comboTotalNet = Math.round(calculateTotal() / 1.19);
+    const comboTotalNet = calculateTotal();
 
     onConfirm({
       ...product,
@@ -180,7 +182,7 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Configurar ${originalName}`} maxWidth="max-w-xl">
-      <div className="p-4 sm:p-6 max-h-[80vh] overflow-y-auto">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         
         {product.bundleSlots?.map(slot => {
           const currentSelection = selections[slot.id];
@@ -201,7 +203,7 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
               <div className="space-y-2 mb-4">
                 {slot.options?.map(opt => {
                   const isSelected = currentSelection?.optionId === opt.id;
-                  const extraPrice = Math.round(opt.priceModifier * 1.19);
+                  const extraPrice = Math.round(opt.priceModifier);
                   const isSingleOption = slot.options.length === 1;
 
                   return (
@@ -258,7 +260,7 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
                       <div className="flex flex-wrap gap-2">
                         {selectedOptionObj.variants.filter(v => v.is_active).map(v => {
                           const isVarSelected = currentSelection?.variant?.id === v.id;
-                          const varPrice = Math.round(v.price_modifier * 1.19);
+                          const varPrice = Math.round(v.price_modifier);
                           return (
                             <button
                               key={v.id}
@@ -308,31 +310,30 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
             </div>
           );
         })}
+      </div>
 
-        <div className="pt-6 border-t border-gray-100 mt-4 space-y-3">
-          {editingItem && (
-            <Button
-              variant="destructive"
-              size="lg"
-              onClick={() => {
-                if (onDelete) onDelete(editingItem.cartItemId);
-                onClose();
-              }}
-              className="w-full"
-            >
-              Eliminar combo
-            </Button>
-          )}
+      <div className="p-4 sm:p-6 border-t border-gray-100 bg-gray-50/50 shrink-0 space-y-3">
+        {editingItem && (
           <Button
+            variant="destructive"
             size="lg"
-            onClick={handleConfirmClick}
-            className="w-full flex items-center justify-between text-base"
+            onClick={() => {
+              if (onDelete) onDelete(editingItem.cartItemId);
+              onClose();
+            }}
+            className="w-full"
           >
-            <span>{editingItem ? 'Actualizar combo' : 'Agregar combo al carrito'}</span>
-            <span className="font-bold">${(calculateTotal() * quantity).toLocaleString('es-CL')}</span>
+            Eliminar combo
           </Button>
-        </div>
-
+        )}
+        <Button
+          size="lg"
+          onClick={handleConfirmClick}
+          className="w-full flex items-center justify-between text-base"
+        >
+          <span>{editingItem ? 'Actualizar combo' : 'Agregar combo al carrito'}</span>
+          <span className="font-bold">${(calculateTotal() * quantity).toLocaleString('es-CL')}</span>
+        </Button>
       </div>
     </Modal>
   );

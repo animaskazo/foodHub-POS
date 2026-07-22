@@ -5,7 +5,7 @@ const fmt = (n) => n.toLocaleString('es-CL');
 
 const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout }) => {
   const total = cartItems.reduce((acc, item) => {
-    const itemGross = Math.round(item.price * 1.19);
+    const itemGross = Math.round(item.price);
     const extrasGross = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
     return acc + (itemGross + extrasGross) * item.quantity;
   }, 0);
@@ -16,7 +16,7 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-4 py-4 space-y-3">
           {cartItems.map((item) => {
-            const itemGross = Math.round(item.price * 1.19);
+            const itemGross = Math.round(item.price);
             const extrasGross = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
             const lineTotal = (itemGross + extrasGross) * item.quantity;
 

@@ -68,7 +68,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
   const actualBasePrice = selectedVariant
     ? basePrice + (selectedVariant.price_modifier || 0)
     : basePrice;
-  const baseGross = Math.round(actualBasePrice * 1.19);
+  const baseGross = Math.round(actualBasePrice);
   const extrasTotal = selectedExtras.reduce((s, i) => s + (i.price || 0), 0);
   const totalGross = baseGross + extrasTotal;
 
@@ -128,18 +128,20 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
 
   const calculateBundleTotalGross = () => {
     const baseNet = product.price || 0;
-    let totalGross = Math.round(baseNet * 1.19);
+    let totalGross = Math.round(baseNet);
 
     Object.keys(selections).forEach(slotId => {
       const sel = selections[slotId];
       if (sel) {
-        totalGross += Math.round((sel.priceModifier || 0) * 1.19);
+        totalGross += Math.round(sel.priceModifier || 0);
         if (sel.variant) {
-          totalGross += Math.round((sel.variant.price_modifier || 0) * 1.19);
+          totalGross += Math.round(sel.variant.price_modifier || 0);
         }
         if (sel.selectedIngredients) {
-          sel.selectedIngredients.forEach(ing => {
-            totalGross += Math.round((ing.price || 0) * 1.19);
+          sel.selectedIngredients?.forEach(ing => {
+            if (ing.isExtra) {
+              totalGross += Math.round(ing.price || 0);
+            }
           });
         }
       }
@@ -199,7 +201,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
         };
       }).filter(Boolean) || [];
 
-      const comboTotalNet = Math.round(calculateBundleTotalGross() / 1.19);
+      const comboTotalNet = calculateBundleTotalGross();
 
       onAdd({
         ...product,
@@ -284,7 +286,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                 </div>
                 <div className="space-y-2.5">
                   {product.variants.map(v => {
-                    const gross = Math.round((basePrice + (v.price_modifier || 0)) * 1.19);
+                    const gross = Math.round(basePrice + (v.price_modifier || 0));
                     const isSelected = selectedVariant?.id === v.id;
                     return (
                       <button
@@ -372,7 +374,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                   <div className="space-y-2.5 mb-4">
                     {slot.options?.map(opt => {
                       const isSelected = currentSelection?.optionId === opt.id;
-                      const extraPrice = Math.round(opt.priceModifier * 1.19);
+                      const extraPrice = Math.round(opt.priceModifier);
                       const isSingleOption = slot.options.length === 1;
 
                       return (
@@ -425,7 +427,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                           <div className="flex flex-wrap gap-2">
                             {selectedOptionObj.variants.map(v => {
                               const isVarSelected = currentSelection?.variant?.id === v.id;
-                              const varPrice = Math.round(v.price_modifier * 1.19);
+                              const varPrice = Math.round(v.price_modifier);
                               return (
                                 <button
                                   key={v.id}

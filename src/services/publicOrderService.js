@@ -173,7 +173,7 @@ export const createPublicOrder = async ({ organizationId, cartItems, customer, n
 
   // Calculate totals (all prices already include IVA for display)
   const total = cartItems.reduce((acc, item) => {
-    const itemPrice = Math.round(item.price * 1.19);
+    const itemPrice = Math.round(item.price);
     const extrasPrice = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
     return acc + (itemPrice + extrasPrice) * item.quantity;
   }, 0);
@@ -204,7 +204,7 @@ export const createPublicOrder = async ({ organizationId, cartItems, customer, n
 
   // Insert items
   const itemsToInsert = cartItems.map(item => {
-    const itemPrice = Math.round(item.price * 1.19);
+    const itemPrice = Math.round(item.price);
     const extrasPrice = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
     return {
       order_id: order.id,

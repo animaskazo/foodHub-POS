@@ -353,7 +353,7 @@ const CatalogManager = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <div className="font-semibold text-gray-900">${Math.round(product.price * 1.19).toLocaleString('es-CL')}</div>
+                          <div className="font-semibold text-gray-900">${Math.round(product.price).toLocaleString('es-CL')}</div>
                           <div className="text-[11px] text-gray-500 mt-0.5">Neto: ${product.price?.toLocaleString('es-CL')}</div>
                         </td>
                         <td className="px-6 py-4 text-right">

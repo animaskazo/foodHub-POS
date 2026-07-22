@@ -28,7 +28,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
     }
   }, [isOpen]);
 
-  const total = cartItems.reduce((acc, i) => acc + (Math.round(i.price * 1.19) * i.quantity), 0);
+  const total = cartItems.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
   const subtotal = Math.round(total / 1.19);
   const tax = total - subtotal;
 
@@ -172,7 +172,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
       title={confirmOnly ? 'Confirmar Pago en Caja' : 'Confirmar Pago'}
       maxWidth="max-w-md"
     >
-      <div className="p-6 flex flex-col gap-6">
+      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
         <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
           <span className="text-sm text-gray-500 font-medium mb-1">
             {confirmOnly ? 'Total del Pedido Online' : 'Total a Pagar'}

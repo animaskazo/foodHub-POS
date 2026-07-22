@@ -56,14 +56,14 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
   const originalName = product.originalName || product.name;
 
   const basePrice = selectedVariant ? actualBasePrice + (selectedVariant.price_modifier || 0) : actualBasePrice;
-  const baseGross = Math.round(basePrice * 1.19);
+  const baseGross = Math.round(basePrice);
   const ingredientsGross = Math.round(selectedIngredients.reduce((sum, ing) => sum + (ing.price || 0), 0));
   const totalGross = baseGross + ingredientsGross;
   const quantity = editingItem?.quantity || 1;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Opciones para ${originalName}`} maxWidth="max-w-xl">
-      <div className="p-4 sm:p-6 max-h-[75vh] overflow-y-auto">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         
         {baseIngredients.length > 0 && (
           <div className="mb-4 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100">
@@ -100,7 +100,7 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
             )}
             <div className="grid grid-cols-1 gap-2">
               {product.variants.filter(v => v.is_active).map((variant) => {
-                const finalGrossPrice = Math.round((actualBasePrice + (variant.price_modifier || 0)) * 1.19);
+                const finalGrossPrice = Math.round(actualBasePrice + (variant.price_modifier || 0));
                 const isSelected = selectedVariant?.id === variant.id;
 
                 return (
@@ -165,32 +165,33 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
               })}
             </div>
           </div>
+          </div>
         )}
+      </div>
 
-        <div className="pt-4 border-t border-gray-100 mt-2 space-y-3">
-          {editingItem && (
-            <Button
-              variant="destructive"
-              size="lg"
-              onClick={() => {
-                if (onDelete) onDelete(editingItem.cartItemId);
-                onClose();
-              }}
-              className="w-full"
-            >
-              Eliminar producto
-            </Button>
-          )}
+      <div className="p-4 sm:p-6 border-t border-gray-100 bg-gray-50/50 shrink-0 space-y-3">
+        {editingItem && (
           <Button
+            variant="destructive"
             size="lg"
-            onClick={handleConfirm}
-            disabled={hasVariants && !selectedVariant}
-            className="w-full flex items-center justify-between"
+            onClick={() => {
+              if (onDelete) onDelete(editingItem.cartItemId);
+              onClose();
+            }}
+            className="w-full"
           >
-            <span>{editingItem ? 'Actualizar' : 'Agregar al carrito'}</span>
-            <span>${(totalGross * quantity).toLocaleString('es-CL')}</span>
+            Eliminar producto
           </Button>
-        </div>
+        )}
+        <Button
+          size="lg"
+          onClick={handleConfirm}
+          disabled={hasVariants && !selectedVariant}
+          className="w-full flex items-center justify-between"
+        >
+          <span>{editingItem ? 'Actualizar' : 'Agregar al carrito'}</span>
+          <span>${(totalGross * quantity).toLocaleString('es-CL')}</span>
+        </Button>
       </div>
     </Modal>
   );

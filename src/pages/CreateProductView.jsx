@@ -122,7 +122,7 @@ const CreateProductView = () => {
             ...prev,
             name: product.name,
             // Assuming base_price is net, and includesIva is true by default
-            price: Math.round(product.base_price * 1.19).toString(),
+            price: Math.round(product.base_price).toString(),
             description: product.description || '',
             type: product.type === 'service' ? 'Servicio' : (product.type === 'bundle' ? 'Combo / Promoción' : 'Producto físico'),
             sku: product.sku || '',
@@ -136,7 +136,7 @@ const CreateProductView = () => {
             const mappedVariants = product.variants.map(v => {
               const baseNetPrice = product.base_price || 0;
               let absNetPrice = baseNetPrice + (v.price_modifier || 0);
-              let absGrossPrice = Math.round(absNetPrice * 1.19); // Default includesIva logic
+              let absGrossPrice = Math.round(absNetPrice);
               return {
                 id: v.id,
                 name: v.name,
@@ -166,7 +166,7 @@ const CreateProductView = () => {
                 id: o.id,
                 productId: o.productId,
                 variantId: o.variantId || null,
-                priceModifier: includesIva ? Math.round(o.priceModifier * 1.19) : o.priceModifier,
+                priceModifier: o.priceModifier,
                 isDefault: o.isDefault,
                 name: o.name
               }))
@@ -285,17 +285,11 @@ const CreateProductView = () => {
       setIsSaving(true);
       
       let finalPrice = parseFloat(formData.price);
-      if (includesIva) {
-        finalPrice = Math.round(finalPrice / 1.19);
-      }
       
       const finalVariants = variants
         .filter(v => v.name && v.name.trim() !== '')
         .map(v => {
           let vNetPrice = parseFloat(v.price) || 0;
-          if (includesIva) {
-            vNetPrice = Math.round(vNetPrice / 1.19);
-          }
           return {
             name: v.name,
             sku: v.sku,
@@ -312,9 +306,6 @@ const CreateProductView = () => {
           .filter(o => o.productId)
           .map(o => {
             let modifierNet = parseFloat(o.priceModifier) || 0;
-            if (includesIva) {
-              modifierNet = Math.round(modifierNet / 1.19);
-            }
             return {
               productId: o.productId,
               variantId: o.variantId || null,
@@ -440,17 +431,19 @@ const CreateProductView = () => {
                 </label>
                 
                 {formData.price && !isNaN(formData.price) && (
-                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-[13px]">
+                  <div className="mt-2 text-sm text-gray-500 bg-gray-50 p-3 rounded-xl border border-gray-100 flex flex-col gap-1">
                     {includesIva ? (
-                      <div className="flex justify-between text-gray-500">
+                      <>
                         <span>Precio neto (base): ${Math.round(formData.price / 1.19).toLocaleString('es-CL')}</span>
                         <span>IVA: ${Math.round(formData.price - (formData.price / 1.19)).toLocaleString('es-CL')}</span>
-                      </div>
+                        <span className="font-semibold text-gray-900">Total con IVA: ${Number(formData.price).toLocaleString('es-CL')}</span>
+                      </>
                     ) : (
-                      <div className="flex justify-between text-gray-500">
+                      <>
+                        <span>Precio neto (base): ${Number(formData.price).toLocaleString('es-CL')}</span>
                         <span>IVA (19%): ${Math.round(formData.price * 0.19).toLocaleString('es-CL')}</span>
                         <span className="font-semibold text-gray-900">Total con IVA: ${Math.round(formData.price * 1.19).toLocaleString('es-CL')}</span>
-                      </div>
+                      </>
                     )}
                   </div>
                 )}
@@ -876,7 +869,7 @@ const CreateProductView = () => {
                                       </SelectTrigger>
                                       <SelectContent>
                                         {allProducts.map(p => (
-                                          <SelectItem key={p.id} value={p.id}>{p.name} (${Math.round(p.price * 1.19).toLocaleString('es-CL')})</SelectItem>
+                                          <SelectItem key={p.id} value={p.id}>{p.name} (${Math.round(p.price).toLocaleString('es-CL')})</SelectItem>
                                         ))}
                                       </SelectContent>
                                     </Select>

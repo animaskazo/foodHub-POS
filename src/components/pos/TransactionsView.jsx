@@ -445,11 +445,11 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                                       + {item.order_item_ingredients.map(ing => ing.ingredient_name).join(', ')}
                                     </p>
                                   )}
-                                  <p className="text-xs text-gray-500 mt-0.5">${fmt(Math.round(item.unit_price * 1.19))} c/u</p>
+                                  <p className="text-xs text-gray-500 mt-0.5">${fmt(Math.round(item.unit_price))} c/u</p>
                                 </div>
                               </div>
                               <span className="font-semibold text-gray-900 text-sm">
-                                ${fmt(Math.round(item.unit_price * 1.19) * item.quantity)}
+                                ${fmt(Math.round(item.unit_price) * item.quantity)}
                               </span>
                             </div>
 
@@ -468,7 +468,7 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                                       </span>
                                     )}
                                     {child.unit_price > 0 && (
-                                      <span className="text-gray-400 font-bold ml-1">(+${fmt(Math.round(child.unit_price * 1.19))})</span>
+                                      <span className="text-gray-400 font-bold ml-1">(+${fmt(Math.round(child.unit_price))})</span>
                                     )}
                                   </div>
                                 ))}

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { X, Plus, Check, MapPin, ExternalLink } from 'lucide-react';
 import ProductDetailView from './ProductDetailView';
 
-const fmt = (n) => Math.round(n * 1.19).toLocaleString('es-CL');
+const fmt = (n) => Math.round(n).toLocaleString('es-CL');
 
 // ── Product Card ──────────────────────────────────────────────
 const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpdateQty, onRemoveItem }) => {
@@ -144,7 +144,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
   const catRefs = useRef({});
 
   const totalQty = cartItems.reduce((s, i) => s + i.quantity, 0);
-  const totalPrice = cartItems.reduce((s, i) => s + (Math.round(i.price * 1.19) * i.quantity), 0);
+  const totalPrice = cartItems.reduce((s, i) => s + (Math.round(i.price) * i.quantity), 0);
 
   const filteredProducts = useMemo(() => {
     let list = products;

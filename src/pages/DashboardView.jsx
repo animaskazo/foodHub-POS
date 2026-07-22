@@ -628,11 +628,11 @@ const DashboardView = () => {
                                 + {item.order_item_ingredients.map(ing => ing.ingredient_name).join(', ')}
                               </p>
                             )}
-                            <p className="text-xs text-gray-500 mt-0.5">${fmt(Math.round(item.unit_price * 1.19))} c/u</p>
+                            <p className="text-xs text-gray-500 mt-0.5">${fmt(Math.round(item.unit_price))} c/u</p>
                           </div>
                         </div>
                         <span className="font-semibold text-gray-900 text-sm">
-                          ${fmt(Math.round(item.unit_price * 1.19) * item.quantity)}
+                          ${fmt(Math.round(item.unit_price) * item.quantity)}
                         </span>
                       </div>
                     ))

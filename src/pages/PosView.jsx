@@ -33,10 +33,10 @@ const PosView = () => {
     const originalName = product.originalName || product.name;
 
     const baseNet = variant ? basePrice + (variant.price_modifier || 0) : basePrice;
-    const baseGross = Math.round(baseNet * 1.19);
+    const baseGross = Math.round(baseNet);
     const ingredientsGross = ingredients.reduce((sum, i) => sum + (i.price || 0), 0);
     const totalGross = baseGross + ingredientsGross;
-    const itemPrice = Math.round(totalGross / 1.19);
+    const itemPrice = totalGross;
     
     const itemName = variant ? `${originalName} (${variant.name})` : originalName;
     
@@ -75,7 +75,7 @@ const PosView = () => {
       if (!hasChoices) {
         // Generar selecciones por defecto y agregar directamente calculando precios y variantes correctas
         const baseNet = product.price || 0;
-        let totalGross = Math.round(baseNet * 1.19);
+        let totalGross = Math.round(baseNet);
 
         const defaultOptionsList = product.bundleSlots?.map(slot => {
           const opt = slot.options?.find(o => o.isDefault) || slot.options?.[0];
@@ -89,9 +89,9 @@ const PosView = () => {
           }, null);
 
           // Sumar modificadores al precio bruto
-          totalGross += Math.round((opt.priceModifier || 0) * 1.19);
+          totalGross += Math.round(opt.priceModifier || 0);
           if (chosenVariant) {
-            totalGross += Math.round((chosenVariant.price_modifier || 0) * 1.19);
+            totalGross += Math.round(chosenVariant.price_modifier || 0);
           }
 
           let fullName = opt.name;
@@ -115,7 +115,7 @@ const PosView = () => {
           };
         }).filter(Boolean) || [];
 
-        const comboTotalNet = Math.round(totalGross / 1.19);
+        const comboTotalNet = totalGross;
 
         handleBundleSelect({
           ...product,
@@ -149,10 +149,10 @@ const PosView = () => {
       const newCartItemId = `${selectedProductForVariant.productId || selectedProductForVariant.id}${variant ? '-' + variant.id : ''}${ingredientsIds ? '-ing-' + ingredientsIds : ''}`;
       
       const baseNet = variant ? basePrice + (variant.price_modifier || 0) : basePrice;
-      const baseGross = Math.round(baseNet * 1.19);
+      const baseGross = Math.round(baseNet);
       const ingredientsGross = ingredients.reduce((sum, i) => sum + (i.price || 0), 0);
       const totalGross = baseGross + ingredientsGross;
-      const itemPrice = Math.round(totalGross / 1.19);
+      const itemPrice = totalGross;
       const itemName = variant ? `${originalName} (${variant.name})` : originalName;
 
       setCartItems(prev => {
@@ -272,8 +272,8 @@ const PosView = () => {
 
   const handlePaymentConfirm = async (method, orderType) => {
     try {
-      const total = cartItems.reduce((acc, i) => acc + (Math.round(i.price * 1.19) * i.quantity), 0);
-      const subtotal = Math.round(total / 1.19);
+      const total = cartItems.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
+      const subtotal = total / 1.19;
       const tax = total - subtotal;
       
       const order = await createOrder(cartItems, method, orderType, total, subtotal, tax);
@@ -288,8 +288,8 @@ const PosView = () => {
   };
 
   const totalQty = cartItems.reduce((acc, i) => acc + i.quantity, 0);
-  const total = cartItems.reduce((acc, i) => acc + (Math.round(i.price * 1.19) * i.quantity), 0);
-  const subtotal = Math.round(total / 1.19);
+  const total = cartItems.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
+  const subtotal = total / 1.19;
 
   useDocumentTitle('Punto de Venta');
 
