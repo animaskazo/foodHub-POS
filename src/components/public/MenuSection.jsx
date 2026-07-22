@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { X, Plus, Check, MapPin, ExternalLink } from 'lucide-react';
+import { X, Plus, Check, MapPin, ExternalLink, Clock } from 'lucide-react';
 import ProductDetailView from './ProductDetailView';
+import Modal from '../ui/Modal';
 
 const fmt = (n) => Math.round(n).toLocaleString('es-CL');
 
@@ -136,8 +137,9 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
 
 
 // ── Menu Section (Step 1) ─────────────────────────────────────
-const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdateQty, onRemoveItem, onViewCart }) => {
+const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdateQty, onRemoveItem, onViewCart, isOpen }) => {
   const [activeCategory, setActiveCategory] = useState('all');
+  const [isHoursModalOpen, setIsHoursModalOpen] = useState(false);
   const [logoFlipping, setLogoFlipping] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const catBarRef = useRef(null);
@@ -280,11 +282,21 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
             </h1>
             
             {org.description && (
-              <p className="text-[14px] md:text-[15px] text-gray-600 leading-relaxed mb-4 max-w-2xl">
+              <p className="text-[14px] md:text-[15px] text-gray-600 leading-relaxed max-w-2xl">
                 {org.description}
               </p>
             )}
  
+            {org.business_hours && (
+              <div className="mt-3">
+                <button 
+                  onClick={() => setIsHoursModalOpen(true)} 
+                  className="inline-flex items-center gap-1.5 text-sm text-blue-600 font-semibold bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  <Clock className="w-4 h-4" /> Horarios de atención
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -413,6 +425,24 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
           onBack={() => setSelectedProduct(null)}
         />
       )}
+
+      {/* Hours Modal */}
+      <Modal isOpen={isHoursModalOpen} onClose={() => setIsHoursModalOpen(false)} title="Horarios de Atención">
+        <div className="space-y-3 p-2">
+          {org?.business_hours && ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(day => {
+            const daysTranslations = { mon: 'Lunes', tue: 'Martes', wed: 'Miércoles', thu: 'Jueves', fri: 'Viernes', sat: 'Sábado', sun: 'Domingo' };
+            const hours = org.business_hours[day];
+            return (
+              <div key={day} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+                <span className="font-medium text-gray-700">{daysTranslations[day]}</span>
+                <span className="text-gray-900 font-bold">
+                  {!hours || hours.closed ? <span className="text-red-500">Cerrado</span> : `${hours.open} - ${hours.close}`}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </Modal>
     </div>
   );
 };

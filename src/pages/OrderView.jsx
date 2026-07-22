@@ -27,6 +27,7 @@ const OrderView = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isOpen, setIsOpen] = useState(true);
 
   // Cart
   const [cartItems, setCartItems] = useState(() => {
@@ -136,6 +137,39 @@ const OrderView = () => {
     };
     load();
   }, [slug]);
+
+  // ── Calculate isOpen ──────────────────────────────────────
+  useEffect(() => {
+    if (!org || !org.business_hours) return;
+    
+    const checkIsOpen = () => {
+      const now = new Date();
+      const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+      const todayStr = days[now.getDay()];
+      const todayHours = org.business_hours[todayStr];
+      
+      if (!todayHours || todayHours.closed) return false;
+      
+      const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+      const parseTime = (timeStr) => {
+        if (!timeStr) return 0;
+        const [h, m] = timeStr.split(':').map(Number);
+        return h * 60 + m;
+      };
+      
+      const openMinutes = parseTime(todayHours.open);
+      const closeMinutes = parseTime(todayHours.close);
+      
+      if (closeMinutes < openMinutes) { // midnight cross
+        return currentTotalMinutes >= openMinutes || currentTotalMinutes <= closeMinutes;
+      }
+      return currentTotalMinutes >= openMinutes && currentTotalMinutes <= closeMinutes;
+    };
+
+    setIsOpen(checkIsOpen());
+    const interval = setInterval(() => setIsOpen(checkIsOpen()), 60000);
+    return () => clearInterval(interval);
+  }, [org]);
 
   // ── Cart operations ───────────────────────────────────────
   const handleAddItem = useCallback((product) => {
@@ -310,6 +344,7 @@ const OrderView = () => {
             onUpdateQty={handleUpdateQty}
             onRemoveItem={handleRemoveItem}
             onViewCart={() => setStep(2)}
+            isOpen={isOpen}
           />
         )}
         {step === 2 && (
@@ -319,6 +354,7 @@ const OrderView = () => {
             onRemove={handleRemoveItem}
             onEditItem={(item) => setEditingCartItem(item)}
             onCheckout={() => setStep(3)}
+            isOpen={isOpen}
           />
         )}
         {step === 3 && (
