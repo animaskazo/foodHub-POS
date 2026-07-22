@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import ProductGrid from '../components/pos/ProductGrid';
 import CartPanel from '../components/pos/CartPanel';
@@ -14,6 +15,7 @@ import { Button } from '../components/ui/button';
 import { createOrder, updateOrderCustomer } from '../services/orderService';
 
 const PosView = () => {
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('pago');
@@ -397,7 +399,13 @@ const PosView = () => {
                 <button
                   key={id}
                   onPointerDown={() => {
-                    setActiveTab(id);
+                    if (id === 'cocina') {
+                      navigate('/kitchen');
+                    } else if (id === 'dashboard') {
+                      navigate('/');
+                    } else {
+                      setActiveTab(id);
+                    }
                     setIsMobileMenuOpen(false);
                   }}
                   className={`w-full flex items-center gap-4 px-6 py-4 transition-colors ${
@@ -408,21 +416,6 @@ const PosView = () => {
                   <span className="text-base">{label}</span>
                 </button>
               ))}
-              {/* Extra links for Kitchen and Dashboard */}
-              <button
-                onPointerDown={() => { navigate('/kitchen'); setIsMobileMenuOpen(false); }}
-                className={`w-full flex items-center gap-4 px-6 py-4 transition-colors ${activeTab === 'kitchen' ? 'bg-blue-50 text-blue-600 font-bold border-r-4 border-blue-600' : 'text-gray-600 font-medium'}`}
-              >
-                <ChefHat className="h-6 w-6" />
-                <span className="text-base">Cocina</span>
-              </button>
-              <button
-                onPointerDown={() => { navigate('/dashboard'); setIsMobileMenuOpen(false); }}
-                className={`w-full flex items-center gap-4 px-6 py-4 transition-colors ${activeTab === 'dashboard' ? 'bg-blue-50 text-blue-600 font-bold border-r-4 border-blue-600' : 'text-gray-600 font-medium'}`}
-              >
-                <Home className="h-6 w-6" />
-                <span className="text-base">Dashboard</span>
-              </button>
             </div>
             <div className="p-5 border-t border-gray-100">
               <button

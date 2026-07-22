@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { Clock, ChefHat, CheckCircle2, Play, RefreshCw, Volume2, Store, ShoppingBag, ShoppingCart, Globe, MessageCircle, User, ArrowLeft } from 'lucide-react';
+import { Clock, ChefHat, CheckCircle2, Play, RefreshCw, Volume2, Store, ShoppingBag, ShoppingCart, Globe, MessageCircle, User, ArrowLeft, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getKitchenOrders, updateOrderStatus } from '../services/orderService';
 import { useAuth } from '../components/AuthContext';
@@ -160,11 +160,22 @@ const KitchenView = () => {
       <header className="flex items-center justify-between px-4 py-3 bg-[#111] border-b border-[#222]">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/')}
-            className="p-2.5 bg-white text-black hover:bg-gray-100 rounded-xl transition-colors flex items-center justify-center shrink-0 shadow-sm"
-            title="Volver"
+            onClick={() => navigate('/pos')}
+            className="px-3 py-2 bg-blue-600 text-white hover:bg-blue-500 rounded-xl transition-colors flex items-center justify-center shrink-0 shadow-sm gap-2 font-bold text-sm"
+            title="Punto de Venta"
           >
             <ArrowLeft className="h-5 w-5" />
+            <span className="hidden sm:inline">Volver al POS</span>
+            <span className="inline sm:hidden">POS</span>
+          </button>
+          
+          <button
+            onClick={() => navigate('/')}
+            className="px-3 py-2 bg-white text-black hover:bg-gray-100 rounded-xl transition-colors flex items-center justify-center shrink-0 shadow-sm gap-2 font-bold text-sm"
+            title="Dashboard Admin"
+          >
+            <Home className="h-5 w-5" />
+            <span className="hidden sm:inline">Admin</span>
           </button>
           <div className="flex flex-col justify-center">
             <span className="text-[10px] md:text-xs text-gray-400 font-bold uppercase tracking-wider">Cocina</span>

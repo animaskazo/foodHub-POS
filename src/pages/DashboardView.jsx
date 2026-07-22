@@ -601,12 +601,13 @@ const DashboardView = () => {
                     {/* Bottom: Total & Actions */}
                     <div className="flex justify-between items-center mt-1">
                       <div className="flex flex-col">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Total</span>
-                          {['online', 'whatsapp'].includes(order.order_type) && order.payments?.some(p => p.status === 'pending') && (
+                        <div className="flex items-center mb-0.5">
+                          {['online', 'whatsapp'].includes(order.order_type) && order.payments?.some(p => p.status === 'pending') ? (
                             <span className="text-[10px] text-red-600 font-bold uppercase tracking-wider animate-pulse">
                               Pendiente de Pago
                             </span>
+                          ) : (
+                            <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Total</span>
                           )}
                         </div>
                         <span className="font-black text-xl leading-none text-gray-900">

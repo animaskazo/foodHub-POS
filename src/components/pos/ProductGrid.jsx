@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, ScanLine, X, Menu } from 'lucide-react';
+import { Search, ScanLine, X, Menu, ChefHat } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useKitchenOrders } from '../../hooks/useKitchenOrders';
 import Keyboard from 'react-simple-keyboard';
 
 // CSS del teclado importado via vite
@@ -40,6 +42,8 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
   const keyboardRef = useRef(null);
   const overlayRef = useRef(null);
   const searchBarRef = useRef(null);
+  const navigate = useNavigate();
+  const { pendingCount, newOrderFlag } = useKitchenOrders();
 
   useEffect(() => {
     const loadCatalog = async () => {
@@ -196,6 +200,20 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             <Menu className="h-7 w-7" />
+          </button>
+
+          {/* Mobile Kitchen Badge Trigger */}
+          <button
+            onClick={() => navigate('/kitchen')}
+            className={`md:hidden relative p-2 rounded-lg shrink-0 select-none transition-colors ${newOrderFlag ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-700 active:bg-gray-200'}`}
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            <ChefHat className="h-6 w-6" />
+            {pendingCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white animate-pulse">
+                {pendingCount}
+              </span>
+            )}
           </button>
 
           <div className="relative flex-1">
