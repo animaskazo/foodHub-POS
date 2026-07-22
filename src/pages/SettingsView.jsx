@@ -7,9 +7,10 @@ import {
   getStaff 
 } from '../services/organizationService';
 import { uploadImage } from '../services/storageService';
-import { Store, User, Clock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck } from 'lucide-react';
+import { Store, User, Clock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import DeliveryMap from '../components/admin/DeliveryMap';
+import { geocodeAddress } from '../utils/geo';
 
 const daysTranslations = {
   mon: 'Lunes',
@@ -611,7 +612,28 @@ const SettingsView = () => {
                     </div>
 
                     <div className="pt-2">
-                      <label className="block text-sm font-semibold text-gray-700 mb-3">Zona de Cobertura en el Mapa</label>
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="block text-sm font-semibold text-gray-700">Zona de Cobertura en el Mapa</label>
+                        {formData.address && (
+                          <button
+                            onClick={async () => {
+                              const coords = await geocodeAddress(formData.address);
+                              if (coords) {
+                                setDeliveryData({...deliveryData, store_lat: coords.lat, store_lng: coords.lng});
+                              } else {
+                                alert('No se pudo encontrar la dirección general en el mapa. Por favor, haz clic manualmente.');
+                              }
+                            }}
+                            className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                          >
+                            <Search className="h-3.5 w-3.5" />
+                            Buscar mi dirección general
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 mb-3 -mt-2">
+                        La dirección en texto se configura en "Información General". Si no ves el círculo de reparto, <strong>haz clic en el mapa</strong> para fijar el origen.
+                      </p>
                       <DeliveryMap 
                         lat={deliveryData.store_lat} 
                         lng={deliveryData.store_lng} 
