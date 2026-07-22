@@ -165,7 +165,6 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
               })}
             </div>
           </div>
-          </div>
         )}
       </div>
 
