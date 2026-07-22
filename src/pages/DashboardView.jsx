@@ -607,6 +607,7 @@ const DashboardView = () => {
           )}
         </div>
       </div>
+      </div>
       
       {/* Modal de Detalles de Orden */}
       <Modal
@@ -778,7 +779,6 @@ const DashboardView = () => {
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 };

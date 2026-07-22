@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { Clock, ChefHat, CheckCircle2, Play, RefreshCw, Volume2, VolumeX, Store, ShoppingBag, ShoppingCart, Globe, MessageCircle, User, FileText } from 'lucide-react';
+import { Clock, ChefHat, CheckCircle2, Play, RefreshCw, Volume2, Store, ShoppingBag, ShoppingCart, Globe, MessageCircle, User, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { getKitchenOrders, updateOrderStatus } from '../services/orderService';
 
 const KitchenView = () => {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const audioCtxRef = useRef(null);
@@ -124,11 +126,20 @@ const KitchenView = () => {
     <div className="flex flex-col h-screen bg-black text-gray-100 overflow-hidden font-sans" onClick={initAudio}>
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 bg-[#111] border-b border-[#222]">
-        <div className="flex items-center gap-3">
-          <div className="bg-white p-2 rounded-lg text-black">
-            <ChefHat className="h-6 w-6" />
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="p-2 text-gray-400 hover:text-white bg-[#222] hover:bg-[#333] border border-[#333] rounded-lg transition-colors flex items-center justify-center"
+            title="Volver al Dashboard"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="bg-white p-2 rounded-lg text-black">
+              <ChefHat className="h-6 w-6" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-white hidden md:block">KDS - Vista de Cocina</h1>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">KDS - Vista de Cocina</h1>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-green-500/20 text-green-400 border border-green-500/30">
