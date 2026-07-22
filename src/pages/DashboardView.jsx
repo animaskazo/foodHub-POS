@@ -3,9 +3,9 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
-import { 
-  TrendingUp, 
-  ShoppingCart, 
+import {
+  TrendingUp,
+  ShoppingCart,
   Receipt,
   Filter,
   Loader2,
@@ -35,7 +35,7 @@ const DashboardView = () => {
   const [pendingPaymentOrder, setPendingPaymentOrder] = useState(null);
   const [isPaymentConfirmOpen, setIsPaymentConfirmOpen] = useState(false);
   const [newOrderAlert, setNewOrderAlert] = useState(null);
-  
+
   const audioCtxRef = useRef(null);
   const prevOrdersRef = useRef([]);
 
@@ -44,7 +44,7 @@ const DashboardView = () => {
       const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
       if (!audioCtxRef.current) audioCtxRef.current = ctx;
       if (ctx.state === 'suspended') ctx.resume();
-      
+
       const playNote = (freq, startTime, duration) => {
         const osc = ctx.createOscillator();
         const gainNode = ctx.createGain();
@@ -59,7 +59,7 @@ const DashboardView = () => {
       };
       playNote(880, ctx.currentTime, 1);
       playNote(1108.73, ctx.currentTime + 0.15, 1); // C#6
-    } catch(e) {
+    } catch (e) {
       console.error("Audio error", e);
     }
   };
@@ -139,7 +139,7 @@ const DashboardView = () => {
 
   useEffect(() => {
     if (authLoading) return;
-    
+
     if (organization?.id) {
       fetchOrders();
       const interval = setInterval(() => {
@@ -160,7 +160,7 @@ const DashboardView = () => {
     try {
       const endOfDay = new Date();
       endOfDay.setHours(23, 59, 59, 999);
-      
+
       const startOfRange = new Date();
       if (dateRange === 'today') {
         startOfRange.setHours(0, 0, 0, 0);
@@ -196,7 +196,7 @@ const DashboardView = () => {
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
-      
+
       const newOrders = data || [];
       if (isBackground && prevOrdersRef.current.length > 0) {
         const prevIds = new Set(prevOrdersRef.current.map(o => o.id));
@@ -207,7 +207,7 @@ const DashboardView = () => {
           setTimeout(() => setNewOrderAlert(null), 6000);
         }
       }
-      
+
       prevOrdersRef.current = newOrders;
       setOrders(newOrders);
     } catch (err) {
@@ -276,9 +276,9 @@ const DashboardView = () => {
       cancelled: { label: 'Cancelado', classes: 'bg-red-100 text-red-700' },
       refunded: { label: 'Reembolsado', classes: 'bg-red-100 text-red-700' },
     };
-    
+
     const mapped = statusMap[status] || { label: status, classes: 'bg-gray-100 text-gray-700' };
-    
+
     return (
       <span className={`inline-flex items-center px-2.5 py-1 rounded-lg font-medium text-xs ${mapped.classes}`}>
         {mapped.label}
@@ -302,15 +302,15 @@ const DashboardView = () => {
   return (
     <div className="flex-1 overflow-auto bg-gray-50 p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        <PageHeader 
+        <PageHeader
           title={organization ? organization.name : 'Cargando Negocio...'}
           subtitle={
-            dateRange === 'today' ? 'Resumen de ventas del día de hoy.' : 
-            dateRange === '7days' ? 'Resumen de ventas de los últimos 7 días.' : 
-            'Resumen de ventas de los últimos 30 días.'
+            dateRange === 'today' ? 'Resumen de ventas del día de hoy.' :
+              dateRange === '7days' ? 'Resumen de ventas de los últimos 7 días.' :
+                'Resumen de ventas de los últimos 30 días.'
           }
           actions={
-            <select 
+            <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
               className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-lg font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer appearance-none pr-8 relative"
@@ -323,292 +323,292 @@ const DashboardView = () => {
           }
         />
 
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl border border-red-100">
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl border border-red-100">
+            {error}
+          </div>
+        )}
 
-      {/* Filters */}
-      <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar mb-6">
-        <button 
-          onClick={() => setChannelFilter('all')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'all' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-        >
-          Todos
-        </button>
-        <button 
-          onClick={() => setChannelFilter('table')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'table' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-        >
-          <Store className="h-4 w-4" /> Local
-        </button>
-        <button 
-          onClick={() => setChannelFilter('pickup')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'pickup' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-        >
-          <ShoppingBag className="h-4 w-4" /> Retiro
-        </button>
-        <button 
-          onClick={() => setChannelFilter('online')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'online' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-        >
-          <Globe className="h-4 w-4" /> Online
-        </button>
-        <button 
-          onClick={() => setChannelFilter('whatsapp')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'whatsapp' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-        >
-          <MessageCircle className="h-4 w-4" /> WhatsApp
-        </button>
-      </div>
-
-      {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-2xl border border-gray-200">
-          <div className="flex items-center gap-3 text-gray-500 mb-2">
-            <TrendingUp className="h-5 w-5 text-gray-900" />
-            <span className="font-medium">
-              Ventas {dateRange === 'today' ? 'de Hoy' : dateRange === '7days' ? '(7 días)' : '(30 días)'}
-            </span>
-          </div>
-          <div className="text-3xl font-bold text-gray-900">
-            {loading ? <Loader2 className="h-8 w-8 animate-spin text-gray-300" /> : formatCurrency(metrics.totalRevenue)}
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl border border-gray-200">
-          <div className="flex items-center gap-3 text-gray-500 mb-2">
-            <ShoppingCart className="h-5 w-5 text-gray-900" />
-            <span className="font-medium">Órdenes Totales</span>
-          </div>
-          <div className="text-3xl font-bold text-gray-900">
-            {loading ? <Loader2 className="h-8 w-8 animate-spin text-gray-300" /> : metrics.totalOrders}
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl border border-gray-200">
-          <div className="flex items-center gap-3 text-gray-500 mb-2">
-            <Receipt className="h-5 w-5 text-gray-900" />
-            <span className="font-medium">Ticket Promedio</span>
-          </div>
-          <div className="text-3xl font-bold text-gray-900">
-            {loading ? <Loader2 className="h-8 w-8 animate-spin text-gray-300" /> : formatCurrency(metrics.averageTicket)}
-          </div>
-        </div>
-      </div>
-
-      {/* Sales Record */}
-      <div className="md:bg-white md:rounded-2xl md:border md:border-gray-200 overflow-hidden flex flex-col">
-        {/* Toolbar */}
-        <div className="pb-4 md:p-6 md:border-b flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-gray-900">Registro Diario</h2>
-          <select 
-            value={kitchenStatusFilter}
-            onChange={(e) => setKitchenStatusFilter(e.target.value)}
-            className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white shadow-sm focus:outline-none focus:border-gray-300"
+        {/* Filters */}
+        <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar mb-6">
+          <button
+            onClick={() => setChannelFilter('all')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'all' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
           >
-            <option value="all">Todos los estados</option>
-            <option value="pending">Pendientes</option>
-            <option value="preparing">En preparación</option>
-            <option value="ready">Listos</option>
-            <option value="delivered">Entregados</option>
-            <option value="cancelled">Cancelados</option>
-          </select>
+            Todos
+          </button>
+          <button
+            onClick={() => setChannelFilter('table')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'table' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          >
+            <Store className="h-4 w-4" /> Local
+          </button>
+          <button
+            onClick={() => setChannelFilter('pickup')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'pickup' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          >
+            <ShoppingBag className="h-4 w-4" /> Retiro
+          </button>
+          <button
+            onClick={() => setChannelFilter('online')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'online' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          >
+            <Globe className="h-4 w-4" /> Online
+          </button>
+          <button
+            onClick={() => setChannelFilter('whatsapp')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'whatsapp' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          >
+            <MessageCircle className="h-4 w-4" /> WhatsApp
+          </button>
         </div>
 
-        {/* Desktop Table View */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[600px]">
-            <thead>
-              <tr className="bg-gray-50 text-gray-500 text-sm border-b border-gray-100">
-                <th className="px-6 py-4 font-semibold w-[10%]">N° Orden</th>
-                <th className="px-6 py-4 font-semibold w-[20%]">Cliente</th>
-                <th className="px-6 py-4 font-semibold w-[15%]">Fecha</th>
-                <th className="px-6 py-4 font-semibold w-[12%]">Estado</th>
-                <th className="px-6 py-4 font-semibold text-center w-[10%]">T. Cocina</th>
-                <th className="px-6 py-4 font-semibold w-[10%]">Canal</th>
-                <th className="px-6 py-4 font-semibold w-[10%]">Método</th>
-                <th className="px-6 py-4 font-semibold text-right w-[8%]">Total</th>
-                <th className="px-6 py-4 font-semibold text-center w-[5%]">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                    Cargando ventas...
-                  </td>
+        {/* Metrics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-2xl border border-gray-200">
+            <div className="flex items-center gap-3 text-gray-500 mb-2">
+              <TrendingUp className="h-5 w-5 text-gray-900" />
+              <span className="font-medium">
+                Ventas {dateRange === 'today' ? 'de Hoy' : dateRange === '7days' ? '(7 días)' : '(30 días)'}
+              </span>
+            </div>
+            <div className="text-3xl font-bold text-gray-900">
+              {loading ? <Loader2 className="h-8 w-8 animate-spin text-gray-300" /> : formatCurrency(metrics.totalRevenue)}
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl border border-gray-200">
+            <div className="flex items-center gap-3 text-gray-500 mb-2">
+              <ShoppingCart className="h-5 w-5 text-gray-900" />
+              <span className="font-medium">Órdenes Totales</span>
+            </div>
+            <div className="text-3xl font-bold text-gray-900">
+              {loading ? <Loader2 className="h-8 w-8 animate-spin text-gray-300" /> : metrics.totalOrders}
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl border border-gray-200">
+            <div className="flex items-center gap-3 text-gray-500 mb-2">
+              <Receipt className="h-5 w-5 text-gray-900" />
+              <span className="font-medium">Ticket Promedio</span>
+            </div>
+            <div className="text-3xl font-bold text-gray-900">
+              {loading ? <Loader2 className="h-8 w-8 animate-spin text-gray-300" /> : formatCurrency(metrics.averageTicket)}
+            </div>
+          </div>
+        </div>
+
+        {/* Sales Record */}
+        <div className="md:bg-white md:rounded-2xl md:border md:border-gray-200 overflow-hidden flex flex-col">
+          {/* Toolbar */}
+          <div className="pb-4 md:p-6 md:border-b flex justify-between items-center">
+            <h2 className="text-lg font-semibold text-gray-900">Registro Diario</h2>
+            <select
+              value={kitchenStatusFilter}
+              onChange={(e) => setKitchenStatusFilter(e.target.value)}
+              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white shadow-sm focus:outline-none focus:border-gray-300"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="pending">Pendientes</option>
+              <option value="preparing">En preparación</option>
+              <option value="ready">Listos</option>
+              <option value="delivered">Entregados</option>
+              <option value="cancelled">Cancelados</option>
+            </select>
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[600px]">
+              <thead>
+                <tr className="bg-gray-50 text-gray-500 text-sm border-b border-gray-100">
+                  <th className="px-6 py-4 font-semibold w-[10%]">N° Orden</th>
+                  <th className="px-6 py-4 font-semibold w-[20%]">Cliente</th>
+                  <th className="px-6 py-4 font-semibold w-[15%]">Fecha</th>
+                  <th className="px-6 py-4 font-semibold w-[12%]">Estado</th>
+                  <th className="px-6 py-4 font-semibold text-center w-[10%]">T. Cocina</th>
+                  <th className="px-6 py-4 font-semibold w-[10%]">Canal</th>
+                  <th className="px-6 py-4 font-semibold w-[10%]">Método</th>
+                  <th className="px-6 py-4 font-semibold text-right w-[8%]">Total</th>
+                  <th className="px-6 py-4 font-semibold text-center w-[5%]">Acciones</th>
                 </tr>
-              ) : filteredOrders.length > 0 ? (
-                filteredOrders.map((order) => {
-                  const date = new Date(order.created_at);
-                  const formattedDate = date.toLocaleDateString('es-CL', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
-                  });
-                  return (
-                    <tr 
-                      key={order.id} 
-                      onClick={() => handleOpenModal(order)}
-                      className="border-b border-gray-50 hover:bg-gray-50 transition-colors text-sm cursor-pointer active:bg-gray-100 group"
-                    >
-                      <td className="px-6 py-4 font-semibold text-gray-900">{order.order_number}</td>
-                      <td className="px-6 py-4">
-                        {order.customer_name ? (
-                          <div className="flex flex-col gap-1">
-                            <span className="font-medium text-gray-900 leading-tight">{order.customer_name}</span>
-                            {order.order_type === 'online' && order.payments?.some(p => p.status === 'pending') && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[10px] font-bold w-fit">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
-                                Pago pendiente
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                      Cargando ventas...
+                    </td>
+                  </tr>
+                ) : filteredOrders.length > 0 ? (
+                  filteredOrders.map((order) => {
+                    const date = new Date(order.created_at);
+                    const formattedDate = date.toLocaleDateString('es-CL', {
+                      day: '2-digit', month: '2-digit', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit'
+                    });
+                    return (
+                      <tr
+                        key={order.id}
+                        onClick={() => handleOpenModal(order)}
+                        className="border-b border-gray-50 hover:bg-gray-50 transition-colors text-sm cursor-pointer active:bg-gray-100 group"
+                      >
+                        <td className="px-6 py-4 font-semibold text-gray-900">{order.order_number}</td>
+                        <td className="px-6 py-4">
+                          {order.customer_name ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="font-medium text-gray-900 leading-tight">{order.customer_name}</span>
+                              {order.order_type === 'online' && order.payments?.some(p => p.status === 'pending') && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[10px] font-bold w-fit">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                                  Pago pendiente
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-xs">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-gray-600">{formattedDate}</td>
+                        <td className="px-6 py-4">
+                          {getStatusTag(order.status)}
+                        </td>
+                        <td className="px-6 py-4 text-center text-gray-600 font-medium whitespace-nowrap">{getKitchenTime(order)}</td>
+                        <td className="px-6 py-4">
+                          {(() => {
+                            const channelMap = {
+                              table: { label: 'Local', Icon: Store },
+                              takeaway: { label: 'Llevar', Icon: ShoppingBag },
+                              pickup: { label: 'Retiro', Icon: ShoppingBag },
+                              online: { label: 'Online', Icon: Globe },
+                              whatsapp: { label: 'WhatsApp', Icon: MessageCircle },
+                            };
+                            const ch = channelMap[order.order_type];
+                            if (!ch) return <span className="text-gray-400 text-xs">{order.order_type}</span>;
+                            return (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs">
+                                <ch.Icon className="h-3.5 w-3.5" />
+                                {ch.label}
                               </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs">—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">{formattedDate}</td>
-                      <td className="px-6 py-4">
-                        {getStatusTag(order.status)}
-                      </td>
-                      <td className="px-6 py-4 text-center text-gray-600 font-medium whitespace-nowrap">{getKitchenTime(order)}</td>
-                      <td className="px-6 py-4">
-                        {(() => {
-                          const channelMap = {
-                            table:    { label: 'Local',    Icon: Store },
-                            takeaway: { label: 'Llevar',   Icon: ShoppingBag },
-                            pickup:   { label: 'Retiro',   Icon: ShoppingBag },
-                            online:   { label: 'Online',   Icon: Globe },
-                            whatsapp: { label: 'WhatsApp', Icon: MessageCircle },
-                          };
-                          const ch = channelMap[order.order_type];
-                          if (!ch) return <span className="text-gray-400 text-xs">{order.order_type}</span>;
-                          return (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs">
-                              <ch.Icon className="h-3.5 w-3.5" />
-                              {ch.label}
-                            </span>
-                          );
-                        })()}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span 
+                            );
+                          })()}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            title={order.payments?.find(p => p.reference_code)?.reference_code ? `ID Klap: ${order.payments.find(p => p.reference_code).reference_code}` : ''}
+                            className={`inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs ${order.payments?.find(p => p.reference_code) ? 'cursor-help border border-blue-200' : ''}`}
+                          >
+                            {getPaymentMethod(order)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right font-bold text-gray-900">${fmt(order.total || 0)}</td>
+                        <td className="px-6 py-4 text-center">
+                          {['online', 'whatsapp'].includes(order.order_type) && (() => {
+                            const hasPending = order.payments?.some(p => p.status === 'pending');
+                            const isConfirmed = order.payments?.some(p => p.status === 'paid');
+                            if (isConfirmed) return (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                                ✓ Pagado
+                              </span>
+                            );
+                            if (hasPending) return (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-full transition-colors whitespace-nowrap"
+                              >
+                                Confirmar pago
+                              </button>
+                            );
+                            return null;
+                          })()}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                      No hay ventas registradas.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards View */}
+          <div className="md:hidden flex flex-col gap-3 pb-8 px-4 mt-4">
+            {loading ? (
+              <div className="py-12 text-center text-gray-500">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                Cargando ventas...
+              </div>
+            ) : filteredOrders.length > 0 ? (
+              filteredOrders.map((order) => {
+                const date = new Date(order.created_at);
+                const formattedDate = date.toLocaleDateString('es-CL', {
+                  day: '2-digit', month: '2-digit', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit'
+                });
+                return (
+                  <div
+                    key={order.id}
+                    onClick={() => handleOpenModal(order)}
+                    className="bg-white p-4 rounded-xl border border-gray-200 flex justify-between items-center cursor-pointer hover:border-blue-300 active:bg-gray-50 transition-all select-none"
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                  >
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-900 text-lg">{order.order_number}</span>
+                        <span
                           title={order.payments?.find(p => p.reference_code)?.reference_code ? `ID Klap: ${order.payments.find(p => p.reference_code).reference_code}` : ''}
-                          className={`inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs ${order.payments?.find(p => p.reference_code) ? 'cursor-help border border-blue-200' : ''}`}
+                          className={`text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md font-medium ${order.payments?.find(p => p.reference_code) ? 'cursor-help border border-blue-200' : ''}`}
                         >
                           {getPaymentMethod(order)}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 text-right font-bold text-gray-900">${fmt(order.total || 0)}</td>
-                      <td className="px-6 py-4 text-center">
-                        {['online', 'whatsapp'].includes(order.order_type) && (() => {
-                          const hasPending = order.payments?.some(p => p.status === 'pending');
-                          const isConfirmed = order.payments?.some(p => p.status === 'paid');
-                          if (isConfirmed) return (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                              ✓ Pagado
-                            </span>
-                          );
-                          if (hasPending) return (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-full transition-colors whitespace-nowrap"
-                            >
-                              Confirmar pago
-                            </button>
-                          );
-                          return null;
-                        })()}
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
-                    No hay ventas registradas.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Cards View */}
-        <div className="md:hidden flex flex-col gap-3 pb-8 px-4 mt-4">
-          {loading ? (
-            <div className="py-12 text-center text-gray-500">
-              <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-              Cargando ventas...
-            </div>
-          ) : filteredOrders.length > 0 ? (
-            filteredOrders.map((order) => {
-              const date = new Date(order.created_at);
-              const formattedDate = date.toLocaleDateString('es-CL', {
-                day: '2-digit', month: '2-digit', year: 'numeric',
-                hour: '2-digit', minute: '2-digit'
-              });
-              return (
-                <div 
-                  key={order.id} 
-                  onClick={() => handleOpenModal(order)}
-                  className="bg-white p-4 rounded-xl border border-gray-200 flex justify-between items-center cursor-pointer hover:border-blue-300 active:bg-gray-50 transition-all select-none"
-                  style={{ WebkitTapHighlightColor: 'transparent' }}
-                >
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-gray-900 text-lg">{order.order_number}</span>
-                      <span 
-                        title={order.payments?.find(p => p.reference_code)?.reference_code ? `ID Klap: ${order.payments.find(p => p.reference_code).reference_code}` : ''}
-                        className={`text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md font-medium ${order.payments?.find(p => p.reference_code) ? 'cursor-help border border-blue-200' : ''}`}
-                      >
-                        {getPaymentMethod(order)}
-                      </span>
-                    </div>
-                    <span className="text-sm text-gray-500">{formattedDate}</span>
-                    {order.ready_at && (
-                      <span className="text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md font-semibold w-max border border-orange-100">
-                        Cocina: {getKitchenTime(order)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <span className="font-black text-gray-900 text-lg">${fmt(order.total || 0)}</span>
-                    {getStatusTag(order.status)}
-                    {['online', 'whatsapp'].includes(order.order_type) && (() => {
-                      const hasPending = order.payments?.some(p => p.status === 'pending');
-                      const isConfirmed = order.payments?.some(p => p.status === 'paid');
-                      if (isConfirmed) return (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                          ✓ Pagado
+                      </div>
+                      <span className="text-sm text-gray-500">{formattedDate}</span>
+                      {order.ready_at && (
+                        <span className="text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md font-semibold w-max border border-orange-100">
+                          Cocina: {getKitchenTime(order)}
                         </span>
-                      );
-                      if (hasPending) return (
-                        <button
-                          onClick={(e) => handleOpenPaymentConfirm(e, order)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-full transition-colors"
-                        >
-                          Confirmar pago
-                        </button>
-                      );
-                      return null;
-                    })()}
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="font-black text-gray-900 text-lg">${fmt(order.total || 0)}</span>
+                      {getStatusTag(order.status)}
+                      {['online', 'whatsapp'].includes(order.order_type) && (() => {
+                        const hasPending = order.payments?.some(p => p.status === 'pending');
+                        const isConfirmed = order.payments?.some(p => p.status === 'paid');
+                        if (isConfirmed) return (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                            ✓ Pagado
+                          </span>
+                        );
+                        if (hasPending) return (
+                          <button
+                            onClick={(e) => handleOpenPaymentConfirm(e, order)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-full transition-colors"
+                          >
+                            Confirmar pago
+                          </button>
+                        );
+                        return null;
+                      })()}
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="py-12 text-center text-gray-500">
-              No hay ventas registradas.
-            </div>
-          )}
+                );
+              })
+            ) : (
+              <div className="py-12 text-center text-gray-500">
+                No hay ventas registradas.
+              </div>
+            )}
+          </div>
         </div>
       </div>
-      </div>
-      
+
       {/* Modal de Detalles de Orden */}
       <Modal
         isOpen={isModalOpen}
@@ -632,7 +632,7 @@ const DashboardView = () => {
           <div className="flex flex-col h-full">
             {/* Contenido desplazable */}
             <div className="p-6 space-y-6">
-              
+
               {/* Información General */}
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
@@ -681,7 +681,7 @@ const DashboardView = () => {
                   <ShoppingBag className="h-5 w-5 text-gray-400" />
                   <h3 className="font-bold text-lg">Productos</h3>
                 </div>
-                
+
                 <div className="space-y-3">
                   {selectedOrder.order_items?.length > 0 ? (
                     selectedOrder.order_items.map((item, idx) => (
@@ -765,17 +765,40 @@ const DashboardView = () => {
       )}
 
       {/* New Order Toast Notification */}
+      {/* New Order Toast Notification */}
       {newOrderAlert && (
-        <div className="fixed bottom-6 right-6 bg-white border border-gray-200 shadow-xl rounded-2xl p-4 pr-6 flex items-start gap-4 z-50 animate-in slide-in-from-bottom-5">
-          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-            <span className="text-xl">🔔</span>
+        <div className="fixed bottom-24 right-6 w-80 bg-gray-900 text-white border border-gray-800 shadow-2xl rounded-2xl p-5 flex flex-col gap-3 z-50 animate-in slide-in-from-bottom-5">
+          <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+            <div className="flex items-center gap-3">
+              <div>
+                <h4 className="font-bold text-sm text-green-400">¡Nuevo Pedido!</h4>
+                <p className="text-xs text-gray-400 capitalize">{newOrderAlert.order_type === 'table' ? 'Local' : newOrderAlert.order_type}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-xs text-gray-400">Orden</span>
+              <p className="text-2xl font-black leading-none">{newOrderAlert.order_number}</p>
+            </div>
           </div>
-          <div>
-            <h4 className="font-bold text-gray-900 text-sm">¡Nuevo Pedido Ingresado!</h4>
-            <p className="text-sm text-gray-600 mt-1">
-              Orden #{newOrderAlert.order_number} por ${newOrderAlert.total?.toLocaleString('es-CL')}
-            </p>
-            <p className="text-xs text-gray-400 mt-0.5 capitalize">{newOrderAlert.order_type === 'table' ? 'Local' : newOrderAlert.order_type}</p>
+
+          <div className="flex-1 space-y-2 max-h-32 overflow-hidden">
+            {newOrderAlert.order_items?.slice(0, 3).map((item, idx) => (
+              <div key={idx} className="flex justify-between text-sm">
+                <span className="text-gray-300 truncate pr-2">
+                  <span className="font-bold text-gray-400 mr-1">{item.quantity}x</span>
+                  {item.product_name}
+                </span>
+                <span className="font-medium whitespace-nowrap">${(item.unit_price * item.quantity).toLocaleString('es-CL')}</span>
+              </div>
+            ))}
+            {newOrderAlert.order_items?.length > 3 && (
+              <p className="text-xs text-gray-500 italic">... y {newOrderAlert.order_items.length - 3} más</p>
+            )}
+          </div>
+
+          <div className="flex justify-between items-center pt-3 border-t border-gray-800 mt-1">
+            <span className="font-medium text-gray-400 text-sm">Total</span>
+            <span className="font-bold text-lg">${newOrderAlert.total?.toLocaleString('es-CL')}</span>
           </div>
         </div>
       )}
