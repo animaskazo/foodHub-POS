@@ -300,7 +300,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
         </div>
       )}
 
-      <div className="sticky top-14 z-20 bg-white pt-3">
+      <div className={`sticky z-20 bg-white pt-3 transition-all duration-200 ${isOpen ? 'top-14' : 'top-[88px]'}`}>
         {/* Category pills */}
         <div ref={catBarRef} className="flex gap-2 px-4 pb-3 overflow-x-auto hide-scrollbar">
           {[{ id: 'all', name: 'Todos' }, ...categories].map(cat => (

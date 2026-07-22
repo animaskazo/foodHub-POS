@@ -5,8 +5,13 @@ const PublicHeader = ({ org, cartCount, step, onBack, isOpen = true }) => {
   const canGoBack = step > 1 && step < 4;
 
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm">
-      <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+    <header className="sticky top-0 z-30 bg-white shadow-sm flex flex-col">
+      {!isOpen && (
+        <div className="bg-red-500 text-white text-[13px] font-bold text-center py-1.5 px-4 w-full tracking-wide">
+          En este momento el local se encuentra cerrado
+        </div>
+      )}
+      <div className="w-full max-w-3xl mx-auto px-4 h-14 flex items-center justify-between gap-3 border-b border-gray-100">
         {/* Left: Back or Logo */}
         <div className="flex items-center gap-3 min-w-0">
           {canGoBack ? (
@@ -54,12 +59,6 @@ const PublicHeader = ({ org, cartCount, step, onBack, isOpen = true }) => {
           </div>
         )}
       </div>
-
-      {!isOpen && (
-        <div className="bg-red-500 text-white text-[13px] font-bold text-center py-1.5 px-4 shadow-sm">
-          En este momento el local se encuentra cerrado
-        </div>
-      )}
     </header>
   );
 };
