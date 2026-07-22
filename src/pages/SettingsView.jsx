@@ -538,7 +538,6 @@ const SettingsView = () => {
                   </button>
                 </div>
               </div>
-              </div>
             )}
 
             {activeTab === 'delivery' && (
