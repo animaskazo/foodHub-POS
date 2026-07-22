@@ -176,7 +176,7 @@ const KitchenView = () => {
 
       {/* Kanban Board / Grid */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6">
-        
+
         {/* Status Counters */}
         <div className="flex items-center gap-3 mb-6 overflow-x-auto hide-scrollbar pb-1">
           <div className="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-[#10b981]/10 border border-[#10b981]/20 text-[#10b981] whitespace-nowrap">
@@ -214,7 +214,7 @@ const KitchenView = () => {
                 btnClass: 'bg-[#10b981] hover:bg-[#059669] text-white',
               },
               pending: {
-                border: 'border-2 border-amber-500/30',
+                border: 'border-2 border-amber-500/20 border-dashed',
                 glow: 'shadow-black/40',
                 headerBg: 'bg-[#f59e0b]/[0.02]',
                 label: 'Pendiente',
@@ -222,7 +222,7 @@ const KitchenView = () => {
                 btnClass: 'bg-zinc-800 hover:bg-zinc-700 text-white',
               },
               confirmed: {
-                border: 'border-2 border-zinc-500/10',
+                border: 'border-2 border-amber-500/50',
                 glow: 'shadow-black/40',
                 headerBg: 'bg-zinc-900',
                 label: 'Nuevo',
