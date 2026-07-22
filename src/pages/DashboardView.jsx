@@ -16,7 +16,13 @@ import {
   Clock,
   CreditCard,
   ShoppingBag,
-  ReceiptText
+  ReceiptText,
+  CheckCircle2,
+  Timer,
+  Utensils,
+  CheckCheck,
+  XCircle,
+  RefreshCcw
 } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import PaymentModal from '../components/pos/PaymentModal';
@@ -130,7 +136,7 @@ const DashboardView = () => {
       }
       setIsPaymentConfirmOpen(false);
       setPendingPaymentOrder(null);
-      await fetchOrders();
+      await fetchOrders(true); // Pasar true para evitar que setLoading(true) reinicie la UI
     } catch (err) {
       console.error('Error confirmando pago:', err);
       alert(`No se pudo confirmar el pago: ${err.message || JSON.stringify(err)}`);
@@ -268,19 +274,20 @@ const DashboardView = () => {
 
   const getStatusTag = (status) => {
     const statusMap = {
-      pending: { label: 'Pendiente', classes: 'bg-gray-100 text-gray-700' },
-      confirmed: { label: 'Confirmado', classes: 'bg-blue-100 text-blue-700' },
-      preparing: { label: 'Preparando', classes: 'bg-orange-100 text-orange-700' },
-      ready: { label: 'Listo', classes: 'bg-green-100 text-green-700' },
-      delivered: { label: 'Entregado', classes: 'bg-purple-100 text-purple-700' },
-      cancelled: { label: 'Cancelado', classes: 'bg-red-100 text-red-700' },
-      refunded: { label: 'Reembolsado', classes: 'bg-red-100 text-red-700' },
+      pending: { label: 'Pendiente', classes: 'bg-gray-100 text-gray-700 border-gray-200', icon: Timer },
+      confirmed: { label: 'Confirmado', classes: 'bg-blue-100 text-blue-700 border-blue-200', icon: CheckCircle2 },
+      preparing: { label: 'Preparando', classes: 'bg-orange-100 text-orange-700 border-orange-200', icon: Utensils },
+      ready: { label: 'Listo', classes: 'bg-green-100 text-green-700 border-green-200', icon: CheckCheck },
+      delivered: { label: 'Entregado', classes: 'bg-purple-100 text-purple-700 border-purple-200', icon: CheckCheck },
+      cancelled: { label: 'Cancelado', classes: 'bg-red-100 text-red-700 border-red-200', icon: XCircle },
+      refunded: { label: 'Reembolsado', classes: 'bg-red-100 text-red-700 border-red-200', icon: RefreshCcw },
     };
 
-    const mapped = statusMap[status] || { label: status, classes: 'bg-gray-100 text-gray-700' };
+    const mapped = statusMap[status] || { label: status, classes: 'bg-gray-100 text-gray-700 border-gray-200', icon: Filter };
 
     return (
-      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg font-medium text-xs ${mapped.classes}`}>
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium text-xs border ${mapped.classes}`}>
+        {mapped.icon && <mapped.icon className="w-3.5 h-3.5" />}
         {mapped.label}
       </span>
     );
@@ -508,14 +515,14 @@ const DashboardView = () => {
                             const hasPending = order.payments?.some(p => p.status === 'pending');
                             const isConfirmed = order.payments?.some(p => p.status === 'paid');
                             if (isConfirmed) return (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                              <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-50 text-green-700 text-sm font-bold rounded-xl border-2 border-green-200">
                                 ✓ Pagado
                               </span>
                             );
                             if (hasPending) return (
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-full transition-colors whitespace-nowrap"
+                                className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border-2 border-black text-black hover:bg-gray-100 text-sm font-bold rounded-xl shadow-sm active:scale-95 transition-all whitespace-nowrap"
                               >
                                 Confirmar pago
                               </button>
@@ -537,8 +544,8 @@ const DashboardView = () => {
             </table>
           </div>
 
-          {/* Mobile Cards View */}
-          <div className="md:hidden flex flex-col gap-3 pb-8 px-4 mt-4">
+          {/* Mobile Cards View - Premium */}
+          <div className="md:hidden flex flex-col gap-4 pb-8 mt-4 w-full">
             {loading ? (
               <div className="py-12 text-center text-gray-500">
                 <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
@@ -555,47 +562,78 @@ const DashboardView = () => {
                   <div
                     key={order.id}
                     onClick={() => handleOpenModal(order)}
-                    className="bg-white p-4 rounded-xl border border-gray-200 flex justify-between items-center cursor-pointer hover:border-blue-300 active:bg-gray-50 transition-all select-none"
+                    className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl p-4 flex flex-col gap-3 cursor-pointer"
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-gray-900 text-lg">{order.order_number}</span>
-                        <span
-                          title={order.payments?.find(p => p.reference_code)?.reference_code ? `ID Klap: ${order.payments.find(p => p.reference_code).reference_code}` : ''}
-                          className={`text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md font-medium ${order.payments?.find(p => p.reference_code) ? 'cursor-help border border-blue-200' : ''}`}
-                        >
-                          {getPaymentMethod(order)}
-                        </span>
+                    {/* Header: Order Number & Status */}
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-0.5">Orden</span>
+                        <span className="font-black text-gray-900 text-xl leading-none">{order.order_number}</span>
                       </div>
-                      <span className="text-sm text-gray-500">{formattedDate}</span>
+                      <div className="flex flex-col items-end">
+                        {getStatusTag(order.status)}
+                      </div>
+                    </div>
+
+                    {/* Middle: Order Details (Time, Payment, Kitchen) */}
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <span className="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded-md border border-gray-100 font-medium">
+                        <Clock className="w-3 h-3 text-gray-400" />
+                        {new Date(order.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <span
+                        title={order.payments?.find(p => p.reference_code)?.reference_code ? `ID Klap: ${order.payments.find(p => p.reference_code).reference_code}` : ''}
+                        className={`text-xs px-2 py-1 rounded-md font-medium border ${order.payments?.find(p => p.reference_code) ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-100'}`}
+                      >
+                        {getPaymentMethod(order)}
+                      </span>
                       {order.ready_at && (
-                        <span className="text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md font-semibold w-max border border-orange-100">
+                        <span className="text-xs text-orange-700 bg-orange-50 px-2 py-1 rounded-md font-medium border border-orange-200">
                           Cocina: {getKitchenTime(order)}
                         </span>
                       )}
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <span className="font-black text-gray-900 text-lg">${fmt(order.total || 0)}</span>
-                      {getStatusTag(order.status)}
-                      {['online', 'whatsapp'].includes(order.order_type) && (() => {
-                        const hasPending = order.payments?.some(p => p.status === 'pending');
-                        const isConfirmed = order.payments?.some(p => p.status === 'paid');
-                        if (isConfirmed) return (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                            ✓ Pagado
-                          </span>
-                        );
-                        if (hasPending) return (
-                          <button
-                            onClick={(e) => handleOpenPaymentConfirm(e, order)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-full transition-colors"
-                          >
-                            Confirmar pago
-                          </button>
-                        );
-                        return null;
-                      })()}
+
+                    {/* Divider */}
+                    <div className="h-px bg-gray-100 w-full my-0.5"></div>
+
+                    {/* Bottom: Total & Actions */}
+                    <div className="flex justify-between items-center mt-1">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Total</span>
+                          {['online', 'whatsapp'].includes(order.order_type) && order.payments?.some(p => p.status === 'pending') && (
+                            <span className="text-[10px] text-red-600 font-bold uppercase tracking-wider animate-pulse">
+                              Pendiente de Pago
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-black text-xl leading-none text-gray-900">
+                          ${fmt(order.total || 0)}
+                        </span>
+                      </div>
+                      
+                      <div>
+                        {['online', 'whatsapp'].includes(order.order_type) && (() => {
+                          const hasPending = order.payments?.some(p => p.status === 'pending');
+                          const isConfirmed = order.payments?.some(p => p.status === 'paid');
+                          if (isConfirmed) return (
+                            <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-50 text-green-700 text-sm font-bold rounded-xl border-2 border-green-200">
+                              ✓ Pagado
+                            </span>
+                          );
+                          if (hasPending) return (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
+                              className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border-2 border-black text-black hover:bg-gray-100 text-sm font-bold rounded-xl shadow-sm active:scale-95 transition-all"
+                            >
+                              Confirmar pago
+                            </button>
+                          );
+                          return null;
+                        })()}
+                      </div>
                     </div>
                   </div>
                 );
@@ -634,34 +672,19 @@ const DashboardView = () => {
             <div className="p-6 space-y-6">
 
               {/* Información General */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                  <div className="flex items-center gap-2 mb-2 text-gray-500">
-                    <ReceiptText className="h-4 w-4" />
-                    <span className="text-xs font-semibold uppercase tracking-wider">Estado</span>
-                  </div>
-                  <div>
-                    {getStatusTag(selectedOrder.status)}
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                  <div className="flex items-center gap-2 mb-2 text-gray-500">
-                    <CreditCard className="h-4 w-4" />
-                    <span className="text-xs font-semibold uppercase tracking-wider">Pago</span>
-                  </div>
-                  <span className="inline-flex items-center px-2.5 py-1 bg-white text-gray-700 rounded-lg font-bold text-sm border border-gray-200">
-                    {getPaymentMethod(selectedOrder)}
-                  </span>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                  <div className="flex items-center gap-2 mb-2 text-gray-500">
-                    <Clock className="h-4 w-4" />
-                    <span className="text-xs font-semibold uppercase tracking-wider">T. Cocina</span>
-                  </div>
-                  <span className="font-bold text-gray-900 text-sm">
-                    {getKitchenTime(selectedOrder)}
-                  </span>
-                </div>
+              {/* Información General */}
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                {getStatusTag(selectedOrder.status)}
+                
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs border border-gray-200">
+                  <CreditCard className="h-3.5 w-3.5 text-gray-500" />
+                  {getPaymentMethod(selectedOrder)}
+                </span>
+                
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 text-orange-700 rounded-lg font-medium text-xs border border-orange-200">
+                  <Clock className="h-3.5 w-3.5 text-orange-500" />
+                  {getKitchenTime(selectedOrder) === '-' ? 'Sin tiempo' : getKitchenTime(selectedOrder)}
+                </span>
               </div>
 
               {/* Notas del cliente */}
@@ -730,22 +753,35 @@ const DashboardView = () => {
                   <span>${fmt(selectedOrder.tax_amount || 0)}</span>
                 </div>
               </div>
-              <div className="flex justify-between items-center text-lg pt-4 border-t border-gray-200">
-                <div>
-                  <span className="font-bold text-gray-900 text-lg">Total</span>
-                  {selectedOrder.payments?.some(p => p.status === 'pending') && (
-                    <button
-                      onClick={() => {
-                        setPendingPaymentOrder(selectedOrder);
-                        setIsPaymentConfirmOpen(true);
-                      }}
-                      className="ml-4 px-4 py-2 bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-white rounded-lg font-bold text-sm transition-colors shadow-sm"
-                    >
-                      Marcar como Pagado
-                    </button>
-                  )}
+              <div className="flex justify-between items-end pt-4 border-t border-gray-200 mt-2">
+                <div className="flex flex-col">
+                  <span className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-1">Total</span>
+                  <span className="font-black text-3xl text-gray-900 leading-none">${fmt(selectedOrder.total || 0)}</span>
                 </div>
-                <span className="font-black text-gray-900">${fmt(selectedOrder.total || 0)}</span>
+                
+                <div>
+                  {(() => {
+                    const hasPending = selectedOrder.payments?.some(p => p.status === 'pending');
+                    const isConfirmed = selectedOrder.payments?.some(p => p.status === 'paid');
+                    if (isConfirmed) return (
+                      <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-50 text-green-700 text-sm font-bold rounded-xl border-2 border-green-200">
+                        ✓ Pagado
+                      </span>
+                    );
+                    if (hasPending) return (
+                      <button
+                        onClick={() => {
+                          setPendingPaymentOrder(selectedOrder);
+                          setIsPaymentConfirmOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border-2 border-black text-black hover:bg-gray-100 text-sm font-bold rounded-xl shadow-sm active:scale-95 transition-all"
+                      >
+                        Confirmar pago
+                      </button>
+                    );
+                    return null;
+                  })()}
+                </div>
               </div>
             </div>
           </div>
