@@ -307,7 +307,7 @@ const DashboardView = () => {
   useDocumentTitle('Dashboard');
 
   return (
-    <div className="flex-1 overflow-auto bg-gray-50 p-6 md:p-8">
+    <div className="bg-gray-50 p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         <PageHeader
           title={organization ? organization.name : 'Cargando Negocio...'}
