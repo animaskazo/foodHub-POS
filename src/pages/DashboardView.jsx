@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -34,6 +34,60 @@ const DashboardView = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pendingPaymentOrder, setPendingPaymentOrder] = useState(null);
   const [isPaymentConfirmOpen, setIsPaymentConfirmOpen] = useState(false);
+  const [newOrderAlert, setNewOrderAlert] = useState(null);
+  
+  const audioCtxRef = useRef(null);
+  const prevOrdersRef = useRef([]);
+
+  const playBellSound = () => {
+    try {
+      const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
+      if (!audioCtxRef.current) audioCtxRef.current = ctx;
+      if (ctx.state === 'suspended') ctx.resume();
+      
+      const playNote = (freq, startTime, duration) => {
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, startTime);
+        gainNode.gain.setValueAtTime(0.5, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      };
+      playNote(880, ctx.currentTime, 1);
+      playNote(1108.73, ctx.currentTime + 0.15, 1); // C#6
+    } catch(e) {
+      console.error("Audio error", e);
+    }
+  };
+
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      } else if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume();
+      }
+      if (audioCtxRef.current?.state === 'running') {
+        window.removeEventListener('click', unlockAudio);
+        window.removeEventListener('touchstart', unlockAudio);
+        window.removeEventListener('keydown', unlockAudio);
+      }
+    };
+
+    window.addEventListener('click', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio);
+    window.addEventListener('keydown', unlockAudio);
+
+    return () => {
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+    };
+  }, []);
 
   const handleOpenModal = (order) => {
     setSelectedOrder(order);
@@ -88,15 +142,21 @@ const DashboardView = () => {
     
     if (organization?.id) {
       fetchOrders();
+      const interval = setInterval(() => {
+        fetchOrders(true);
+      }, 5000);
+      return () => clearInterval(interval);
     } else {
       setLoading(false);
       setError('No tienes una organización asignada.');
     }
   }, [organization?.id, authLoading, dateRange]);
 
-  const fetchOrders = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchOrders = async (isBackground = false) => {
+    if (!isBackground) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const endOfDay = new Date();
       endOfDay.setHours(23, 59, 59, 999);
@@ -136,10 +196,23 @@ const DashboardView = () => {
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
-      setOrders(data || []);
+      
+      const newOrders = data || [];
+      if (isBackground && prevOrdersRef.current.length > 0) {
+        const prevIds = new Set(prevOrdersRef.current.map(o => o.id));
+        const arrived = newOrders.filter(o => !prevIds.has(o.id) && (o.status === 'confirmed' || o.status === 'pending'));
+        if (arrived.length > 0) {
+          playBellSound();
+          setNewOrderAlert(arrived[0]);
+          setTimeout(() => setNewOrderAlert(null), 6000);
+        }
+      }
+      
+      prevOrdersRef.current = newOrders;
+      setOrders(newOrders);
     } catch (err) {
-      console.error('Error fetching today orders:', err);
-      setError('No se pudieron cargar las ventas de hoy.');
+      if (!isBackground) setError('Error al cargar órdenes.');
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -688,6 +761,22 @@ const DashboardView = () => {
           confirmOnly={true}
           confirmTotal={pendingPaymentOrder.total}
         />
+      )}
+
+      {/* New Order Toast Notification */}
+      {newOrderAlert && (
+        <div className="fixed bottom-6 right-6 bg-white border border-gray-200 shadow-xl rounded-2xl p-4 pr-6 flex items-start gap-4 z-50 animate-in slide-in-from-bottom-5">
+          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+            <span className="text-xl">🔔</span>
+          </div>
+          <div>
+            <h4 className="font-bold text-gray-900 text-sm">¡Nuevo Pedido Ingresado!</h4>
+            <p className="text-sm text-gray-600 mt-1">
+              Orden #{newOrderAlert.order_number} por ${newOrderAlert.total?.toLocaleString('es-CL')}
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5 capitalize">{newOrderAlert.order_type === 'table' ? 'Local' : newOrderAlert.order_type}</p>
+          </div>
+        </div>
       )}
       </div>
     </div>

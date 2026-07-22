@@ -28,3 +28,11 @@ verify_jwt = false
 [functions.klap-create-payment]
 enabled = true
 verify_jwt = false
+
+[functions.food-agent]
+enabled = true
+verify_jwt = false
+
+[functions.food-agent-whatsapp]
+enabled = true
+verify_jwt = false

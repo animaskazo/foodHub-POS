@@ -6,29 +6,19 @@ import { getKitchenOrders, updateOrderStatus } from '../services/orderService';
 const KitchenView = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [audioEnabled, setAudioEnabled] = useState(false);
-  const audioEnabledRef = useRef(false);
   const audioCtxRef = useRef(null);
   const prevOrdersRef = useRef([]);
 
-  const toggleAudio = () => {
-    const nextState = !audioEnabled;
-    setAudioEnabled(nextState);
-    audioEnabledRef.current = nextState;
-    
-    if (nextState) {
-      // Browser requires AudioContext to be created/resumed on user gesture
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      } else if (audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume();
-      }
-      playBellSound(true); // Reproducir sonido de prueba
+  // Audio Context must be resumed after user interaction
+  const initAudio = () => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    } else if (audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
     }
   };
 
-  const playBellSound = (force = false) => {
-    if (!audioEnabledRef.current && !force) return;
+  const playBellSound = () => {
     try {
       const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
       if (!audioCtxRef.current) audioCtxRef.current = ctx;
@@ -53,6 +43,27 @@ const KitchenView = () => {
     }
   };
 
+  useEffect(() => {
+    const unlockAudio = () => {
+      initAudio();
+      if (audioCtxRef.current?.state === 'running') {
+        window.removeEventListener('click', unlockAudio);
+        window.removeEventListener('touchstart', unlockAudio);
+        window.removeEventListener('keydown', unlockAudio);
+      }
+    };
+
+    window.addEventListener('click', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio);
+    window.addEventListener('keydown', unlockAudio);
+
+    return () => {
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+    };
+  }, []);
+
   const fetchOrders = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     const data = await getKitchenOrders();
@@ -75,10 +86,10 @@ const KitchenView = () => {
 
   useEffect(() => {
     fetchOrders();
-    // Auto refresh every 10 seconds silently
+    // Auto refresh every 5 seconds silently
     const interval = setInterval(() => {
       fetchOrders(true);
-    }, 10000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);
@@ -110,7 +121,7 @@ const KitchenView = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-black text-gray-100 overflow-hidden font-sans">
+    <div className="flex flex-col h-screen bg-black text-gray-100 overflow-hidden font-sans" onClick={initAudio}>
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 bg-[#111] border-b border-[#222]">
         <div className="flex items-center gap-3">
@@ -120,15 +131,10 @@ const KitchenView = () => {
           <h1 className="text-2xl font-bold tracking-tight text-white">KDS - Vista de Cocina</h1>
         </div>
         <div className="flex items-center gap-4">
-          <button
-            onClick={toggleAudio}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              audioEnabled ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-[#222] text-gray-400 border border-[#333]'
-            }`}
-          >
-            {audioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            {audioEnabled ? 'Sonido Activo' : 'Activar Sonido'}
-          </button>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-green-500/20 text-green-400 border border-green-500/30">
+            <Volume2 className="h-4 w-4" />
+            Sonido Activo
+          </div>
           <div className="text-sm font-medium text-gray-400 bg-[#222] px-4 py-2 rounded-full flex items-center gap-2 border border-[#333]">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
             Actualización en vivo
@@ -145,7 +151,7 @@ const KitchenView = () => {
 
       {/* Kanban Board / Grid */}
       <main className="flex-1 overflow-x-auto overflow-y-hidden p-6">
-        <div className="flex gap-6 h-full items-start">
+        <div className="flex gap-6 h-full items-start after:content-[''] after:w-1 after:shrink-0">
           {orders.length === 0 && !loading && (
             <div className="w-full h-full flex flex-col items-center justify-center text-gray-500">
               <ChefHat className="h-16 w-16 mb-4 opacity-20" />
@@ -205,41 +211,32 @@ const KitchenView = () => {
               {/* ── Header ── */}
               <div className={`${cfg.headerBg} px-4 pt-4 pb-3.5 border-b border-zinc-900 shrink-0 space-y-3`}>
 
-                {/* Row 1: order number + timer */}
-                <div className="flex items-center justify-between gap-2">
-                  <h2 className="text-3xl font-black text-white tracking-tight leading-none">
-                    #{order.order_number}
-                  </h2>
-                  <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 text-zinc-300 font-mono text-sm font-semibold px-2.5 py-1 rounded-md shrink-0 select-none">
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>{elapsed}</span>
-                  </div>
-                </div>
+                {/* Row 1: order number */}
+                <h2 className="text-3xl font-black text-white tracking-tight leading-none truncate">
+                  {order.order_number}
+                </h2>
 
-                {/* Row 2: badge status + user */}
+                {/* Row 2: badge status + channel + user */}
                 <div className="flex items-center justify-between">
-                  <span className={`text-[11px] uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-full ${cfg.labelCls}`}>
+                  <span className={`text-[11px] uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-full shrink-0 ${cfg.labelCls}`}>
                     {cfg.label}
                   </span>
-                  <div className="flex items-center gap-1 text-xs text-zinc-400 font-medium">
-                    <User className="h-3.5 w-3.5 fill-current" />
-                    <span>{order.customer_name || 'Sin Nombre'}</span>
-                  </div>
-                </div>
-
-                {/* Row 3: type + channel badges */}
-                <div className="flex items-center justify-between pt-1 border-t border-zinc-900/60 text-xs text-zinc-400">
-                  <span className="capitalize">{order.order_type === 'table' ? 'Local' : order.order_type}</span>
-                  <div className="flex items-center gap-1">
-                    <channel.Icon className="h-3.5 w-3.5" />
-                    <span>{channel.label}</span>
+                  <div className="flex items-center gap-2 text-xs text-zinc-400 font-medium min-w-0">
+                    <div className="flex items-center gap-1 shrink-0">
+                      <channel.Icon className="h-3.5 w-3.5" />
+                      <span>{channel.label}</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0 min-w-0">
+                      <User className="h-3.5 w-3.5 fill-current shrink-0" />
+                      <span className="truncate max-w-[100px]">{order.customer_name || 'Sin Nombre'}</span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Customer order notes */}
                 {order.notes && (
                   <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                    <p className="text-xs text-amber-300/90 font-medium leading-relaxed">{order.notes}</p>
+                    <p className="text-xs text-amber-300/90 font-medium leading-relaxed break-words">{order.notes}</p>
                   </div>
                 )}
               </div>
@@ -269,7 +266,7 @@ const KitchenView = () => {
                           </div>
                         )}
                         <div className="flex-1 min-w-0 pt-0.5">
-                          <p className="text-[15px] font-bold text-white truncate">{item.product_name}</p>
+                          <p className="text-[15px] font-bold text-white leading-tight break-words">{item.product_name}</p>
                         </div>
                       </div>
 
@@ -303,7 +300,7 @@ const KitchenView = () => {
                           {variants && (
                             <div className="flex items-baseline gap-1 text-zinc-400 font-medium">
                               <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-extrabold select-none shrink-0">Opción:</span>
-                              <span className="truncate">{variants}</span>
+                              <span className="break-words leading-tight flex-1">{variants}</span>
                             </div>
                           )}
                           {extras && extras.length > 0 && (
@@ -320,7 +317,7 @@ const KitchenView = () => {
                           )}
                           {item.notes && (
                             <div className="p-2 bg-[#ffc107]/[0.03] border border-[#ffc107]/10 rounded-lg">
-                              <p className="text-[12px] text-amber-200/90 font-medium leading-relaxed">
+                              <p className="text-[12px] text-amber-200/90 font-medium leading-relaxed break-words">
                                 <span className="font-bold text-[#ffc107] block select-none mb-0.5 text-[10px] uppercase tracking-wider">Nota ítem:</span>
                                 {item.notes}
                               </p>
@@ -333,8 +330,15 @@ const KitchenView = () => {
                 })}
               </div>
 
-              {/* ── Action button ── */}
-              <div className="px-4 pb-4 shrink-0">
+              {/* ── Timer & Action button ── */}
+              <div className="px-4 pb-4 pt-2 shrink-0 flex flex-col gap-3 border-t border-zinc-900/50 bg-zinc-950">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider">Tiempo de espera</span>
+                  <div className={`flex items-center gap-1.5 font-mono text-[13px] font-bold px-2 py-1 rounded-md shrink-0 select-none ${isUrgent ? 'bg-red-500/10 text-red-400 border border-red-500/20' : isWarning ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-zinc-900 border border-zinc-800 text-zinc-300'}`}>
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>{elapsed}</span>
+                  </div>
+                </div>
                 {(order.status === 'confirmed' || order.status === 'pending') ? (
                   <button
                     onClick={() => handleUpdateStatus(order.id, 'preparing')}
