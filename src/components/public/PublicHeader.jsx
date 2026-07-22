@@ -1,7 +1,7 @@
 import React from 'react';
 import { ShoppingBag, ArrowLeft, Store } from 'lucide-react';
 
-const PublicHeader = ({ org, cartCount, step, onBack }) => {
+const PublicHeader = ({ org, cartCount, step, onBack, isOpen = true }) => {
   const canGoBack = step > 1 && step < 4;
 
   return (
@@ -33,9 +33,8 @@ const PublicHeader = ({ org, cartCount, step, onBack }) => {
             {[1, 2, 3].map(s => (
               <div
                 key={s}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  s === step ? 'w-6 bg-black' : s < step ? 'w-3 bg-gray-400' : 'w-3 bg-gray-200'
-                }`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${s === step ? 'w-6 bg-black' : s < step ? 'w-3 bg-gray-400' : 'w-3 bg-gray-200'
+                  }`}
               />
             ))}
           </div>
@@ -55,6 +54,12 @@ const PublicHeader = ({ org, cartCount, step, onBack }) => {
           </div>
         )}
       </div>
+
+      {!isOpen && (
+        <div className="bg-red-500 text-white text-[13px] font-bold text-center py-1.5 px-4 shadow-sm">
+          En este momento el local se encuentra cerrado
+        </div>
+      )}
     </header>
   );
 };

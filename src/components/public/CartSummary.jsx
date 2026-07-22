@@ -120,18 +120,12 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
       {/* Checkout CTA */}
       <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-8">
         <div className="max-w-3xl mx-auto flex flex-col items-center">
-          {!isOpen && (
-            <span className="text-[11px] text-red-600 font-bold mb-2 px-3 py-1 bg-red-100 rounded-full border border-red-200 shadow-sm animate-pulse">
-              El local se encuentra cerrado
-            </span>
-          )}
           <button
             onClick={onCheckout}
-            disabled={!isOpen}
-            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-colors active:scale-[0.98] px-8 text-[17px] tracking-wide ${isOpen ? 'bg-black hover:bg-gray-900' : 'bg-gray-400 cursor-not-allowed opacity-90'}`}
+            className="w-full h-16 bg-black text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl hover:bg-gray-900 transition-colors active:scale-[0.98] px-8 text-[17px] tracking-wide"
           >
-            {isOpen ? 'Continuar con mis datos' : 'Local Cerrado'}
-            {isOpen && <ChevronRight className="h-5 w-5" />}
+            Continuar con mis datos
+            <ChevronRight className="h-5 w-5" />
           </button>
         </div>
       </div>

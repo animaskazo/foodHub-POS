@@ -54,7 +54,7 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
             <Check className="h-4 w-4 text-white" strokeWidth={3.5} />
           </div>
         )}
-        
+
         {/* Floating Add/Counter inside image */}
         <div className="absolute bottom-2.5 right-2.5 z-10" onClick={(e) => e.stopPropagation()}>
           {quantity > 0 ? (
@@ -67,7 +67,7 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
                 <Plus className="h-3.5 w-3.5" />
               </button>
             ) : (
-              <div 
+              <div
                 className="flex items-center bg-blue-600 text-white rounded-full h-8 p-0.5 gap-1.5 shadow-lg"
               >
                 <button
@@ -119,12 +119,12 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
               {hasVariants ? 'Desde ' : ''}${fmt(displayPrice)}
             </span>
           </div>
-          
+
           {/* Name */}
           <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 mb-1">
             {product.name}
           </p>
-          
+
           {/* Description */}
           {product.description && (
             <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">{product.description}</p>
@@ -215,8 +215,8 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
     }
   };
 
-  const categoriesToRender = activeCategory === 'all' 
-    ? categories 
+  const categoriesToRender = activeCategory === 'all'
+    ? categories
     : categories.filter(c => c.id === activeCategory);
 
   const renderFallback = activeCategory === 'all' && groupedProducts['other']?.length > 0;
@@ -226,7 +226,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
       {/* Header del Negocio (Cover, Logo y Info) */}
       {org && (
         <div className="max-w-3xl mx-auto w-full shrink-0">
-          <div 
+          <div
             className="w-full h-32 md:h-40 bg-gray-100 bg-cover bg-center relative border-b border-gray-200/50 shadow-sm"
             style={org.cover_url ? { backgroundImage: `url(${org.cover_url})` } : { backgroundImage: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)' }}
           >
@@ -261,40 +261,39 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                 }}
               />
             </div>
- 
-            {/* Address button on cover */}
-            {org.address && (
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(org.address)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="absolute bottom-2.5 right-3 inline-flex items-center gap-1.5 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white transition-all px-2.5 py-1.5 rounded-full text-[11px] font-semibold cursor-pointer"
-              >
-                <MapPin className="h-3 w-3 shrink-0" />
-                <span className="truncate max-w-[160px]">{org.address}</span>
-              </a>
-            )}
+            {/* Address button on cover removed as it will be next to hours */}
           </div>
- 
-          <div className="pt-10 pb-4 px-6">
+
+          <div className="pt-10 pb-4 px-4">
             <h1 className="font-black text-3xl md:text-4xl text-gray-900 tracking-tight mb-2">
               {org.name}
             </h1>
-            
+
             {org.description && (
               <p className="text-[14px] md:text-[15px] text-gray-600 leading-relaxed max-w-2xl">
                 {org.description}
               </p>
             )}
- 
-            {org.business_hours && (
-              <div className="mt-3">
-                <button 
-                  onClick={() => setIsHoursModalOpen(true)} 
-                  className="inline-flex items-center gap-1.5 text-sm text-blue-600 font-semibold bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors"
-                >
-                  <Clock className="w-4 h-4" /> Horarios de atención
-                </button>
+            {(org.business_hours || org.address) && (
+              <div className="mt-3.5 flex flex-wrap gap-2">
+                {org.business_hours && (
+                  <button
+                    onClick={() => setIsHoursModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 text-[13px] text-blue-700 font-bold bg-blue-50/80 border border-blue-100 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors active:scale-95"
+                  >
+                    <Clock className="w-3.5 h-3.5" /> Horarios
+                  </button>
+                )}
+                {org.address && (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(org.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-[13px] text-gray-700 font-bold bg-gray-50 border border-gray-200/80 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors active:scale-95"
+                  >
+                    <MapPin className="w-3.5 h-3.5" /> Ver ubicación
+                  </a>
+                )}
               </div>
             )}
           </div>
@@ -312,11 +311,10 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                 setActiveCategory(cat.id);
                 scrollCategoryIntoView(cat.id);
               }}
-              className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-bold transition-all ${
-                activeCategory === cat.id
-                  ? 'bg-black text-white shadow'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-bold transition-all ${activeCategory === cat.id
+                ? 'bg-black text-white shadow'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
             >
               {cat.name}
             </button>
@@ -415,10 +413,10 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
         <ProductDetailView
           product={selectedProduct}
           onAdd={(productToAdd) => {
-            onAddItem({ 
-              ...productToAdd, 
-              selectedIngredients: productToAdd.selectedIngredients || [], 
-              variant: productToAdd.variant || null 
+            onAddItem({
+              ...productToAdd,
+              selectedIngredients: productToAdd.selectedIngredients || [],
+              variant: productToAdd.variant || null
             });
             setSelectedProduct(null);
           }}
@@ -428,19 +426,44 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
 
       {/* Hours Modal */}
       <Modal isOpen={isHoursModalOpen} onClose={() => setIsHoursModalOpen(false)} title="Horarios de Atención">
-        <div className="space-y-3 p-2">
-          {org?.business_hours && ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(day => {
-            const daysTranslations = { mon: 'Lunes', tue: 'Martes', wed: 'Miércoles', thu: 'Jueves', fri: 'Viernes', sat: 'Sábado', sun: 'Domingo' };
-            const hours = org.business_hours[day];
-            return (
-              <div key={day} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
-                <span className="font-medium text-gray-700">{daysTranslations[day]}</span>
-                <span className="text-gray-900 font-bold">
-                  {!hours || hours.closed ? <span className="text-red-500">Cerrado</span> : `${hours.open} - ${hours.close}`}
-                </span>
-              </div>
-            );
-          })}
+        <div className="p-4 mb-2">
+          <div className="flex items-center gap-2.5 text-gray-800 font-bold mb-4">
+            <Clock className="w-5 h-5 text-gray-500" />
+            <span className="text-[15px]">Disponibilidad Semanal</span>
+          </div>
+          <div className="space-y-1">
+            {org?.business_hours && ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(day => {
+              const daysTranslations = { mon: 'Lunes', tue: 'Martes', wed: 'Miércoles', thu: 'Jueves', fri: 'Viernes', sat: 'Sábado', sun: 'Domingo' };
+              const hours = org.business_hours[day];
+              const todayStr = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date().getDay()];
+              const isToday = day === todayStr;
+              const isClosed = !hours || hours.closed;
+
+              return (
+                <div
+                  key={day}
+                  className={`flex justify-between items-center py-3 px-3 rounded-xl transition-all ${isToday
+                    ? 'bg-blue-50/50 shadow-sm border border-blue-100'
+                    : 'hover:bg-gray-50 border border-transparent'
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`w-1.5 h-1.5 rounded-full ${isToday ? (isClosed ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-pulse') : 'bg-gray-300'}`} />
+                    <span className={`font-semibold ${isToday ? 'text-blue-700' : 'text-gray-700'}`}>
+                      {daysTranslations[day]}
+                      {isToday && <span className="ml-2.5 text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full uppercase tracking-wider">Hoy</span>}
+                    </span>
+                  </div>
+                  <div className="text-[14px]">
+                    {isClosed
+                      ? <span className="text-red-600 font-bold bg-red-50 px-2.5 py-1 rounded-lg text-[11px] uppercase tracking-wider border border-red-100/50">Cerrado</span>
+                      : <span className={`font-black tracking-tight ${isToday ? 'text-gray-900' : 'text-gray-700'}`}>{hours.open} <span className="text-gray-400 mx-0.5 font-normal">-</span> {hours.close}</span>
+                    }
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </Modal>
     </div>

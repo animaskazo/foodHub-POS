@@ -327,11 +327,12 @@ const OrderView = () => {
       {/* Centered Mobile App Frame for Desktop */}
       <div className="w-full max-w-3xl mx-auto flex-1 flex flex-col bg-white md:shadow-[0_0_60px_rgba(0,0,0,0.05)] md:min-h-[100dvh] relative">
         <PublicHeader
-        org={org}
-        cartCount={totalCartQty}
-        step={step}
-        onBack={handleBack}
-      />
+          org={org}
+          cartCount={totalCartQty}
+          step={step}
+          onBack={handleBack}
+          isOpen={isOpen}
+        />
 
       <div className="flex-1 flex flex-col min-h-0">
         {step === 1 && (
@@ -364,6 +365,7 @@ const OrderView = () => {
             totalAmount={totalAmount}
             acceptsOnlinePayments={org?.online_payments_allowed === true && org?.accepts_online_payments !== false}
             organizationId={org?.id}
+            isOpen={isOpen}
           />
         )}
         {step === 4 && (
