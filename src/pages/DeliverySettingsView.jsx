@@ -213,17 +213,15 @@ const DeliverySettingsView = () => {
             </>
           )}
 
-          <div className="pt-6 border-t border-gray-100 flex items-center justify-between">
-            <div>
-              {hasChanges && (
-                <span className="text-xs text-amber-600 font-bold animate-pulse">
-                  Tienes cambios sin guardar
-                </span>
-              )}
-            </div>
+          <div className="pt-6 border-t border-gray-100 flex items-center justify-end gap-4">
+            {hasChanges && (
+              <span className="text-xs text-amber-600 font-bold animate-pulse select-none">
+                Tienes cambios sin guardar
+              </span>
+            )}
             <button
               onClick={handleSaveDelivery}
-              disabled={saving}
+              disabled={saving || !hasChanges}
               className="flex items-center gap-2 px-6 py-2.5 bg-black text-white rounded-lg font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
             >
               {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
