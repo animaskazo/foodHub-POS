@@ -48,7 +48,7 @@ const DeliveryMap = ({ lat, lng, polygon, onLocationChange, onPolygonChange }) =
 
   return (
     <div className="relative w-full h-[400px] rounded-xl overflow-hidden border-2 border-gray-200 flex flex-col">
-      <div className="absolute top-4 left-4 z-[400] flex flex-col gap-2 pointer-events-none">
+      <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2 pointer-events-none">
         
         <div className="pointer-events-auto bg-white rounded-lg shadow-md border border-gray-100 p-1 flex gap-1">
           <button
@@ -78,7 +78,7 @@ const DeliveryMap = ({ lat, lng, polygon, onLocationChange, onPolygonChange }) =
         )}
       </div>
       
-      <div className="absolute top-4 right-4 z-[400] bg-white px-3 py-2 rounded-lg shadow-md border border-gray-100 flex items-center gap-2 pointer-events-none">
+      <div className="absolute top-4 right-4 z-[1000] bg-white px-3 py-2 rounded-lg shadow-md border border-gray-100 flex items-center gap-2 pointer-events-none">
         <span className="text-sm font-medium text-gray-700">
           {mode === 'marker' ? 'Haz clic en el mapa para marcar tu local' : 'Haz clics consecutivos para dibujar tu zona'}
         </span>
