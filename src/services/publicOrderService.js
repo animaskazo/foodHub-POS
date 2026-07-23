@@ -320,8 +320,12 @@ export const getPublicOrderById = async (orderId) => {
       subtotal,
       tax_amount,
       notes,
+      delivery_type,
+      delivery_address,
+      payments ( method ),
       order_items (
         id,
+        parent_item_id,
         product_name,
         quantity,
         unit_price,

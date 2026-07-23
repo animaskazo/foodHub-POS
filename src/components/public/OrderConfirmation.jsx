@@ -93,7 +93,7 @@ const OrderConfirmation = ({ order, org }) => {
                   ? 'Despacho a Domicilio' 
                   : 'Retiro en local'} 
                 {' · '} 
-                {dbOrder?.payment_method === 'online_gateway' ? 'Pagado online' : 'Pago al recibir'}
+                {dbOrder?.payments?.[0]?.method === 'online_gateway' ? 'Pagado online' : 'Pago al recibir'}
               </p>
               {dbOrder?.delivery_type === 'delivery' ? (
                 <p className="text-xs text-gray-500 mt-0.5">{dbOrder.delivery_address}</p>

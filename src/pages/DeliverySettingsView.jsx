@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { 
-  getFirstOrganizationId, 
-  getOrganizationDetails, 
-  updateOrganizationDetails 
+import {
+  getFirstOrganizationId,
+  getOrganizationDetails,
+  updateOrganizationDetails
 } from '../services/organizationService';
 import { Loader2, Save, MapPin, Search } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
@@ -12,12 +12,12 @@ import { geocodeAddress } from '../utils/geo';
 
 const DeliverySettingsView = () => {
   useDocumentTitle('Delivery Propio');
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [orgId, setOrgId] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
-  
+
   const [generalAddress, setGeneralAddress] = useState('');
 
   const [deliveryData, setDeliveryData] = useState({
@@ -40,7 +40,7 @@ const DeliverySettingsView = () => {
       if (id) {
         setOrgId(id);
         const orgData = await getOrganizationDetails(id);
-        
+
         setGeneralAddress(orgData.address || '');
 
         let initialLat = orgData.store_lat || null;
@@ -64,7 +64,7 @@ const DeliverySettingsView = () => {
           delivery_fee: orgData.delivery_fee || 0,
           delivery_min_order: orgData.delivery_min_order || 0
         });
-        
+
         // Si lo centramos automáticamente, marcamos como cambio pendiente
         // para que el usuario pueda guardarlo
         setHasChanges(didAutoCenter);
@@ -109,11 +109,11 @@ const DeliverySettingsView = () => {
   return (
     <div className="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        <PageHeader 
-          title="Delivery Propio" 
-          subtitle="Configuración y zona de cobertura" 
+        <PageHeader
+          title="Delivery Propio"
+          subtitle="Configuración y zona de cobertura"
         />
-        
+
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-6">
           <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl">
             <div>
@@ -123,11 +123,11 @@ const DeliverySettingsView = () => {
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer select-none">
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={deliveryData.delivery_enabled}
                 onChange={(e) => {
-                  setDeliveryData({...deliveryData, delivery_enabled: e.target.checked});
+                  setDeliveryData({ ...deliveryData, delivery_enabled: e.target.checked });
                   setHasChanges(true);
                 }}
                 className="sr-only peer"
@@ -145,7 +145,7 @@ const DeliverySettingsView = () => {
                     type="number"
                     value={deliveryData.delivery_fee}
                     onChange={(e) => {
-                      setDeliveryData({...deliveryData, delivery_fee: Number(e.target.value)});
+                      setDeliveryData({ ...deliveryData, delivery_fee: Number(e.target.value) });
                       setHasChanges(true);
                     }}
                     className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
@@ -158,7 +158,7 @@ const DeliverySettingsView = () => {
                     type="number"
                     value={deliveryData.delivery_min_order}
                     onChange={(e) => {
-                      setDeliveryData({...deliveryData, delivery_min_order: Number(e.target.value)});
+                      setDeliveryData({ ...deliveryData, delivery_min_order: Number(e.target.value) });
                       setHasChanges(true);
                     }}
                     className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
@@ -179,7 +179,7 @@ const DeliverySettingsView = () => {
                           onClick={async () => {
                             const coords = await geocodeAddress(generalAddress);
                             if (coords) {
-                              setDeliveryData({...deliveryData, store_lat: coords.lat, store_lng: coords.lng});
+                              setDeliveryData({ ...deliveryData, store_lat: coords.lat, store_lng: coords.lng });
                               setHasChanges(true);
                             } else {
                               alert('No se pudo encontrar la dirección general en el mapa. Por favor, haz clic manualmente.');
@@ -196,16 +196,16 @@ const DeliverySettingsView = () => {
                     <p className="text-blue-600 font-medium">Vértices actuales del polígono: {deliveryData.delivery_polygon?.length || 0}</p>
                   </div>
                 </div>
-                <DeliveryMap 
-                  lat={deliveryData.store_lat} 
-                  lng={deliveryData.store_lng} 
+                <DeliveryMap
+                  lat={deliveryData.store_lat}
+                  lng={deliveryData.store_lng}
                   polygon={deliveryData.delivery_polygon}
                   onLocationChange={(lat, lng) => {
-                    setDeliveryData({...deliveryData, store_lat: lat, store_lng: lng});
+                    setDeliveryData({ ...deliveryData, store_lat: lat, store_lng: lng });
                     setHasChanges(true);
                   }}
                   onPolygonChange={(polygon) => {
-                    setDeliveryData({...deliveryData, delivery_polygon: polygon});
+                    setDeliveryData({ ...deliveryData, delivery_polygon: polygon });
                     setHasChanges(true);
                   }}
                 />
@@ -225,7 +225,7 @@ const DeliverySettingsView = () => {
               className="flex items-center gap-2 px-6 py-2.5 bg-black text-white rounded-lg font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
             >
               {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
-              Guardar Delivery
+              Guardar cambios
             </button>
           </div>
         </div>
