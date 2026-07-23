@@ -12,6 +12,7 @@ import SignupView from './pages/SignupView';
 import SuperAdminView from './pages/SuperAdminView';
 import DashboardView from './pages/DashboardView';
 import SettingsView from './pages/SettingsView';
+import DeliverySettingsView from './pages/DeliverySettingsView';
 import OrderView from './pages/OrderView';
 import CustomersView from './pages/CustomersView';
 import { AuthProvider, useAuth } from './components/AuthContext';
@@ -38,6 +39,7 @@ function App() {
           <Route path="ingredients" element={<IngredientsManager />} />
           <Route path="products" element={<CatalogManager />} />
           <Route path="settings" element={<SettingsView />} />
+          <Route path="delivery" element={<DeliverySettingsView />} />
           <Route path="customers" element={<CustomersView />} />
         </Route>
         
