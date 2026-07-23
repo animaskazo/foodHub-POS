@@ -138,29 +138,33 @@ const DeliverySettingsView = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Costo de Envío Fijo ($)</label>
-                  <input
-                    type="number"
-                    value={deliveryData.delivery_fee}
-                    onChange={(e) => {
-                      setDeliveryData({ ...deliveryData, delivery_fee: Number(e.target.value) });
-                      setHasChanges(true);
-                    }}
-                    className="w-full h-11 px-4 bg-gray-50 border border-gray-200   outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
-                    placeholder="Ej: 2000"
-                  />
+                  <div className="form-field flex items-center px-4">
+                    <input
+                      type="number"
+                      value={deliveryData.delivery_fee}
+                      onChange={(e) => {
+                        setDeliveryData({ ...deliveryData, delivery_fee: Number(e.target.value) });
+                        setHasChanges(true);
+                      }}
+                      className="flex-1 h-12 bg-transparent outline-none text-[15px]"
+                      placeholder="Ej: 2000"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Pedido Mínimo para Delivery ($)</label>
-                  <input
-                    type="number"
-                    value={deliveryData.delivery_min_order}
-                    onChange={(e) => {
-                      setDeliveryData({ ...deliveryData, delivery_min_order: Number(e.target.value) });
-                      setHasChanges(true);
-                    }}
-                    className="w-full h-11 px-4 bg-gray-50 border border-gray-200   outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
-                    placeholder="Ej: 5000"
-                  />
+                  <div className="form-field flex items-center px-4">
+                    <input
+                      type="number"
+                      value={deliveryData.delivery_min_order}
+                      onChange={(e) => {
+                        setDeliveryData({ ...deliveryData, delivery_min_order: Number(e.target.value) });
+                        setHasChanges(true);
+                      }}
+                      className="flex-1 h-12 bg-transparent outline-none text-[15px]"
+                      placeholder="Ej: 5000"
+                    />
+                  </div>
                 </div>
               </div>
 

@@ -207,7 +207,7 @@ const SuperAdminView = () => {
                         {new Date(org.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Button className="text-blue-600 font-medium text-sm flex items-center justify-end w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" className="text-blue-600 font-medium text-sm flex items-center opacity-0 group-hover:opacity-100 transition-opacity float-right hover:bg-blue-50">
                           Ver Detalles <ChevronRight className="h-4 w-4 ml-1" />
                         </Button>
                       </td>
@@ -232,8 +232,9 @@ const SuperAdminView = () => {
             {/* Detail Header & Back Button */}
             <div>
               <Button 
+                variant="ghost"
                 onClick={() => setSelectedOrganization(null)}
-                className="flex items-center text-sm font-medium text-gray-500 hover:text-black transition-colors mb-4"
+                className="flex items-center text-sm font-medium text-gray-500 hover:text-black hover:bg-transparent px-0 h-auto transition-colors mb-4"
               >
                 <ArrowLeft className="h-4 w-4 mr-1" />
                 Volver a Negocios
@@ -252,7 +253,7 @@ const SuperAdminView = () => {
                       href={`/order/${selectedOrganization.slug || encodeURIComponent(selectedOrganization.name)}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 px-2.5 py-1   transition-colors w-fit"
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 transition-colors w-fit rounded-md"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
                       Ver eCommerce
@@ -265,40 +266,44 @@ const SuperAdminView = () => {
             {/* Detail Tabs */}
             <div className="flex space-x-1 border-b">
               <Button
+                variant="ghost"
                 onClick={() => setDetailTab('overview')}
-                className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
-                  detailTab === 'overview' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
+                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 hover:bg-gray-50 ${
+                  detailTab === 'overview' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
                 }`}
               >
                 Resumen
               </Button>
               <Button
+                variant="ghost"
                 onClick={() => setDetailTab('users')}
-                className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
-                  detailTab === 'users' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
+                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
+                  detailTab === 'users' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
                 }`}
               >
                 Usuarios
-                <span className="bg-gray-100 text-gray-600 py-0.5 px-2 text-xs">{orgUsers.length}</span>
+                <span className="bg-gray-200 text-gray-700 py-0.5 px-2 rounded-full text-xs font-bold leading-none flex items-center">{orgUsers.length}</span>
               </Button>
               <Button
+                variant="ghost"
                 onClick={() => setDetailTab('products')}
-                className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
-                  detailTab === 'products' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
+                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
+                  detailTab === 'products' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
                 }`}
               >
                 Catálogo
-                <span className="bg-gray-100 text-gray-600 py-0.5 px-2 text-xs">{orgProducts.length}</span>
+                <span className="bg-gray-200 text-gray-700 py-0.5 px-2 rounded-full text-xs font-bold leading-none flex items-center">{orgProducts.length}</span>
               </Button>
               <Button
+                variant="ghost"
                 onClick={() => setDetailTab('reports')}
-                className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
-                  detailTab === 'reports' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
+                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
+                  detailTab === 'reports' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
                 }`}
               >
                 Reportes
                 {orgFeedbacks.length > 0 && (
-                  <span className="bg-red-100 text-red-600 py-0.5 px-2 text-xs">{orgFeedbacks.length}</span>
+                  <span className="bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs font-bold leading-none flex items-center">{orgFeedbacks.length}</span>
                 )}
               </Button>
             </div>

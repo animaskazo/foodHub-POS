@@ -314,70 +314,82 @@ const SettingsView = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre del Negocio</label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      className="w-full h-11 px-4 bg-gray-50 border border-gray-200   outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
-                      placeholder="Ej: Pizza Nostra"
-                      required
-                    />
+                    <div className="form-field flex items-center px-4">
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        className="flex-1 h-12 bg-transparent outline-none text-[15px]"
+                        placeholder="Ej: Pizza Nostra"
+                        required
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Slug de la Tienda (URL)</label>
-                    <input
-                      type="text"
-                      value={formData.slug}
-                      onChange={(e) => {
-                        const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-                        setFormData({...formData, slug: val});
-                      }}
-                      className="w-full h-11 px-4 bg-gray-50 border border-gray-200   outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
-                      placeholder="ej: pizza-nostra"
-                      required
-                    />
+                    <div className="form-field flex items-center px-4">
+                      <input
+                        type="text"
+                        value={formData.slug}
+                        onChange={(e) => {
+                          const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                          setFormData({...formData, slug: val});
+                        }}
+                        className="flex-1 h-12 bg-transparent outline-none text-[15px]"
+                        placeholder="ej: pizza-nostra"
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Descripción Corta</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    className="w-full h-24 p-4 bg-gray-50 border border-gray-200   outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px] resize-none"
-                    placeholder="Cuéntale a tus clientes de qué se trata tu negocio..."
-                  />
+                  <div className="form-field px-4 py-3">
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      className="w-full h-20 bg-transparent outline-none text-[15px] resize-none"
+                      placeholder="Cuéntale a tus clientes de qué se trata tu negocio..."
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Teléfono</label>
-                    <input
-                      type="text"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                      className="w-full h-11 px-4 bg-gray-50 border border-gray-200   outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
-                    />
+                    <div className="form-field flex items-center px-4">
+                      <input
+                        type="text"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                        className="flex-1 h-12 bg-transparent outline-none text-[15px]"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({...formData, email: e.target.value})}
-                      className="w-full h-11 px-4 bg-gray-50 border border-gray-200   outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
-                    />
+                    <div className="form-field flex items-center px-4">
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        className="flex-1 h-12 bg-transparent outline-none text-[15px]"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Dirección</label>
-                  <input
-                    type="text"
-                    value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
-                    className="w-full h-11 px-4 bg-gray-50 border border-gray-200   outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
-                  />
+                  <div className="form-field flex items-center px-4">
+                    <input
+                      type="text"
+                      value={formData.address}
+                      onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      className="flex-1 h-12 bg-transparent outline-none text-[15px]"
+                    />
+                  </div>
                 </div>
 
                 {/* Switch para habilitar/deshabilitar pago online */}
@@ -516,19 +528,23 @@ const SettingsView = () => {
 
                         {!dayData.closed ? (
                           <div className="flex items-center gap-2">
-                            <input 
-                              type="time"
-                              value={dayData.open || '09:00'}
-                              onChange={(e) => handleDayTimeChange(dayKey, 'open', e.target.value)}
-                              className="px-3 py-1.5 bg-white border border-gray-200   text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                            />
+                            <div className="form-field flex items-center px-3 h-10">
+                              <input 
+                                type="time"
+                                value={dayData.open || '09:00'}
+                                onChange={(e) => handleDayTimeChange(dayKey, 'open', e.target.value)}
+                                className="bg-transparent text-sm font-semibold outline-none w-[90px]"
+                              />
+                            </div>
                             <span className="text-gray-400 font-semibold text-xs">a</span>
-                            <input 
-                              type="time"
-                              value={dayData.close || '22:00'}
-                              onChange={(e) => handleDayTimeChange(dayKey, 'close', e.target.value)}
-                              className="px-3 py-1.5 bg-white border border-gray-200   text-sm font-semibold outline-none focus:ring-2 focus:ring-blue-500"
-                            />
+                            <div className="form-field flex items-center px-3 h-10">
+                              <input 
+                                type="time"
+                                value={dayData.close || '22:00'}
+                                onChange={(e) => handleDayTimeChange(dayKey, 'close', e.target.value)}
+                                className="bg-transparent text-sm font-semibold outline-none w-[90px]"
+                              />
+                            </div>
                           </div>
                         ) : (
                           <span className="text-xs font-bold text-red-500 uppercase bg-red-50 px-2.5 py-1 rounded">Cerrado</span>

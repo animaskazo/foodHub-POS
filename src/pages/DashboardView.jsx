@@ -532,6 +532,7 @@ const DashboardView = () => {
                             if (hasPending) return (
                               <Button
                                 variant="secondary"
+                                size='xs'
                                 onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
                               >
                                 Confirmar pago
@@ -829,6 +830,7 @@ const DashboardView = () => {
                     if (hasPending) return (
                       <Button
                         variant="secondary"
+                        size="xs"
                         onClick={() => {
                           setPendingPaymentOrder(selectedOrder);
                           setIsPaymentConfirmOpen(true);

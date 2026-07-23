@@ -183,10 +183,7 @@ const CatalogManager = () => {
                 placeholder="Buscar" 
               />
             </div>
-            <Button variant="outline" className="font-normal hidden sm:flex">
-              Categoría
-            </Button>
-            
+
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[180px] border-gray-200">
                 <span className="font-normal text-gray-500 mr-1">Estado:</span>
@@ -198,10 +195,6 @@ const CatalogManager = () => {
                 <SelectItem value="unavailable">Inactivo</SelectItem>
               </SelectContent>
             </Select>
-  
-            <Button variant="outline" className="font-normal hidden sm:flex">
-              <ListFilter className="h-4 w-4 mr-2" /> Todos los filtros
-            </Button>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => setIsAIModalOpen(true)}>

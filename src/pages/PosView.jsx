@@ -314,18 +314,14 @@ const PosView = () => {
               {cartItems.length > 0 && (
                 <div className="fixed bottom-6 left-4 right-4 z-40 md:hidden pb-safe">
                   <Button
-                    size="lg"
                     onPointerDown={() => setIsMobileCartOpen(true)}
-                    className="w-full flex items-center justify-between"
+                    className="relative w-full flex items-center justify-center h-14 px-5 bg-black hover:bg-black text-white rounded-full shadow-2xl transition-transform active:scale-[0.98]"
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="bg-white/20 px-3 py-1 text-sm font-bold">
-                        {totalQty}
-                      </div>
-                      <span className="font-bold">Ver Pedido</span>
+                    <div className="absolute left-3 bg-white text-black flex items-center justify-center h-8 w-8 rounded-full text-sm font-bold shadow-sm">
+                      {totalQty}
                     </div>
-                    <span className="font-bold">${total.toLocaleString('es-CL')}</span>
+                    <span className="font-bold text-[17px] tracking-wide">Ver Pedido ${total.toLocaleString('es-CL')}</span>
                   </Button>
                 </div>
               )}
@@ -398,6 +394,7 @@ const PosView = () => {
               {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
                 <Button
                   key={id}
+                  variant="ghost"
                   onPointerDown={() => {
                     if (id === 'cocina') {
                       navigate('/kitchen');
@@ -408,8 +405,8 @@ const PosView = () => {
                     }
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center gap-4 px-6 py-4 transition-colors ${
-                    activeTab === id ? 'bg-blue-50 text-blue-600 font-bold border-r-4 border-blue-600' : 'text-gray-600 font-medium'
+                  className={`w-full flex items-center justify-start gap-4 px-6 h-14 transition-colors rounded-none ${
+                    activeTab === id ? 'bg-blue-50 text-blue-600 font-bold border-r-4 border-blue-600' : 'text-gray-600 font-medium hover:bg-gray-50'
                   }`}
                 >
                   <Icon className="h-6 w-6" />
@@ -419,8 +416,9 @@ const PosView = () => {
             </div>
             <div className="p-5 border-t border-gray-100">
               <Button
+                variant="ghost"
                 onPointerDown={() => window.location.href = '/'}
-                className="w-full flex items-center gap-3 px-4 py-3 text-red-600 font-semibold active:bg-red-50 rounded-xl"
+                className="w-full flex items-center justify-start gap-3 px-4 h-12 text-red-600 font-semibold active:bg-red-50 hover:bg-red-50 rounded-xl"
               >
                 <LogOut className="h-5 w-5" />
                 <span>Cerrar Sesión</span>

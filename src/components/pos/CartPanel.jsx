@@ -185,10 +185,14 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
             })}
           </div>
         )}
+      </div>
 
+      {/* Footer Area (Sticky at bottom) */}
+      <div className="shrink-0 flex flex-col bg-white border-t border-gray-100 pb-safe shadow-[0_-20px_40px_rgba(0,0,0,0.04)] md:shadow-none z-20">
+        
         {/* Totals */}
         {items.length > 0 && (
-          <div className="px-5 py-4 space-y-2 bg-gray-50 border-t border-gray-100">
+          <div className="px-5 py-4 space-y-2 bg-gray-50/80 border-b border-gray-100">
             <div className="flex justify-between items-center text-sm text-gray-500">
               <span>Subtotal</span>
               <span>${fmt(subtotal)}</span>
@@ -199,24 +203,26 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
             </div>
             <Separator className="my-2" />
             <div className="flex justify-between items-center">
-              <span className="font-bold text-base">Total</span>
-              <span className="font-bold text-xl">${fmt(total)}</span>
+              <span className="font-bold text-base text-gray-900">Total</span>
+              <span className="font-black text-xl text-gray-900">${fmt(total)}</span>
             </div>
           </div>
         )}
-      </div>
 
-      {/* Footer CTA */}
-      <div className="p-4 bg-white border-t border-gray-100 space-y-2.5 shrink-0 pb-safe">
         {/* Charge Button */}
-        <Button
-          size="lg"
-          onClick={onCharge}
-          disabled={items.length === 0}
-          className="w-full text-lg"
-        >
-          Cobrar ${fmt(total)}
-        </Button>
+        <div className="p-4">
+          <Button
+            onClick={onCharge}
+            disabled={items.length === 0}
+            className="relative w-full flex items-center justify-center h-14 px-5 bg-black hover:bg-black text-white rounded-full shadow-2xl transition-transform active:scale-[0.98]"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            <div className="absolute left-3 bg-white text-black flex items-center justify-center h-8 w-8 rounded-full text-sm font-bold shadow-sm">
+              {totalQty}
+            </div>
+            <span className="font-bold text-[17px] tracking-wide">Cobrar ${fmt(total)}</span>
+          </Button>
+        </div>
       </div>
     </div>
   );
