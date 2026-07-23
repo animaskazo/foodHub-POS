@@ -78,7 +78,13 @@ const OrderConfirmation = ({ order, org }) => {
             </div>
             <div>
               <p className="font-bold text-gray-900 text-sm">En preparación</p>
-              <p className="text-xs text-gray-500 mt-0.5">Tu pedido ya fue recibido y está siendo preparado</p>
+              <p className="text-xs text-gray-500 mt-0.5 mb-1.5">Tu pedido ya fue recibido y está siendo preparado</p>
+              {dbOrder?.customer_name && (
+                <div className="text-xs text-gray-700 bg-gray-50 rounded px-2 py-1 inline-block border border-gray-100">
+                  <span className="font-bold">A nombre de:</span> {dbOrder.customer_name} 
+                  {dbOrder?.customer_phone && <span className="text-gray-500 ml-1">({dbOrder.customer_phone})</span>}
+                </div>
+              )}
             </div>
           </div>
 
@@ -155,10 +161,22 @@ const OrderConfirmation = ({ order, org }) => {
                     </div>
                   );
                 })}
+              {(dbOrder?.delivery_fee > 0 || (dbOrder?.delivery_type === 'delivery' && dbOrder?.delivery_fee === 0)) && (
+                <div className="pt-2 border-t border-gray-100 flex justify-between text-sm">
+                  <span className="font-semibold text-gray-600">Costo de envío</span>
+                  <span className="font-semibold text-gray-800">${fmt(dbOrder.delivery_fee || 0)}</span>
+                </div>
+              )}
               <div className="pt-2 border-t border-gray-100 flex justify-between">
                 <span className="font-bold text-gray-900">Total</span>
                 <span className="font-black text-gray-900">${fmt(displayTotal)}</span>
               </div>
+              {dbOrder?.notes && (
+                <div className="pt-3 pb-1 border-t border-gray-100">
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">Notas del pedido</p>
+                  <p className="text-xs text-gray-700 italic bg-amber-50 p-2 rounded-lg border border-amber-100">"{dbOrder.notes}"</p>
+                </div>
+              )}
             </div>
           </div>
 

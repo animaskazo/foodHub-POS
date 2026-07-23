@@ -439,7 +439,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             </div>
           </div>
 
-          <div className="h-24" />
+          <div className="h-40" />
         </div>
       </div>
 
@@ -448,7 +448,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
         <div className="max-w-3xl mx-auto flex flex-col items-center pointer-events-auto space-y-3">
           
           {form.deliveryFee > 0 && form.deliveryType === 'delivery' && (
-            <div className="w-full flex flex-col gap-2 px-4 bg-white/80 backdrop-blur-md py-3 rounded-xl shadow-sm border border-gray-100">
+            <div className="w-full flex flex-col gap-2 px-4 bg-white/80 backdrop-blur-md py-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100">
               <div className="flex justify-between items-center text-sm font-bold text-gray-700">
                 <span>Subtotal (Productos)</span>
                 <span>${fmt(totalAmount)}</span>

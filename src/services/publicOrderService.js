@@ -379,6 +379,9 @@ export const getPublicOrderById = async (orderId) => {
       notes,
       delivery_type,
       delivery_address,
+      delivery_fee,
+      customer_name,
+      customer_phone,
       payments ( method ),
       order_items (
         id,
