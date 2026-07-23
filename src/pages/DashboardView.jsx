@@ -193,6 +193,9 @@ const DashboardView = () => {
           notes,
           customer_name,
           customer_phone,
+          delivery_type,
+          delivery_address,
+          delivery_fee,
           order_items (*),
           payments (*)
         `)
@@ -568,8 +571,20 @@ const DashboardView = () => {
                     {/* Header: Order Number & Status */}
                     <div className="flex justify-between items-start">
                       <div className="flex flex-col">
-                        <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-0.5">Orden</span>
-                        <span className="font-black text-gray-900 text-xl leading-none">{order.order_number}</span>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Orden</span>
+                          {(order.order_type === 'online' || order.order_type === 'whatsapp') && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider bg-gray-100 text-gray-600">
+                              {order.delivery_type === 'delivery' ? 'Delivery' : 'Retiro'}
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-black text-gray-900 text-xl leading-none mb-1">{order.order_number}</span>
+                        {order.customer_name && (
+                          <span className="text-xs font-medium text-gray-500 truncate max-w-[150px]">
+                            {order.customer_name}
+                          </span>
+                        )}
                       </div>
                       <div className="flex flex-col items-end">
                         {getStatusTag(order.status)}
@@ -688,6 +703,29 @@ const DashboardView = () => {
                 </span>
               </div>
 
+              {/* Información de Cliente y Despacho */}
+              {(selectedOrder.customer_name || selectedOrder.delivery_type) && (
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex flex-col gap-2">
+                  <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Detalles del Cliente</h3>
+                  {selectedOrder.customer_name && (
+                    <p className="text-sm text-gray-900 font-medium">
+                      {selectedOrder.customer_name} 
+                      {selectedOrder.customer_phone && <span className="text-gray-500 ml-1">({selectedOrder.customer_phone})</span>}
+                    </p>
+                  )}
+                  {(selectedOrder.order_type === 'online' || selectedOrder.order_type === 'whatsapp') && (
+                    <div className="mt-1">
+                      <span className="text-xs font-bold px-2 py-1 bg-white border border-gray-200 rounded-md shadow-sm">
+                        {selectedOrder.delivery_type === 'delivery' ? '🛵 Despacho a Domicilio' : '🛍️ Retiro en Local'}
+                      </span>
+                      {selectedOrder.delivery_type === 'delivery' && selectedOrder.delivery_address && (
+                        <p className="text-xs text-gray-600 mt-2 font-medium">{selectedOrder.delivery_address}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Notas del cliente */}
               {selectedOrder.notes && (
                 <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
@@ -749,6 +787,12 @@ const DashboardView = () => {
                   <span>Subtotal</span>
                   <span>${fmt(selectedOrder.subtotal || 0)}</span>
                 </div>
+                {selectedOrder.delivery_fee > 0 && (
+                  <div className="flex justify-between text-gray-500">
+                    <span>Despacho</span>
+                    <span>${fmt(selectedOrder.delivery_fee || 0)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-500">
                   <span>IVA (19%)</span>
                   <span>${fmt(selectedOrder.tax_amount || 0)}</span>
