@@ -234,7 +234,10 @@ const OrderView = () => {
         },
         notes: customerForm.notes,
         paymentMethod: customerForm.paymentMethod === 'online' ? 'online_gateway' : 'cash',
-        paymentStatus: 'pending'
+        paymentStatus: 'pending',
+        deliveryType: customerForm.orderType,
+        deliveryAddress: customerForm.deliveryAddress,
+        deliveryFee: customerForm.deliveryFee
       });
 
       if (customerForm.paymentMethod === 'online') {

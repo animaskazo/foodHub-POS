@@ -51,8 +51,6 @@ const SettingsView = () => {
     online_payments_allowed: false
   });
   
-  const [formData, setFormData] = useState({
-  
   const [businessHours, setBusinessHours] = useState(defaultHours);
   const [staff, setStaff] = useState([]);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);

@@ -82,15 +82,23 @@ const OrderConfirmation = ({ order, org }) => {
             </div>
           </div>
 
-          {/* Pickup info */}
+          {/* Pickup/Delivery info */}
           <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4">
             <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center shrink-0">
               <MapPin className="h-5 w-5 text-gray-600" />
             </div>
             <div>
-              <p className="font-bold text-gray-900 text-sm">Retiro en local · Pago al retirar</p>
-              {org?.address && (
-                <p className="text-xs text-gray-500 mt-0.5">{org.address}</p>
+              <p className="font-bold text-gray-900 text-sm">
+                {dbOrder?.delivery_type === 'delivery' 
+                  ? 'Despacho a Domicilio' 
+                  : 'Retiro en local'} 
+                {' · '} 
+                {dbOrder?.payment_method === 'online_gateway' ? 'Pagado online' : 'Pago al recibir'}
+              </p>
+              {dbOrder?.delivery_type === 'delivery' ? (
+                <p className="text-xs text-gray-500 mt-0.5">{dbOrder.delivery_address}</p>
+              ) : (
+                org?.address && <p className="text-xs text-gray-500 mt-0.5">{org.address}</p>
               )}
             </div>
           </div>
