@@ -448,9 +448,15 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
         <div className="max-w-3xl mx-auto flex flex-col items-center pointer-events-auto space-y-3">
           
           {form.deliveryFee > 0 && form.deliveryType === 'delivery' && (
-            <div className="w-full flex justify-between items-center text-sm font-bold text-gray-700 px-4 bg-white/80 backdrop-blur-md py-2 rounded-xl shadow-sm border border-gray-100">
-              <span>Subtotal (Productos)</span>
-              <span>${fmt(totalAmount)}</span>
+            <div className="w-full flex flex-col gap-2 px-4 bg-white/80 backdrop-blur-md py-3 rounded-xl shadow-sm border border-gray-100">
+              <div className="flex justify-between items-center text-sm font-bold text-gray-700">
+                <span>Subtotal (Productos)</span>
+                <span>${fmt(totalAmount)}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm font-bold text-gray-700">
+                <span>Costo de envío</span>
+                <span>${fmt(form.deliveryFee)}</span>
+              </div>
             </div>
           )}
 
