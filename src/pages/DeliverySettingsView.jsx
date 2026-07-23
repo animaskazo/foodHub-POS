@@ -16,6 +16,7 @@ const DeliverySettingsView = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [orgId, setOrgId] = useState(null);
+  const [hasChanges, setHasChanges] = useState(false);
   
   const [generalAddress, setGeneralAddress] = useState('');
 
@@ -42,15 +43,16 @@ const DeliverySettingsView = () => {
         
         setGeneralAddress(orgData.address || '');
 
-        setDeliveryData({
-          delivery_enabled: orgData.delivery_enabled || false,
-          store_lat: orgData.store_lat || null,
-          store_lng: orgData.store_lng || null,
-          delivery_polygon: orgData.delivery_polygon || [],
-          delivery_fee: orgData.delivery_fee || 0,
-          delivery_min_order: orgData.delivery_min_order || 0
-        });
-      }
+          setDeliveryData({
+            delivery_enabled: orgData.delivery_enabled || false,
+            store_lat: orgData.store_lat || null,
+            store_lng: orgData.store_lng || null,
+            delivery_polygon: orgData.delivery_polygon || [],
+            delivery_fee: orgData.delivery_fee || 0,
+            delivery_min_order: orgData.delivery_min_order || 0
+          });
+          setHasChanges(false);
+        }
     } catch (error) {
       console.error('Error loading settings:', error);
     } finally {
@@ -70,7 +72,8 @@ const DeliverySettingsView = () => {
         delivery_fee: deliveryData.delivery_fee,
         delivery_min_order: deliveryData.delivery_min_order
       });
-      alert('Configuración de delivery guardada exitosamente');
+      alert('Configuración de delivery guardada exitosamente.');
+      setHasChanges(false);
     } catch (error) {
       console.error(error);
       alert('Error al guardar delivery. Asegúrate de ejecutar la migración SQL 026.');
@@ -107,7 +110,10 @@ const DeliverySettingsView = () => {
               <input 
                 type="checkbox" 
                 checked={deliveryData.delivery_enabled}
-                onChange={(e) => setDeliveryData({...deliveryData, delivery_enabled: e.target.checked})}
+                onChange={(e) => {
+                  setDeliveryData({...deliveryData, delivery_enabled: e.target.checked});
+                  setHasChanges(true);
+                }}
                 className="sr-only peer"
               />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
@@ -122,7 +128,10 @@ const DeliverySettingsView = () => {
                   <input
                     type="number"
                     value={deliveryData.delivery_fee}
-                    onChange={(e) => setDeliveryData({...deliveryData, delivery_fee: Number(e.target.value)})}
+                    onChange={(e) => {
+                      setDeliveryData({...deliveryData, delivery_fee: Number(e.target.value)});
+                      setHasChanges(true);
+                    }}
                     className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
                     placeholder="Ej: 2000"
                   />
@@ -132,7 +141,10 @@ const DeliverySettingsView = () => {
                   <input
                     type="number"
                     value={deliveryData.delivery_min_order}
-                    onChange={(e) => setDeliveryData({...deliveryData, delivery_min_order: Number(e.target.value)})}
+                    onChange={(e) => {
+                      setDeliveryData({...deliveryData, delivery_min_order: Number(e.target.value)});
+                      setHasChanges(true);
+                    }}
                     className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
                     placeholder="Ej: 5000"
                   />
@@ -140,46 +152,59 @@ const DeliverySettingsView = () => {
               </div>
 
               <div className="pt-4 border-t border-gray-100">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-800">Zona de Cobertura en el Mapa</h4>
-                    <p className="text-xs text-gray-500 mt-1 max-w-2xl leading-relaxed">
-                      Sigue estos pasos: <br />
-                      <strong>1.</strong> Fija la ubicación de tu local (puedes usar el buscador o hacer clic). <br />
-                      <strong>2.</strong> Haz clic en <strong>"Dibujar Zona"</strong> y marca punto por punto el área donde realizas entregas. <br />
-                      <span className="text-blue-600 font-medium">Vértices actuales del polígono: {deliveryData.delivery_polygon?.length || 0}</span>
-                    </p>
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-gray-800">Zona de Cobertura en el Mapa</h4>
+                  <div className="text-xs text-gray-500 mt-2 max-w-2xl leading-relaxed space-y-2">
+                    <p>Sigue estos pasos:</p>
+                    <div className="flex items-center gap-3">
+                      <span><strong>1.</strong> Fija la ubicación de tu local en el centro del mapa.</span>
+                      {generalAddress && (
+                        <button
+                          onClick={async () => {
+                            const coords = await geocodeAddress(generalAddress);
+                            if (coords) {
+                              setDeliveryData({...deliveryData, store_lat: coords.lat, store_lng: coords.lng});
+                              setHasChanges(true);
+                            } else {
+                              alert('No se pudo encontrar la dirección general en el mapa. Por favor, haz clic manualmente.');
+                            }
+                          }}
+                          className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-[11px] font-bold text-blue-600 rounded-md hover:bg-blue-100 transition-colors"
+                        >
+                          <Search className="h-3 w-3" />
+                          Buscar mi local
+                        </button>
+                      )}
+                    </div>
+                    <p><strong>2.</strong> Haz clic en <strong>"Dibujar Zona"</strong> y marca punto por punto el área donde realizas entregas.</p>
+                    <p className="text-blue-600 font-medium">Vértices actuales del polígono: {deliveryData.delivery_polygon?.length || 0}</p>
                   </div>
-                  
-                  {generalAddress && (
-                    <button
-                      onClick={async () => {
-                        const coords = await geocodeAddress(generalAddress);
-                        if (coords) {
-                          setDeliveryData({...deliveryData, store_lat: coords.lat, store_lng: coords.lng});
-                        } else {
-                          alert('No se pudo encontrar la dirección general en el mapa. Por favor, haz clic manualmente.');
-                        }
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-xs font-bold text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                    >
-                      <Search className="h-3.5 w-3.5" />
-                      Buscar mi local
-                    </button>
-                  )}
                 </div>
                 <DeliveryMap 
                   lat={deliveryData.store_lat} 
                   lng={deliveryData.store_lng} 
                   polygon={deliveryData.delivery_polygon}
-                  onLocationChange={(lat, lng) => setDeliveryData({...deliveryData, store_lat: lat, store_lng: lng})}
-                  onPolygonChange={(polygon) => setDeliveryData({...deliveryData, delivery_polygon: polygon})}
+                  onLocationChange={(lat, lng) => {
+                    setDeliveryData({...deliveryData, store_lat: lat, store_lng: lng});
+                    setHasChanges(true);
+                  }}
+                  onPolygonChange={(polygon) => {
+                    setDeliveryData({...deliveryData, delivery_polygon: polygon});
+                    setHasChanges(true);
+                  }}
                 />
               </div>
             </>
           )}
 
-          <div className="pt-6 border-t border-gray-100 flex justify-end">
+          <div className="pt-6 border-t border-gray-100 flex items-center justify-between">
+            <div>
+              {hasChanges && (
+                <span className="text-xs text-amber-600 font-bold animate-pulse">
+                  Tienes cambios sin guardar
+                </span>
+              )}
+            </div>
             <button
               onClick={handleSaveDelivery}
               disabled={saving}
