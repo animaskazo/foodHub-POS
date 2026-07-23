@@ -27,6 +27,8 @@ import {
 import Modal from '../components/ui/Modal';
 import PaymentModal from '../components/pos/PaymentModal';
 import PageHeader from '../components/ui/PageHeader';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 const DashboardView = () => {
   const { organization, loading: authLoading } = useAuth();
@@ -272,27 +274,31 @@ const DashboardView = () => {
       online_gateway: 'Online',
       whatsapp_pay: 'WhatsApp'
     };
-    return methodMap[payment.method] || payment.method;
+    let label = methodMap[payment.method] || payment.method;
+    if (payment.reference_code) {
+      label += ' - Klap';
+    }
+    return label;
   };
 
   const getStatusTag = (status) => {
     const statusMap = {
-      pending: { label: 'Pendiente', classes: 'bg-gray-100 text-gray-700 border-gray-200', icon: Timer },
-      confirmed: { label: 'Confirmado', classes: 'bg-blue-100 text-blue-700 border-blue-200', icon: CheckCircle2 },
-      preparing: { label: 'Preparando', classes: 'bg-orange-100 text-orange-700 border-orange-200', icon: Utensils },
-      ready: { label: 'Listo', classes: 'bg-green-100 text-green-700 border-green-200', icon: CheckCheck },
-      delivered: { label: 'Entregado', classes: 'bg-purple-100 text-purple-700 border-purple-200', icon: CheckCheck },
-      cancelled: { label: 'Cancelado', classes: 'bg-red-100 text-red-700 border-red-200', icon: XCircle },
-      refunded: { label: 'Reembolsado', classes: 'bg-red-100 text-red-700 border-red-200', icon: RefreshCcw },
+      pending: { label: 'Pendiente', variant: 'grayOutline', icon: Timer },
+      confirmed: { label: 'Confirmado', variant: 'info', icon: CheckCircle2 },
+      preparing: { label: 'Preparando', variant: 'warning', icon: Utensils },
+      ready: { label: 'Listo', variant: 'success', icon: CheckCheck },
+      delivered: { label: 'Entregado', variant: 'purple', icon: CheckCheck },
+      cancelled: { label: 'Cancelado', variant: 'error', icon: XCircle },
+      refunded: { label: 'Reembolsado', variant: 'error', icon: RefreshCcw },
     };
 
-    const mapped = statusMap[status] || { label: status, classes: 'bg-gray-100 text-gray-700 border-gray-200', icon: Filter };
+    const mapped = statusMap[status] || { label: status, variant: 'grayOutline', icon: Filter };
 
     return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium text-xs border ${mapped.classes}`}>
+      <Badge variant={mapped.variant}>
         {mapped.icon && <mapped.icon className="w-3.5 h-3.5" />}
         {mapped.label}
-      </span>
+      </Badge>
     );
   };
 
@@ -323,7 +329,7 @@ const DashboardView = () => {
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
-              className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-lg font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer appearance-none pr-8 relative"
+              className="bg-white border border-gray-200 text-gray-700 rounded-lg px-3 py-1.5 font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer appearance-none pr-8 relative"
               style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
             >
               <option value="today">Hoy</option>
@@ -341,36 +347,36 @@ const DashboardView = () => {
 
         {/* Filters */}
         <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar mb-6">
-          <button
+          <Button
+            variant={channelFilter === 'all' ? 'default' : 'secondary'}
             onClick={() => setChannelFilter('all')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'all' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
           >
             Todos
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={channelFilter === 'table' ? 'default' : 'secondary'}
             onClick={() => setChannelFilter('table')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'table' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
           >
-            <Store className="h-4 w-4" /> Local
-          </button>
-          <button
+            <Store className="h-4 w-4 mr-1" /> Local
+          </Button>
+          <Button
+            variant={channelFilter === 'pickup' ? 'default' : 'secondary'}
             onClick={() => setChannelFilter('pickup')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'pickup' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
           >
-            <ShoppingBag className="h-4 w-4" /> Retiro
-          </button>
-          <button
+            <ShoppingBag className="h-4 w-4 mr-1" /> Retiro
+          </Button>
+          <Button
+            variant={channelFilter === 'online' ? 'default' : 'secondary'}
             onClick={() => setChannelFilter('online')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'online' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
           >
-            <Globe className="h-4 w-4" /> Online
-          </button>
-          <button
+            <Globe className="h-4 w-4 mr-1" /> Online
+          </Button>
+          <Button
+            variant={channelFilter === 'whatsapp' ? 'default' : 'secondary'}
             onClick={() => setChannelFilter('whatsapp')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${channelFilter === 'whatsapp' ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
           >
-            <MessageCircle className="h-4 w-4" /> WhatsApp
-          </button>
+            <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+          </Button>
         </div>
 
         {/* Metrics Cards */}
@@ -432,15 +438,14 @@ const DashboardView = () => {
             <table className="w-full text-left border-collapse min-w-[600px]">
               <thead>
                 <tr className="bg-gray-50 text-gray-500 text-sm border-b border-gray-100">
-                  <th className="px-6 py-4 font-semibold w-[10%]">N° Orden</th>
-                  <th className="px-6 py-4 font-semibold w-[20%]">Cliente</th>
-                  <th className="px-6 py-4 font-semibold w-[15%]">Fecha</th>
-                  <th className="px-6 py-4 font-semibold w-[12%]">Estado</th>
-                  <th className="px-6 py-4 font-semibold text-center w-[10%]">T. Cocina</th>
-                  <th className="px-6 py-4 font-semibold w-[10%]">Canal</th>
-                  <th className="px-6 py-4 font-semibold w-[10%]">Método</th>
-                  <th className="px-6 py-4 font-semibold text-right w-[8%]">Total</th>
-                  <th className="px-6 py-4 font-semibold text-center w-[5%]">Acciones</th>
+                  <th className="px-4 py-5 font-semibold w-[10%]">N° Orden</th>
+                  <th className="px-4 py-5 font-semibold w-[25%]">Cliente</th>
+                  <th className="px-4 py-5 font-semibold w-[15%]">Fecha</th>
+                  <th className="px-4 py-5 font-semibold w-[15%]">Estado</th>
+                  <th className="px-4 py-5 font-semibold w-[10%]">Canal</th>
+                  <th className="px-4 py-5 font-semibold w-[12%]">Método</th>
+                  <th className="px-4 py-5 font-semibold text-right w-[8%]">Total</th>
+                  <th className="px-4 py-5 font-semibold text-center w-[5%]">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -454,24 +459,26 @@ const DashboardView = () => {
                 ) : filteredOrders.length > 0 ? (
                   filteredOrders.map((order) => {
                     const date = new Date(order.created_at);
-                    const formattedDate = date.toLocaleDateString('es-CL', {
-                      day: '2-digit', month: '2-digit', year: 'numeric',
-                      hour: '2-digit', minute: '2-digit'
-                    });
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = date.toLocaleDateString('es-CL', { month: 'long' });
+                    const monthCapitalized = month.charAt(0).toUpperCase() + month.slice(1);
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const formattedDate = `${day}/${monthCapitalized} ${hours}:${minutes}`;
                     return (
                       <tr
                         key={order.id}
                         onClick={() => handleOpenModal(order)}
                         className="border-b border-gray-50 hover:bg-gray-50 transition-colors text-sm cursor-pointer active:bg-gray-100 group"
                       >
-                        <td className="px-6 py-4 font-semibold text-gray-900">{order.order_number}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-5 text-base font-bold text-gray-900">{order.order_number}</td>
+                        <td className="px-4 py-5">
                           {order.customer_name ? (
                             <div className="flex flex-col gap-1">
                               <span className="font-medium text-gray-900 leading-tight">{order.customer_name}</span>
                               {order.order_type === 'online' && order.payments?.some(p => p.status === 'pending') && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[10px] font-bold w-fit">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold w-fit">
+                                  <span className="w-1.5 h-1.5 bg-amber-500 inline-block" />
                                   Pago pendiente
                                 </span>
                               )}
@@ -480,12 +487,11 @@ const DashboardView = () => {
                             <span className="text-gray-400 text-xs">—</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-gray-600">{formattedDate}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-5 text-gray-600">{formattedDate}</td>
+                        <td className="px-4 py-5">
                           {getStatusTag(order.status)}
                         </td>
-                        <td className="px-6 py-4 text-center text-gray-600 font-medium whitespace-nowrap">{getKitchenTime(order)}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-5">
                           {(() => {
                             const channelMap = {
                               table: { label: 'Local', Icon: Store },
@@ -497,38 +503,39 @@ const DashboardView = () => {
                             const ch = channelMap[order.order_type];
                             if (!ch) return <span className="text-gray-400 text-xs">{order.order_type}</span>;
                             return (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs">
+                              <Badge variant="gray">
                                 <ch.Icon className="h-3.5 w-3.5" />
                                 {ch.label}
-                              </span>
+                              </Badge>
                             );
                           })()}
                         </td>
-                        <td className="px-6 py-4">
-                          <span
+                        <td className="px-4 py-5">
+                          <Badge
                             title={order.payments?.find(p => p.reference_code)?.reference_code ? `ID Klap: ${order.payments.find(p => p.reference_code).reference_code}` : ''}
-                            className={`inline-flex items-center px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs ${order.payments?.find(p => p.reference_code) ? 'cursor-help border border-blue-200' : ''}`}
+                            variant="gray"
+                            className={order.payments?.find(p => p.reference_code) ? 'cursor-help' : ''}
                           >
                             {getPaymentMethod(order)}
-                          </span>
+                          </Badge>
                         </td>
-                        <td className="px-6 py-4 text-right font-bold text-gray-900">${fmt(order.total || 0)}</td>
-                        <td className="px-6 py-4 text-center">
-                          {['online', 'whatsapp'].includes(order.order_type) && (() => {
+                        <td className="px-4 py-5 text-right font-bold text-gray-900">${fmt(order.total || 0)}</td>
+                        <td className="px-4 py-5 text-center">
+                          {(() => {
                             const hasPending = order.payments?.some(p => p.status === 'pending');
                             const isConfirmed = order.payments?.some(p => p.status === 'paid');
                             if (isConfirmed) return (
-                              <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-50 text-green-700 text-sm font-bold rounded-xl border-2 border-green-200">
-                                ✓ Pagado
-                              </span>
+                              <Badge variant="success">
+                                <CheckCircle2 className="w-3.5 h-3.5" /> Pagado
+                              </Badge>
                             );
                             if (hasPending) return (
-                              <button
+                              <Button
+                                variant="secondary"
                                 onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
-                                className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border-2 border-black text-black hover:bg-gray-100 text-sm font-bold rounded-xl shadow-sm active:scale-95 transition-all whitespace-nowrap"
                               >
                                 Confirmar pago
-                              </button>
+                              </Button>
                             );
                             return null;
                           })()}
@@ -557,10 +564,12 @@ const DashboardView = () => {
             ) : filteredOrders.length > 0 ? (
               filteredOrders.map((order) => {
                 const date = new Date(order.created_at);
-                const formattedDate = date.toLocaleDateString('es-CL', {
-                  day: '2-digit', month: '2-digit', year: 'numeric',
-                  hour: '2-digit', minute: '2-digit'
-                });
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = date.toLocaleDateString('es-CL', { month: 'long' });
+                const monthCapitalized = month.charAt(0).toUpperCase() + month.slice(1);
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const formattedDate = `${day}/${monthCapitalized} ${hours}:${minutes}`;
                 return (
                   <div
                     key={order.id}
@@ -593,20 +602,23 @@ const DashboardView = () => {
 
                     {/* Middle: Order Details (Time, Payment, Kitchen) */}
                     <div className="flex flex-wrap gap-2 items-center">
-                      <span className="inline-flex items-center gap-1 text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded-md border border-gray-100 font-medium">
-                        <Clock className="w-3 h-3 text-gray-400" />
+                      <Badge variant="grayOutline">
+                        <Clock className="w-3.5 h-3.5" />
                         {new Date(order.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                      <span
+                      </Badge>
+                      <Badge
                         title={order.payments?.find(p => p.reference_code)?.reference_code ? `ID Klap: ${order.payments.find(p => p.reference_code).reference_code}` : ''}
-                        className={`text-xs px-2 py-1 rounded-md font-medium border ${order.payments?.find(p => p.reference_code) ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-100'}`}
+                        variant={order.payments?.find(p => p.reference_code) ? 'info' : 'grayOutline'}
+                        className={order.payments?.find(p => p.reference_code) ? 'cursor-help' : ''}
                       >
+                        <CreditCard className="w-3.5 h-3.5" />
                         {getPaymentMethod(order)}
-                      </span>
+                      </Badge>
                       {order.ready_at && (
-                        <span className="text-xs text-orange-700 bg-orange-50 px-2 py-1 rounded-md font-medium border border-orange-200">
+                        <Badge variant="warning">
+                          <Timer className="w-3.5 h-3.5" />
                           Cocina: {getKitchenTime(order)}
-                        </span>
+                        </Badge>
                       )}
                     </div>
 
@@ -629,23 +641,23 @@ const DashboardView = () => {
                           ${fmt(order.total || 0)}
                         </span>
                       </div>
-                      
+
                       <div>
                         {['online', 'whatsapp'].includes(order.order_type) && (() => {
                           const hasPending = order.payments?.some(p => p.status === 'pending');
                           const isConfirmed = order.payments?.some(p => p.status === 'paid');
                           if (isConfirmed) return (
-                            <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-50 text-green-700 text-sm font-bold rounded-xl border-2 border-green-200">
-                              ✓ Pagado
-                            </span>
+                            <Badge variant="success">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Pagado
+                            </Badge>
                           );
                           if (hasPending) return (
-                            <button
+                            <Button
+                              variant="secondary"
                               onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
-                              className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border-2 border-black text-black hover:bg-gray-100 text-sm font-bold rounded-xl shadow-sm active:scale-95 transition-all"
                             >
                               Confirmar pago
-                            </button>
+                            </Button>
                           );
                           return null;
                         })()}
@@ -667,7 +679,8 @@ const DashboardView = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        maxWidth="max-w-lg"
+        maxWidth="max-w-2xl"
+        fullScreenOnMobile={true}
         title={
           selectedOrder ? (
             <div>
@@ -691,16 +704,16 @@ const DashboardView = () => {
               {/* Información General */}
               <div className="flex flex-wrap items-center gap-2 mt-1">
                 {getStatusTag(selectedOrder.status)}
-                
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium text-xs border border-gray-200">
-                  <CreditCard className="h-3.5 w-3.5 text-gray-500" />
+
+                <Badge variant="grayOutline">
+                  <CreditCard className="h-3.5 w-3.5" />
                   {getPaymentMethod(selectedOrder)}
-                </span>
-                
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 text-orange-700 rounded-lg font-medium text-xs border border-orange-200">
-                  <Clock className="h-3.5 w-3.5 text-orange-500" />
+                </Badge>
+
+                <Badge variant="warning">
+                  <Timer className="h-3.5 w-3.5" />
                   {getKitchenTime(selectedOrder) === '-' ? 'Sin tiempo' : getKitchenTime(selectedOrder)}
-                </span>
+                </Badge>
               </div>
 
               {/* Información de Cliente y Despacho */}
@@ -709,15 +722,15 @@ const DashboardView = () => {
                   <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Detalles del Cliente</h3>
                   {selectedOrder.customer_name && (
                     <p className="text-sm text-gray-900 font-medium">
-                      {selectedOrder.customer_name} 
+                      {selectedOrder.customer_name}
                       {selectedOrder.customer_phone && <span className="text-gray-500 ml-1">({selectedOrder.customer_phone})</span>}
                     </p>
                   )}
                   {(selectedOrder.order_type === 'online' || selectedOrder.order_type === 'whatsapp') && (
-                    <div className="mt-1">
-                      <span className="text-xs font-bold px-2 py-1 bg-white border border-gray-200 rounded-md shadow-sm">
+                    <div className="mt-2">
+                      <Badge variant="grayOutline">
                         {selectedOrder.delivery_type === 'delivery' ? '🛵 Despacho a Domicilio' : '🛍️ Retiro en Local'}
-                      </span>
+                      </Badge>
                       {selectedOrder.delivery_type === 'delivery' && selectedOrder.delivery_address && (
                         <p className="text-xs text-gray-600 mt-2 font-medium">{selectedOrder.delivery_address}</p>
                       )}
@@ -749,7 +762,7 @@ const DashboardView = () => {
                     selectedOrder.order_items.map((item, idx) => (
                       <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-gray-100 text-gray-600 font-bold flex items-center justify-center text-sm">
+                          <div className="w-8 h-8   bg-gray-100 text-gray-600 font-bold flex items-center justify-center text-sm">
                             {item.quantity}
                           </div>
                           <div>
@@ -803,26 +816,26 @@ const DashboardView = () => {
                   <span className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-1">Total</span>
                   <span className="font-black text-3xl text-gray-900 leading-none">${fmt(selectedOrder.total || 0)}</span>
                 </div>
-                
+
                 <div>
                   {(() => {
                     const hasPending = selectedOrder.payments?.some(p => p.status === 'pending');
                     const isConfirmed = selectedOrder.payments?.some(p => p.status === 'paid');
                     if (isConfirmed) return (
-                      <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-50 text-green-700 text-sm font-bold rounded-xl border-2 border-green-200">
-                        ✓ Pagado
-                      </span>
+                      <Badge variant="success">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Pagado
+                      </Badge>
                     );
                     if (hasPending) return (
-                      <button
+                      <Button
+                        variant="secondary"
                         onClick={() => {
                           setPendingPaymentOrder(selectedOrder);
                           setIsPaymentConfirmOpen(true);
                         }}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border-2 border-black text-black hover:bg-gray-100 text-sm font-bold rounded-xl shadow-sm active:scale-95 transition-all"
                       >
                         Confirmar pago
-                      </button>
+                      </Button>
                     );
                     return null;
                   })()}

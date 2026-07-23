@@ -320,7 +320,7 @@ const PosView = () => {
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="bg-white/20 px-3 py-1 rounded-full text-sm font-bold">
+                      <div className="bg-white/20 px-3 py-1 text-sm font-bold">
                         {totalQty}
                       </div>
                       <span className="font-bold">Ver Pedido</span>
@@ -387,16 +387,16 @@ const PosView = () => {
           <div className="relative w-4/5 max-w-xs bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <h2 className="font-bold text-lg">Menú</h2>
-              <button 
+              <Button 
                 onPointerDown={() => setIsMobileMenuOpen(false)}
-                className="p-2 -mr-2 text-gray-500 bg-gray-50 active:bg-gray-100 rounded-full"
+                className="p-2 -mr-2 text-gray-500 bg-gray-50 active:bg-gray-100 "
               >
                 <X className="h-5 w-5" />
-              </button>
+              </Button>
             </div>
             <div className="flex-1 overflow-y-auto py-4">
               {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
-                <button
+                <Button
                   key={id}
                   onPointerDown={() => {
                     if (id === 'cocina') {
@@ -414,17 +414,17 @@ const PosView = () => {
                 >
                   <Icon className="h-6 w-6" />
                   <span className="text-base">{label}</span>
-                </button>
+                </Button>
               ))}
             </div>
             <div className="p-5 border-t border-gray-100">
-              <button
+              <Button
                 onPointerDown={() => window.location.href = '/'}
                 className="w-full flex items-center gap-3 px-4 py-3 text-red-600 font-semibold active:bg-red-50 rounded-xl"
               >
                 <LogOut className="h-5 w-5" />
                 <span>Cerrar Sesión</span>
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -487,18 +487,17 @@ const PosView = () => {
             ¿Estás seguro de que deseas eliminar <strong>{cartItems.find(i => i.cartItemId === itemToDelete)?.name}</strong> del pedido?
           </p>
           <div className="flex gap-3">
-            <button
+            <Button
               onClick={() => setItemToDelete(null)}
               className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
             >
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={confirmRemove}
-              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
-            >
+              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover: 700" transition-colors variant="destructive">
               Eliminar
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>

@@ -10,6 +10,7 @@ const Modal = ({
   maxWidth = 'max-w-md', 
   hideHeader = false, 
   customAnimation = null, 
+  fullScreenOnMobile = false,
   className = '' 
 }) => {
   const [visible, setVisible] = useState(false);
@@ -44,13 +45,15 @@ const Modal = ({
 
   return createPortal(
     <div 
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed inset-0 z-50 flex items-center justify-center ${fullScreenOnMobile ? 'p-0 md:p-6' : 'p-4 sm:p-6'} bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
       onClick={onClose}
     >
       <div 
-        className={`relative bg-white rounded-3xl shadow-2xl w-full ${maxWidth} overflow-hidden flex flex-col transition-all duration-300 ${customAnimation ? '' : (visible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4')} ${className}`}
-        style={{
+        className={`relative bg-white shadow-2xl w-full ${maxWidth} overflow-hidden flex flex-col transition-all duration-300 ${fullScreenOnMobile ? 'rounded-none md:rounded-3xl h-[100dvh] md:h-auto !max-h-[100dvh]' : 'rounded-3xl'} ${customAnimation ? '' : (visible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4')} ${className}`}
+        style={(!fullScreenOnMobile || windowHeight >= 768) ? {
           maxHeight: `${windowHeight * 0.9}px`,
+          ...(customAnimation ? { animation: customAnimation } : {})
+        } : {
           ...(customAnimation ? { animation: customAnimation } : {})
         }}
         onClick={(e) => e.stopPropagation()}

@@ -186,7 +186,7 @@ const IngredientsManager = () => {
               </Badge>
             </div>
             <div className="flex items-center gap-3">
-              <Button className="rounded-full bg-red-600 text-white hover:bg-red-700" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
+              <Button variant="destructive" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
                 <Trash2 className="h-4 w-4 mr-2" /> Eliminar seleccionados
               </Button>
             </div>
@@ -197,12 +197,12 @@ const IngredientsManager = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input 
-                className="pl-9 w-full sm:w-64 rounded-full border-gray-300" 
+                className="pl-9 w-full sm:w-64 border-gray-300" 
                 placeholder="Buscar ingrediente" 
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px] rounded-full border-gray-200">
+              <SelectTrigger className="w-[180px] border-gray-200">
                 <span className="font-normal text-gray-500 mr-1">Estado:</span>
                 <SelectValue />
               </SelectTrigger>
@@ -213,15 +213,15 @@ const IngredientsManager = () => {
               </SelectContent>
             </Select>
   
-            <Button variant="outline" className="rounded-full font-normal hidden sm:flex">
+            <Button variant="outline" className="font-normal hidden sm:flex">
               <ListFilter className="h-4 w-4 mr-2" /> Todos los filtros
             </Button>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="rounded-full">
+            <Button variant="outline" className="">
               Acciones <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
-            <Button className="rounded-full bg-black text-white hover:bg-gray-800" onClick={() => openModal()}>
+            <Button className="" onClick={() => openModal()}>
               <Plus className="h-4 w-4 mr-2" /> Crear ingrediente
             </Button>
           </div>
@@ -278,7 +278,7 @@ const IngredientsManager = () => {
                   <td className="px-6 py-4 font-medium text-gray-900">
                     <div className="flex items-center gap-3">
                       <div 
-                        className="w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden"
+                        className="w-10 h-10   bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden"
                         style={ingredient.image_url ? { backgroundImage: `url(${ingredient.image_url})` } : {}}
                       >
                         {!ingredient.image_url && <ImageIcon className="h-4 w-4 text-gray-400" />}
@@ -299,12 +299,12 @@ const IngredientsManager = () => {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button 
+                      <Button 
                         onClick={() => openModal(ingredient)}
-                        className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-full hover:bg-gray-50 transition-colors active:bg-gray-100"
+                        className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold hover:bg-gray-50 transition-colors active:bg-gray-100"
                       >
                         Editar
-                      </button>
+                      </Button>
                       <ActionMenu 
                         onDelete={() => setDeleteModal({ isOpen: true, mode: 'single', targetId: ingredient.id, isDeleting: false })}
                         onDuplicate={() => handleDuplicate(ingredient)}
@@ -332,7 +332,7 @@ const IngredientsManager = () => {
               </div>
               
               <div className="flex-1">
-                <label className="flex items-center justify-center gap-2 w-full h-11 px-3 bg-white border border-gray-200 hover:border-gray-300 rounded-lg text-[14px] font-semibold text-gray-700 cursor-pointer transition-colors">
+                <label className="flex items-center justify-center gap-2 w-full h-11 px-3 bg-white border border-gray-200 hover:border-gray-300   text-[14px] font-semibold text-gray-700 cursor-pointer transition-colors">
                   {isUploadingImage ? (
                     <span className="flex items-center gap-2">
                       <Loader2 className="animate-spin h-4 w-4 text-gray-500" />
@@ -379,10 +379,10 @@ const IngredientsManager = () => {
             </div>
           </div>
           <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 shrink-0">
-            <Button type="button" variant="outline" className="rounded-full" onClick={closeModal} disabled={isSaving || isUploadingImage}>
+            <Button type="button" variant="outline" className="" onClick={closeModal} disabled={isSaving || isUploadingImage}>
               Cancelar
             </Button>
-            <Button type="submit" className="rounded-full bg-black text-white hover:bg-gray-800" disabled={isSaving || isUploadingImage}>
+            <Button type="submit" className="" disabled={isSaving || isUploadingImage}>
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               {editingIngredient ? 'Guardar Cambios' : 'Crear Ingrediente'}
             </Button>

@@ -110,7 +110,7 @@ const CategoriesList = () => {
             </Badge>
           </div>
           <div className="flex items-center gap-3">
-            <Button className="rounded-full bg-red-600 text-white hover:bg-red-700" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
+            <Button variant="destructive" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
               <Trash2 className="h-4 w-4 mr-2" /> Eliminar seleccionadas
             </Button>
           </div>
@@ -121,12 +121,12 @@ const CategoriesList = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input 
-                className="pl-9 w-full sm:w-64 rounded-full border-gray-300" 
+                className="pl-9 w-full sm:w-64 border-gray-300" 
                 placeholder="Buscar categoría" 
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px] rounded-full border-gray-200">
+              <SelectTrigger className="w-[180px] border-gray-200">
                 <span className="font-normal text-gray-500 mr-1">Estado:</span>
                 <SelectValue />
               </SelectTrigger>
@@ -137,15 +137,15 @@ const CategoriesList = () => {
               </SelectContent>
             </Select>
   
-            <Button variant="outline" className="rounded-full font-normal hidden sm:flex">
+            <Button variant="outline" className="font-normal hidden sm:flex">
               <ListFilter className="h-4 w-4 mr-2" /> Todos los filtros
             </Button>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="rounded-full">
+            <Button variant="outline" className="">
               Acciones <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
-            <Button className="rounded-full bg-black text-white hover:bg-gray-800" onClick={() => navigate('/categories/new')}>
+            <Button className="" onClick={() => navigate('/categories/new')}>
               <Plus className="h-4 w-4 mr-2" /> Nueva categoría
             </Button>
           </div>
@@ -169,7 +169,7 @@ const CategoriesList = () => {
               <th className="px-6 py-3 font-medium">Artículos asignados</th>
               <th className="px-6 py-3 font-medium text-center">Estado</th>
               <th className="px-6 py-3 w-10 text-center">
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 rounded-full hover:bg-gray-100">
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover: " variant="secondary">
                   <Plus className="h-4 w-4" />
                 </Button>
               </th>
@@ -221,15 +221,15 @@ const CategoriesList = () => {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button 
-                        className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-full hover:bg-gray-50 transition-colors active:bg-gray-100"
+                      <Button 
+                        variant="secondary"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/categories/${category.id}`);
                         }}
                       >
                         Editar
-                      </button>
+                      </Button>
                       <ActionMenu 
                         onDelete={() => setDeleteModal({ isOpen: true, mode: 'single', targetId: category.id, isDeleting: false })}
                         onDuplicate={() => handleDuplicate(category.id)}

@@ -6,6 +6,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getFirstOrganizationId, createCategory, getCategoryById, updateCategory, getProducts } from '../services/catalogService';
 import CategoryProductsModal from '../components/admin/CategoryProductsModal';
+import { Button } from '@/components/ui/button';
 
 const SectionRow = ({ icon: Icon, title, description, children }) => (
   <div className="flex items-start justify-between gap-4 py-4">
@@ -120,12 +121,12 @@ const CreateCategoryView = () => {
     <div className="modal-page min-h-screen bg-gray-50 pb-24">
       {/* ── Header ────────────────────────────────────── */}
       <header className="flex items-center justify-between px-6 py-4 bg-white border-b sticky top-0 z-10">
-        <button
+        <Button
           onClick={handleClose}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 active:bg-gray-200 transition-colors"
-        >
+          className="w-10 h-10 flex items-center justify-center   active:bg-gray-200 transition-colors"
+         variant="secondary">
           <X className="h-5 w-5" />
-        </button>
+        </Button>
         <h1 className="text-[17px] font-bold">{isEditing ? 'Editar categoría' : 'Crear categoría'}</h1>
         
         <div className="flex items-center gap-3">
@@ -134,14 +135,14 @@ const CreateCategoryView = () => {
               Tienes cambios sin guardar
             </span>
           )}
-          <button
+          <Button
             onClick={handleSave}
             disabled={isSaving || isLoading}
-            className="px-6 py-2.5 bg-black text-white text-[15px] font-semibold rounded-full active:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
+            className="px-6 py-2.5 bg-black text-white text-[15px] font-semibold active:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
           >
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {isSaving ? 'Guardando...' : 'Guardar'}
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -167,7 +168,7 @@ const CreateCategoryView = () => {
               <p className="font-semibold text-[15px] mb-3">URL de la imagen</p>
               <div className="flex items-center gap-4">
                 <div 
-                  className="w-12 h-12 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden"
+                  className="w-12 h-12   bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden"
                   style={formData.imageUrl ? { backgroundImage: `url(${formData.imageUrl})` } : {}}
                 >
                   {!formData.imageUrl && <ImageIcon className="h-5 w-5 text-gray-400" />}
@@ -176,7 +177,7 @@ const CreateCategoryView = () => {
                   type="url"
                   value={formData.imageUrl}
                   onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  className="w-full h-10 px-3 bg-white border border-gray-200 rounded-lg text-[15px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="w-full h-10 px-3 bg-white border border-gray-200   text-[15px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   placeholder="https://ejemplo.com/imagen.jpg"
                 />
               </div>
@@ -191,12 +192,12 @@ const CreateCategoryView = () => {
                   title="Artículos seleccionados"
                   description={formData.items.length > 0 ? `${formData.items.length} artículos asociados a esta categoría` : "No hay nada seleccionado"}
                 >
-                  <button 
+                  <Button 
                     onClick={() => setIsModalOpen(true)}
                     className="text-sm font-semibold underline text-gray-800 active:text-gray-500 transition-colors"
                   >
                     Editar selección
-                  </button>
+                  </Button>
                 </SectionRow>
               </div>
             </div>

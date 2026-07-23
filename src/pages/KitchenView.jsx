@@ -4,6 +4,7 @@ import { Clock, ChefHat, CheckCircle2, Play, RefreshCw, Volume2, Store, Shopping
 import { useNavigate } from 'react-router-dom';
 import { getKitchenOrders, updateOrderStatus } from '../services/orderService';
 import { useAuth } from '../components/AuthContext';
+import { Button } from '@/components/ui/button';
 
 const KitchenView = () => {
   const navigate = useNavigate();
@@ -159,7 +160,7 @@ const KitchenView = () => {
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 bg-[#111] border-b border-[#222]">
         <div className="flex items-center gap-3">
-          <button
+          <Button
             onClick={() => navigate('/pos')}
             className="px-3 py-2 bg-blue-600 text-white hover:bg-blue-500 rounded-xl transition-colors flex items-center justify-center shrink-0 shadow-sm gap-2 font-bold text-sm"
             title="Punto de Venta"
@@ -167,16 +168,16 @@ const KitchenView = () => {
             <ArrowLeft className="h-5 w-5" />
             <span className="hidden sm:inline">Volver al POS</span>
             <span className="inline sm:hidden">POS</span>
-          </button>
+          </Button>
           
-          <button
+          <Button
             onClick={() => navigate('/')}
             className="px-3 py-2 bg-white text-black hover:bg-gray-100 rounded-xl transition-colors flex items-center justify-center shrink-0 shadow-sm gap-2 font-bold text-sm"
             title="Dashboard Admin"
           >
             <Home className="h-5 w-5" />
             <span className="hidden sm:inline">Admin</span>
-          </button>
+          </Button>
           <div className="flex flex-col justify-center">
             <span className="text-[10px] md:text-xs text-gray-400 font-bold uppercase tracking-wider">Cocina</span>
             <h1 className="text-sm md:text-lg font-bold text-white leading-tight truncate max-w-[130px] md:max-w-xs">
@@ -185,21 +186,21 @@ const KitchenView = () => {
           </div>
         </div>
         <div className="flex items-center gap-2 md:gap-4">
-          <div className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-green-500/20 text-green-400 border border-green-500/30">
+          <div className="hidden md:flex items-center gap-2 px-3 py-2   text-sm font-semibold bg-green-500/20 text-green-400 border border-green-500/30">
             <Volume2 className="h-4 w-4" />
             Sonido Activo
           </div>
-          <div className="flex items-center justify-center bg-[#222] w-10 h-10 md:w-auto md:px-4 md:py-2 rounded-full border border-[#333]" title="Actualización en vivo">
-            <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
+          <div className="flex items-center justify-center bg-[#222] w-10 h-10 md:w-auto md:px-4 md:py-2 border border-[#333]" title="Actualización en vivo">
+            <span className="w-2.5 h-2.5 bg-green-500 animate-pulse"></span>
             <span className="text-sm font-medium text-gray-400 hidden md:block md:ml-2">En vivo</span>
           </div>
-          <button
+          <Button
             onClick={() => fetchOrders()}
-            className="p-2.5 bg-[#222] hover:bg-[#333] border border-[#333] rounded-full md:rounded-xl transition-colors shrink-0 flex items-center justify-center"
+            className="p-2.5 bg-[#222] hover:bg-[#333] border border-[#333] md:rounded-xl transition-colors shrink-0 flex items-center justify-center"
             title="Actualizar manualmente"
           >
             <RefreshCw className={`h-5 w-5 text-white ${loading ? 'animate-spin' : ''}`} />
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -208,12 +209,12 @@ const KitchenView = () => {
 
         {/* Status Counters */}
         <div className="flex items-center gap-3 mb-6 overflow-x-auto hide-scrollbar pb-1">
-          <div className="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-[#10b981]/10 border border-[#10b981]/20 text-[#10b981] whitespace-nowrap">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse"></span>
+          <div className="flex items-center gap-2 text-xs font-bold px-3 py-1.5   bg-[#10b981]/10 border border-[#10b981]/20 text-[#10b981] whitespace-nowrap">
+            <span className="w-1.5 h-1.5 bg-[#10b981] animate-pulse"></span>
             Preparando: <span className="text-white ml-0.5">{preparingCount}</span>
           </div>
-          <div className="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 whitespace-nowrap">
-            <span className="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
+          <div className="flex items-center gap-2 text-xs font-bold px-3 py-1.5   bg-zinc-800 border border-zinc-700 text-zinc-300 whitespace-nowrap">
+            <span className="w-1.5 h-1.5 bg-zinc-500"></span>
             Pendientes / Nuevos: <span className="text-white ml-0.5">{pendingCount}</span>
           </div>
         </div>
@@ -288,7 +289,7 @@ const KitchenView = () => {
 
                   {/* Row 2: badge status + channel + user */}
                   <div className="flex items-center justify-between">
-                    <span className={`text-[11px] uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-full shrink-0 ${cfg.labelCls}`}>
+                    <span className={`text-[11px] uppercase tracking-wider font-extrabold px-2.5 py-1 shrink-0 ${cfg.labelCls}`}>
                       {cfg.label}
                     </span>
                     <div className="flex items-center gap-2 text-xs text-zinc-400 font-medium min-w-0">
@@ -321,17 +322,17 @@ const KitchenView = () => {
                       <div key={item.id} className="rounded-xl bg-zinc-900/60 border border-zinc-900 overflow-hidden">
                         {/* qty + image + name */}
                         <div className="flex items-start gap-3 px-3.5 pt-3 pb-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-zinc-800 text-white flex items-center justify-center font-extrabold text-base shrink-0">
+                          <div className="w-8 h-8   bg-zinc-800 text-white flex items-center justify-center font-extrabold text-base shrink-0">
                             {item.quantity}
                           </div>
                           {item.products?.product_images?.[0]?.url ? (
                             <img
                               src={item.products.product_images[0].url}
                               alt={item.product_name}
-                              className="w-10 h-10 rounded-lg object-cover shrink-0 border border-zinc-800"
+                              className="w-10 h-10   object-cover shrink-0 border border-zinc-800"
                             />
                           ) : (
-                            <div className="w-10 h-10 rounded-lg bg-zinc-850 flex items-center justify-center shrink-0 border border-zinc-800/40">
+                            <div className="w-10 h-10   bg-zinc-850 flex items-center justify-center shrink-0 border border-zinc-800/40">
                               <ChefHat className="h-5 w-5 text-zinc-600" />
                             </div>
                           )}
@@ -345,7 +346,7 @@ const KitchenView = () => {
                           <div className="px-3.5 pb-3 pt-0.5 border-t border-zinc-900/40 space-y-2.5 text-[13px]">
                             {/* Render combo child options first, clean and structured */}
                             {childItems.length > 0 && (
-                              <div className="space-y-1.5 bg-black/30 p-2.5 rounded-lg border border-zinc-800/50">
+                              <div className="space-y-1.5 bg-black/30 p-2.5   border border-zinc-800/50">
                                 <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-extrabold select-none block mb-1">Componentes:</span>
                                 {childItems.map((child, cIdx) => {
                                   const childVars = child.order_item_variants?.map(v => v.variant_option_name).join(', ');
@@ -378,7 +379,7 @@ const KitchenView = () => {
                                 <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-extrabold select-none block">Agregados:</span>
                                 <div className="flex flex-wrap gap-1">
                                   {extras.map((extra, idx) => (
-                                    <span key={idx} className="inline-block bg-zinc-900 border border-zinc-800 text-zinc-300 px-2 py-0.5 rounded-md text-[12px] font-semibold">
+                                    <span key={idx} className="inline-block bg-zinc-900 border border-zinc-800 text-zinc-300 px-2 py-0.5   text-[12px] font-semibold">
                                       + {extra}
                                     </span>
                                   ))}
@@ -386,7 +387,7 @@ const KitchenView = () => {
                               </div>
                             )}
                             {item.notes && (
-                              <div className="p-2 bg-[#ffc107]/[0.03] border border-[#ffc107]/10 rounded-lg">
+                              <div className="p-2 bg-[#ffc107]/[0.03] border border-[#ffc107]/10  ">
                                 <p className="text-[12px] text-amber-200/90 font-medium leading-relaxed break-words">
                                   <span className="font-bold text-[#ffc107] block select-none mb-0.5 text-[10px] uppercase tracking-wider">Nota ítem:</span>
                                   {item.notes}
@@ -410,21 +411,21 @@ const KitchenView = () => {
                     </div>
                   </div>
                   {(order.status === 'confirmed' || order.status === 'pending') ? (
-                    <button
+                    <Button
                       onClick={() => handleUpdateStatus(order.id, 'preparing')}
                       className={`w-full py-3.5 ${cfg.btnClass} rounded-xl font-bold flex justify-center items-center gap-2 transition-all text-sm tracking-wide active:scale-[0.98]`}
                     >
                       <Play className="h-4 w-4 fill-current" />
                       Empezar Preparación
-                    </button>
+                    </Button>
                   ) : (
-                    <button
+                    <Button
                       onClick={() => handleUpdateStatus(order.id, 'ready')}
                       className={`w-full py-3.5 ${cfg.btnClass} rounded-xl font-extrabold flex justify-center items-center gap-2 transition-all text-sm tracking-wide active:scale-[0.98]`}
                     >
                       <CheckCircle2 className="h-5 w-5" strokeWidth={2.5} />
                       Marcar como Listo
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>

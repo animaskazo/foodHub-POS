@@ -35,7 +35,7 @@ const SectionRow = ({ title, description, badge, children }) => (
       <div className="flex items-center gap-2 mb-1">
         <h4 className="font-semibold text-[15px]">{title}</h4>
         {badge && (
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">{badge}</span>
+          <span className="text-[11px] px-2 py-0.5 bg-blue-100 text-blue-700 font-semibold">{badge}</span>
         )}
       </div>
       {description && (
@@ -355,12 +355,12 @@ const CreateProductView = () => {
     <div className="modal-page min-h-screen bg-gray-50 pb-24">
       {/* ── Header ────────────────────────────────────── */}
       <header className="flex items-center justify-between px-6 py-4 bg-white border-b sticky top-0 z-10">
-        <button
+        <Button
           onClick={handleClose}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 active:bg-gray-200 transition-colors"
-        >
+          className="w-10 h-10 flex items-center justify-center   active:bg-gray-200 transition-colors"
+         variant="secondary">
           <X className="h-5 w-5" />
-        </button>
+        </Button>
         <h1 className="text-[17px] font-bold">
           {isEditing ? `Editar ${formData.name || 'artículo'}` : `Crear ${formData.name || 'artículo'}`}
         </h1>
@@ -373,7 +373,7 @@ const CreateProductView = () => {
           <Button
             onClick={handleSave}
             disabled={isSaving || isLoading || isUploadingImage}
-            className="rounded-full px-6 bg-black text-white hover:bg-gray-800 font-semibold"
+            className="px-6 font-semibold"
           >
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {isSaving ? 'Guardando...' : 'Guardar'}
@@ -466,19 +466,19 @@ const CreateProductView = () => {
                     <span className="text-[11px] font-bold text-blue-600 pointer-events-none select-none">
                       Crear con IA
                     </span>
-                    <button
+                    <Button
                       type="button"
                       onClick={handleGenerateAIDescription}
                       disabled={isGeneratingDescription}
-                      className="w-9 h-9 bg-white hover:bg-gray-50 border border-gray-200 text-blue-600 rounded-full flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none cursor-pointer shadow-sm"
+                      className="w-9 h-9 bg-white hover:  border border-gray-200 text-blue-600 flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none cursor-pointer shadow-sm"
                       title="Crear descripción con IA"
-                    >
+                     variant="secondary">
                       {isGeneratingDescription ? (
                         <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
                       ) : (
                         <Sparkles className="h-4.5 w-4.5 text-blue-600 fill-current" />
                       )}
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -504,7 +504,7 @@ const CreateProductView = () => {
                   </div>
                  
                  <div className="flex-1 space-y-2">
-                   <label className="flex items-center justify-center gap-2 w-full h-11 px-3 bg-white border border-gray-200 hover:border-gray-300 rounded-lg text-[14px] font-semibold text-gray-700 cursor-pointer transition-colors">
+                   <label className="flex items-center justify-center gap-2 w-full h-11 px-3 bg-white border border-gray-200 hover:border-gray-300   text-[14px] font-semibold text-gray-700 cursor-pointer transition-colors">
                      {isUploadingImage ? (
                        <span className="flex items-center gap-2">
                          <svg className="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -525,12 +525,12 @@ const CreateProductView = () => {
                      />
                    </label>
  
-                   <button
+                   <Button
                      type="button"
                      onClick={handleGenerateAIImage}
                      disabled={isUploadingImage || isGeneratingImage}
-                     className="flex items-center justify-center gap-2 w-full h-11 px-3 bg-blue-50 border border-blue-100 hover:bg-blue-100 hover:border-blue-200 rounded-lg text-[14px] font-bold text-blue-600 cursor-pointer transition-colors disabled:opacity-50 disabled:pointer-events-none"
-                   >
+                     className="flex items-center justify-center gap-2 w-full h-11 px-3 bg-blue-50 border border-blue-100 hover:bg-blue-100 hover:-blue-200   text-[14px] font-bold text-blue-600 cursor-pointer transition-colors disabled:opacity-50 disabled:pointer-events-none"
+                    variant="outline">
                      {isGeneratingImage ? (
                        <>
                          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
@@ -542,7 +542,7 @@ const CreateProductView = () => {
                          Generar imagen con IA
                        </>
                      )}
-                   </button>
+                   </Button>
                  </div>
                </div>
  
@@ -554,7 +554,7 @@ const CreateProductView = () => {
                    placeholder="Ej: Plato rústico de greda, fondo de madera oscura, humo saliendo, estilo gourmet"
                    value={imageDetails}
                    onChange={(e) => setImageDetails(e.target.value)}
-                   className="w-full h-10 px-3.5 bg-gray-50 border border-gray-200 focus:bg-white focus:border-black rounded-lg text-xs font-medium text-gray-900 placeholder-gray-400 outline-none transition-colors"
+                   className="w-full h-10 px-3.5 bg-gray-50 border border-gray-200 focus:bg-white focus:border-black   text-xs font-medium text-gray-900 placeholder-gray-400 outline-none transition-colors"
                  />
                  <p className="text-[10px] text-gray-400 mt-1.5 leading-normal">
                    La IA tomará el nombre del producto, la descripción, los artículos del combo y estas instrucciones adicionales para crear la foto gastronómica perfecta.
@@ -573,7 +573,7 @@ const CreateProductView = () => {
                   {globalIngredients.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100 max-h-60 overflow-y-auto">
                       {globalIngredients.map(ing => (
-                        <label key={`base-${ing.id}`} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300 transition-colors">
+                        <label key={`base-${ing.id}`} className="flex items-center gap-3 bg-white p-3   border border-gray-200 cursor-pointer hover:border-gray-300 transition-colors">
                           <input 
                             type="checkbox"
                             className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
@@ -641,7 +641,7 @@ const CreateProductView = () => {
                                     setVariants(variants.map(v2 => v2.id === v.id ? { ...v2, name: e.target.value } : v2));
                                     setHasChanges(true);
                                   }}
-                                  className="w-full h-9 px-3 border border-gray-200 rounded-lg text-xs font-semibold text-gray-900 focus:outline-none focus:border-black placeholder-gray-450"
+                                  className="w-full h-9 px-3 border border-gray-200   text-xs font-semibold text-gray-900 focus:outline-none focus:border-black placeholder-gray-450"
                                 />
                               </td>
                               <td className="py-3 pr-2">
@@ -653,7 +653,7 @@ const CreateProductView = () => {
                                     setVariants(variants.map(v2 => v2.id === v.id ? { ...v2, sku: e.target.value } : v2));
                                     setHasChanges(true);
                                   }}
-                                  className="w-full h-9 px-3 border border-gray-200 rounded-lg text-xs font-semibold text-gray-900 focus:outline-none focus:border-black placeholder-gray-400"
+                                  className="w-full h-9 px-3 border border-gray-200   text-xs font-semibold text-gray-900 focus:outline-none focus:border-black placeholder-gray-400"
                                 />
                               </td>
                               <td className="py-3 pr-2">
@@ -667,7 +667,7 @@ const CreateProductView = () => {
                                       setVariants(variants.map(v2 => v2.id === v.id ? { ...v2, price: e.target.value } : v2));
                                       setHasChanges(true);
                                     }}
-                                    className="w-full h-9 pl-6 pr-3 border border-gray-200 rounded-lg text-xs font-semibold text-gray-900 focus:outline-none focus:border-black placeholder-gray-400"
+                                    className="w-full h-9 pl-6 pr-3 border border-gray-200   text-xs font-semibold text-gray-900 focus:outline-none focus:border-black placeholder-gray-400"
                                   />
                                 </div>
                               </td>
@@ -683,16 +683,16 @@ const CreateProductView = () => {
                                 </div>
                               </td>
                               <td className="py-3 text-right pl-2">
-                                <button 
+                                <Button 
                                   type="button"
                                   onClick={() => {
                                     setVariants(variants.filter(v2 => v2.id !== v.id));
                                     setHasChanges(true);
                                   }} 
-                                  className="p-2.5 text-gray-400 hover:text-red-500 transition-colors bg-white rounded-lg hover:bg-red-50 border border-gray-100"
+                                  className="p-2.5 text-gray-400 hover:text-red-500 transition-colors bg-white   hover:bg-red-50 border border-gray-100"
                                 >
                                   <Trash2 className="h-4.5 w-4.5" />
-                                </button>
+                                </Button>
                               </td>
                             </tr>
                           ))}
@@ -701,16 +701,16 @@ const CreateProductView = () => {
                     </div>
                   )}
 
-                  <button 
+                  <Button 
                     type="button"
                     onClick={() => {
                       setVariants([...variants, { id: Date.now(), name: '', price: '', status: 'available', sku: '' }]);
                       setHasChanges(true);
                     }}
-                    className="text-[14px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5 py-1 rounded-lg transition-colors"
+                    className="text-[14px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5 py-1   transition-colors"
                   >
                     <Plus className="h-4 w-4" /> Agregar variantes
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Opciones Extras */}
@@ -722,7 +722,7 @@ const CreateProductView = () => {
                   {globalIngredients.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100 max-h-60 overflow-y-auto">
                       {globalIngredients.map(ing => (
-                        <label key={`extra-${ing.id}`} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300 transition-colors">
+                        <label key={`extra-${ing.id}`} className="flex items-center gap-3 bg-white p-3   border border-gray-200 cursor-pointer hover:border-gray-300 transition-colors">
                           <input 
                             type="checkbox"
                             className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
@@ -771,7 +771,7 @@ const CreateProductView = () => {
                       }]);
                       setHasChanges(true);
                     }}
-                    className="rounded-full font-semibold h-9 cursor-pointer text-xs flex items-center gap-1.5"
+                    className="font-semibold h-9 cursor-pointer text-xs flex items-center gap-1.5"
                   >
                     <Plus className="h-4 w-4" /> Agregar Slot
                   </Button>
@@ -786,16 +786,16 @@ const CreateProductView = () => {
                   <div className="space-y-6">
                     {bundleSlots.map((slot) => (
                       <div key={slot.id} className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-4 relative">
-                        <button
+                        <Button
                           type="button"
                           onClick={() => {
                             setBundleSlots(bundleSlots.filter(s => s.id !== slot.id));
                             setHasChanges(true);
                           }}
-                          className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg bg-white border border-gray-200 cursor-pointer"
+                          className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-red-500 transition-colors   bg-white border border-gray-200 cursor-pointer"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </Button>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pr-10">
                           <div className="space-y-1">
@@ -808,7 +808,7 @@ const CreateProductView = () => {
                                 setBundleSlots(bundleSlots.map(s => s.id === slot.id ? { ...s, name: e.target.value } : s));
                                 setHasChanges(true);
                               }}
-                              className="w-full h-10 px-3 border border-gray-200 bg-white rounded-lg text-xs font-semibold text-gray-900 focus:outline-none focus:border-black placeholder-gray-400"
+                              className="w-full h-10 px-3 border border-gray-200 bg-white   text-xs font-semibold text-gray-900 focus:outline-none focus:border-black placeholder-gray-400"
                             />
                           </div>
 
@@ -822,7 +822,7 @@ const CreateProductView = () => {
                                 setBundleSlots(bundleSlots.map(s => s.id === slot.id ? { ...s, minSelections: parseInt(e.target.value) || 0 } : s));
                                 setHasChanges(true);
                               }}
-                              className="w-full h-10 px-3 border border-gray-200 bg-white rounded-lg text-xs font-semibold text-gray-900 focus:outline-none focus:border-black"
+                              className="w-full h-10 px-3 border border-gray-200 bg-white   text-xs font-semibold text-gray-900 focus:outline-none focus:border-black"
                             />
                           </div>
 
@@ -836,7 +836,7 @@ const CreateProductView = () => {
                                 setBundleSlots(bundleSlots.map(s => s.id === slot.id ? { ...s, maxSelections: parseInt(e.target.value) || 1 } : s));
                                 setHasChanges(true);
                               }}
-                              className="w-full h-10 px-3 border border-gray-200 bg-white rounded-lg text-xs font-semibold text-gray-900 focus:outline-none focus:border-black"
+                              className="w-full h-10 px-3 border border-gray-200 bg-white   text-xs font-semibold text-gray-900 focus:outline-none focus:border-black"
                             />
                           </div>
                         </div>
@@ -846,7 +846,7 @@ const CreateProductView = () => {
                           {slot.options && slot.options.length > 0 && (
                             <div className="space-y-2">
                               {slot.options.map((opt) => (
-                                <div key={opt.id} className="flex items-center gap-2 bg-white p-2 rounded-lg border border-gray-200">
+                                <div key={opt.id} className="flex items-center gap-2 bg-white p-2   border border-gray-200">
                                   <div className="flex-1 min-w-0">
                                     <Select
                                       value={opt.productId}
@@ -862,7 +862,7 @@ const CreateProductView = () => {
                                         setHasChanges(true);
                                       }}
                                     >
-                                      <SelectTrigger className="w-full bg-white border-gray-200 text-xs rounded-lg h-9">
+                                      <SelectTrigger className="w-full bg-white border-gray-200 text-xs   h-9">
                                         <SelectValue placeholder="Selecciona producto">
                                           {opt.name || "Selecciona producto"}
                                         </SelectValue>
@@ -894,7 +894,7 @@ const CreateProductView = () => {
                                               setHasChanges(true);
                                             }}
                                           >
-                                            <SelectTrigger className="w-full bg-white border-gray-200 text-xs rounded-lg h-9">
+                                            <SelectTrigger className="w-full bg-white border-gray-200 text-xs   h-9">
                                               <SelectValue placeholder="Variante">
                                                 {opt.variantId 
                                                   ? selectedProd.variants.find(v => v.id === opt.variantId)?.name 
@@ -931,7 +931,7 @@ const CreateProductView = () => {
                                           }));
                                           setHasChanges(true);
                                         }}
-                                        className="w-full h-9 pl-5 pr-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-900 focus:outline-none focus:border-black"
+                                        className="w-full h-9 pl-5 pr-1.5 border border-gray-200   text-xs font-semibold text-gray-900 focus:outline-none focus:border-black"
                                       />
                                     </div>
                                   </div>
@@ -960,7 +960,7 @@ const CreateProductView = () => {
                                     <span className="text-[10px] font-bold text-gray-500">Defecto</span>
                                   </label>
 
-                                  <button
+                                  <Button
                                     type="button"
                                     onClick={() => {
                                       setBundleSlots(bundleSlots.map(s => {
@@ -969,16 +969,16 @@ const CreateProductView = () => {
                                       }));
                                       setHasChanges(true);
                                     }}
-                                    className="p-1.5 text-gray-400 hover:text-red-500 transition-colors bg-white rounded-lg hover:bg-red-50 border border-gray-200 cursor-pointer"
+                                    className="p-1.5 text-gray-400 hover:text-red-500 transition-colors bg-white   hover:bg-red-50 border border-gray-200 cursor-pointer"
                                   >
                                     <X className="h-3.5 w-3.5" />
-                                  </button>
+                                  </Button>
                                 </div>
                               ))}
                             </div>
                           )}
 
-                          <button
+                          <Button
                             type="button"
                             onClick={() => {
                               setBundleSlots(bundleSlots.map(s => {
@@ -996,10 +996,10 @@ const CreateProductView = () => {
                               }));
                               setHasChanges(true);
                             }}
-                            className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors w-fit cursor-pointer"
+                            className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5 py-1 px-2.5   bg-blue-50 hover:bg-blue-100 transition-colors w-fit cursor-pointer"
                           >
                             <Plus className="h-3 w-3" /> Agregar opción de producto
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -1016,14 +1016,14 @@ const CreateProductView = () => {
                   badge="Actualizar plan"
                   description="Vende productos de tu surtido como paquetes"
                 >
-                  <Button variant="outline" className="rounded-full font-semibold h-9">Agregar</Button>
+                  <Button variant="outline" className="font-semibold h-9">Agregar</Button>
                 </SectionRow>
 
                 <SectionRow
                   title="Atributos personalizados"
                   description={<>Haz un seguimiento de los detalles adicionales de este artículo. <span className="underline cursor-pointer text-blue-600">Obtén más información</span></>}
                 >
-                  <Button variant="outline" className="rounded-full font-semibold h-9">Agregar</Button>
+                  <Button variant="outline" className="font-semibold h-9">Agregar</Button>
                 </SectionRow>
               </div>
             )}
@@ -1055,7 +1055,7 @@ const CreateProductView = () => {
                 <p className="font-semibold text-[15px] mb-3">Tipo de artículo</p>
                 <div className="relative">
                   <Select value={formData.type} onValueChange={(val) => handleSelectChange('type', val)}>
-                    <SelectTrigger className="w-full bg-gray-50 border-gray-200 rounded-lg">
+                    <SelectTrigger className="w-full bg-gray-50 border-gray-200  ">
                       <SelectValue placeholder="Producto físico" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1073,7 +1073,7 @@ const CreateProductView = () => {
               <p className="font-semibold text-[15px] mb-3">Categorías</p>
               <div className="relative">
                 <Select value={formData.categoryId} onValueChange={(val) => handleSelectChange('categoryId', val)}>
-                  <SelectTrigger className="w-full bg-gray-50 border-gray-200 rounded-lg">
+                  <SelectTrigger className="w-full bg-gray-50 border-gray-200  ">
                     <SelectValue placeholder="Sin categoría">
                       {formData.categoryId === 'none' 
                         ? 'Sin categoría (General)' 
@@ -1095,9 +1095,9 @@ const CreateProductView = () => {
               <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
                 <div className="flex items-start justify-between pb-1">
                   <p className="font-semibold text-[15px] text-gray-900">Sucursales y canales</p>
-                  <button className="text-xs text-gray-500 underline text-right leading-tight hover:text-gray-800">
+                  <Button className="text-xs text-gray-500 underline text-right leading-tight hover:text-gray-800">
                     Editar mosaico<br />del PDV
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Sucursales */}
@@ -1107,12 +1107,12 @@ const CreateProductView = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-gray-900">Sucursales</span>
-                        <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded-full font-bold">TODAS</span>
+                        <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600 font-bold">TODAS</span>
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5">Digital Solutions</p>
                     </div>
                   </div>
-                  <button className="text-xs font-bold text-gray-800 hover:text-black underline">Editar</button>
+                  <Button className="text-xs font-bold text-gray-800 hover:text-black underline">Editar</Button>
                 </div>
 
                 <Separator />
@@ -1124,7 +1124,7 @@ const CreateProductView = () => {
                   {/* POS */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-[11px]">POS</div>
+                      <div className="w-8 h-8   bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-[11px]">POS</div>
                       <span className="text-sm font-medium text-gray-700">Puntos de venta (PDV)</span>
                     </div>
                     <Switch 
@@ -1136,7 +1136,7 @@ const CreateProductView = () => {
                   {/* Mesa */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 font-bold text-[11px]">MES</div>
+                      <div className="w-8 h-8   bg-purple-50 flex items-center justify-center text-purple-600 font-bold text-[11px]">MES</div>
                       <span className="text-sm font-medium text-gray-700">Mesa / Consumo Local</span>
                     </div>
                     <Switch 
@@ -1148,7 +1148,7 @@ const CreateProductView = () => {
                   {/* Retiro */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 font-bold text-[11px]">RET</div>
+                      <div className="w-8 h-8   bg-amber-50 flex items-center justify-center text-amber-600 font-bold text-[11px]">RET</div>
                       <span className="text-sm font-medium text-gray-700">Para Llevar / Retiro</span>
                     </div>
                     <Switch 
@@ -1160,7 +1160,7 @@ const CreateProductView = () => {
                   {/* Ecommerce */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center text-green-600 font-bold text-[11px]">ECO</div>
+                      <div className="w-8 h-8   bg-green-50 flex items-center justify-center text-green-600 font-bold text-[11px]">ECO</div>
                       <span className="text-sm font-medium text-gray-700">Ecommerce / Web Online</span>
                     </div>
                     <Switch 
@@ -1172,7 +1172,7 @@ const CreateProductView = () => {
                   {/* WhatsApp */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600 font-bold text-[11px]">WSP</div>
+                      <div className="w-8 h-8   bg-emerald-50 flex items-center justify-center text-emerald-600 font-bold text-[11px]">WSP</div>
                       <span className="text-sm font-medium text-gray-700">WhatsApp Orders</span>
                     </div>
                     <Switch 
@@ -1196,20 +1196,20 @@ const CreateProductView = () => {
               className="relative max-w-4xl w-full max-h-full flex flex-col items-center justify-center"
               onClick={(e) => e.stopPropagation()}
             >
-              <button
+              <Button
                 type="button"
                 onClick={() => setShowImageModal(false)}
-                className="absolute -top-12 right-0 z-10 w-9 h-9 rounded-full bg-black/50 hover:bg-black/80 backdrop-blur-sm flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-lg border border-white/10"
+                className="absolute -top-12 right-0 z-10 w-9 h-9 bg-black/50 hover:bg-black/80 backdrop-blur-sm flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-lg border border-white/10"
               >
                 <X className="h-5 w-5" />
-              </button>
+              </Button>
               <img 
                 src={formData.imageUrl} 
                 alt={formData.name || "Imagen del producto"}
                 className="max-w-[90vw] max-h-[80vh] object-contain rounded-2xl shadow-2xl border border-white/10"
               />
               {formData.name && (
-                <p className="mt-4 text-white text-xs font-bold uppercase tracking-wider bg-black/60 backdrop-blur-sm px-6 py-3 rounded-full border border-white/10 shadow-lg select-none">
+                <p className="mt-4 text-white text-xs font-bold uppercase tracking-wider bg-black/60 backdrop-blur-sm px-6 py-3 border border-white/10 shadow-lg select-none">
                   {formData.name}
                 </p>
               )}

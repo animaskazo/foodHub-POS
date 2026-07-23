@@ -19,6 +19,8 @@ import {
   MessageCircle,
   MapPin
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 
@@ -152,19 +154,19 @@ const CustomersView = () => {
 
   const getStatusTag = (status) => {
     const statusMap = {
-      pending: { label: 'Pendiente', classes: 'bg-gray-100 text-gray-700' },
-      confirmed: { label: 'Confirmado', classes: 'bg-blue-100 text-blue-700' },
-      preparing: { label: 'Preparando', classes: 'bg-orange-100 text-orange-700' },
-      ready: { label: 'Listo', classes: 'bg-green-100 text-green-700' },
-      delivered: { label: 'Entregado', classes: 'bg-purple-100 text-purple-700' },
-      cancelled: { label: 'Cancelado', classes: 'bg-red-100 text-red-700' },
-      refunded: { label: 'Reembolsado', classes: 'bg-red-100 text-red-700' },
+      pending: { label: 'Pendiente', variant: 'grayOutline' },
+      confirmed: { label: 'Confirmado', variant: 'info' },
+      preparing: { label: 'Preparando', variant: 'warning' },
+      ready: { label: 'Listo', variant: 'success' },
+      delivered: { label: 'Entregado', variant: 'purple' },
+      cancelled: { label: 'Cancelado', variant: 'error' },
+      refunded: { label: 'Reembolsado', variant: 'error' },
     };
-    const mapped = statusMap[status] || { label: status, classes: 'bg-gray-100 text-gray-700' };
+    const mapped = statusMap[status] || { label: status, variant: 'grayOutline' };
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold ${mapped.classes}`}>
+      <Badge variant={mapped.variant}>
         {mapped.label}
-      </span>
+      </Badge>
     );
   };
 

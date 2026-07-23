@@ -9,6 +9,8 @@ import { Loader2, Save, MapPin, Search } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import DeliveryMap from '../components/admin/DeliveryMap';
 import { geocodeAddress } from '../utils/geo';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 
 const DeliverySettingsView = () => {
   useDocumentTitle('Delivery Propio');
@@ -122,18 +124,13 @@ const DeliverySettingsView = () => {
                 Permite que tus clientes pidan a domicilio. Se validará que estén dentro del radio configurado.
               </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={deliveryData.delivery_enabled}
-                onChange={(e) => {
-                  setDeliveryData({ ...deliveryData, delivery_enabled: e.target.checked });
-                  setHasChanges(true);
-                }}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
-            </label>
+            <Switch 
+              checked={deliveryData.delivery_enabled}
+              onCheckedChange={(checked) => {
+                setDeliveryData({ ...deliveryData, delivery_enabled: checked });
+                setHasChanges(true);
+              }}
+            />
           </div>
 
           {deliveryData.delivery_enabled && (
@@ -148,7 +145,7 @@ const DeliverySettingsView = () => {
                       setDeliveryData({ ...deliveryData, delivery_fee: Number(e.target.value) });
                       setHasChanges(true);
                     }}
-                    className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
+                    className="w-full h-11 px-4 bg-gray-50 border border-gray-200   outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
                     placeholder="Ej: 2000"
                   />
                 </div>
@@ -161,7 +158,7 @@ const DeliverySettingsView = () => {
                       setDeliveryData({ ...deliveryData, delivery_min_order: Number(e.target.value) });
                       setHasChanges(true);
                     }}
-                    className="w-full h-11 px-4 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
+                    className="w-full h-11 px-4 bg-gray-50 border border-gray-200   outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-[15px]"
                     placeholder="Ej: 5000"
                   />
                 </div>
@@ -175,7 +172,7 @@ const DeliverySettingsView = () => {
                     <div className="flex items-center gap-3">
                       <span><strong>1.</strong> Fija la ubicación de tu local en el centro del mapa.</span>
                       {generalAddress && (
-                        <button
+                        <Button
                           onClick={async () => {
                             const coords = await geocodeAddress(generalAddress);
                             if (coords) {
@@ -185,11 +182,11 @@ const DeliverySettingsView = () => {
                               alert('No se pudo encontrar la dirección general en el mapa. Por favor, haz clic manualmente.');
                             }
                           }}
-                          className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-[11px] font-bold text-blue-600 rounded-md hover:bg-blue-100 transition-colors"
+                          className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-[11px] font-bold text-blue-600   hover:bg-blue-100 transition-colors"
                         >
                           <Search className="h-3 w-3" />
                           Buscar mi local
-                        </button>
+                        </Button>
                       )}
                     </div>
                     <p><strong>2.</strong> Haz clic en <strong>"Dibujar Zona"</strong> y marca punto por punto el área donde realizas entregas.</p>
@@ -219,14 +216,14 @@ const DeliverySettingsView = () => {
                 Tienes cambios sin guardar
               </span>
             )}
-            <button
+            <Button
               onClick={handleSaveDelivery}
               disabled={saving || !hasChanges}
-              className="flex items-center gap-2 px-6 py-2.5 bg-black text-white rounded-lg font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
+              className="flex items-center gap-2 px-6 py-2.5 bg-black text-white   font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
             >
               {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
               Guardar cambios
-            </button>
+            </Button>
           </div>
         </div>
       </div>

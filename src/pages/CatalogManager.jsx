@@ -179,16 +179,16 @@ const CatalogManager = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input 
-                className="pl-9 w-full sm:w-64 rounded-full border-gray-300" 
+                className="pl-9 w-full sm:w-64 border-gray-300" 
                 placeholder="Buscar" 
               />
             </div>
-            <Button variant="outline" className="rounded-full font-normal hidden sm:flex">
+            <Button variant="outline" className="font-normal hidden sm:flex">
               Categoría
             </Button>
             
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px] rounded-full border-gray-200">
+              <SelectTrigger className="w-[180px] border-gray-200">
                 <span className="font-normal text-gray-500 mr-1">Estado:</span>
                 <SelectValue />
               </SelectTrigger>
@@ -199,18 +199,18 @@ const CatalogManager = () => {
               </SelectContent>
             </Select>
   
-            <Button variant="outline" className="rounded-full font-normal hidden sm:flex">
+            <Button variant="outline" className="font-normal hidden sm:flex">
               <ListFilter className="h-4 w-4 mr-2" /> Todos los filtros
             </Button>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="rounded-full text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => setIsAIModalOpen(true)}>
+            <Button variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => setIsAIModalOpen(true)}>
               <Sparkles className="h-4 w-4 mr-2" /> Importar menú
             </Button>
-            <Button variant="outline" className="rounded-full">
+            <Button variant="outline" className="">
               Acciones <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
-            <Button className="rounded-full bg-black text-white hover:bg-gray-800" onClick={() => setIsTypeSelectionModalOpen(true)}>
+            <Button className="" onClick={() => setIsTypeSelectionModalOpen(true)}>
               <Plus className="h-4 w-4 mr-2" /> Nuevo artículo
             </Button>
           </div>
@@ -357,15 +357,15 @@ const CatalogManager = () => {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <button 
-                              className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-full hover:bg-gray-50 transition-colors active:bg-gray-100"
+                            <Button 
+                              variant="secondary"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigate(`/products/${product.id}`);
                               }}
                             >
                               Editar
-                            </button>
+                            </Button>
                             <ActionMenu 
                               onDelete={() => setDeleteModal({ isOpen: true, mode: 'single', targetId: product.id, isDeleting: false })}
                               onDuplicate={() => handleDuplicate(product.id)}
@@ -421,10 +421,10 @@ const CatalogManager = () => {
           </Select>
         </div>
         <div className="p-6 border-t bg-gray-50 flex justify-end gap-3 rounded-b-2xl">
-          <Button variant="outline" className="rounded-full" onClick={() => setAssignCategoryModal(prev => ({ ...prev, isOpen: false }))}>
+          <Button variant="outline" className="" onClick={() => setAssignCategoryModal(prev => ({ ...prev, isOpen: false }))}>
             Cancelar
           </Button>
-          <Button className="rounded-full bg-black text-white hover:bg-gray-800" onClick={handleBulkAssignCategory} disabled={assignCategoryModal.isUpdating}>
+          <Button className="" onClick={handleBulkAssignCategory} disabled={assignCategoryModal.isUpdating}>
             {assignCategoryModal.isUpdating ? "Asignando..." : "Asignar"}
           </Button>
         </div>
@@ -440,7 +440,7 @@ const CatalogManager = () => {
           <p className="text-sm text-gray-500">Selecciona el tipo de artículo que deseas registrar en el catálogo:</p>
           
           <div className="grid grid-cols-1 gap-3">
-            <button
+            <Button
               onClick={() => {
                 setIsTypeSelectionModalOpen(false);
                 navigate('/products/new?type=physical');
@@ -454,9 +454,9 @@ const CatalogManager = () => {
                 <h4 className="font-bold text-sm text-gray-900">Producto Único</h4>
                 <p className="text-xs text-gray-500 mt-1 leading-relaxed">Registra un plato, bebida o servicio individual con variantes, ingredientes extra y control de inventario.</p>
               </div>
-            </button>
+            </Button>
 
-            <button
+            <Button
               onClick={() => {
                 setIsTypeSelectionModalOpen(false);
                 navigate('/products/new?type=bundle');
@@ -470,7 +470,7 @@ const CatalogManager = () => {
                 <h4 className="font-bold text-sm text-gray-900">Producto Múltiple (Combo)</h4>
                 <p className="text-xs text-gray-500 mt-1 leading-relaxed">Crea una promoción, paquete o combo que contenga otros productos en su interior (ej: Pizza + Bebida).</p>
               </div>
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>

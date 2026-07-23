@@ -16,6 +16,8 @@ import DeliverySettingsView from './pages/DeliverySettingsView';
 import OrderView from './pages/OrderView';
 import CustomersView from './pages/CustomersView';
 import { AuthProvider, useAuth } from './components/AuthContext';
+import UpdatePasswordView from './pages/UpdatePasswordView';
+import ForgotPasswordView from './pages/ForgotPasswordView';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Toaster } from 'sonner';
 
@@ -46,6 +48,8 @@ function App() {
         {/* Full-screen Modals & Views (Outside Layout) */}
         <Route path="/login" element={<LoginView />} />
         <Route path="/signup" element={<SignupView />} />
+        <Route path="/forgot-password" element={<ForgotPasswordView />} />
+        <Route path="/update-password" element={<UpdatePasswordView />} />
         <Route path="/pos" element={<PosView />} />
         <Route path="/kitchen" element={<KitchenView />} />
         <Route path="/order/:slug" element={<OrderView />} />

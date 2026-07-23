@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Search, User, Mail, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { Button } from '@/components/ui/button';
 
 const SuperAdminView = () => {
   const [selectedOrganization, setSelectedOrganization] = useState(null);
@@ -146,7 +147,7 @@ const SuperAdminView = () => {
       <div className="flex-1 overflow-auto p-8">
         
         {error && (
-          <div className="p-4 mb-6 bg-red-50 text-red-700 text-sm rounded-lg border">
+          <div className="p-4 mb-6 bg-red-50 text-red-700 text-sm   border">
             {error}
           </div>
         )}
@@ -187,7 +188,7 @@ const SuperAdminView = () => {
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-gray-100 border flex items-center justify-center shrink-0">
+                          <div className="h-10 w-10   bg-gray-100 border flex items-center justify-center shrink-0">
                             <Building2 className="h-5 w-5 text-gray-500" />
                           </div>
                           <span className="font-semibold text-gray-900">{org.name}</span>
@@ -197,7 +198,7 @@ const SuperAdminView = () => {
                         {org.orderCount}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1 font-semibold text-green-700 bg-green-50 px-2.5 py-1 rounded-md text-sm border border-green-100">
+                        <span className="inline-flex items-center gap-1 font-semibold text-green-700 bg-green-50 px-2.5 py-1   text-sm border border-green-100">
                           <DollarSign className="h-3 w-3" />
                           {org.totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
@@ -206,9 +207,9 @@ const SuperAdminView = () => {
                         {new Date(org.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button className="text-blue-600 font-medium text-sm flex items-center justify-end w-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button className="text-blue-600 font-medium text-sm flex items-center justify-end w-full opacity-0 group-hover:opacity-100 transition-opacity">
                           Ver Detalles <ChevronRight className="h-4 w-4 ml-1" />
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -230,13 +231,13 @@ const SuperAdminView = () => {
           <div className="space-y-6 animate-in slide-in-from-bottom-2 fade-in">
             {/* Detail Header & Back Button */}
             <div>
-              <button 
+              <Button 
                 onClick={() => setSelectedOrganization(null)}
                 className="flex items-center text-sm font-medium text-gray-500 hover:text-black transition-colors mb-4"
               >
                 <ArrowLeft className="h-4 w-4 mr-1" />
                 Volver a Negocios
-              </button>
+              </Button>
               
               <div className="flex items-center justify-between">
                 <div>
@@ -251,7 +252,7 @@ const SuperAdminView = () => {
                       href={`/order/${selectedOrganization.slug || encodeURIComponent(selectedOrganization.name)}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md transition-colors w-fit"
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 px-2.5 py-1   transition-colors w-fit"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
                       Ver eCommerce
@@ -263,33 +264,33 @@ const SuperAdminView = () => {
 
             {/* Detail Tabs */}
             <div className="flex space-x-1 border-b">
-              <button
+              <Button
                 onClick={() => setDetailTab('overview')}
                 className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
                   detailTab === 'overview' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
                 }`}
               >
                 Resumen
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setDetailTab('users')}
                 className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
                   detailTab === 'users' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
                 }`}
               >
                 Usuarios
-                <span className="bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">{orgUsers.length}</span>
-              </button>
-              <button
+                <span className="bg-gray-100 text-gray-600 py-0.5 px-2 text-xs">{orgUsers.length}</span>
+              </Button>
+              <Button
                 onClick={() => setDetailTab('products')}
                 className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
                   detailTab === 'products' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
                 }`}
               >
                 Catálogo
-                <span className="bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">{orgProducts.length}</span>
-              </button>
-              <button
+                <span className="bg-gray-100 text-gray-600 py-0.5 px-2 text-xs">{orgProducts.length}</span>
+              </Button>
+              <Button
                 onClick={() => setDetailTab('reports')}
                 className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
                   detailTab === 'reports' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
@@ -297,9 +298,9 @@ const SuperAdminView = () => {
               >
                 Reportes
                 {orgFeedbacks.length > 0 && (
-                  <span className="bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs">{orgFeedbacks.length}</span>
+                  <span className="bg-red-100 text-red-600 py-0.5 px-2 text-xs">{orgFeedbacks.length}</span>
                 )}
-              </button>
+              </Button>
             </div>
 
             {/* Detail Tab Contents */}
@@ -309,7 +310,7 @@ const SuperAdminView = () => {
               {detailTab === 'overview' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="p-6 rounded-xl border bg-gray-50 flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                    <div className="h-12 w-12 bg-green-100 flex items-center justify-center shrink-0">
                       <DollarSign className="h-6 w-6 text-green-600" />
                     </div>
                     <div>
@@ -321,7 +322,7 @@ const SuperAdminView = () => {
                   </div>
                   
                   <div className="p-6 rounded-xl border bg-gray-50 flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                    <div className="h-12 w-12 bg-blue-100 flex items-center justify-center shrink-0">
                       <PackageOpen className="h-6 w-6 text-blue-600" />
                     </div>
                     <div>
@@ -353,7 +354,7 @@ const SuperAdminView = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium ${
                               user.role === 'Client Admin' 
                                 ? 'bg-purple-100 text-purple-700' 
                                 : 'bg-blue-100 text-blue-700'
@@ -449,9 +450,9 @@ const SuperAdminView = () => {
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
                               {prod.product_images?.[0]?.url ? (
-                                <img src={prod.product_images[0].url} alt={prod.name} className="h-10 w-10 rounded-lg object-cover bg-gray-100 border border-gray-200" />
+                                <img src={prod.product_images[0].url} alt={prod.name} className="h-10 w-10   object-cover bg-gray-100 border border-gray-200" />
                               ) : (
-                                <div className="h-10 w-10 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
+                                <div className="h-10 w-10   bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
                                   <Package className="h-5 w-5 text-gray-400" />
                                 </div>
                               )}
@@ -465,7 +466,7 @@ const SuperAdminView = () => {
                             ${Number(prod.base_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                            <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium ${
                               prod.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
                             }`}>
                               {prod.status === 'available' ? 'Disponible' : prod.status}

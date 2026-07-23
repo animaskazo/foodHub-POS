@@ -170,6 +170,17 @@
   animation: coin-flip 1.4s ease-in-out forwards;
 }
 
+/* Zoom animation for background image */
+@keyframes zoom {
+  0% { transform: scale(1.05); }
+  50% { transform: scale(1); }
+  100% { transform: scale(1.05); }
+}
+
+.animate-zoom {
+  animation: zoom 12s ease-in-out infinite;
+}
+
 /* ── Kitchen New Order Border Siren ──────────── */
 @keyframes border-siren {
 
@@ -187,6 +198,13 @@
   }
 }
 
-.border-siren {
-  animation: border-siren 1s infinite ease-in-out;
+/* Pan animation for background image */
+@keyframes pan {
+  0% { transform: translateX(0%); }
+  50% { transform: translateX(-20%); }
+  100% { transform: translateX(0%); }
+}
+
+.animate-pan {
+  animation: pan 30s linear infinite;
 }
