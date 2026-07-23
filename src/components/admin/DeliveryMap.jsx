@@ -78,7 +78,7 @@ const DeliveryMap = ({ lat, lng, polygon, onLocationChange, onPolygonChange }) =
         )}
       </div>
       
-      <div className="absolute top-4 left-4 z-[1000] bg-white px-3 py-2 rounded-lg shadow-md border border-gray-100 flex items-center gap-2 pointer-events-none">
+      <div className="absolute top-4 left-16 z-[1000] bg-white px-3 py-2 rounded-lg shadow-md border border-gray-100 flex items-center gap-2 pointer-events-none">
         <span className="text-sm font-medium text-gray-700">
           {mode === 'marker' ? 'Haz clic en el mapa para marcar tu local' : 'Haz clics consecutivos para dibujar tu zona'}
         </span>
