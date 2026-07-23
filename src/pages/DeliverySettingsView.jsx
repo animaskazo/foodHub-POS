@@ -89,7 +89,7 @@ const DeliverySettingsView = () => {
 
   return (
     <div className="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         <PageHeader 
           title="Delivery Propio" 
           subtitle="Configuración y zona de cobertura" 
