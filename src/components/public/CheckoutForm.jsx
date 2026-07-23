@@ -80,6 +80,9 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           email: parsed.email || '',
           notes: '',
           paymentMethod: 'local',
+          deliveryType: 'pickup',
+          deliveryAddress: '',
+          deliveryFee: 0,
         };
       }
     } catch (e) {}
@@ -164,7 +167,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   };
 
   const handleAddressBlur = async () => {
-    if (!form.deliveryAddress.trim() || !org?.store_lat || !org?.store_lng) return;
+    if (!form.deliveryAddress?.trim() || !org?.store_lat || !org?.store_lng) return;
     
     setIsGeocoding(true);
     setDistanceError(null);
@@ -319,7 +322,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                             e.preventDefault();
                             handleAddressBlur();
                           }}
-                          disabled={!form.deliveryAddress.trim() || isGeocoding}
+                          disabled={!form.deliveryAddress?.trim() || isGeocoding}
                           className="bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors"
                         >
                           Validar

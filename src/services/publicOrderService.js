@@ -358,6 +358,8 @@ export const getCustomerByPhone = async (organizationId, phone) => {
     .select('full_name, email')
     .eq('organization_id', organizationId)
     .or(`phone.eq.${suffix},phone.eq.+56${suffix},phone.eq.56${suffix},phone.ilike.${spacedPattern}`)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (error) {
