@@ -594,20 +594,11 @@ const SettingsView = () => {
                     <div>
                       <div className="flex justify-between items-end mb-2">
                         <label className="block text-sm font-semibold text-gray-700">
-                          Radio de Reparto ({deliveryData.delivery_radius_km} km)
+                          Zona de Reparto (Puntos del polígono: {deliveryData.delivery_polygon?.length || 0})
                         </label>
                       </div>
-                      <input 
-                        type="range" 
-                        min="1" 
-                        max="20" 
-                        step="0.5"
-                        value={deliveryData.delivery_radius_km} 
-                        onChange={(e) => setDeliveryData({...deliveryData, delivery_radius_km: Number(e.target.value)})}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
-                      />
-                      <p className="text-xs text-gray-500 mt-2">
-                        Los clientes fuera de este círculo no podrán hacer pedidos.
+                      <p className="text-xs text-gray-500 mt-1">
+                        Dibuja un polígono en el mapa. Los clientes fuera del área dibujada no podrán hacer pedidos.
                       </p>
                     </div>
 
@@ -632,13 +623,14 @@ const SettingsView = () => {
                         )}
                       </div>
                       <p className="text-xs text-gray-500 mb-3 -mt-2">
-                        La dirección en texto se configura en "Información General". Si no ves el círculo de reparto, <strong>haz clic en el mapa</strong> para fijar el origen.
+                        Haz clic en "Dibujar Zona" y marca los puntos alrededor de tu local.
                       </p>
                       <DeliveryMap 
                         lat={deliveryData.store_lat} 
                         lng={deliveryData.store_lng} 
-                        radiusKm={deliveryData.delivery_radius_km}
+                        polygon={deliveryData.delivery_polygon}
                         onLocationChange={(lat, lng) => setDeliveryData({...deliveryData, store_lat: lat, store_lng: lng})}
+                        onPolygonChange={(polygon) => setDeliveryData({...deliveryData, delivery_polygon: polygon})}
                       />
                     </div>
                   </>

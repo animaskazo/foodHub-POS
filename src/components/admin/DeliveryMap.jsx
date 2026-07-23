@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Circle, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polygon, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { MapPin } from 'lucide-react';
+import { MapPin, MousePointer2, Trash2 } from 'lucide-react';
 
-// Fix for default marker icon in Leaflet with Webpack/Vite
+// Fix for default marker icon in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -21,8 +21,9 @@ const MapEvents = ({ onLocationSelect }) => {
   return null;
 };
 
-const DeliveryMap = ({ lat, lng, radiusKm, onLocationChange }) => {
-  const [center, setCenter] = useState([-33.4489, -70.6693]); // Default Santiago, Chile
+const DeliveryMap = ({ lat, lng, polygon, onLocationChange, onPolygonChange }) => {
+  const [center, setCenter] = useState([-33.4489, -70.6693]);
+  const [mode, setMode] = useState('marker'); // 'marker' or 'polygon'
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -31,34 +32,58 @@ const DeliveryMap = ({ lat, lng, radiusKm, onLocationChange }) => {
       if (mapRef.current) {
         mapRef.current.flyTo([lat, lng], 13);
       }
-    } else {
-      // Try to get user location
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const newCenter = [pos.coords.latitude, pos.coords.longitude];
-            setCenter(newCenter);
-            if (mapRef.current) {
-              mapRef.current.flyTo(newCenter, 13);
-            }
-          },
-          () => {}
-        );
-      }
     }
   }, [lat, lng]);
 
   const handleLocationSelect = (latlng) => {
-    onLocationChange(latlng.lat, latlng.lng);
+    if (mode === 'marker') {
+      onLocationChange(latlng.lat, latlng.lng);
+    } else {
+      const newPolygon = [...(polygon || []), { lat: latlng.lat, lng: latlng.lng }];
+      onPolygonChange(newPolygon);
+    }
   };
 
+  const polyPositions = (polygon || []).map(p => [p.lat, p.lng]);
+
   return (
-    <div className="relative w-full h-[400px] rounded-xl overflow-hidden border-2 border-gray-200">
-      <div className="absolute top-4 right-4 z-[400] bg-white px-3 py-2 rounded-lg shadow-md border border-gray-100 flex items-center gap-2 pointer-events-none">
-        <MapPin className="w-4 h-4 text-blue-600" />
-        <span className="text-sm font-medium text-gray-700">Haz clic en el mapa para marcar tu local</span>
+    <div className="relative w-full h-[400px] rounded-xl overflow-hidden border-2 border-gray-200 flex flex-col">
+      <div className="absolute top-4 left-4 z-[400] flex flex-col gap-2 pointer-events-none">
+        
+        <div className="pointer-events-auto bg-white rounded-lg shadow-md border border-gray-100 p-1 flex gap-1">
+          <button
+            onClick={() => setMode('marker')}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold transition-colors ${mode === 'marker' ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-700'}`}
+          >
+            <MapPin className="w-4 h-4" />
+            Fijar Local
+          </button>
+          <button
+            onClick={() => setMode('polygon')}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold transition-colors ${mode === 'polygon' ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-700'}`}
+          >
+            <MousePointer2 className="w-4 h-4" />
+            Dibujar Zona
+          </button>
+        </div>
+
+        {mode === 'polygon' && (polygon?.length > 0) && (
+          <button
+            onClick={() => onPolygonChange([])}
+            className="pointer-events-auto flex items-center gap-1.5 px-3 py-2 bg-white text-red-600 rounded-lg shadow-md border border-red-100 text-sm font-bold hover:bg-red-50 transition-colors self-start"
+          >
+            <Trash2 className="w-4 h-4" />
+            Limpiar Zona
+          </button>
+        )}
       </div>
       
+      <div className="absolute top-4 right-4 z-[400] bg-white px-3 py-2 rounded-lg shadow-md border border-gray-100 flex items-center gap-2 pointer-events-none">
+        <span className="text-sm font-medium text-gray-700">
+          {mode === 'marker' ? 'Haz clic en el mapa para marcar tu local' : 'Haz clics consecutivos para dibujar tu zona'}
+        </span>
+      </div>
+
       <MapContainer 
         center={center} 
         zoom={13} 
@@ -72,15 +97,16 @@ const DeliveryMap = ({ lat, lng, radiusKm, onLocationChange }) => {
         />
         
         {lat && lng && (
-          <>
-            <Marker position={[lat, lng]} />
-            <Circle 
-              center={[lat, lng]} 
-              radius={radiusKm * 1000} // Leaflet radius is in meters
-              pathOptions={{ fillColor: '#3b82f6', color: '#2563eb', weight: 2, fillOpacity: 0.2 }}
-            />
-          </>
+          <Marker position={[lat, lng]} />
         )}
+
+        {polyPositions.length > 0 && (
+          <Polygon 
+            positions={polyPositions}
+            pathOptions={{ fillColor: '#3b82f6', color: '#2563eb', weight: 2, fillOpacity: 0.2 }}
+          />
+        )}
+
         <MapEvents onLocationSelect={handleLocationSelect} />
       </MapContainer>
     </div>

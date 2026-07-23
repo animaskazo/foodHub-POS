@@ -28,3 +28,22 @@ export const geocodeAddress = async (address) => {
     return null;
   }
 };
+
+// Verifica si un punto (lat, lng) está dentro de un polígono usando Ray-Casting
+export const isPointInPolygon = (point, vs) => {
+  // point: {lat, lng}
+  // vs: array de {lat, lng}
+  const x = point.lng, y = point.lat;
+  
+  let inside = false;
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const xi = vs[i].lng, yi = vs[i].lat;
+    const xj = vs[j].lng, yj = vs[j].lat;
+    
+    const intersect = ((yi > y) !== (yj > y))
+        && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  
+  return inside;
+};

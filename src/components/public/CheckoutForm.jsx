@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard } from 'lucide-react';
 import { getCustomerByPhone } from '../../services/publicOrderService';
-import { geocodeAddress, calculateDistance } from '../../utils/geo';
+import { geocodeAddress, calculateDistance, isPointInPolygon } from '../../utils/geo';
 import { MapPin, Info } from 'lucide-react';
 
 const InputField = ({ icon: Icon, label, isLoading, ...props }) => (
@@ -162,9 +162,19 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     try {
       const coords = await geocodeAddress(form.deliveryAddress);
       if (coords) {
-        const distance = calculateDistance(org.store_lat, org.store_lng, coords.lat, coords.lng);
-        if (distance > (org.delivery_radius_km || 5)) {
-          setDistanceError(`Estás a ${distance.toFixed(1)}km. Superas el radio máximo de ${org.delivery_radius_km}km.`);
+        let isInside = false;
+        
+        // Use polygon if available, else fallback to old radius
+        if (org.delivery_polygon && org.delivery_polygon.length > 0) {
+          isInside = isPointInPolygon(coords, org.delivery_polygon);
+        } else {
+          // Fallback just in case
+          const distance = calculateDistance(org.store_lat, org.store_lng, coords.lat, coords.lng);
+          isInside = distance <= (org.delivery_radius_km || 5);
+        }
+
+        if (!isInside) {
+          setDistanceError('Tu dirección está fuera de nuestra zona de cobertura.');
           update('deliveryFee', 0);
         } else {
           setDistanceError(null);
