@@ -4,11 +4,11 @@ import { getCustomerByPhone } from '../../services/publicOrderService';
 import { geocodeAddress, calculateDistance, isPointInPolygon } from '../../utils/geo';
 import { MapPin, Info } from 'lucide-react';
 
-const InputField = ({ icon: Icon, label, isLoading, ...props }) => (
+const InputField = ({ icon: Icon, label, isLoading, rightElement, ...props }) => (
   <div className="relative">
     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">{label}</label>
     <div className="relative">
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none z-10">
         {isLoading ? (
           <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
         ) : (
@@ -16,9 +16,14 @@ const InputField = ({ icon: Icon, label, isLoading, ...props }) => (
         )}
       </div>
       <input
-        className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-gray-200 rounded-2xl text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-black transition-colors"
+        className={`w-full pl-11 py-3.5 bg-white border-2 border-gray-200 rounded-2xl text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-black transition-colors ${rightElement ? 'pr-24' : 'pr-4'}`}
         {...props}
       />
+      {rightElement && (
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10">
+          {rightElement}
+        </div>
+      )}
     </div>
   </div>
 );
@@ -295,6 +300,23 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                       onChange={e => update('deliveryAddress', e.target.value)}
                       onBlur={handleAddressBlur}
                       isLoading={isGeocoding}
+                      rightElement={
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            // Prevent focus loss before click registers
+                            e.preventDefault();
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleAddressBlur();
+                          }}
+                          disabled={!form.deliveryAddress.trim() || isGeocoding}
+                          className="bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors"
+                        >
+                          Validar
+                        </button>
+                      }
                     />
                     
                     {distanceError && (
