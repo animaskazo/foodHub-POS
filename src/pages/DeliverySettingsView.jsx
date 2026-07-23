@@ -139,20 +139,18 @@ const DeliverySettingsView = () => {
                 </div>
               </div>
 
-              <div>
-                <div className="flex justify-between items-end mb-2">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    Zona de Reparto (Puntos del polígono: {deliveryData.delivery_polygon?.length || 0})
-                  </label>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Dibuja un polígono en el mapa. Los clientes fuera del área dibujada no podrán hacer pedidos.
-                </p>
-              </div>
-
-              <div className="pt-2">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="block text-sm font-semibold text-gray-700">Zona de Cobertura en el Mapa</label>
+              <div className="pt-4 border-t border-gray-100">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-800">Zona de Cobertura en el Mapa</h4>
+                    <p className="text-xs text-gray-500 mt-1 max-w-2xl leading-relaxed">
+                      Sigue estos pasos: <br />
+                      <strong>1.</strong> Fija la ubicación de tu local (puedes usar el buscador o hacer clic). <br />
+                      <strong>2.</strong> Haz clic en <strong>"Dibujar Zona"</strong> y marca punto por punto el área donde realizas entregas. <br />
+                      <span className="text-blue-600 font-medium">Vértices actuales del polígono: {deliveryData.delivery_polygon?.length || 0}</span>
+                    </p>
+                  </div>
+                  
                   {generalAddress && (
                     <button
                       onClick={async () => {
@@ -163,16 +161,13 @@ const DeliverySettingsView = () => {
                           alert('No se pudo encontrar la dirección general en el mapa. Por favor, haz clic manualmente.');
                         }
                       }}
-                      className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-xs font-bold text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
                     >
                       <Search className="h-3.5 w-3.5" />
-                      Buscar mi dirección general
+                      Buscar mi local
                     </button>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 mb-3 -mt-2">
-                  Haz clic en "Dibujar Zona" y marca los puntos alrededor de tu local.
-                </p>
                 <DeliveryMap 
                   lat={deliveryData.store_lat} 
                   lng={deliveryData.store_lng} 
