@@ -5,9 +5,20 @@ const fmt = (n) => n.toLocaleString('es-CL');
 
 const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout, isOpen }) => {
   const total = cartItems.reduce((acc, item) => {
-    const itemGross = Math.round(item.price);
-    const extrasGross = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
-    return acc + (itemGross + extrasGross) * item.quantity;
+    let unitPrice = Math.round(item.price);
+    if (item.selectedIngredients) {
+      unitPrice += item.selectedIngredients.reduce((s, i) => s + (i.price || 0), 0);
+    }
+    if (item.selectedOptions) {
+      unitPrice += item.selectedOptions.reduce((s, o) => {
+        let optTotal = o.price || 0;
+        if (o.selectedIngredients) {
+          optTotal += o.selectedIngredients.reduce((s2, i2) => s2 + (i2.price || 0), 0);
+        }
+        return s + optTotal;
+      }, 0);
+    }
+    return acc + unitPrice * item.quantity;
   }, 0);
 
   return (
@@ -16,9 +27,20 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-4 py-4 space-y-3">
           {cartItems.map((item) => {
-            const itemGross = Math.round(item.price);
-            const extrasGross = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
-            const lineTotal = (itemGross + extrasGross) * item.quantity;
+            let unitPrice = Math.round(item.price);
+            if (item.selectedIngredients) {
+              unitPrice += item.selectedIngredients.reduce((s, i) => s + (i.price || 0), 0);
+            }
+            if (item.selectedOptions) {
+              unitPrice += item.selectedOptions.reduce((s, o) => {
+                let optTotal = o.price || 0;
+                if (o.selectedIngredients) {
+                  optTotal += o.selectedIngredients.reduce((s2, i2) => s2 + (i2.price || 0), 0);
+                }
+                return s + optTotal;
+              }, 0);
+            }
+            const lineTotal = unitPrice * item.quantity;
 
             return (
               <div key={item.cartItemId} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-4">

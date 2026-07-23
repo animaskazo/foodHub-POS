@@ -317,9 +317,20 @@ const OrderView = () => {
   }
 
   const totalAmount = cartItems.reduce((acc, item) => {
-    const itemGross = Math.round(item.price);
-    const extrasGross = (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
-    return acc + (itemGross + extrasGross) * item.quantity;
+    let unitPrice = Math.round(item.price);
+    if (item.selectedIngredients) {
+      unitPrice += item.selectedIngredients.reduce((s, i) => s + (i.price || 0), 0);
+    }
+    if (item.selectedOptions) {
+      unitPrice += item.selectedOptions.reduce((s, o) => {
+        let optTotal = o.price || 0;
+        if (o.selectedIngredients) {
+          optTotal += o.selectedIngredients.reduce((s2, i2) => s2 + (i2.price || 0), 0);
+        }
+        return s + optTotal;
+      }, 0);
+    }
+    return acc + unitPrice * item.quantity;
   }, 0);
 
   return (

@@ -7,7 +7,22 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
   const items = cartItems;
 
   const totalQty = items.reduce((acc, i) => acc + i.quantity, 0);
-  const total = items.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
+  const total = items.reduce((acc, i) => {
+    let unitPrice = Math.round(i.price);
+    if (i.selectedIngredients) {
+      unitPrice += i.selectedIngredients.reduce((s, ing) => s + (ing.price || 0), 0);
+    }
+    if (i.selectedOptions) {
+      unitPrice += i.selectedOptions.reduce((s, o) => {
+        let optTotal = o.price || 0;
+        if (o.selectedIngredients) {
+          optTotal += o.selectedIngredients.reduce((s2, i2) => s2 + (i2.price || 0), 0);
+        }
+        return s + optTotal;
+      }, 0);
+    }
+    return acc + (unitPrice * i.quantity);
+  }, 0);
   const subtotal = Math.round(total / 1.19);
   const tax = total - subtotal;
 
@@ -129,7 +144,22 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
 
                   {/* Price + Actions */}
                   <div className="flex flex-col items-end gap-2 shrink-0">
-                    <span className="font-bold text-[15px]">${fmt(Math.round(item.price) * item.quantity)}</span>
+                    <span className="font-bold text-[15px]">${fmt((() => {
+                    let unitPrice = Math.round(item.price);
+                    if (item.selectedIngredients) {
+                      unitPrice += item.selectedIngredients.reduce((s, ing) => s + (ing.price || 0), 0);
+                    }
+                    if (item.selectedOptions) {
+                      unitPrice += item.selectedOptions.reduce((s, o) => {
+                        let optTotal = o.price || 0;
+                        if (o.selectedIngredients) {
+                          optTotal += o.selectedIngredients.reduce((s2, i2) => s2 + (i2.price || 0), 0);
+                        }
+                        return s + optTotal;
+                      }, 0);
+                    }
+                    return unitPrice * item.quantity;
+                  })())}</span>
                     <div className="flex items-center gap-1.5 mt-1">
                       {hasOptions && (
                         <Button
