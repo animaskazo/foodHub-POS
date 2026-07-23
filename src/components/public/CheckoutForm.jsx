@@ -290,7 +290,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                 </div>
 
                 {form.deliveryType === 'delivery' && (
-                  <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl space-y-3">
+                  <div className="space-y-3">
                     <InputField
                       icon={MapPin}
                       label="Dirección de entrega *"
