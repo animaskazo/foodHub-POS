@@ -43,16 +43,32 @@ const DeliverySettingsView = () => {
         
         setGeneralAddress(orgData.address || '');
 
-          setDeliveryData({
-            delivery_enabled: orgData.delivery_enabled || false,
-            store_lat: orgData.store_lat || null,
-            store_lng: orgData.store_lng || null,
-            delivery_polygon: orgData.delivery_polygon || [],
-            delivery_fee: orgData.delivery_fee || 0,
-            delivery_min_order: orgData.delivery_min_order || 0
-          });
-          setHasChanges(false);
+        let initialLat = orgData.store_lat || null;
+        let initialLng = orgData.store_lng || null;
+        let didAutoCenter = false;
+
+        if (!initialLat && orgData.address) {
+          const coords = await geocodeAddress(orgData.address);
+          if (coords) {
+            initialLat = coords.lat;
+            initialLng = coords.lng;
+            didAutoCenter = true;
+          }
         }
+
+        setDeliveryData({
+          delivery_enabled: orgData.delivery_enabled || false,
+          store_lat: initialLat,
+          store_lng: initialLng,
+          delivery_polygon: orgData.delivery_polygon || [],
+          delivery_fee: orgData.delivery_fee || 0,
+          delivery_min_order: orgData.delivery_min_order || 0
+        });
+        
+        // Si lo centramos automáticamente, marcamos como cambio pendiente
+        // para que el usuario pueda guardarlo
+        setHasChanges(didAutoCenter);
+      }
     } catch (error) {
       console.error('Error loading settings:', error);
     } finally {
