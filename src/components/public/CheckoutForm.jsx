@@ -63,7 +63,7 @@ export const formatChileanPhone = (value) => {
   }
 };
 
-const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePayments = true, organizationId, isOpen = true }) => {
+const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePayments = true, organizationId, isOpen = true, org }) => {
   const [form, setForm] = useState(() => {
     try {
       const saved = localStorage.getItem('checkout_customer_form');
