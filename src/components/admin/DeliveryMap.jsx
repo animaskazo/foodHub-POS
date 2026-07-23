@@ -22,7 +22,7 @@ const MapEvents = ({ onLocationSelect }) => {
 };
 
 const DeliveryMap = ({ lat, lng, polygon, onLocationChange, onPolygonChange }) => {
-  const [center, setCenter] = useState([-33.4489, -70.6693]);
+  const [center, setCenter] = useState([lat || -33.4489, lng || -70.6693]);
   const [mode, setMode] = useState('marker'); // 'marker' or 'polygon'
   const mapRef = useRef(null);
 
