@@ -98,6 +98,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [distanceError, setDistanceError] = useState(null);
+  const [isValidatedAddress, setIsValidatedAddress] = useState(false);
 
   useEffect(() => {
     if (!organizationId) return;
@@ -130,6 +131,9 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   const update = (field, value) => {
     setForm(f => ({ ...f, [field]: value }));
     if (errors[field]) setErrors(e => ({ ...e, [field]: null }));
+    if (field === 'deliveryAddress') {
+      setIsValidatedAddress(false);
+    }
   };
 
   const validate = () => {
@@ -180,13 +184,16 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
 
         if (!isInside) {
           setDistanceError('Tu dirección está fuera de nuestra zona de cobertura.');
+          setIsValidatedAddress(false);
           update('deliveryFee', 0);
         } else {
           setDistanceError(null);
+          setIsValidatedAddress(true);
           update('deliveryFee', org.delivery_fee || 0);
         }
       } else {
         setDistanceError('No pudimos encontrar la dirección. Asegúrate de incluir tu comuna o ciudad.');
+        setIsValidatedAddress(false);
         update('deliveryFee', 0);
       }
     } catch (error) {
@@ -265,6 +272,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                       update('deliveryType', 'pickup');
                       update('deliveryFee', 0);
                       setDistanceError(null);
+                      setIsValidatedAddress(false);
                     }}
                     className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer text-center ${
                       form.deliveryType === 'pickup' 
@@ -326,10 +334,10 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                       </div>
                     )}
                     
-                    {!distanceError && form.deliveryFee > 0 && (
-                      <div className="flex items-center justify-between text-sm bg-blue-50 text-blue-700 px-3 py-2 rounded-xl">
-                        <span className="font-semibold">Costo de envío:</span>
-                        <span className="font-bold">${fmt(form.deliveryFee)}</span>
+                    {!distanceError && isValidatedAddress && (
+                      <div className="flex items-center justify-between bg-green-50 text-green-700 px-3 py-2.5 rounded-xl border border-green-100">
+                        <span className="font-semibold text-xs pr-2">Super, nuestro delivery llega a tu dirección.</span>
+                        <span className="font-bold text-[13px] shrink-0">Valor ${fmt(form.deliveryFee)}</span>
                       </div>
                     )}
                   </div>
