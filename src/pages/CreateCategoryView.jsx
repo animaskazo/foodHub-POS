@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { getFirstOrganizationId, createCategory, getCategoryById, updateCategory, getProducts } from '../services/catalogService';
 import CategoryProductsModal from '../components/admin/CategoryProductsModal';
 import { Button } from '@/components/ui/button';
+import EditorHeader from '../components/ui/EditorHeader';
 
 const SectionRow = ({ icon: Icon, title, description, children }) => (
   <div className="flex items-start justify-between gap-4 py-4">
@@ -119,74 +120,43 @@ const CreateCategoryView = () => {
 
   return (
     <div className="modal-page min-h-screen bg-gray-50 pb-24">
-      {/* ── Header ────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-6 py-4 bg-white border-b sticky top-0 z-10">
-        <Button
-          onClick={handleClose}
-          className="w-10 h-10 flex items-center justify-center   active:bg-gray-200 transition-colors"
-         variant="secondary">
-          <X className="h-5 w-5" />
-        </Button>
-        <h1 className="text-[17px] font-bold">{isEditing ? 'Editar categoría' : 'Crear categoría'}</h1>
-        
-        <div className="flex items-center gap-3">
-          {hasChanges && (
-            <span className="text-xs text-amber-600 font-bold animate-pulse select-none hidden sm:inline">
-              Tienes cambios sin guardar
-            </span>
-          )}
-          <Button
-            onClick={handleSave}
-            disabled={isSaving || isLoading}
-            className="px-6 py-2.5 bg-black text-white text-[15px] font-semibold active:bg-gray-800 transition-colors disabled:opacity-50 flex items-center"
-          >
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {isSaving ? 'Guardando...' : 'Guardar'}
-          </Button>
-        </div>
-      </header>
+      <EditorHeader
+        title={isEditing ? `Editar ${formData.name || 'categoría'}` : `Crear ${formData.name || 'categoría'}`}
+        onClose={handleClose}
+        onSave={handleSave}
+        isSaving={isSaving}
+        isLoading={isLoading}
+        hasChanges={hasChanges}
+      />
 
       {/* ── Body ──────────────────────────────────────── */}
-      <main className="max-w-2xl mx-auto px-6 py-8">
+      <main className="max-w-2xl mx-auto px-6 py-8 pt-[104px]">
         {isLoading ? (
           <div className="flex justify-center py-20 text-gray-400">Cargando categoría...</div>
         ) : (
           <div className="space-y-5">
 
             {/* Nombre */}
-            <div className="form-field flex items-center px-4">
+            <div className="form-field flex items-center px-4 gap-2 mb-4">
               <input
-                className="flex-1 h-14 bg-transparent text-[15px] outline-none placeholder-gray-400 font-medium"
+                className="flex-1 h-16 bg-transparent text-lg outline-none placeholder-gray-400 font-bold"
                 placeholder="Nombre de la categoría"
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
               />
             </div>
 
-            {/* Imagen URL */}
-            <div className="bg-white rounded-xl border border-gray-100 p-5">
-              <p className="font-semibold text-[15px] mb-3">URL de la imagen</p>
-              <div className="flex items-center gap-4">
-                <div 
-                  className="w-12 h-12   bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden"
-                  style={formData.imageUrl ? { backgroundImage: `url(${formData.imageUrl})` } : {}}
-                >
-                  {!formData.imageUrl && <ImageIcon className="h-5 w-5 text-gray-400" />}
-                </div>
-                <input
-                  type="url"
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  className="w-full h-10 px-3 bg-white border border-gray-200   text-[15px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  placeholder="https://ejemplo.com/imagen.jpg"
-                />
-              </div>
-            </div>
+
 
             {/* ── Artículos ────────────────────────────── */}
-            <div>
-              <p className="text-lg font-bold mb-3 px-1">Artículos</p>
-              <div className="bg-white rounded-xl border border-gray-100 px-5 divide-y divide-gray-100">
+            <div className="bg-white rounded-2xl border border-gray-100 p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h4 className="font-semibold text-[15px] text-gray-900">Artículos</h4>
+                  <p className="text-sm text-gray-500 leading-relaxed mt-0.5">Administra los artículos asignados a esta categoría.</p>
+                </div>
+              </div>
+              <div className="bg-gray-50 rounded-xl border border-gray-100 px-4">
                 <SectionRow
                   icon={Tags}
                   title="Artículos seleccionados"
@@ -194,7 +164,8 @@ const CreateCategoryView = () => {
                 >
                   <Button 
                     onClick={() => setIsModalOpen(true)}
-                    className="text-sm font-semibold underline text-gray-800 active:text-gray-500 transition-colors"
+                    variant="outline"
+                    className="text-sm font-semibold rounded-full"
                   >
                     Editar selección
                   </Button>

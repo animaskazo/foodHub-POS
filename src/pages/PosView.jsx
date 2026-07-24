@@ -299,9 +299,9 @@ const PosView = () => {
   return (
     <div className="h-[100dvh] w-full flex flex-col overflow-hidden">
       {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative min-h-0">
         {activeTab === 'pago' && (
-          <div className="flex h-full overflow-hidden">
+          <div className="flex-1 flex overflow-hidden w-full">
             {/* Left Panel: Product Grid (100% on mobile, 60% on desktop) */}
             <div className="w-full md:w-[60%] overflow-hidden relative">
               <ProductGrid
@@ -360,7 +360,9 @@ const PosView = () => {
         )}
         
         {activeTab === 'transacciones' && (
-          <TransactionsView onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
+          <div className="flex-1 w-full overflow-y-auto">
+            <TransactionsView onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
+          </div>
         )}
 
         {/* Placeholders for other tabs */}
@@ -405,12 +407,12 @@ const PosView = () => {
                     }
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center justify-start gap-4 px-6 h-14 transition-colors rounded-none ${
-                    activeTab === id ? 'bg-blue-50 text-blue-600 font-bold border-r-4 border-blue-600' : 'text-gray-600 font-medium hover:bg-gray-50'
+                  className={`w-full flex items-center justify-start gap-5 px-8 h-16 transition-colors rounded-none ${
+                    activeTab === id ? 'text-black font-extrabold bg-gray-50' : 'text-gray-500 font-semibold hover:bg-gray-50'
                   }`}
                 >
-                  <Icon className="h-6 w-6" />
-                  <span className="text-base">{label}</span>
+                  <Icon className={`h-8 w-8 ${activeTab === id ? 'text-black' : 'text-gray-400'}`} />
+                  <span className="text-lg">{label}</span>
                 </Button>
               ))}
             </div>
@@ -418,10 +420,10 @@ const PosView = () => {
               <Button
                 variant="ghost"
                 onPointerDown={() => window.location.href = '/'}
-                className="w-full flex items-center justify-start gap-3 px-4 h-12 text-red-600 font-semibold active:bg-red-50 hover:bg-red-50 rounded-xl"
+                className="w-full flex items-center justify-start gap-4 px-6 h-16 text-red-600 font-bold active:bg-red-50 hover:bg-red-50 rounded-xl"
               >
-                <LogOut className="h-5 w-5" />
-                <span>Cerrar Sesión</span>
+                <LogOut className="h-8 w-8" />
+                <span className="text-lg">Cerrar Sesión</span>
               </Button>
             </div>
           </div>

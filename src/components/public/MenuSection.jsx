@@ -394,15 +394,13 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
           <div className="max-w-3xl mx-auto">
             <button
               onClick={onViewCart}
-              className="w-full h-16 bg-black text-white font-bold rounded-full flex items-center justify-between px-8 shadow-2xl hover:bg-gray-900 transition-colors active:scale-[0.98]"
+              className="relative w-full h-16 bg-black text-white font-bold rounded-full flex items-center justify-between px-8 shadow-2xl hover:bg-gray-900 transition-colors active:scale-[0.98]"
             >
-              <div className="flex items-center gap-3.5">
-                <span className="bg-white/20 text-white text-base font-extrabold px-3 py-0.5 rounded-full">
-                  {totalQty}
-                </span>
-                <span className="text-[17px] tracking-wide">Ver Pedido</span>
-              </div>
-              <span className="text-lg font-extrabold">${totalPrice.toLocaleString('es-CL')}</span>
+              <span className="bg-white/20 text-white text-base font-extrabold px-3 py-0.5 rounded-full z-10">
+                {totalQty}
+              </span>
+              <span className="absolute left-1/2 -translate-x-1/2 text-[17px] tracking-wide z-10">Ver Pedido</span>
+              <span className="text-lg font-extrabold z-10">${totalPrice.toLocaleString('es-CL')}</span>
             </button>
           </div>
         </div>

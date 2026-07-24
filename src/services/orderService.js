@@ -269,6 +269,96 @@ export const updateOrderStatus = async (orderId, status) => {
       .eq('id', orderId);
 
     if (error) throw error;
+
+    if (status === 'ready') {
+      // Fetch order details for the email
+      const { data: order } = await supabase
+        .from('orders')
+        .select(`
+          order_number,
+          order_type,
+          total,
+          branch_id,
+          customer_id,
+          payments ( method, status ),
+          order_items (
+            product_name,
+            quantity,
+            total_price,
+            products (
+              product_images ( url )
+            )
+          )
+        `)
+        .eq('id', orderId)
+        .single();
+
+      if (order && order.customer_id) {
+          // Fetch customer email and branch/org separately for reliability
+        const [customerResult, branchResult] = await Promise.all([
+          supabase
+            .from('customers')
+            .select('email')
+            .eq('id', order.customer_id)
+            .single(),
+          order.branch_id
+            ? supabase
+                .from('branches')
+                .select('id, name, address, organization_id')
+                .eq('id', order.branch_id)
+                .single()
+            : Promise.resolve({ data: null }),
+        ]);
+
+        const customer = customerResult.data;
+        const branch = branchResult.data;
+
+        // Fetch organization data directly for reliability
+        let orgData = null;
+        if (branch?.organization_id) {
+          const { data: org } = await supabase
+            .from('organizations')
+            .select('name, logo_url, address')
+            .eq('id', branch.organization_id)
+            .single();
+          orgData = org;
+        }
+
+        if (customer && customer.email) {
+          const paymentMethod = order.payments?.length > 0 ? order.payments[0].method : 'En local';
+          // Filter out placeholder addresses
+          const PLACEHOLDER_ADDRESSES = ['por definir', 'principal'];
+          const isPlaceholder = (addr) =>
+            !addr || PLACEHOLDER_ADDRESSES.some(p => addr.toLowerCase().includes(p));
+
+          // Prefer branch address, then org address, filtering out placeholders
+          const rawAddress = (!isPlaceholder(branch?.address) && branch?.address)
+            || orgData?.address
+            || '';
+          const branchAddress = isPlaceholder(rawAddress) ? '' : rawAddress;
+          const emailData = {
+            order_number: order.order_number,
+            order_type: order.order_type,
+            total: order.total,
+            payment_method: paymentMethod,
+            items: order.order_items || [],
+            branch: {
+              name: branch?.name || '',
+              address: branchAddress,
+            },
+            organization: {
+              name: orgData?.name || 'FoodHub',
+              logo_url: orgData?.logo_url || null,
+            }
+          };
+          
+          import('./emailService').then(({ sendEmail }) => {
+            sendEmail({ type: 'order_ready', email: customer.email, data: emailData });
+          });
+        }
+      }
+    }
+
     return true;
   } catch (error) {
     console.error("Error updating order status:", error);

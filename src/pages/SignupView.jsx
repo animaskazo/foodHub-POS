@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { supabase } from '../lib/supabase';
+import { sendEmail } from '../services/emailService';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -81,7 +82,7 @@ export default function SignupView() {
           {
             organization_id: orgData.id,
             name: 'Local Principal',
-            address: 'Dirección por definir',
+            address: '',
             accepts_table: true,
             accepts_pickup: true,
           },
@@ -100,6 +101,13 @@ export default function SignupView() {
           },
         ]);
       if (staffError) throw staffError;
+
+      // Send welcome email
+      await sendEmail({
+        type: 'welcome',
+        email: formData.email,
+        data: { organization_name: formData.organizationName }
+      });
 
       toast.success('Cuenta creada exitosamente');
       navigate('/');

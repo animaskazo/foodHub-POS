@@ -238,7 +238,7 @@ const CatalogManager = () => {
                 </td>
               </tr>
             ) : (() => {
-              const filteredProducts = products.filter(p => statusFilter === 'all' || (statusFilter === 'available' ? p.status === 'Disponible' : p.status === 'No disponible'));
+              const filteredProducts = products.filter(p => statusFilter === 'all' || (statusFilter === 'available' ? (p.status === 'Disponible' || p.status === 'available') : (p.status === 'No disponible' || p.status === 'unavailable')));
               
               if (filteredProducts.length === 0) {
                 return (
@@ -340,7 +340,7 @@ const CatalogManager = () => {
                         <td className="px-6 py-4 text-center">
                           <div className="flex justify-center items-center">
                             <Switch 
-                              checked={product.status === 'Disponible'} 
+                              checked={product.status === 'Disponible' || product.status === 'available'} 
                               onCheckedChange={(checked) => handleStatusChange(product.id, checked ? 'available' : 'unavailable')}
                             />
                           </div>
@@ -433,12 +433,13 @@ const CatalogManager = () => {
           <p className="text-sm text-gray-500">Selecciona el tipo de artículo que deseas registrar en el catálogo:</p>
           
           <div className="grid grid-cols-1 gap-3">
-            <Button
+            <button
+              type="button"
               onClick={() => {
                 setIsTypeSelectionModalOpen(false);
                 navigate('/products/new?type=physical');
               }}
-              className="flex items-start text-left p-4 border border-gray-200 rounded-2xl hover:border-black hover:bg-gray-50 transition-all gap-4 w-full cursor-pointer"
+              className="flex items-start text-left p-4 border border-gray-200 rounded-2xl hover:border-black hover:bg-gray-50 bg-white transition-all gap-4 w-full cursor-pointer"
             >
               <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shrink-0">
                 <Tag className="h-6 w-6" />
@@ -447,14 +448,15 @@ const CatalogManager = () => {
                 <h4 className="font-bold text-sm text-gray-900">Producto Único</h4>
                 <p className="text-xs text-gray-500 mt-1 leading-relaxed">Registra un plato, bebida o servicio individual con variantes, ingredientes extra y control de inventario.</p>
               </div>
-            </Button>
+            </button>
 
-            <Button
+            <button
+              type="button"
               onClick={() => {
                 setIsTypeSelectionModalOpen(false);
                 navigate('/products/new?type=bundle');
               }}
-              className="flex items-start text-left p-4 border border-gray-200 rounded-2xl hover:border-black hover:bg-gray-50 transition-all gap-4 w-full cursor-pointer"
+              className="flex items-start text-left p-4 border border-gray-200 rounded-2xl hover:border-black hover:bg-gray-50 bg-white transition-all gap-4 w-full cursor-pointer"
             >
               <div className="p-3 bg-purple-50 text-purple-600 rounded-xl shrink-0">
                 <Plus className="h-6 w-6" />
@@ -463,7 +465,7 @@ const CatalogManager = () => {
                 <h4 className="font-bold text-sm text-gray-900">Producto Múltiple (Combo)</h4>
                 <p className="text-xs text-gray-500 mt-1 leading-relaxed">Crea una promoción, paquete o combo que contenga otros productos en su interior (ej: Pizza + Bebida).</p>
               </div>
-            </Button>
+            </button>
           </div>
         </div>
       </Modal>

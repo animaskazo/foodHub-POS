@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { Clock, ChefHat, CheckCircle2, Play, RefreshCw, Volume2, Store, ShoppingBag, ShoppingCart, Globe, MessageCircle, User, ArrowLeft, Home } from 'lucide-react';
+import { Clock, ChefHat, CheckCircle2, Play, RefreshCw, Volume2, Store, ShoppingBag, ShoppingCart, Globe, MessageCircle, User, ArrowLeft, Home, Van } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getKitchenOrders, updateOrderStatus } from '../services/orderService';
 import { useAuth } from '../components/AuthContext';
@@ -283,9 +283,20 @@ const KitchenView = () => {
                 <div className={`${cfg.headerBg} px-4 pt-4 pb-3.5 border-b border-zinc-900 shrink-0 space-y-3`}>
 
                   {/* Row 1: order number */}
-                  <h2 className="text-3xl font-black text-white tracking-tight leading-none truncate">
-                    {order.order_number}
-                  </h2>
+                  <div className="flex items-center justify-between gap-2">
+                    <h2 className="text-3xl font-black text-white tracking-tight leading-none truncate">
+                      {order.order_number}
+                    </h2>
+                    {order.delivery_type === 'delivery' ? (
+                      <span className="text-[10px] px-2 py-1 rounded bg-amber-500 text-black font-black uppercase tracking-wider shrink-0 flex items-center gap-1">
+                        <Van className="h-3.5 w-3.5" /> Delivery
+                      </span>
+                    ) : (
+                      <span className="text-[10px] px-2 py-1 rounded bg-zinc-800 text-zinc-300 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
+                        <ShoppingBag className="h-3.5 w-3.5" /> Retiro
+                      </span>
+                    )}
+                  </div>
 
                   {/* Row 2: badge status + channel + user */}
                   <div className="flex items-center justify-between">
@@ -308,6 +319,14 @@ const KitchenView = () => {
                   {order.notes && (
                     <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                       <p className="text-xs text-amber-300/90 font-medium leading-relaxed break-words">{order.notes}</p>
+                    </div>
+                  )}
+
+                  {/* Delivery Address */}
+                  {order.delivery_type === 'delivery' && order.delivery_address && (
+                    <div className="p-2.5 bg-zinc-900/60 border border-zinc-800/80 rounded-xl">
+                      <p className="text-[9px] text-zinc-500 font-extrabold uppercase tracking-wider mb-1">Dirección de Despacho</p>
+                      <p className="text-xs text-zinc-200 leading-relaxed font-semibold">{order.delivery_address}</p>
                     </div>
                   )}
                 </div>

@@ -257,7 +257,7 @@ export const createProduct = async (organizationId, productData) => {
         sku: productData.sku || null,
         gtin: productData.gtin || null,
         type: productData.type === 'Servicio' ? 'service' : (productData.type === 'Combo / Promoción' || productData.type === 'bundle' ? 'bundle' : 'physical'),
-        status: 'available'
+        status: productData.status || 'available'
       }
     ])
     .select()
@@ -515,16 +515,22 @@ export const getProductById = async (id) => {
 };
 
 export const updateProduct = async (id, productData) => {
+  const updatePayload = {
+    name: productData.name,
+    description: productData.description || '',
+    base_price: productData.price || 0,
+    sku: productData.sku || null,
+    gtin: productData.gtin || null,
+    type: productData.type === 'Servicio' ? 'service' : (productData.type === 'Combo / Promoción' || productData.type === 'bundle' ? 'bundle' : 'physical'),
+  };
+  
+  if (productData.status !== undefined) {
+    updatePayload.status = productData.status;
+  }
+
   const { data, error } = await supabase
     .from('products')
-    .update({
-      name: productData.name,
-      description: productData.description || '',
-      base_price: productData.price || 0,
-      sku: productData.sku || null,
-      gtin: productData.gtin || null,
-      type: productData.type === 'Servicio' ? 'service' : (productData.type === 'Combo / Promoción' || productData.type === 'bundle' ? 'bundle' : 'physical'),
-    })
+    .update(updatePayload)
     .eq('id', id)
     .select()
     .single();
@@ -659,9 +665,10 @@ export const updateProduct = async (id, productData) => {
 };
 
 export const quickUpdateProductStatus = async (id, status) => {
+  const enumStatus = typeof status === 'boolean' ? (status ? 'available' : 'unavailable') : status;
   const { error } = await supabase
     .from('products')
-    .update({ status: status })
+    .update({ status: enumStatus })
     .eq('id', id);
   if (error) throw error;
 };

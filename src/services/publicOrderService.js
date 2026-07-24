@@ -363,6 +363,46 @@ export const createPublicOrder = async ({
     }
   }
 
+  // Send order confirmation email if customer provided an email
+  if (customer.email) {
+    const { sendEmail } = await import('./emailService');
+
+    // Fetch org data for the email
+    const { data: orgData } = await supabase
+      .from('organizations')
+      .select('name, logo_url, address')
+      .eq('id', organizationId)
+      .single();
+
+    const PLACEHOLDER_ADDRESSES = ['por definir', 'principal'];
+    const isPlaceholder = (addr) =>
+      !addr || PLACEHOLDER_ADDRESSES.some(p => addr.toLowerCase().includes(p));
+    const rawAddress = orgData?.address || '';
+    const orgAddress = isPlaceholder(rawAddress) ? '' : rawAddress;
+
+    const emailData = {
+      order_number: order.order_number,
+      order_type: order.order_type,
+      total: order.total,
+      items: cartItems.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        total_price: item.price * item.quantity,
+        image_url: item.image || item.image_url || item.imageUrl || null,
+      })),
+      branch: {
+        name: branch.name || '',
+        address: orgAddress,
+      },
+      organization: {
+        name: orgData?.name || 'FoodHub',
+        logo_url: orgData?.logo_url || null,
+      }
+    };
+
+    sendEmail({ type: 'order_confirmed', email: customer.email, data: emailData });
+  }
+
   return order;
 };
 

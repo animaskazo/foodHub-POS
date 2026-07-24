@@ -7,28 +7,16 @@ import {
   TrendingUp,
   ShoppingCart,
   Receipt,
-  Filter,
   Loader2,
   Store,
-  Smartphone,
+  ShoppingBag as PaperBag,
   Globe,
   MessageCircle,
-  Clock,
-  CreditCard,
-  ShoppingBag,
-  ReceiptText,
-  CheckCircle2,
-  Timer,
-  Utensils,
-  CheckCheck,
-  XCircle,
-  RefreshCcw
+  Van
 } from 'lucide-react';
-import Modal from '../components/ui/Modal';
-import PaymentModal from '../components/pos/PaymentModal';
 import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import TransactionList from '../components/pos/TransactionList';
 
 const DashboardView = () => {
   const { organization, loading: authLoading } = useAuth();
@@ -38,10 +26,6 @@ const DashboardView = () => {
   const [channelFilter, setChannelFilter] = useState('all'); // all, table, pickup, online, whatsapp
   const [kitchenStatusFilter, setKitchenStatusFilter] = useState('all'); // all, pending, preparing, ready, delivered, cancelled
   const [dateRange, setDateRange] = useState('today'); // today, 7days, 30days
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [pendingPaymentOrder, setPendingPaymentOrder] = useState(null);
-  const [isPaymentConfirmOpen, setIsPaymentConfirmOpen] = useState(false);
   const [newOrderAlert, setNewOrderAlert] = useState(null);
 
   const audioCtxRef = useRef(null);
@@ -97,53 +81,6 @@ const DashboardView = () => {
     };
   }, []);
 
-  const handleOpenModal = (order) => {
-    setSelectedOrder(order);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setTimeout(() => {
-      setSelectedOrder(null);
-    }, 300);
-  };
-
-  const handleOpenPaymentConfirm = (e, order) => {
-    e.stopPropagation();
-    setPendingPaymentOrder(order);
-    setIsPaymentConfirmOpen(true);
-  };
-
-  const handleConfirmOnlinePayment = async (method) => {
-    if (!pendingPaymentOrder) return;
-    try {
-      const payment = pendingPaymentOrder.payments?.find(p => p.status === 'pending');
-      const now = new Date().toISOString();
-      if (payment) {
-        const { error } = await supabase
-          .from('payments')
-          .update({ method, status: 'paid', paid_at: now })
-          .eq('id', payment.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('payments').insert({
-          order_id: pendingPaymentOrder.id,
-          method,
-          amount: pendingPaymentOrder.total,
-          status: 'paid',
-          paid_at: now,
-        });
-        if (error) throw error;
-      }
-      setIsPaymentConfirmOpen(false);
-      setPendingPaymentOrder(null);
-      await fetchOrders(true); // Pasar true para evitar que setLoading(true) reinicie la UI
-    } catch (err) {
-      console.error('Error confirmando pago:', err);
-      alert(`No se pudo confirmar el pago: ${err.message || JSON.stringify(err)}`);
-    }
-  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -232,7 +169,9 @@ const DashboardView = () => {
   // Filter orders based on selected channel and kitchen status
   const filteredOrders = useMemo(() => {
     let result = orders;
-    if (channelFilter !== 'all') {
+    if (channelFilter === 'delivery') {
+      result = result.filter(order => order.delivery_type === 'delivery');
+    } else if (channelFilter !== 'all') {
       result = result.filter(order => order.order_type === channelFilter);
     }
     if (kitchenStatusFilter !== 'all') {
@@ -254,64 +193,7 @@ const DashboardView = () => {
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
   };
-  const fmt = (n) => n.toLocaleString('es-CL');
 
-  const getKitchenTime = (order) => {
-    if (!order.ready_at) return '-';
-    const start = new Date(order.created_at);
-    const end = new Date(order.ready_at);
-    const diffMins = Math.floor((end - start) / 60000);
-    return diffMins < 1 ? '< 1 min' : `${diffMins} min`;
-  };
-
-  const getPaymentMethod = (order) => {
-    const payment = order.payments?.[0];
-    if (!payment) return '-';
-    const methodMap = {
-      cash: 'Efectivo',
-      card: 'Tarjeta',
-      transfer: 'Transferencia',
-      online_gateway: 'Online',
-      whatsapp_pay: 'WhatsApp'
-    };
-    let label = methodMap[payment.method] || payment.method;
-    if (payment.reference_code) {
-      label += ' - Klap';
-    }
-    return label;
-  };
-
-  const getStatusTag = (status) => {
-    const statusMap = {
-      pending: { label: 'Pendiente', variant: 'grayOutline', icon: Timer },
-      confirmed: { label: 'Confirmado', variant: 'info', icon: CheckCircle2 },
-      preparing: { label: 'Preparando', variant: 'warning', icon: Utensils },
-      ready: { label: 'Listo', variant: 'success', icon: CheckCheck },
-      delivered: { label: 'Entregado', variant: 'purple', icon: CheckCheck },
-      cancelled: { label: 'Cancelado', variant: 'error', icon: XCircle },
-      refunded: { label: 'Reembolsado', variant: 'error', icon: RefreshCcw },
-    };
-
-    const mapped = statusMap[status] || { label: status, variant: 'grayOutline', icon: Filter };
-
-    return (
-      <Badge variant={mapped.variant}>
-        {mapped.icon && <mapped.icon className="w-3.5 h-3.5" />}
-        {mapped.label}
-      </Badge>
-    );
-  };
-
-  // Helper for channel icons
-  const getChannelIcon = (type) => {
-    switch (type) {
-      case 'table': return <Store className="h-4 w-4" />;
-      case 'pickup': return <ShoppingBag className="h-4 w-4" />;
-      case 'online': return <Globe className="h-4 w-4" />;
-      case 'whatsapp': return <MessageCircle className="h-4 w-4" />;
-      default: return <Filter className="h-4 w-4" />;
-    }
-  };
 
   useDocumentTitle('Dashboard');
 
@@ -363,7 +245,13 @@ const DashboardView = () => {
             variant={channelFilter === 'pickup' ? 'default' : 'secondary'}
             onClick={() => setChannelFilter('pickup')}
           >
-            <ShoppingBag className="h-4 w-4 mr-1" /> Retiro
+            <PaperBag className="h-4 w-4 mr-1" /> Retiro
+          </Button>
+          <Button
+            variant={channelFilter === 'delivery' ? 'default' : 'secondary'}
+            onClick={() => setChannelFilter('delivery')}
+          >
+            <Van className="h-4 w-4 mr-1" /> Delivery
           </Button>
           <Button
             variant={channelFilter === 'online' ? 'default' : 'secondary'}
@@ -432,435 +320,15 @@ const DashboardView = () => {
               <option value="cancelled">Cancelados</option>
             </select>
           </div>
-
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[600px]">
-              <thead>
-                <tr className="bg-gray-50 text-gray-500 text-sm border-b border-gray-100">
-                  <th className="px-4 py-5 font-semibold w-[10%]">N° Orden</th>
-                  <th className="px-4 py-5 font-semibold w-[25%]">Cliente</th>
-                  <th className="px-4 py-5 font-semibold w-[15%]">Fecha</th>
-                  <th className="px-4 py-5 font-semibold w-[15%]">Estado</th>
-                  <th className="px-4 py-5 font-semibold w-[10%]">Canal</th>
-                  <th className="px-4 py-5 font-semibold w-[12%]">Método</th>
-                  <th className="px-4 py-5 font-semibold text-right w-[8%]">Total</th>
-                  <th className="px-4 py-5 font-semibold text-center w-[5%]">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                      Cargando ventas...
-                    </td>
-                  </tr>
-                ) : filteredOrders.length > 0 ? (
-                  filteredOrders.map((order) => {
-                    const date = new Date(order.created_at);
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const month = date.toLocaleDateString('es-CL', { month: 'long' });
-                    const monthCapitalized = month.charAt(0).toUpperCase() + month.slice(1);
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    const formattedDate = `${day}/${monthCapitalized} ${hours}:${minutes}`;
-                    return (
-                      <tr
-                        key={order.id}
-                        onClick={() => handleOpenModal(order)}
-                        className="border-b border-gray-50 hover:bg-gray-50 transition-colors text-sm cursor-pointer active:bg-gray-100 group"
-                      >
-                        <td className="px-4 py-5 text-base font-bold text-gray-900">{order.order_number}</td>
-                        <td className="px-4 py-5">
-                          {order.customer_name ? (
-                            <div className="flex flex-col gap-1">
-                              <span className="font-medium text-gray-900 leading-tight">{order.customer_name}</span>
-                              {order.order_type === 'online' && order.payments?.some(p => p.status === 'pending') && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold w-fit">
-                                  <span className="w-1.5 h-1.5 bg-amber-500 inline-block" />
-                                  Pago pendiente
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400 text-xs">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-5 text-gray-600">{formattedDate}</td>
-                        <td className="px-4 py-5">
-                          {getStatusTag(order.status)}
-                        </td>
-                        <td className="px-4 py-5">
-                          {(() => {
-                            const channelMap = {
-                              table: { label: 'Local', Icon: Store },
-                              takeaway: { label: 'Llevar', Icon: ShoppingBag },
-                              pickup: { label: 'Retiro', Icon: ShoppingBag },
-                              online: { label: 'Online', Icon: Globe },
-                              whatsapp: { label: 'WhatsApp', Icon: MessageCircle },
-                            };
-                            const ch = channelMap[order.order_type];
-                            if (!ch) return <span className="text-gray-400 text-xs">{order.order_type}</span>;
-                            return (
-                              <Badge variant="gray">
-                                <ch.Icon className="h-3.5 w-3.5" />
-                                {ch.label}
-                              </Badge>
-                            );
-                          })()}
-                        </td>
-                        <td className="px-4 py-5">
-                          <Badge
-                            title={order.payments?.find(p => p.reference_code)?.reference_code ? `ID Klap: ${order.payments.find(p => p.reference_code).reference_code}` : ''}
-                            variant="gray"
-                            className={order.payments?.find(p => p.reference_code) ? 'cursor-help' : ''}
-                          >
-                            {getPaymentMethod(order)}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-5 text-right font-bold text-gray-900">${fmt(order.total || 0)}</td>
-                        <td className="px-4 py-5 text-center">
-                          {(() => {
-                            const hasPending = order.payments?.some(p => p.status === 'pending');
-                            const isConfirmed = order.payments?.some(p => p.status === 'paid');
-                            if (isConfirmed) return (
-                              <Badge variant="success">
-                                <CheckCircle2 className="w-3.5 h-3.5" /> Pagado
-                              </Badge>
-                            );
-                            if (hasPending) return (
-                              <Button
-                                variant="secondary"
-                                size='xs'
-                                onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
-                              >
-                                Confirmar pago
-                              </Button>
-                            );
-                            return null;
-                          })()}
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
-                      No hay ventas registradas.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile Cards View - Premium */}
-          <div className="md:hidden flex flex-col gap-4 pb-8 mt-4 w-full">
-            {loading ? (
-              <div className="py-12 text-center text-gray-500">
-                <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                Cargando ventas...
-              </div>
-            ) : filteredOrders.length > 0 ? (
-              filteredOrders.map((order) => {
-                const date = new Date(order.created_at);
-                const day = String(date.getDate()).padStart(2, '0');
-                const month = date.toLocaleDateString('es-CL', { month: 'long' });
-                const monthCapitalized = month.charAt(0).toUpperCase() + month.slice(1);
-                const hours = String(date.getHours()).padStart(2, '0');
-                const minutes = String(date.getMinutes()).padStart(2, '0');
-                const formattedDate = `${day}/${monthCapitalized} ${hours}:${minutes}`;
-                return (
-                  <div
-                    key={order.id}
-                    onClick={() => handleOpenModal(order)}
-                    className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl p-4 flex flex-col gap-3 cursor-pointer"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
-                  >
-                    {/* Header: Order Number & Status */}
-                    <div className="flex justify-between items-start">
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Orden</span>
-                          {(order.order_type === 'online' || order.order_type === 'whatsapp') && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider bg-gray-100 text-gray-600">
-                              {order.delivery_type === 'delivery' ? 'Delivery' : 'Retiro'}
-                            </span>
-                          )}
-                        </div>
-                        <span className="font-black text-gray-900 text-xl leading-none mb-1">{order.order_number}</span>
-                        {order.customer_name && (
-                          <span className="text-xs font-medium text-gray-500 truncate max-w-[150px]">
-                            {order.customer_name}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-end">
-                        {getStatusTag(order.status)}
-                      </div>
-                    </div>
-
-                    {/* Middle: Order Details (Time, Payment, Kitchen) */}
-                    <div className="flex flex-wrap gap-2 items-center">
-                      <Badge variant="grayOutline">
-                        <Clock className="w-3.5 h-3.5" />
-                        {new Date(order.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
-                      </Badge>
-                      <Badge
-                        title={order.payments?.find(p => p.reference_code)?.reference_code ? `ID Klap: ${order.payments.find(p => p.reference_code).reference_code}` : ''}
-                        variant={order.payments?.find(p => p.reference_code) ? 'info' : 'grayOutline'}
-                        className={order.payments?.find(p => p.reference_code) ? 'cursor-help' : ''}
-                      >
-                        <CreditCard className="w-3.5 h-3.5" />
-                        {getPaymentMethod(order)}
-                      </Badge>
-                      {order.ready_at && (
-                        <Badge variant="warning">
-                          <Timer className="w-3.5 h-3.5" />
-                          Cocina: {getKitchenTime(order)}
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Divider */}
-                    <div className="h-px bg-gray-100 w-full my-0.5"></div>
-
-                    {/* Bottom: Total & Actions */}
-                    <div className="flex justify-between items-center mt-1">
-                      <div className="flex flex-col">
-                        <div className="flex items-center mb-0.5">
-                          {['online', 'whatsapp'].includes(order.order_type) && order.payments?.some(p => p.status === 'pending') ? (
-                            <span className="text-[10px] text-red-600 font-bold uppercase tracking-wider animate-pulse">
-                              Pendiente de Pago
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Total</span>
-                          )}
-                        </div>
-                        <span className="font-black text-xl leading-none text-gray-900">
-                          ${fmt(order.total || 0)}
-                        </span>
-                      </div>
-
-                      <div>
-                        {['online', 'whatsapp'].includes(order.order_type) && (() => {
-                          const hasPending = order.payments?.some(p => p.status === 'pending');
-                          const isConfirmed = order.payments?.some(p => p.status === 'paid');
-                          if (isConfirmed) return (
-                            <Badge variant="success">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Pagado
-                            </Badge>
-                          );
-                          if (hasPending) return (
-                            <Button
-                              variant="secondary"
-                              onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
-                            >
-                              Confirmar pago
-                            </Button>
-                          );
-                          return null;
-                        })()}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="py-12 text-center text-gray-500">
-                No hay ventas registradas.
-              </div>
-            )}
-          </div>
+          
+          <TransactionList 
+            orders={filteredOrders} 
+            loading={loading} 
+            onOrderUpdated={() => fetchOrders(true)} 
+          />
         </div>
       </div>
 
-      {/* Modal de Detalles de Orden */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        maxWidth="max-w-2xl"
-        fullScreenOnMobile={true}
-        title={
-          selectedOrder ? (
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Orden #{selectedOrder.order_number}</h2>
-              <div className="flex items-center gap-2 mt-1">
-                <Clock className="h-3.5 w-3.5 text-gray-400" />
-                <p className="text-sm text-gray-500">
-                  {new Date(selectedOrder.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })} a las {new Date(selectedOrder.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-            </div>
-          ) : "Detalles de Orden"
-        }
-      >
-        {selectedOrder && (
-          <div className="flex flex-col h-full">
-            {/* Contenido desplazable */}
-            <div className="p-6 space-y-6">
-
-              {/* Información General */}
-              {/* Información General */}
-              <div className="flex flex-wrap items-center gap-2 mt-1">
-                {getStatusTag(selectedOrder.status)}
-
-                <Badge variant="grayOutline">
-                  <CreditCard className="h-3.5 w-3.5" />
-                  {getPaymentMethod(selectedOrder)}
-                </Badge>
-
-                <Badge variant="warning">
-                  <Timer className="h-3.5 w-3.5" />
-                  {getKitchenTime(selectedOrder) === '-' ? 'Sin tiempo' : getKitchenTime(selectedOrder)}
-                </Badge>
-              </div>
-
-              {/* Información de Cliente y Despacho */}
-              {(selectedOrder.customer_name || selectedOrder.delivery_type) && (
-                <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex flex-col gap-2">
-                  <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Detalles del Cliente</h3>
-                  {selectedOrder.customer_name && (
-                    <p className="text-sm text-gray-900 font-medium">
-                      {selectedOrder.customer_name}
-                      {selectedOrder.customer_phone && <span className="text-gray-500 ml-1">({selectedOrder.customer_phone})</span>}
-                    </p>
-                  )}
-                  {(selectedOrder.order_type === 'online' || selectedOrder.order_type === 'whatsapp') && (
-                    <div className="mt-2">
-                      <Badge variant="grayOutline">
-                        {selectedOrder.delivery_type === 'delivery' ? '🛵 Despacho a Domicilio' : '🛍️ Retiro en Local'}
-                      </Badge>
-                      {selectedOrder.delivery_type === 'delivery' && selectedOrder.delivery_address && (
-                        <p className="text-xs text-gray-600 mt-2 font-medium">{selectedOrder.delivery_address}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Notas del cliente */}
-              {selectedOrder.notes && (
-                <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                  <span className="text-amber-500 text-base shrink-0 mt-0.5">📝</span>
-                  <div>
-                    <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider mb-0.5">Nota del cliente</p>
-                    <p className="text-sm text-amber-900 font-medium leading-relaxed">{selectedOrder.notes}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Lista de Productos */}
-              <div>
-                <div className="flex items-center gap-2 mb-4 text-gray-900">
-                  <ShoppingBag className="h-5 w-5 text-gray-400" />
-                  <h3 className="font-bold text-lg">Productos</h3>
-                </div>
-
-                <div className="space-y-3">
-                  {selectedOrder.order_items?.length > 0 ? (
-                    selectedOrder.order_items.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8   bg-gray-100 text-gray-600 font-bold flex items-center justify-center text-sm">
-                            {item.quantity}
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900 text-sm">
-                              {item.product_name}
-                              {item.order_item_variants && item.order_item_variants.length > 0 && (
-                                <span className="text-gray-500 font-normal"> ({item.order_item_variants[0].variant_option_name})</span>
-                              )}
-                            </p>
-                            {item.order_item_ingredients && item.order_item_ingredients.length > 0 && (
-                              <p className="text-[11px] text-gray-500 mt-0.5 leading-tight">
-                                + {item.order_item_ingredients.map(ing => ing.ingredient_name).join(', ')}
-                              </p>
-                            )}
-                            <p className="text-xs text-gray-500 mt-0.5">${fmt(Math.round(item.unit_price))} c/u</p>
-                          </div>
-                        </div>
-                        <span className="font-semibold text-gray-900 text-sm">
-                          ${fmt(Math.round(item.unit_price) * item.quantity)}
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-gray-400 text-sm italic">Detalle de productos no disponible.</p>
-                  )}
-                </div>
-              </div>
-
-            </div>
-
-            {/* Footer con Totales */}
-            <div className="bg-gray-50 p-6 border-t border-gray-100 mt-auto">
-              <div className="space-y-2 mb-4 text-sm">
-                <div className="flex justify-between text-gray-500">
-                  <span>Subtotal</span>
-                  <span>${fmt(selectedOrder.subtotal || 0)}</span>
-                </div>
-                {selectedOrder.delivery_fee > 0 && (
-                  <div className="flex justify-between text-gray-500">
-                    <span>Despacho</span>
-                    <span>${fmt(selectedOrder.delivery_fee || 0)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-gray-500">
-                  <span>IVA (19%)</span>
-                  <span>${fmt(selectedOrder.tax_amount || 0)}</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-end pt-4 border-t border-gray-200 mt-2">
-                <div className="flex flex-col">
-                  <span className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-1">Total</span>
-                  <span className="font-black text-3xl text-gray-900 leading-none">${fmt(selectedOrder.total || 0)}</span>
-                </div>
-
-                <div>
-                  {(() => {
-                    const hasPending = selectedOrder.payments?.some(p => p.status === 'pending');
-                    const isConfirmed = selectedOrder.payments?.some(p => p.status === 'paid');
-                    if (isConfirmed) return (
-                      <Badge variant="success">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Pagado
-                      </Badge>
-                    );
-                    if (hasPending) return (
-                      <Button
-                        variant="secondary"
-                        size="xs"
-                        onClick={() => {
-                          setPendingPaymentOrder(selectedOrder);
-                          setIsPaymentConfirmOpen(true);
-                        }}
-                      >
-                        Confirmar pago
-                      </Button>
-                    );
-                    return null;
-                  })()}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* Modal confirmar pago online en caja */}
-      {pendingPaymentOrder && (
-        <PaymentModal
-          isOpen={isPaymentConfirmOpen}
-          onClose={() => { setIsPaymentConfirmOpen(false); setPendingPaymentOrder(null); }}
-          cartItems={pendingPaymentOrder.order_items?.map(i => ({ price: i.unit_price, quantity: i.quantity })) || []}
-          onConfirm={handleConfirmOnlinePayment}
-          confirmOnly={true}
-          confirmTotal={pendingPaymentOrder.total}
-        />
-      )}
-
-      {/* New Order Toast Notification */}
       {/* New Order Toast Notification */}
       {newOrderAlert && (
         <div className="fixed bottom-24 right-6 w-80 bg-gray-900 text-white border border-gray-800 shadow-2xl rounded-2xl p-5 flex flex-col gap-3 z-50 animate-in slide-in-from-bottom-5">

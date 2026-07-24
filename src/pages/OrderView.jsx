@@ -235,7 +235,7 @@ const OrderView = () => {
         notes: customerForm.notes,
         paymentMethod: customerForm.paymentMethod === 'online' ? 'online_gateway' : 'cash',
         paymentStatus: 'pending',
-        deliveryType: customerForm.orderType,
+        deliveryType: customerForm.deliveryType,
         deliveryAddress: customerForm.deliveryAddress,
         deliveryFee: customerForm.deliveryFee
       });
@@ -297,7 +297,7 @@ const OrderView = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-gray-200 border-t-black animate-spin" />
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-black animate-spin rounded-full" />
           <p className="text-gray-500 font-medium">Cargando menú…</p>
         </div>
       </div>
