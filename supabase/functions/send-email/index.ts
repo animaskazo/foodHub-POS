@@ -49,7 +49,7 @@ serve(async (req) => {
     } else if (type === 'order_ready') {
       const isDelivery = data.delivery_type === 'delivery'
       subject = isDelivery 
-        ? `Tu pedido ${data.order_number || ''} va en camino`
+        ? `Tu pedido ${data.order_number || ''} saldrá a reparto`
         : `Tu pedido ${data.order_number || ''} está listo para retirar`
       
       const pickupMethod = data.order_type === 'table' ? 'Servicio a la mesa'
@@ -115,7 +115,7 @@ serve(async (req) => {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Tu pedido está listo</title>
+  <title>Tu pedido saldrá a reparto</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f0f0f0; -webkit-font-smoothing: antialiased;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f0f0; padding: 0;">
@@ -132,7 +132,7 @@ serve(async (req) => {
               }
               <br/>
               <span style="display: inline-block; background-color: ${isDelivery ? '#f97316' : '#22c55e'}; color: #ffffff; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 6px 18px; border-radius: 100px;">
-                ${isDelivery ? '🛵 &nbsp;En camino' : '✓ &nbsp;¡Listo para retirar!'}
+                ${isDelivery ? '🛵 &nbsp;A reparto' : '✓ &nbsp;¡Listo para retirar!'}
               </span>
             </td>
           </tr>
@@ -147,7 +147,7 @@ serve(async (req) => {
                 ${data.order_number || ''}
               </h1>
               <p style="margin: 0 0 28px 0; font-size: 15px; color: #666666; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                ${isDelivery ? 'Tu pedido va en camino a tu dirección. Prepárate para recibirlo.' : 'Tu pedido está listo. Muestra este número en el local para retirar.'}
+                ${isDelivery ? 'Tu pedido está listo y saldrá a reparto a tu dirección. Prepárate para recibirlo.' : 'Tu pedido está listo. Muestra este número en el local para retirar.'}
               </p>
             </td>
           </tr>
@@ -361,7 +361,7 @@ serve(async (req) => {
                 ¡Recibimos tu pedido!
               </p>
               <p style="margin: 0 0 28px 0; font-size: 15px; color: #666666; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                Lo estamos preparando con cuidado.<br/>${isDelivery2 ? 'Te avisaremos por correo en cuanto vaya en camino a tu dirección.' : 'Te avisaremos por correo en cuanto esté listo para retirar.'}
+                Lo estamos preparando con cuidado.<br/>${isDelivery2 ? 'Te avisaremos por correo en cuanto salga a reparto a tu dirección.' : 'Te avisaremos por correo en cuanto esté listo para retirar.'}
               </p>
             </td>
           </tr>
