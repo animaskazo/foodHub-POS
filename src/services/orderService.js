@@ -348,7 +348,7 @@ export const updateOrderStatus = async (orderId, status) => {
             delivery_address: order.delivery_address,
             customer_name: order.customer_name || 'Cliente',
             total: order.total,
-            subtotal: order.subtotal,
+            subtotal: order.total - (order.delivery_fee || 0),
             delivery_fee: order.delivery_fee,
             payment_method: paymentMethod,
             items: order.order_items || [],

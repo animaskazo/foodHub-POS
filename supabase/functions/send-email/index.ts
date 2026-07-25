@@ -71,6 +71,7 @@ serve(async (req) => {
         card: 'Tarjeta de Crédito / Débito',
         transfer: 'Transferencia',
         online: 'Pago Online',
+        online_gateway: 'Pago Online',
         pending: 'Pago pendiente',
       }
       const paymentLabel = paymentMethodMap[data.payment_method] || data.payment_method || 'En local'
@@ -131,7 +132,7 @@ serve(async (req) => {
 
           <!-- ██ BRAND HEADER ██ -->
           <tr>
-            <td style="background-color: #0a0a0a; padding: 36px 32px 28px 32px; text-align: center;">
+            <td style="background-color: #0a0a0a; padding: 36px 16px 28px 16px; text-align: center;">
               ${orgLogo
                 ? `<img src="${orgLogo}" alt="${orgName}" style="max-height: 52px; max-width: 180px; display: inline-block; margin-bottom: 20px;" />`
                 : `<p style="margin: 0 0 20px 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">${orgName}</p>`
@@ -145,7 +146,7 @@ serve(async (req) => {
 
           <!-- ██ ORDER HEADLINE ██ -->
           <tr>
-            <td style="padding: 32px 32px 0 32px; text-align: center; border-bottom: 1px solid #f0f0f0;">
+            <td style="padding: 16px 16px 0 16px; text-align: center; border-bottom: 1px solid #f0f0f0;">
               <p style="margin: 0 0 6px 0; font-size: 13px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: #aaaaaa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 Número de Pedido
               </p>
@@ -160,7 +161,7 @@ serve(async (req) => {
 
           <!-- ██ PICKUP/DELIVERY LOCATION ██ -->
           <tr>
-            <td style="padding: 24px 32px;">
+            <td style="padding: 24px 16px;">
               <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f7f7f8; border-radius: 12px; overflow: hidden;">
                 <tr>
                   <td style="padding: 20px 20px 4px 20px;">
@@ -189,103 +190,37 @@ serve(async (req) => {
 
           <!-- ██ ORDER SUMMARY ██ -->
           <tr>
-            <td style="padding: 0 32px 24px 32px;">
+            <td style="padding: 0 16px 24px 16px;">
               <p style="margin: 0 0 16px 0; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #0a0a0a; border-bottom: 2px solid #0a0a0a; padding-bottom: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 Resumen del Pedido
               </p>
               ${itemsHtml}
-            </td>
-          </tr>
 
-          <!-- ██ PAYMENT & DELIVERY INFO ██ -->
-          <tr>
-            <td style="padding: 0 32px 32px 32px;">
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0a0a0a; border-radius: 12px; overflow: hidden;">
-                <tr>
-                  <td style="padding: 20px 20px 0 20px;">
-                    <p style="margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                      Detalle de Pago y Entrega
-                    </p>
-                  </td>
-                </tr>
-                <!-- Entrega -->
-                <tr>
-                  <td style="padding: 14px 20px 0 20px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="font-size: 13px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Método de Entrega</td>
-                        <td align="right" style="font-size: 13px; color: #ffffff; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${pickupMethod}</td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <!-- Pago -->
-                <tr>
-                  <td style="padding: 10px 20px 0 20px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="font-size: 13px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Método de Pago</td>
-                        <td align="right" style="font-size: 13px; color: #ffffff; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${paymentLabel}</td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <!-- Subtotal y Costo de Envío -->
+              <!-- Divisor y desglose de montos -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 24px; border-top: 1px solid #eeeeee; padding-top: 16px;">
                 ${isDelivery ? `
                 <tr>
-                  <td style="padding: 10px 20px 0 20px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="font-size: 13px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Subtotal</td>
-                        <td align="right" style="font-size: 13px; color: #ffffff; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${subtotalFormatted}</td>
-                      </tr>
-                    </table>
-                  </td>
+                  <td style="font-size: 14px; color: #666666; padding: 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Subtotal</td>
+                  <td align="right" style="font-size: 14px; color: #111111; font-weight: 600; padding: 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${subtotalFormatted}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 10px 20px 0 20px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="font-size: 13px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Costo de Envío</td>
-                        <td align="right" style="font-size: 13px; color: #ffffff; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${deliveryFeeFormatted}</td>
-                      </tr>
-                    </table>
-                  </td>
+                  <td style="font-size: 14px; color: #666666; padding: 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Costo de envío</td>
+                  <td align="right" style="font-size: 14px; color: #111111; font-weight: 600; padding: 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${deliveryFeeFormatted}</td>
                 </tr>
                 ` : ''}
-                <!-- Divisor -->
                 <tr>
-                  <td style="padding: 16px 20px 0 20px;">
-                    <div style="height: 1px; background-color: #333333;"></div>
-                  </td>
-                </tr>
-                <!-- Total -->
-                <tr>
-                  <td style="padding: 16px 20px 20px 20px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="font-size: 16px; color: #aaaaaa; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Total Pagado</td>
-                        <td align="right" style="font-size: 24px; color: #ffffff; font-weight: 800; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${totalFormatted}</td>
-                      </tr>
-                    </table>
-                  </td>
+                  <td style="font-size: 15px; color: #0a0a0a; font-weight: 700; padding: 12px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Total</td>
+                  <td align="right" style="font-size: 18px; color: #0a0a0a; font-weight: 800; padding: 12px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${totalFormatted}</td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- ██ PAYMENT NOTE ██ -->
-          <tr>
-            <td style="padding: 0 32px 32px 32px; text-align: center;">
-              <p style="margin: 0; font-size: 14px; color: #888888; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                Aceptamos <strong style="color: #555555;">efectivo, débito, crédito y transferencia</strong> en el local.
-              </p>
-            </td>
-          </tr>
+
 
           <!-- ██ FOOTER ██ -->
           <tr>
-            <td style="background-color: #f7f7f8; padding: 24px 32px; text-align: center; border-top: 1px solid #eeeeee;">
+            <td style="background-color: #f7f7f8; padding: 24px 16px; text-align: center; border-top: 1px solid #eeeeee;">
               <p style="margin: 0 0 4px 0; font-size: 12px; color: #cccccc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 Impulsado por <strong style="color: #aaaaaa;">FoodHub</strong>
               </p>
@@ -318,6 +253,16 @@ serve(async (req) => {
       const deliveryFeeFormatted2 = data.delivery_fee
         ? `$${Number(data.delivery_fee).toLocaleString('es-CL')}`
         : 'Gratis'
+
+      const paymentMethodMap: Record<string, string> = {
+        cash: 'Efectivo',
+        card: 'Tarjeta de Crédito / Débito',
+        transfer: 'Transferencia',
+        online: 'Pago Online',
+        online_gateway: 'Pago Online',
+        pending: 'Pago pendiente',
+      }
+      const paymentLabel2 = paymentMethodMap[data.payment_method] || data.payment_method || 'En local'
 
       const pickupMethod2 = data.order_type === 'table' ? 'Servicio a la mesa'
         : data.order_type === 'takeaway' ? 'Llevar'
@@ -371,7 +316,7 @@ serve(async (req) => {
 
           <!-- HEADER -->
           <tr>
-            <td style="background-color: #0a0a0a; padding: 36px 32px 28px 32px; text-align: center;">
+            <td style="background-color: #0a0a0a; padding: 36px 16px 28px 16px; text-align: center;">
               ${orgLogo2
                 ? `<img src="${orgLogo2}" alt="${orgName2}" style="max-height: 52px; max-width: 180px; display: inline-block; margin-bottom: 20px;" />`
                 : `<p style="margin: 0 0 20px 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">${orgName2}</p>`
@@ -385,7 +330,7 @@ serve(async (req) => {
 
           <!-- HEADLINE -->
           <tr>
-            <td style="padding: 32px 32px 0 32px; text-align: center; border-bottom: 1px solid #f0f0f0;">
+            <td style="padding: 16px 16px 0 16px; text-align: center; border-bottom: 1px solid #f0f0f0;">
               <p style="margin: 0 0 6px 0; font-size: 13px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: #aaaaaa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 Número de Pedido
               </p>
@@ -403,7 +348,7 @@ serve(async (req) => {
 
           <!-- PICKUP/DELIVERY LOCATION -->
           <tr>
-            <td style="padding: 24px 32px;">
+            <td style="padding: 24px 16px;">
               <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f7f7f8; border-radius: 12px; overflow: hidden;">
                 <tr>
                   <td style="padding: 20px 20px 4px 20px;">
@@ -432,89 +377,37 @@ serve(async (req) => {
 
           <!-- ORDER ITEMS -->
           <tr>
-            <td style="padding: 0 32px 24px 32px;">
+            <td style="padding: 0 16px 24px 16px;">
               <p style="margin: 0 0 16px 0; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #0a0a0a; border-bottom: 2px solid #0a0a0a; padding-bottom: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 Tu Pedido
               </p>
               ${itemsHtml2}
-            </td>
-          </tr>
 
-          <!-- PAYMENT & DELIVERY -->
-          <tr>
-            <td style="padding: 0 32px 32px 32px;">
-              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0a0a0a; border-radius: 12px; overflow: hidden;">
-                <tr>
-                  <td style="padding: 20px 20px 0 20px;">
-                    <p style="margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                      Resumen
-                    </p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 14px 20px 0 20px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="font-size: 13px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Método de Entrega</td>
-                        <td align="right" style="font-size: 13px; color: #ffffff; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${pickupMethod2}</td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <!-- Subtotal y Costo de Envío -->
+              <!-- Divisor y desglose de montos -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 24px; border-top: 1px solid #eeeeee; padding-top: 16px;">
                 ${isDelivery2 ? `
                 <tr>
-                  <td style="padding: 10px 20px 0 20px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="font-size: 13px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Subtotal</td>
-                        <td align="right" style="font-size: 13px; color: #ffffff; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${subtotalFormatted2}</td>
-                      </tr>
-                    </table>
-                  </td>
+                  <td style="font-size: 14px; color: #666666; padding: 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Subtotal</td>
+                  <td align="right" style="font-size: 14px; color: #111111; font-weight: 600; padding: 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${subtotalFormatted2}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 10px 20px 0 20px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="font-size: 13px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Costo de Envío</td>
-                        <td align="right" style="font-size: 13px; color: #ffffff; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${deliveryFeeFormatted2}</td>
-                      </tr>
-                    </table>
-                  </td>
+                  <td style="font-size: 14px; color: #666666; padding: 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Costo de envío</td>
+                  <td align="right" style="font-size: 14px; color: #111111; font-weight: 600; padding: 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${deliveryFeeFormatted2}</td>
                 </tr>
                 ` : ''}
                 <tr>
-                  <td style="padding: 16px 20px 0 20px;">
-                    <div style="height: 1px; background-color: #333333;"></div>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 16px 20px 20px 20px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="font-size: 16px; color: #aaaaaa; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Total</td>
-                        <td align="right" style="font-size: 24px; color: #ffffff; font-weight: 800; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${totalFormatted2}</td>
-                      </tr>
-                    </table>
-                  </td>
+                  <td style="font-size: 15px; color: #0a0a0a; font-weight: 700; padding: 12px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Total</td>
+                  <td align="right" style="font-size: 18px; color: #0a0a0a; font-weight: 800; padding: 12px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${totalFormatted2}</td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- PAYMENT NOTE -->
-          <tr>
-            <td style="padding: 0 32px 32px 32px; text-align: center;">
-              <p style="margin: 0; font-size: 14px; color: #888888; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                Aceptamos <strong style="color: #555555;">efectivo, débito, crédito y transferencia</strong> en el local.
-              </p>
-            </td>
-          </tr>
+
 
           <!-- ██ FOOTER ██ -->
           <tr>
-            <td style="background-color: #f7f7f8; padding: 24px 32px; text-align: center; border-top: 1px solid #eeeeee;">
+            <td style="background-color: #f7f7f8; padding: 24px 16px; text-align: center; border-top: 1px solid #eeeeee;">
               <p style="margin: 0 0 4px 0; font-size: 12px; color: #cccccc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 Impulsado por <strong style="color: #aaaaaa;">FoodHub</strong>
               </p>

@@ -143,6 +143,13 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     const errs = {};
     if (!form.name.trim()) errs.name = 'El nombre es requerido';
     if (!form.phone.trim()) errs.phone = 'El teléfono es requerido';
+    if (form.deliveryType === 'delivery') {
+      if (!form.deliveryAddress?.trim()) {
+        errs.deliveryAddress = 'La dirección de entrega es requerida';
+      } else if (org?.store_lat && org?.store_lng && !isValidatedAddress) {
+        errs.deliveryAddress = 'Por favor selecciona o valida una dirección válida en el mapa (presiona enter)';
+      }
+    }
     return errs;
   };
 
@@ -288,7 +295,12 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                   </label>
 
                   <label 
-                    onClick={() => update('deliveryType', 'delivery')}
+                    onClick={() => {
+                      update('deliveryType', 'delivery');
+                      if (!isValidatedAddress || distanceError) {
+                        update('deliveryFee', org?.delivery_fee || 0);
+                      }
+                    }}
                     className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer text-center ${
                       form.deliveryType === 'delivery' 
                         ? 'bg-white border-black shadow-sm text-black' 

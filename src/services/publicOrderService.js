@@ -387,7 +387,7 @@ export const createPublicOrder = async ({
       delivery_address: order.delivery_address,
       customer_name: order.customer_name || customer.name || 'Cliente',
       total: order.total,
-      subtotal: order.subtotal,
+      subtotal: order.total - (order.delivery_fee || 0),
       delivery_fee: order.delivery_fee,
       payment_method: paymentMethod,
       items: cartItems.map(item => ({
