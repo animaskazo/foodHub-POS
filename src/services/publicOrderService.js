@@ -383,6 +383,9 @@ export const createPublicOrder = async ({
     const emailData = {
       order_number: order.order_number,
       order_type: order.order_type,
+      delivery_type: order.delivery_type,
+      delivery_address: order.delivery_address,
+      customer_name: order.customer_name || customer.name || 'Cliente',
       total: order.total,
       items: cartItems.map(item => ({
         name: item.name,

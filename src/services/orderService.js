@@ -277,6 +277,9 @@ export const updateOrderStatus = async (orderId, status) => {
         .select(`
           order_number,
           order_type,
+          delivery_type,
+          delivery_address,
+          customer_name,
           total,
           branch_id,
           customer_id,
@@ -339,6 +342,9 @@ export const updateOrderStatus = async (orderId, status) => {
           const emailData = {
             order_number: order.order_number,
             order_type: order.order_type,
+            delivery_type: order.delivery_type,
+            delivery_address: order.delivery_address,
+            customer_name: order.customer_name || 'Cliente',
             total: order.total,
             payment_method: paymentMethod,
             items: order.order_items || [],
