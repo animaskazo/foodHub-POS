@@ -78,6 +78,12 @@ serve(async (req) => {
       const totalFormatted = data.total
         ? `$${Number(data.total).toLocaleString('es-CL')}`
         : ''
+      const subtotalFormatted = data.subtotal
+        ? `$${Number(data.subtotal).toLocaleString('es-CL')}`
+        : `$${Number(data.total - (data.delivery_fee || 0)).toLocaleString('es-CL')}`
+      const deliveryFeeFormatted = data.delivery_fee
+        ? `$${Number(data.delivery_fee).toLocaleString('es-CL')}`
+        : 'Gratis'
 
       const itemsHtml = (data.items || []).map((item: any) => {
         // Support both direct image URL (from publicOrderService) and nested Supabase structure
@@ -224,6 +230,29 @@ serve(async (req) => {
                     </table>
                   </td>
                 </tr>
+                <!-- Subtotal y Costo de Envío -->
+                ${isDelivery ? `
+                <tr>
+                  <td style="padding: 10px 20px 0 20px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="font-size: 13px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Subtotal</td>
+                        <td align="right" style="font-size: 13px; color: #ffffff; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${subtotalFormatted}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 20px 0 20px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="font-size: 13px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Costo de Envío</td>
+                        <td align="right" style="font-size: 13px; color: #ffffff; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${deliveryFeeFormatted}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                ` : ''}
                 <!-- Divisor -->
                 <tr>
                   <td style="padding: 16px 20px 0 20px;">
@@ -283,6 +312,12 @@ serve(async (req) => {
       const totalFormatted2 = data.total
         ? `$${Number(data.total).toLocaleString('es-CL')}`
         : ''
+      const subtotalFormatted2 = data.subtotal
+        ? `$${Number(data.subtotal).toLocaleString('es-CL')}`
+        : `$${Number(data.total - (data.delivery_fee || 0)).toLocaleString('es-CL')}`
+      const deliveryFeeFormatted2 = data.delivery_fee
+        ? `$${Number(data.delivery_fee).toLocaleString('es-CL')}`
+        : 'Gratis'
 
       const pickupMethod2 = data.order_type === 'table' ? 'Servicio a la mesa'
         : data.order_type === 'takeaway' ? 'Llevar'
@@ -426,6 +461,29 @@ serve(async (req) => {
                     </table>
                   </td>
                 </tr>
+                <!-- Subtotal y Costo de Envío -->
+                ${isDelivery2 ? `
+                <tr>
+                  <td style="padding: 10px 20px 0 20px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="font-size: 13px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Subtotal</td>
+                        <td align="right" style="font-size: 13px; color: #ffffff; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${subtotalFormatted2}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 20px 0 20px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="font-size: 13px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Costo de Envío</td>
+                        <td align="right" style="font-size: 13px; color: #ffffff; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${deliveryFeeFormatted2}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                ` : ''}
                 <tr>
                   <td style="padding: 16px 20px 0 20px;">
                     <div style="height: 1px; background-color: #333333;"></div>
