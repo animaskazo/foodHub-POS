@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { Search, User, Mail, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package } from 'lucide-react';
+import { Search, User, Mail, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, Truck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '@/components/ui/button';
 
@@ -13,8 +13,52 @@ const SuperAdminView = () => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [products, setProducts] = useState([]);
   
+  const [orgOrders, setOrgOrders] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const fetchOrgOrders = async (orgId) => {
+    setLoadingOrders(true);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          order_number,
+          order_type,
+          delivery_type,
+          delivery_address,
+          customer_name,
+          customer_phone,
+          status,
+          total,
+          subtotal,
+          delivery_fee,
+          created_at,
+          payments ( method, status ),
+          order_items (
+            id,
+            product_name,
+            quantity,
+            unit_price,
+            total_price,
+            parent_item_id
+          )
+        `)
+        .eq('organization_id', orgId)
+        .order('created_at', { ascending: false });
+
+      if (fetchError) throw fetchError;
+      setOrgOrders(data || []);
+    } catch (err) {
+      console.error('Error fetching org orders:', err);
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -183,6 +227,7 @@ const SuperAdminView = () => {
                       onClick={() => {
                         setSelectedOrganization(org);
                         setDetailTab('overview');
+                        fetchOrgOrders(org.id);
                       }}
                       className="hover:bg-gray-50 transition-colors cursor-pointer group"
                     >
@@ -276,6 +321,16 @@ const SuperAdminView = () => {
               </Button>
               <Button
                 variant="ghost"
+                onClick={() => setDetailTab('orders')}
+                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
+                  detailTab === 'orders' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                Pedidos
+                <span className="bg-gray-200 text-gray-700 py-0.5 px-2 rounded-full text-xs font-bold leading-none flex items-center">{orgOrders.length}</span>
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => setDetailTab('users')}
                 className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
                   detailTab === 'users' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
@@ -311,6 +366,101 @@ const SuperAdminView = () => {
             {/* Detail Tab Contents */}
             <div className="bg-white rounded-xl shadow-sm border p-6 min-h-[300px]">
               
+              {/* Orders */}
+              {detailTab === 'orders' && (
+                <div>
+                  {loadingOrders ? (
+                    <div className="flex justify-center items-center py-12">
+                      <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
+                    </div>
+                  ) : orgOrders.length === 0 ? (
+                    <div className="text-center py-12 text-gray-500">
+                      <ShoppingBag className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                      <p>Este negocio no tiene pedidos registrados.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto -mx-6 -my-6">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-gray-50 border-b">
+                            <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Número</th>
+                            <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Cliente</th>
+                            <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Origen / Entrega</th>
+                            <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Fecha</th>
+                            <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Total</th>
+                            <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Estado</th>
+                            <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500 text-right">Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {orgOrders.map((order) => {
+                            const isDeliveryOrder = order.delivery_type === 'delivery';
+                            const orderDate = new Date(order.created_at).toLocaleString('es-CL', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            });
+                            return (
+                              <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                                <td className="px-6 py-4 font-semibold text-gray-900">
+                                  #{order.order_number}
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-700">
+                                  {order.customer_name || 'Cliente'}
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-600">
+                                  <span className="capitalize">{order.order_type}</span>
+                                  {isDeliveryOrder ? (
+                                    <span className="ml-2 text-xs bg-orange-50 border border-orange-100 text-orange-600 px-2 py-0.5 rounded">Despacho</span>
+                                  ) : (
+                                    <span className="ml-2 text-xs bg-green-50 border border-green-100 text-green-600 px-2 py-0.5 rounded">Retiro</span>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-500">
+                                  {orderDate}
+                                </td>
+                                <td className="px-6 py-4 text-sm font-bold text-gray-900">
+                                  ${Number(order.total || 0).toLocaleString('es-CL')}
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded ${
+                                    order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                    order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                                    order.status === 'preparing' ? 'bg-purple-100 text-purple-800' :
+                                    order.status === 'ready' ? 'bg-indigo-100 text-indigo-800' :
+                                    order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                    'bg-red-100 text-red-800'
+                                  }`}>
+                                    {order.status === 'pending' ? 'Pendiente' :
+                                     order.status === 'confirmed' ? 'Confirmado' :
+                                     order.status === 'preparing' ? 'Preparando' :
+                                     order.status === 'ready' ? 'Listo' :
+                                     order.status === 'completed' ? 'Completado' :
+                                     'Cancelado'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                  <Button 
+                                    variant="ghost" 
+                                    onClick={() => setSelectedOrder(order)}
+                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs font-semibold px-2.5 py-1 float-right"
+                                  >
+                                    <Eye className="h-3.5 w-3.5 mr-1" />
+                                    Ver Detalle
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Overview */}
               {detailTab === 'overview' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -494,6 +644,155 @@ const SuperAdminView = () => {
           </div>
         )}
       </div>
+
+      {/* Order Detail Modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden border flex flex-col max-h-[85vh]">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b flex items-center justify-between bg-gray-50">
+              <div>
+                <h3 className="font-bold text-lg text-gray-900">Pedido #{selectedOrder.order_number}</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Creado el {new Date(selectedOrder.created_at).toLocaleString()}</p>
+              </div>
+              <button 
+                onClick={() => setSelectedOrder(null)}
+                className="text-gray-400 hover:text-gray-700 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-6">
+              {/* Status and Method Info */}
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border text-sm">
+                <div>
+                  <span className="text-gray-500 block text-xs uppercase font-bold tracking-wider">Estado de preparación</span>
+                  <span className={`inline-block mt-1 px-2.5 py-0.5 rounded text-xs font-bold ${
+                    selectedOrder.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    selectedOrder.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                    selectedOrder.status === 'preparing' ? 'bg-purple-100 text-purple-800' :
+                    selectedOrder.status === 'ready' ? 'bg-indigo-100 text-indigo-800' :
+                    selectedOrder.status === 'completed' ? 'bg-green-100 text-green-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {selectedOrder.status}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500 block text-xs uppercase font-bold tracking-wider">Canal / Entrega</span>
+                  <div className="mt-1 font-semibold text-gray-900 flex items-center gap-1.5">
+                    <span className="capitalize">{selectedOrder.order_type}</span>
+                    <span>•</span>
+                    <span className="text-xs bg-gray-200 px-2 py-0.5 rounded text-gray-700">
+                      {selectedOrder.delivery_type === 'delivery' ? 'Despacho' : 'Retiro'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer Details */}
+              <div className="space-y-2">
+                <h4 className="font-bold text-gray-900 border-b pb-1 text-sm uppercase tracking-wider text-gray-500">Datos del Cliente</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500 block">Nombre:</span>
+                    <span className="font-semibold text-gray-800">{selectedOrder.customer_name || 'Cliente'}</span>
+                  </div>
+                  {selectedOrder.customer_phone && (
+                    <div>
+                      <span className="text-gray-500 block">Teléfono:</span>
+                      <span className="font-semibold text-gray-800">{selectedOrder.customer_phone}</span>
+                    </div>
+                  )}
+                </div>
+
+                {selectedOrder.delivery_type === 'delivery' && selectedOrder.delivery_address && (
+                  <div className="mt-3 bg-orange-50/50 border border-orange-100 p-3 rounded-lg flex gap-2.5">
+                    <MapPin className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-gray-500 block text-xs font-semibold uppercase tracking-wider">Dirección de Despacho</span>
+                      <span className="text-sm font-medium text-gray-800">{selectedOrder.delivery_address}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Order Items */}
+              <div className="space-y-2">
+                <h4 className="font-bold text-gray-900 border-b pb-1 text-sm uppercase tracking-wider text-gray-500">Productos del Pedido</h4>
+                <div className="divide-y border rounded-lg overflow-hidden">
+                  {selectedOrder.order_items?.map((item) => {
+                    if (item.parent_item_id) return null; // Render child combo items nested
+                    const childItems = selectedOrder.order_items.filter(child => child.parent_item_id === item.id);
+                    return (
+                      <div key={item.id} className="p-3 bg-white hover:bg-gray-50/50 transition-colors">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-semibold text-gray-900 text-sm">
+                              {item.quantity}x {item.product_name}
+                            </div>
+                            {childItems.length > 0 && (
+                              <div className="ml-4 mt-1 space-y-0.5 text-xs text-gray-500 border-l pl-2.5">
+                                {childItems.map(child => (
+                                  <div key={child.id}>
+                                    {child.quantity}x {child.product_name}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <span className="font-semibold text-sm text-gray-800">
+                            ${Number(item.total_price || 0).toLocaleString('es-CL')}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Financial Breakdown */}
+              <div className="bg-gray-50 p-4 rounded-lg border text-sm space-y-2.5">
+                {selectedOrder.delivery_type === 'delivery' && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Subtotal</span>
+                      <span className="font-medium text-gray-800">${Number(selectedOrder.subtotal || selectedOrder.total - (selectedOrder.delivery_fee || 0)).toLocaleString('es-CL')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Costo de envío</span>
+                      <span className="font-medium text-gray-800">${Number(selectedOrder.delivery_fee || 0).toLocaleString('es-CL')}</span>
+                    </div>
+                    <div className="border-t my-1"></div>
+                  </>
+                )}
+                <div className="flex justify-between text-base font-bold text-gray-900">
+                  <span>Total</span>
+                  <span>${Number(selectedOrder.total || 0).toLocaleString('es-CL')}</span>
+                </div>
+              </div>
+
+              {/* Payment Details */}
+              {selectedOrder.payments?.length > 0 && (
+                <div className="bg-gray-50 p-4 rounded-lg border text-sm flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-600">Método de pago:</span>
+                    <span className="font-semibold text-gray-800 capitalize">{selectedOrder.payments[0].method}</span>
+                  </div>
+                  <span className={`px-2 py-0.5 text-xs font-semibold rounded ${
+                    selectedOrder.payments[0].status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {selectedOrder.payments[0].status === 'completed' ? 'Pagado' : 'Pendiente'}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -281,6 +281,8 @@ export const updateOrderStatus = async (orderId, status) => {
           delivery_address,
           customer_name,
           total,
+          subtotal,
+          delivery_fee,
           branch_id,
           customer_id,
           payments ( method, status ),
@@ -346,6 +348,8 @@ export const updateOrderStatus = async (orderId, status) => {
             delivery_address: order.delivery_address,
             customer_name: order.customer_name || 'Cliente',
             total: order.total,
+            subtotal: order.subtotal,
+            delivery_fee: order.delivery_fee,
             payment_method: paymentMethod,
             items: order.order_items || [],
             branch: {
