@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van } from 'lucide-react';
+import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van, User } from 'lucide-react';
 const PaperBag = ShoppingBag;
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Modal from '../ui/Modal';
 import PaymentModal from './PaymentModal';
+import { useAuth } from '../AuthContext';
 import { supabase } from '../../lib/supabase';
 import { fmt, getKitchenTime, getPaymentMethod, getStatusTag } from '../../utils/orderUtils';
 
 const TransactionList = ({ orders, loading, onOrderUpdated }) => {
+  const { organization } = useAuth();
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pendingPaymentOrder, setPendingPaymentOrder] = useState(null);
@@ -76,12 +78,12 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="px-8 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Orden</th>
+              <th className="px-8 py-3 w-48 text-xs font-semibold text-gray-500 uppercase tracking-wider">Orden</th>
               <th className="px-8 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
               <th className="px-8 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Hora</th>
               <th className="px-8 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
               <th className="px-8 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Canal</th>
-              <th className="px-8 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Pago</th>
+              <th className="px-8 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Envío</th>
               <th className="px-8 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Total</th>
               <th className="px-8 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Acción</th>
             </tr>
@@ -109,18 +111,20 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                     onClick={() => handleOpenModal(order)}
                     className="border-b border-gray-50 hover:bg-gray-50 transition-colors text-sm cursor-pointer active:bg-gray-100 group"
                   >
-                    <td className="px-8 py-5 text-base font-bold text-gray-900">{order.order_number}</td>
+                    <td className="px-8 py-5 text-base font-bold text-gray-900">
+                      <div className="flex flex-col gap-2">
+                        <span>{order.order_number}</span>
+                        {order.order_type === 'online' && order.payments?.some(p => p.status === 'pending') && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold w-fit">
+                            <span className="w-1.5 h-1.5 bg-amber-500 inline-block" />
+                            Pago pendiente
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-8 py-5">
                       {order.customer_name ? (
-                        <div className="flex flex-col gap-1">
-                          <span className="font-medium text-gray-900 leading-tight">{order.customer_name}</span>
-                          {order.order_type === 'online' && order.payments?.some(p => p.status === 'pending') && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold w-fit">
-                              <span className="w-1.5 h-1.5 bg-amber-500 inline-block" />
-                              Pago pendiente
-                            </span>
-                          )}
-                        </div>
+                        <span className="font-medium text-gray-900 leading-tight">{order.customer_name}</span>
                       ) : (
                         <span className="text-gray-400 text-xs">—</span>
                       )}
@@ -149,13 +153,19 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                       })()}
                     </td>
                     <td className="px-8 py-5">
-                      <Badge
-                        title={order.payments?.find(p => p.reference_code)?.reference_code ? `ID Klap: ${order.payments.find(p => p.reference_code).reference_code}` : ''}
-                        variant="grayOutline"
-                        className={order.payments?.find(p => p.reference_code) ? 'cursor-help' : ''}
-                      >
-                        {getPaymentMethod(order)}
-                      </Badge>
+                      {order.order_type !== 'table' ? (
+                        order.delivery_type === 'delivery' ? (
+                          <span className="text-[11px] px-2 py-1 rounded font-black uppercase tracking-wider bg-amber-500 text-black flex items-center gap-1 w-fit">
+                            <Van className="h-3.5 w-3.5 shrink-0" /> Delivery
+                          </span>
+                        ) : (
+                          <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1 w-fit">
+                            <ShoppingBag className="h-3.5 w-3.5 shrink-0" /> Retiro
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-gray-400 text-xs">—</span>
+                      )}
                     </td>
                     <td className="px-8 py-5 text-right font-bold text-gray-900">${fmt(order.total || 0)}</td>
                     <td className="px-8 py-5 text-center">
@@ -358,33 +368,40 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                 </Badge>
               </div>
 
-              {/* Información de Cliente y Despacho */}
-              {(selectedOrder.customer_name || selectedOrder.delivery_type) && (
-                <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex flex-col gap-2">
-                  <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Detalles del Cliente</h3>
-                  {selectedOrder.customer_name && (
-                    <p className="text-sm text-gray-900 font-medium">
-                      {selectedOrder.customer_name}
-                      {selectedOrder.customer_phone && <span className="text-gray-500 ml-1">({selectedOrder.customer_phone})</span>}
-                    </p>
-                  )}
+              {/* Detalles del Cliente */}
+              {selectedOrder.customer_name && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2 text-gray-900">
+                    <User className="h-5 w-5 text-gray-400" />
+                    <h3 className="font-bold text-lg">Detalles del Cliente</h3>
+                  </div>
+                  <p className="text-sm text-gray-900 font-medium">
+                    {selectedOrder.customer_name}
+                    {selectedOrder.customer_phone && <span className="text-gray-500 ml-1">({selectedOrder.customer_phone})</span>}
+                  </p>
+                </div>
+              )}
+
+              {/* Información de Despacho */}
+              {selectedOrder.delivery_type && (
+                <div>
                   {selectedOrder.delivery_type === 'delivery' ? (
-                    <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                      <div className="flex items-center gap-1.5 text-orange-800 font-bold text-xs uppercase tracking-wider mb-2">
-                        <Van className="h-4 w-4 shrink-0" />
-                        <span>Despacho a Domicilio</span>
+                    <div>
+                      <div className="flex items-center gap-2 mb-2 text-gray-900">
+                        <Van className="h-5 w-5 text-gray-400" />
+                        <h3 className="font-bold text-lg">Despacho con {selectedOrder.delivery_type}</h3>
                       </div>
                       {selectedOrder.delivery_address ? (
-                        <p className="text-xs text-orange-950 font-bold leading-relaxed">{selectedOrder.delivery_address}</p>
+                        <p className="text-sm text-gray-600 leading-relaxed">{selectedOrder.delivery_address}</p>
                       ) : (
-                        <p className="text-xs text-orange-600 italic">Dirección no especificada</p>
+                        <p className="text-sm text-gray-400 italic">Dirección no especificada</p>
                       )}
                     </div>
                   ) : (
-                    <div className="mt-3 p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
-                      <div className="flex items-center gap-1.5 text-blue-800 font-bold text-xs uppercase tracking-wider">
-                        <ShoppingBag className="h-4 w-4 shrink-0" />
-                        <span>Retiro en Local</span>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1 text-gray-900">
+                        <Van className="h-5 w-5 text-gray-400" />
+                        <h3 className="font-bold text-lg">Despacho con {selectedOrder.delivery_type}</h3>
                       </div>
                     </div>
                   )}

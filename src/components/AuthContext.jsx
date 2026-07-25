@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const { data } = await supabase
           .from('staff')
-          .select('organizations ( id, name ), role')
+          .select('organizations ( id, name, address ), role')
           .eq('id', userId)
           .single();
         

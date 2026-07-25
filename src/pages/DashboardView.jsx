@@ -12,7 +12,9 @@ import {
   ShoppingBag as PaperBag,
   Globe,
   MessageCircle,
-  Van
+  Van,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -26,6 +28,7 @@ const DashboardView = () => {
   const [channelFilter, setChannelFilter] = useState('all'); // all, table, pickup, online, whatsapp
   const [kitchenStatusFilter, setKitchenStatusFilter] = useState('all'); // all, pending, preparing, ready, delivered, cancelled
   const [dateRange, setDateRange] = useState('today'); // today, 7days, 30days
+  const [showMetricsMobile, setShowMetricsMobile] = useState(false);
   const [newOrderAlert, setNewOrderAlert] = useState(null);
 
   const audioCtxRef = useRef(null);
@@ -211,7 +214,8 @@ const DashboardView = () => {
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
-              className="bg-white border border-gray-200 text-gray-700 rounded-lg px-3 py-1.5 font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer appearance-none pr-8 relative"
+              onChange={(e) => setDateRange(e.target.value)}
+              className="fixed top-3 right-4 z-50 md:static bg-white border border-gray-200 text-gray-700 rounded-lg px-3 py-1.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer appearance-none pr-8 shadow-sm md:shadow-none transition-all"
               style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
             >
               <option value="today">Hoy</option>
@@ -279,9 +283,20 @@ const DashboardView = () => {
             <div className="text-3xl font-bold text-gray-900">
               {loading ? <Loader2 className="h-8 w-8 animate-spin text-gray-300" /> : formatCurrency(metrics.totalRevenue)}
             </div>
+            {/* Mobile Toggle Button inside the first card */}
+            <button 
+              onClick={() => setShowMetricsMobile(!showMetricsMobile)}
+              className="md:hidden mt-4 flex items-center justify-center gap-1.5 w-full py-2 bg-gray-50 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors"
+            >
+              {showMetricsMobile ? (
+                <><ChevronUp className="h-4 w-4" /> Ocultar métricas</>
+              ) : (
+                <><ChevronDown className="h-4 w-4" /> Ver más detalles</>
+              )}
+            </button>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-gray-200">
+          <div className={`bg-white p-6 rounded-2xl border border-gray-200 md:block ${showMetricsMobile ? 'block' : 'hidden'}`}>
             <div className="flex items-center gap-3 text-gray-500 mb-2">
               <ShoppingCart className="h-5 w-5 text-gray-900" />
               <span className="font-medium">Órdenes Totales</span>
@@ -291,7 +306,7 @@ const DashboardView = () => {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-gray-200">
+          <div className={`bg-white p-6 rounded-2xl border border-gray-200 md:block ${showMetricsMobile ? 'block' : 'hidden'}`}>
             <div className="flex items-center gap-3 text-gray-500 mb-2">
               <Receipt className="h-5 w-5 text-gray-900" />
               <span className="font-medium">Ticket Promedio</span>
