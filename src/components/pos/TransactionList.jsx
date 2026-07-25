@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van, User } from 'lucide-react';
-const PaperBag = ShoppingBag;
+import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Modal from '../ui/Modal';
@@ -332,7 +331,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        maxWidth="max-w-lg"
+        maxWidth="max-w-2xl"
         fullScreenOnMobile={true}
         title={
           selectedOrder ? (
@@ -400,7 +399,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                   ) : (
                     <div>
                       <div className="flex items-center gap-2 mb-1 text-gray-900">
-                        <Van className="h-5 w-5 text-gray-400" />
+                        <PaperBag className="h-5 w-5 text-gray-400" />
                         <h3 className="font-bold text-lg">Despacho con {selectedOrder.delivery_type}</h3>
                       </div>
                     </div>
