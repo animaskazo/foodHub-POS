@@ -8,7 +8,7 @@ import {
   getStaff 
 } from '../services/organizationService';
 import { uploadImage } from '../services/storageService';
-import { Store, User, Clock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search } from 'lucide-react';
+import { Store, User, Clock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2 } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -61,6 +61,14 @@ const SettingsView = () => {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [currentUser, setCurrentUser] = useState({ role: 'cashier', email: '' });
+  const [autoPrintEnabled, setAutoPrintEnabled] = useState(
+    localStorage.getItem('pos_auto_print_enabled') === 'true'
+  );
+
+  const handleAutoPrintToggle = (checked) => {
+    setAutoPrintEnabled(checked);
+    localStorage.setItem('pos_auto_print_enabled', checked.toString());
+  };
 
   useEffect(() => {
     loadData();
@@ -570,6 +578,99 @@ const SettingsView = () => {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Impresoras y Hardware Tab */}
+            {activeTab === 'printers' && (
+              <div className="p-6 md:p-8 space-y-8 animate-in fade-in">
+                
+                {/* Auto Print Setting */}
+                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 flex items-start gap-4">
+                  <div className="h-12 w-12 bg-white rounded-full border border-gray-200 flex items-center justify-center shrink-0">
+                    <Printer className="h-6 w-6 text-gray-700" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-bold text-gray-900 text-lg">Impresión Automática de Tickets</h3>
+                        <p className="text-gray-500 text-sm mt-1">Imprime automáticamente los nuevos pedidos que entren por Delivery o QR. <br/><span className="font-semibold text-blue-600">Nota:</span> Esta configuración se guarda solo en este dispositivo.</p>
+                      </div>
+                      <Switch 
+                        checked={autoPrintEnabled}
+                        onCheckedChange={handleAutoPrintToggle}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Guía de Configuración */}
+                <div>
+                  <h3 className="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
+                    <Info className="h-5 w-5 text-blue-600" />
+                    Guía de configuración para impresión térmica (80mm)
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Windows Guide */}
+                    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                      <div className="bg-blue-50 border-b border-gray-200 px-5 py-3 flex items-center gap-2">
+                        <Monitor className="h-5 w-5 text-blue-700" />
+                        <h4 className="font-bold text-blue-900">Configuración en Windows (Chrome)</h4>
+                      </div>
+                      <div className="p-5 space-y-4 text-sm text-gray-700">
+                        <p className="font-medium text-gray-900">Para una impresión rápida y sin cuadros de diálogo:</p>
+                        <ol className="list-decimal pl-5 space-y-3">
+                          <li>Instala los drivers oficiales de tu impresora (ej. Epson, Xprinter).</li>
+                          <li>Ve a <span className="font-semibold bg-gray-100 px-1 rounded">Panel de Control &gt; Dispositivos e Impresoras</span> y asegúrate de que tu impresora térmica esté configurada como <strong>Predeterminada</strong>.</li>
+                          <li>Abre FoodHub POS en <strong>Google Chrome</strong>.</li>
+                          <li>Haz clic derecho en el ícono de Chrome en tu escritorio, selecciona <strong>Propiedades</strong> y en el campo <em>Destino</em> añade al final: <br/><code className="bg-gray-100 px-2 py-1 mt-1 inline-block rounded text-blue-600">--kiosk-printing</code></li>
+                          <li>Abre un ticket de prueba. En el cuadro de diálogo de Chrome, haz clic en "Más ajustes" y:
+                            <ul className="list-disc pl-5 mt-1 space-y-1 text-gray-600">
+                              <li>Quita la opción "Encabezados y pies de página"</li>
+                              <li>Establece los márgenes en "Ninguno" o "Mínimo"</li>
+                              <li>El tamaño de papel debe ser "80(72) x 297 mm" o similar</li>
+                            </ul>
+                          </li>
+                        </ol>
+                        <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-lg flex items-start gap-2">
+                          <CheckCircle2 className="h-5 w-5 shrink-0" />
+                          <p>Una vez apliques `--kiosk-printing`, los tickets se imprimirán automáticamente al hacer clic en Imprimir, sin pedir confirmación.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mac Guide */}
+                    <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                      <div className="bg-gray-100 border-b border-gray-200 px-5 py-3 flex items-center gap-2">
+                        <Monitor className="h-5 w-5 text-gray-700" />
+                        <h4 className="font-bold text-gray-900">Configuración en macOS (Automator)</h4>
+                      </div>
+                      <div className="p-5 space-y-4 text-sm text-gray-700">
+                        <p className="font-medium text-gray-900">Para usar la impresión silenciosa en Mac, necesitas crear un pequeño script con Automator:</p>
+                        <ol className="list-decimal pl-5 space-y-3">
+                          <li>Abre la aplicación <strong>Automator</strong> (búscala en Spotlight).</li>
+                          <li>Crea un nuevo documento de tipo <strong>Aplicación</strong>.</li>
+                          <li>En el buscador de acciones a la izquierda, busca "Ejecutar script de Shell" o "Run Shell Script" y arrástralo a la derecha.</li>
+                          <li>Pega el siguiente código exacto en el cuadro de texto:<br/>
+                            <code className="bg-gray-100 px-3 py-2 mt-2 block rounded text-blue-600 font-mono text-xs overflow-x-auto whitespace-pre">
+                              open -a "Google Chrome" --args --kiosk-printing
+                            </code>
+                          </li>
+                          <li>Guarda esta aplicación (por ejemplo en el Escritorio con el nombre "POS FoodHub").</li>
+                          <li>Usa esta nueva aplicación para abrir Chrome. Cuando Chrome esté abierto de esta forma, ¡la impresión automática funcionará al instante!</li>
+                        </ol>
+                        <div className="mt-4 p-3 bg-gray-50 text-gray-600 rounded-lg text-xs flex gap-2 items-start">
+                          <Info className="h-4 w-4 shrink-0 text-gray-400 mt-0.5" />
+                          <p>
+                            Recuerda que la primera vez que imprimas deberás verificar que los márgenes en Chrome estén en "Ninguno", quitar los encabezados, y seleccionar el papel 80mm de tu impresora predeterminada.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             )}
           </div>

@@ -181,16 +181,18 @@ const DashboardView = () => {
         if (arrived.length > 0) {
           playBellSound();
           setNewOrderAlert(arrived[0]);
-          setAutoPrintOrder(arrived[0]);
           setTimeout(() => setNewOrderAlert(null), 6000);
           
-          // Allow React to render the new PrintableReceipt in DOM, then print
-          setTimeout(() => {
-            const originalTitle = document.title;
-            document.title = `Orden_#${arrived[0].order_number}`;
-            window.print();
-            document.title = originalTitle;
-          }, 500);
+          if (localStorage.getItem('pos_auto_print_enabled') === 'true') {
+            setAutoPrintOrder(arrived[0]);
+            // Allow React to render the new PrintableReceipt in DOM, then print
+            setTimeout(() => {
+              const originalTitle = document.title;
+              document.title = `Orden_#${arrived[0].order_number}`;
+              window.print();
+              document.title = originalTitle;
+            }, 500);
+          }
         }
       }
 
