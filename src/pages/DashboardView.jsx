@@ -3,6 +3,8 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
+import { getShiftSettings, getCurrentShift } from '../services/shiftService';
+import ShiftModal from '../components/shifts/ShiftModal';
 import {
   TrendingUp,
   ShoppingCart,
@@ -19,6 +21,7 @@ import {
 import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import TransactionList from '../components/pos/TransactionList';
+import PrintableReceipt from '../components/pos/PrintableReceipt';
 
 const DashboardView = () => {
   const { organization, loading: authLoading } = useAuth();
@@ -30,6 +33,13 @@ const DashboardView = () => {
   const [dateRange, setDateRange] = useState('today'); // today, 7days, 30days
   const [showMetricsMobile, setShowMetricsMobile] = useState(false);
   const [newOrderAlert, setNewOrderAlert] = useState(null);
+  const [autoPrintOrder, setAutoPrintOrder] = useState(null);
+  
+  // Shifts State
+  const [shiftSettings, setShiftSettings] = useState(null);
+  const [currentShift, setCurrentShift] = useState(null);
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+  const [shiftModalType, setShiftModalType] = useState('open'); // 'open' or 'close'
 
   const audioCtxRef = useRef(null);
   const prevOrdersRef = useRef([]);
@@ -89,9 +99,11 @@ const DashboardView = () => {
     if (authLoading) return;
 
     if (organization?.id) {
+      loadShiftData();
       fetchOrders();
       const interval = setInterval(() => {
         fetchOrders(true);
+        loadShiftData();
       }, 5000);
       return () => clearInterval(interval);
     } else {
@@ -99,6 +111,20 @@ const DashboardView = () => {
       setError('No tienes una organización asignada.');
     }
   }, [organization?.id, authLoading, dateRange]);
+
+  const loadShiftData = async () => {
+    try {
+      const settings = await getShiftSettings(organization.id);
+      setShiftSettings(settings);
+      
+      if (settings?.shifts_enabled) {
+        const shift = await getCurrentShift(organization.id);
+        setCurrentShift(shift);
+      }
+    } catch (err) {
+      console.error('Error loading shift data:', err);
+    }
+  };
 
   const fetchOrders = async (isBackground = false) => {
     if (!isBackground) {
@@ -155,7 +181,16 @@ const DashboardView = () => {
         if (arrived.length > 0) {
           playBellSound();
           setNewOrderAlert(arrived[0]);
+          setAutoPrintOrder(arrived[0]);
           setTimeout(() => setNewOrderAlert(null), 6000);
+          
+          // Allow React to render the new PrintableReceipt in DOM, then print
+          setTimeout(() => {
+            const originalTitle = document.title;
+            document.title = `Orden_#${arrived[0].order_number}`;
+            window.print();
+            document.title = originalTitle;
+          }, 500);
         }
       }
 
@@ -200,28 +235,64 @@ const DashboardView = () => {
 
   useDocumentTitle('Dashboard');
 
+  const renderShiftButton = (mobileOnly = false) => {
+    if (!shiftSettings?.shifts_enabled) return null;
+    
+    return (
+      <div className={mobileOnly ? "md:hidden" : "hidden md:block"}>
+        {currentShift ? (
+          <Button 
+            onClick={() => { setShiftModalType('close'); setIsShiftModalOpen(true); }}
+            className="flex items-center gap-2 bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 px-6 h-11 text-base"
+          >
+            <span className="flex h-2.5 w-2.5 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+            </span>
+            Turno Activo
+          </Button>
+        ) : (
+          <Button 
+            onClick={() => { setShiftModalType('open'); setIsShiftModalOpen(true); }}
+            className="flex items-center gap-2 bg-black text-white hover:bg-gray-800 px-6 h-11 text-base"
+          >
+            <Store className="h-5 w-5" />
+            Abrir Caja
+          </Button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="bg-gray-50 p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         <PageHeader
-          title={organization ? organization.name : 'Cargando Negocio...'}
+          title={
+            <div className="flex items-center justify-between w-full gap-3 flex-wrap">
+              <span>{organization ? organization.name : 'Cargando Negocio...'}</span>
+              {renderShiftButton(true)}
+            </div>
+          }
           subtitle={
             dateRange === 'today' ? 'Resumen de ventas del día de hoy.' :
               dateRange === '7days' ? 'Resumen de ventas de los últimos 7 días.' :
                 'Resumen de ventas de los últimos 30 días.'
           }
           actions={
-            <select
-              value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
-              onChange={(e) => setDateRange(e.target.value)}
-              className="fixed top-3 right-4 z-50 md:static bg-white border border-gray-200 text-gray-700 rounded-lg px-3 py-1.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer appearance-none pr-8 shadow-sm md:shadow-none transition-all"
-              style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
-            >
-              <option value="today">Hoy</option>
-              <option value="7days">Últimos 7 días</option>
-              <option value="30days">Últimos 30 días</option>
-            </select>
+            <div className="flex items-center gap-3">
+              {renderShiftButton(false)}
+              <select
+                value={dateRange}
+                onChange={(e) => setDateRange(e.target.value)}
+                className="fixed top-3 right-4 z-50 md:static bg-white border border-gray-200 text-gray-700 rounded-lg px-3 py-1.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer appearance-none pr-8 transition-all"
+                style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
+              >
+                <option value="today">Hoy</option>
+                <option value="7days">Últimos 7 días</option>
+                <option value="30days">Últimos 30 días</option>
+              </select>
+            </div>
           }
         />
 
@@ -230,6 +301,8 @@ const DashboardView = () => {
             {error}
           </div>
         )}
+
+
 
         {/* Filters */}
         <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar mb-6">
@@ -325,7 +398,7 @@ const DashboardView = () => {
             <select
               value={kitchenStatusFilter}
               onChange={(e) => setKitchenStatusFilter(e.target.value)}
-              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white shadow-sm focus:outline-none focus:border-gray-300"
+              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:border-gray-300"
             >
               <option value="all">Todos los estados</option>
               <option value="pending">Pendientes</option>
@@ -381,6 +454,24 @@ const DashboardView = () => {
           </div>
         </div>
       )}
+      {/* Printable Receipt for Auto-Printing New Orders */}
+      <div className="hidden">
+        <PrintableReceipt order={autoPrintOrder} organization={organization} />
+      </div>
+
+      <ShiftModal 
+        isOpen={isShiftModalOpen} 
+        onClose={() => setIsShiftModalOpen(false)} 
+        type={shiftModalType} 
+        settings={shiftSettings}
+        organizationId={organization?.id}
+        onSuccess={() => {
+          setIsShiftModalOpen(false);
+          loadShiftData();
+        }}
+        shiftId={currentShift?.id}
+        totalSales={metrics.totalRevenue}
+      />
     </div>
   );
 };

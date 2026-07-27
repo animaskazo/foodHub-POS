@@ -17,14 +17,18 @@ import {
   MonitorPlay,
   ChefHat,
   Users,
-  Truck
+  Truck,
+  Clock,
+  User,
+  DollarSign
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import FeedbackBubble from './FeedbackBubble';
 
 const Layout = () => {
-  const [isProductsOpen, setIsProductsOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProductsOpen, setIsProductsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { isSuperAdmin, role } = useAuth();
 
   const handleLogout = async () => {
@@ -171,33 +175,96 @@ const Layout = () => {
             </li>
             
             <li className="pt-2">
-              <NavLink 
-                to="/delivery" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={({ isActive }) => 
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${
-                    isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
-                  }`
-                }
+              <button 
+                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[15px] font-semibold text-gray-600 hover:bg-gray-50 hover:text-black transition-colors"
               >
-                <Truck className="h-[18px] w-[18px]" />
-                Delivery
-              </NavLink>
-            </li>
-
-            <li className="pt-2">
-              <NavLink 
-                to="/settings" 
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={({ isActive }) => 
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${
-                    isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
-                  }`
-                }
-              >
-                <Settings className="h-[18px] w-[18px]" />
-                Configuración
-              </NavLink>
+                <div className="flex items-center gap-3">
+                  <Settings className="h-[18px] w-[18px]" />
+                  Configuración
+                </div>
+                <ChevronDown className={`h-4 w-4 transition-transform ${isSettingsOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isSettingsOpen && (
+                <ul className="mt-1 ml-4 pl-4 border-l border-gray-200 space-y-1">
+                  <li>
+                    <NavLink 
+                      to="/settings?tab=general" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={({ isActive, isPending }) => {
+                        const isCurrentTab = window.location.search === '?tab=general' || window.location.search === '';
+                        const isSettingsPath = window.location.pathname === '/settings';
+                        const isMatch = isSettingsPath && isCurrentTab;
+                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
+                          isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        }`;
+                      }}
+                    >
+                      <Store className="h-[18px] w-[18px]" />
+                      General
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink 
+                      to="/settings?tab=hours" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={({ isActive }) => {
+                        const isMatch = window.location.pathname === '/settings' && window.location.search === '?tab=hours';
+                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
+                          isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        }`;
+                      }}
+                    >
+                      <Clock className="h-[18px] w-[18px]" />
+                      Horarios
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink 
+                      to="/settings?tab=staff" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={({ isActive }) => {
+                        const isMatch = window.location.pathname === '/settings' && window.location.search === '?tab=staff';
+                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
+                          isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        }`;
+                      }}
+                    >
+                      <User className="h-[18px] w-[18px]" />
+                      Equipo
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink 
+                      to="/delivery" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={({ isActive }) => 
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
+                          isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        }`
+                      }
+                    >
+                      <Truck className="h-[18px] w-[18px]" />
+                      Delivery
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink 
+                      to="/shifts-settings" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={({ isActive }) => 
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
+                          isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        }`
+                      }
+                    >
+                      <DollarSign className="h-[18px] w-[18px]" />
+                      Caja y Turnos
+                    </NavLink>
+                  </li>
+                </ul>
+              )}
             </li>
           </ul>
         </nav>

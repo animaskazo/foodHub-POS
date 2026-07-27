@@ -3,7 +3,7 @@ import { Trash2, Plus, Minus, ChevronDown, Monitor, X, Edit2 } from 'lucide-reac
 import { Separator } from "@/components/ui/separator";
 import { Button } from "../ui/button";
 
-const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onItemClick }) => {
+const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onItemClick, taxRate = 0.19 }) => {
   const items = cartItems;
 
   const totalQty = items.reduce((acc, i) => acc + i.quantity, 0);
@@ -23,7 +23,7 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
     }
     return acc + (unitPrice * i.quantity);
   }, 0);
-  const subtotal = Math.round(total / 1.19);
+  const subtotal = Math.round(total / (1 + taxRate));
   const tax = total - subtotal;
 
   const fmt = (n) => n.toLocaleString('es-CL');

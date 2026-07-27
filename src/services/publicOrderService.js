@@ -199,7 +199,13 @@ export const createPublicOrder = async ({
     return acc + unitPrice * item.quantity;
   }, 0) + (deliveryFee || 0);
 
-  const taxRate = 0.19;
+  const { data: orgData } = await supabase
+    .from('organizations')
+    .select('default_tax_rate, name, logo_url, address')
+    .eq('id', organizationId)
+    .single();
+
+  const taxRate = orgData?.default_tax_rate ? (Number(orgData.default_tax_rate) / 100) : 0.19;
   const subtotal = Math.round(total / (1 + taxRate));
   const tax = total - subtotal;
 
@@ -367,12 +373,7 @@ export const createPublicOrder = async ({
   if (customer.email) {
     const { sendEmail } = await import('./emailService');
 
-    // Fetch org data for the email
-    const { data: orgData } = await supabase
-      .from('organizations')
-      .select('name, logo_url, address')
-      .eq('id', organizationId)
-      .single();
+    // orgData is already fetched at the top
 
     const PLACEHOLDER_ADDRESSES = ['por definir', 'principal'];
     const isPlaceholder = (addr) =>
@@ -391,7 +392,7 @@ export const createPublicOrder = async ({
       delivery_fee: order.delivery_fee,
       payment_method: paymentMethod,
       items: cartItems.map(item => ({
-        name: item.name,
+        product_name: item.name,
         quantity: item.quantity,
         total_price: item.price * item.quantity,
         image_url: item.image || item.image_url || item.imageUrl || null,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import ProductGrid from '../components/pos/ProductGrid';
@@ -13,8 +13,13 @@ import { NAV_ITEMS } from '../components/pos/BottomNav';
 import { X, LogOut, Menu, Home, ChefHat } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { createOrder, updateOrderCustomer } from '../services/orderService';
+import { useAuth } from '../components/AuthContext';
+import { getShiftSettings, getCurrentShift } from '../services/shiftService';
 
 const PosView = () => {
+  const { organization } = useAuth();
+  const taxRate = organization?.default_tax_rate ? Number(organization.default_tax_rate) / 100 : 0.19;
+
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -26,6 +31,31 @@ const PosView = () => {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const [shiftSettings, setShiftSettings] = useState(null);
+  const [currentShift, setCurrentShift] = useState(null);
+  const [loadingShift, setLoadingShift] = useState(true);
+
+  useEffect(() => {
+    const loadShiftData = async () => {
+      if (!organization?.id) return;
+      try {
+        const settings = await getShiftSettings(organization.id);
+        setShiftSettings(settings);
+        if (settings?.shifts_enabled) {
+          const shift = await getCurrentShift(organization.id);
+          setCurrentShift(shift);
+        }
+      } catch (err) {
+        console.error('Error loading shift info:', err);
+      } finally {
+        setLoadingShift(false);
+      }
+    };
+    loadShiftData();
+  }, [organization?.id]);
+
+  const isPosBlocked = !loadingShift && shiftSettings?.shifts_enabled && shiftSettings?.block_pos_when_closed && !currentShift;
 
   const addToCart = (product, variant, ingredients = []) => {
     const ingredientsIds = ingredients.map(i => i.id).sort().join(',');
@@ -275,7 +305,7 @@ const PosView = () => {
   const handlePaymentConfirm = async (method, orderType) => {
     try {
       const total = cartItems.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
-      const subtotal = total / 1.19;
+      const subtotal = Math.round(total / (1 + taxRate));
       const tax = total - subtotal;
       
       const order = await createOrder(cartItems, method, orderType, total, subtotal, tax);
@@ -295,6 +325,25 @@ const PosView = () => {
 
   useDocumentTitle('Punto de Venta');
 
+  if (isPosBlocked) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-50 text-center p-6">
+        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
+          <div className="bg-red-50 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+            <LogOut className="h-10 w-10 text-red-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Caja Cerrada</h2>
+          <p className="text-gray-500 mb-8">El terminal de ventas está bloqueado porque el turno actual se encuentra cerrado. Para poder recibir pagos y procesar órdenes, por favor abre la caja desde el Dashboard administrativo.</p>
+          <Button 
+            onClick={() => navigate('/')} 
+            className="w-full bg-black hover:bg-gray-800 text-white font-bold h-12"
+          >
+            Ir al Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-[100dvh] w-full flex flex-col overflow-hidden">
@@ -340,6 +389,7 @@ const PosView = () => {
                 onNewOrder={handleNewOrder}
                 isMobile={true}
                 onCloseMobile={() => setIsMobileCartOpen(false)}
+                taxRate={taxRate}
                 onItemClick={(item) => {
                   if (item.type === 'bundle') {
                     setSelectedProductForBundle(item);
@@ -438,6 +488,7 @@ const PosView = () => {
         onClose={() => setIsPaymentModalOpen(false)}
         cartItems={cartItems}
         onConfirm={handlePaymentConfirm}
+        taxRate={taxRate}
         onSaveCustomer={async (id, name, phone) => {
           await updateOrderCustomer(id, name, phone);
         }}

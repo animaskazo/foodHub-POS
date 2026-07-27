@@ -108,7 +108,7 @@ serve(async (req) => {
               </td>`}
               <td valign="middle" style="padding: 14px 0; border-bottom: 1px solid #eeeeee;">
                 <span style="font-size: 14px; color: #888888; font-weight: 600;">${item.quantity}×</span>
-                <span style="font-size: 15px; color: #111111; font-weight: 500; margin-left: 4px;">${item.product_name}</span>
+                <span style="font-size: 15px; color: #111111; font-weight: 500; margin-left: 4px;">${item.product_name || item.name}</span>
               </td>
               <td width="90" valign="middle" align="right" style="padding: 14px 0; border-bottom: 1px solid #eeeeee; white-space: nowrap;">
                 <span style="font-size: 15px; color: #111111; font-weight: 600;">${itemTotal}</span>

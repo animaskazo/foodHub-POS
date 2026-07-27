@@ -34,7 +34,7 @@ interface CartItem {
 
 interface CollectState {
   active: boolean;
-  step: "confirm_prompt" | "name" | null;
+  step: "checkout_email_prompt" | "delivery_method_prompt" | "delivery_address_prompt" | "confirm_prompt" | "name" | null;
   data: { name?: string; phone?: string; notes?: string };
 }
 
@@ -44,6 +44,43 @@ interface Session {
   collect: CollectState;
   org_slug: string;
   customer_name?: string;
+  customer_email?: string;
+  delivery_type?: "delivery" | "pickup";
+  delivery_address?: string;
+  delivery_fee?: number;
+}
+
+// ── Geo Utils ───────────────────────────────────────────────────────────────
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  return R * c;
+}
+
+async function geocodeAddress(address: string) {
+  try {
+    const q = encodeURIComponent(`${address}, Chile`);
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${q}`, {
+      headers: { "User-Agent": "FoodHub-POS-WhatsApp/1.0" }
+    });
+    const data = await res.json();
+    if (data && data.length > 0) {
+      const invalidTypes = ["city", "state", "country", "suburb", "town", "village", "county", "municipality", "region", "province"];
+      for (const item of data) {
+        if (!invalidTypes.includes(item.addresstype)) {
+          return { lat: parseFloat(item.lat), lng: parseFloat(item.lon) };
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Geocoding error:', error);
+  }
+  return null;
 }
 
 // ── Persistencia de sesiones en Supabase ────────────────────────────────────
@@ -146,6 +183,23 @@ function money(amount: number, currency = "CLP"): string {
 }
 
 // ── Procesar un mensaje entrante ─────────────────────────────────────────────
+function buildConfirmSummary(session: Session): string {
+  const itemLines = session.cart
+    .map((i) => `• ${i.quantity} × ${i.name} (${money(i.unit_price * i.quantity)})`)
+    .join("\n");
+  const subtotal = session.cart.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+  const fee = session.delivery_type === "delivery" && session.delivery_fee ? session.delivery_fee : 0;
+  const total = money(subtotal + fee);
+
+  let text = `🧾 *Resumen de tu pedido:*\n\n${itemLines}\n\n`;
+  if (fee > 0) text += `Subtotal: ${money(subtotal)}\nDespacho: ${money(fee)}\n`;
+  text += `*Total: ${total}*\n`;
+  if (session.delivery_type === "delivery") text += `Tipo: *Delivery* (${session.delivery_address})\n`;
+  else text += `Tipo: *Retiro en local*\n`;
+  text += `A nombre de: *${session.customer_name || "Cliente"}*\n\n¿Deseas confirmar el pedido? (Responde Sí o No)`;
+  return text;
+}
+
 async function processMessage(
   userPhone: string,
   phoneNumberId: string,
@@ -174,6 +228,73 @@ async function processMessage(
       });
       replyText = `¡Gracias, ${name}! ${welcome.message ?? "¿Qué te gustaría pedir hoy?"}`;
       session.messages.push({ role: "assistant", content: replyText });
+    } else if (collect.step === "checkout_email_prompt") {
+      const emailText = userText.trim().toLowerCase();
+      const isYes = /^(si|sí|ok|perfecto|dale|listo|ya|bueno|claro|yes|yep|s)$/.test(emailText);
+      const isNo = emailText.includes("no");
+      
+      let valid = true;
+      if (isYes && session.customer_email) {
+        // Keep the saved email
+      } else if (isNo) {
+        session.customer_email = undefined;
+      } else if (/^\S+@\S+\.\S+$/.test(emailText)) {
+        session.customer_email = emailText;
+      } else {
+        replyText = "Por favor ingresa un correo válido, responde 'sí' para confirmar el actual, o 'no' para omitir.";
+        valid = false;
+      }
+      
+      if (valid) {
+        const supabase = getSupabase();
+        const { data: orgData } = await supabase.from("organizations").select("delivery_enabled").eq("slug", session.org_slug).maybeSingle();
+        if (orgData?.delivery_enabled) {
+          collect.step = "delivery_method_prompt";
+          replyText = "¿El pedido será con *Delivery* o *Retiro en local*?";
+        } else {
+          session.delivery_type = "pickup";
+          collect.step = "confirm_prompt";
+          replyText = buildConfirmSummary(session);
+        }
+      }
+    } else if (collect.step === "delivery_method_prompt") {
+      const txt = userText.trim().toLowerCase();
+      if (txt.includes("retiro") || txt.includes("local") || txt === "1") {
+        session.delivery_type = "pickup";
+        collect.step = "confirm_prompt";
+        replyText = buildConfirmSummary(session);
+      } else if (txt.includes("delivery") || txt.includes("despacho") || txt.includes("domicilio") || txt === "2") {
+        session.delivery_type = "delivery";
+        collect.step = "delivery_address_prompt";
+        replyText = "Por favor indica tu dirección exacta de entrega (Calle, Número y Comuna) para validar la cobertura.";
+      } else {
+        replyText = "Por favor indica si prefieres *Delivery* o *Retiro en local*. (Puedes escribir 'Retiro' o 'Delivery')";
+      }
+    } else if (collect.step === "delivery_address_prompt") {
+      if (userText.toLowerCase().includes("retiro")) {
+        session.delivery_type = "pickup";
+        collect.step = "confirm_prompt";
+        replyText = "¡Entendido! Pasamos tu pedido a retiro.\n\n" + buildConfirmSummary(session);
+      } else {
+        const coords = await geocodeAddress(userText);
+        const supabase = getSupabase();
+        const { data: orgData } = await supabase.from("organizations").select("store_lat, store_lng, delivery_radius_km, delivery_fee").eq("slug", session.org_slug).maybeSingle();
+        
+        if (coords && orgData?.store_lat && orgData?.store_lng) {
+          const dist = calculateDistance(orgData.store_lat, orgData.store_lng, coords.lat, coords.lng);
+          const maxDist = orgData.delivery_radius_km || 5;
+          if (dist <= maxDist) {
+            session.delivery_address = userText;
+            session.delivery_fee = orgData.delivery_fee || 0;
+            collect.step = "confirm_prompt";
+            replyText = "¡Cobertura confirmada! 🛵\n\n" + buildConfirmSummary(session);
+          } else {
+            replyText = `Lo siento, esa dirección está a ${dist.toFixed(1)}km y nuestro límite es de ${maxDist}km. ¿Deseas intentar otra dirección o pasarlo a *Retiro*?`;
+          }
+        } else {
+          replyText = "No pudimos encontrar esa dirección en el mapa. Asegúrate de incluir Calle, Número y Comuna, o si prefieres, responde 'Retiro'.";
+        }
+      }
     } else if (collect.step === "confirm_prompt") {
       // Verificar si respondió afirmativamente
       if (/^(si|sí|ok|perfecto|dale|confirmo|listo|ya|bueno|claro|confirmar|yes|yep|s)$/i.test(userText.trim())) {
@@ -183,9 +304,15 @@ async function processMessage(
           action: "confirm",
           channel: "whatsapp",
           cart: cartSnapshot,
+          delivery: {
+            type: session.delivery_type,
+            address: session.delivery_address,
+            fee: session.delivery_fee
+          },
           customer: {
             name: session.customer_name || "Cliente WhatsApp",
             phone: userPhone,
+            email: session.customer_email,
             notes: "",
           },
         });
@@ -194,18 +321,14 @@ async function processMessage(
           const itemLines = cartSnapshot
             .map((i) => `• ${i.quantity} × ${i.name}`)
             .join("\n");
-          const totalAmount = confirmData.total ?? cartSnapshot.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+          const totalAmount = confirmData.total;
           const total = money(totalAmount);
-
-          // Generar link de pago Klap (temporalmente deshabilitado)
-          let paymentLinkMsg = "";
 
           replyText =
             `✅ *Pedido confirmado*\n` +
             `Número: *${confirmData.order_number}*\n\n` +
             `${itemLines}\n\n` +
             `Total: *${total}*\n` +
-            paymentLinkMsg +
             `\nA nombre de: *${session.customer_name || "Cliente WhatsApp"}*\n` +
             `El local te contactará pronto para coordinar 🙌`;
 
@@ -244,20 +367,14 @@ async function processMessage(
   // ── Intención de confirmar ────────────────────────────────────────────────
   } else if (CONFIRM_RE.test(userText) && session.cart.length > 0) {
     collect.active = true;
-    collect.step = "confirm_prompt";
     collect.data = {};
     
-    const itemLines = session.cart
-      .map((i) => `• ${i.quantity} × ${i.name} (${money(i.unit_price * i.quantity)})`)
-      .join("\n");
-    const total = money(session.cart.reduce((s, i) => s + i.unit_price * i.quantity, 0));
-
-    replyText =
-      `🧾 *Resumen de tu pedido:*\n\n` +
-      `${itemLines}\n\n` +
-      `*Total: ${total}*\n` +
-      `A nombre de: *${session.customer_name || "Cliente"}*\n\n` +
-      `¿Deseas confirmar el pedido? (Responde Sí o No)`;
+    collect.step = "checkout_email_prompt";
+    if (session.customer_email) {
+      replyText = `Para enviarte el comprobante usaremos el correo *${session.customer_email}*.\n¿Es correcto? (Responde "sí", o escribe uno nuevo si deseas cambiarlo, o "no" para omitir).`;
+    } else {
+      replyText = "¿Cuál es tu correo electrónico para enviarte el comprobante de tu pedido? (Si prefieres no entregarlo, escribe 'no')";
+    }
 
   } else if (CONFIRM_RE.test(userText) && session.cart.length === 0) {
     replyText =

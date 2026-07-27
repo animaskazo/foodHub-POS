@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag } from 'lucide-react';
+import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Modal from '../ui/Modal';
 import PaymentModal from './PaymentModal';
+import PrintableReceipt from './PrintableReceipt';
 import { useAuth } from '../AuthContext';
 import { supabase } from '../../lib/supabase';
 import { fmt, getKitchenTime, getPaymentMethod, getStatusTag } from '../../utils/orderUtils';
@@ -73,7 +74,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
   return (
     <>
       {/* Vista de Escritorio - Tabla */}
-      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 mt-6 overflow-hidden">
+      <div className="hidden md:block bg-white rounded-xl border border-gray-100 mt-6 overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
@@ -222,7 +223,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
               <div
                 key={order.id}
                 onClick={() => handleOpenModal(order)}
-                className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl p-5 flex flex-col gap-4.5 cursor-pointer shadow-sm"
+                className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl p-5 flex flex-col gap-4.5 cursor-pointer"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 {/* Header: Order Number & Status */}
@@ -335,14 +336,25 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
         fullScreenOnMobile={true}
         title={
           selectedOrder ? (
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Orden #{selectedOrder.order_number}</h2>
-              <div className="flex items-center gap-2 mt-1">
-                <Clock className="h-3.5 w-3.5 text-gray-400" />
-                <p className="text-sm text-gray-500">
-                  {new Date(selectedOrder.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })} a las {new Date(selectedOrder.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
-                </p>
+            <div className="flex items-start justify-between w-full pr-8">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Orden #{selectedOrder.order_number}</h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <Clock className="h-3.5 w-3.5 text-gray-400" />
+                  <p className="text-sm text-gray-500">
+                    {new Date(selectedOrder.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })} a las {new Date(selectedOrder.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
               </div>
+              <Button size="sm" variant="outline" onClick={() => {
+                const originalTitle = document.title;
+                document.title = `Orden_#${selectedOrder.order_number}`;
+                window.print();
+                document.title = originalTitle;
+              }} className="shrink-0">
+                <Printer className="w-4 h-4 mr-2" />
+                Imprimir Ticket
+              </Button>
             </div>
           ) : "Detalles de Orden"
         }
@@ -539,6 +551,9 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                   })()}
                 </div>
               </div>
+              
+              {/* Printable Receipt (Hidden by default, shown when printing) */}
+              <PrintableReceipt order={selectedOrder} organization={organization} />
             </div>
           </div>
         )}

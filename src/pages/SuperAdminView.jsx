@@ -180,7 +180,7 @@ const SuperAdminView = () => {
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b px-8 py-6 shrink-0 flex items-center justify-between sticky top-0 z-10">
+      <header className="bg-white border-b px-4 md:px-8 py-6 shrink-0 flex items-center justify-between sticky top-0 z-10">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Super Admin Dashboard</h1>
           <p className="text-sm text-gray-500 mt-1">Gestión individualizada de negocios</p>
@@ -188,7 +188,7 @@ const SuperAdminView = () => {
       </header>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-8">
+      <div className="flex-1 overflow-auto p-4 md:p-8">
         
         {error && (
           <div className="p-4 mb-6 bg-red-50 text-red-700 text-sm   border">
@@ -197,7 +197,7 @@ const SuperAdminView = () => {
         )}
 
         {loading ? (
-          <div className="flex justify-center items-center py-32 bg-white rounded-xl shadow-sm border">
+          <div className="flex justify-center items-center py-32 bg-white rounded-xl border">
             <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
           </div>
         ) : !selectedOrganization ? (
@@ -205,12 +205,12 @@ const SuperAdminView = () => {
           /* =========================================================
              MASTER VIEW: List of all Organizations
              ========================================================= */
-          <div className="bg-white rounded-xl border shadow-sm overflow-hidden min-h-[400px]">
+          <div className="bg-white rounded-xl border overflow-hidden min-h-[400px]">
             <div className="px-6 py-4 border-b bg-gray-50">
               <h2 className="font-semibold text-gray-800">Negocios Registrados</h2>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
                   <tr className="bg-gray-50/50 border-b">
                     <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Negocio</th>
@@ -309,7 +309,7 @@ const SuperAdminView = () => {
             </div>
 
             {/* Detail Tabs */}
-            <div className="flex space-x-1 border-b">
+            <div className="flex space-x-1 border-b overflow-x-auto hide-scrollbar">
               <Button
                 variant="ghost"
                 onClick={() => setDetailTab('overview')}
@@ -364,7 +364,7 @@ const SuperAdminView = () => {
             </div>
 
             {/* Detail Tab Contents */}
-            <div className="bg-white rounded-xl shadow-sm border p-6 min-h-[300px]">
+            <div className="bg-white rounded-xl border p-4 md:p-6 min-h-[300px]">
               
               {/* Orders */}
               {detailTab === 'orders' && (
@@ -380,7 +380,7 @@ const SuperAdminView = () => {
                     </div>
                   ) : (
                     <div className="overflow-x-auto -mx-6 -my-6">
-                      <table className="w-full text-left border-collapse">
+                      <table className="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
                           <tr className="bg-gray-50 border-b">
                             <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Número</th>
@@ -491,7 +491,7 @@ const SuperAdminView = () => {
               {/* Users */}
               {detailTab === 'users' && (
                 <div className="overflow-x-auto -mx-6 -my-6">
-                  <table className="w-full text-left border-collapse">
+                  <table className="w-full text-left border-collapse whitespace-nowrap">
                     <thead>
                       <tr className="bg-gray-50 border-b">
                         <th className="px-6 py-4 text-sm font-semibold text-gray-600">Usuario</th>
@@ -547,7 +547,7 @@ const SuperAdminView = () => {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {orgFeedbacks.map((fb) => (
-                        <div key={fb.id} className="border rounded-xl overflow-hidden hover:shadow-md transition-shadow bg-gray-50 flex flex-col">
+                        <div key={fb.id} className="border rounded-xl overflow-hidden hover:border-gray-300 transition-colors bg-gray-50 flex flex-col">
                           {fb.imageUrl ? (
                             <div className="h-48 bg-gray-200 border-b relative group">
                               <img 
@@ -590,7 +590,7 @@ const SuperAdminView = () => {
               {/* Products */}
               {detailTab === 'products' && (
                 <div className="overflow-x-auto -mx-6 -my-6">
-                  <table className="w-full text-left border-collapse">
+                  <table className="w-full text-left border-collapse whitespace-nowrap">
                     <thead>
                       <tr className="bg-gray-50 border-b">
                         <th className="px-6 py-4 text-sm font-semibold text-gray-600">Producto</th>
@@ -648,7 +648,7 @@ const SuperAdminView = () => {
       {/* Order Detail Modal */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden border flex flex-col max-h-[85vh]">
+          <div className="bg-white rounded-xl w-full max-w-2xl overflow-hidden border flex flex-col max-h-[85vh]">
             {/* Modal Header */}
             <div className="px-6 py-4 border-b flex items-center justify-between bg-gray-50">
               <div>

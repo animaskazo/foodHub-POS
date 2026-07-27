@@ -20,7 +20,7 @@ function text(value: unknown) { return typeof value === "string" ? value : ""; }
 function toNumber(value: unknown) { const number = Number(value); return Number.isFinite(number) ? number : 0; }
 
 async function getContext(slug: string) {
-  const organizations = await db(`organizations?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=id,name,currency,primary_color,default_tax_rate`);
+  const organizations = await db(`organizations?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=id,name,currency,primary_color,default_tax_rate,delivery_enabled,store_lat,store_lng,delivery_radius_km,delivery_fee,delivery_min_order,address,logo_url`);
   const organization = organizations[0];
   if (!organization) throw new Error("No existe un negocio activo para ese enlace.");
   const branches = await db(`branches?organization_id=eq.${organization.id}&is_active=eq.true&select=id,name,accepts_online`);
@@ -59,16 +59,14 @@ function validateCart(input: unknown, context: Awaited<ReturnType<typeof getCont
       return { group, option };
     });
     for (const group of productGroups) if (group.is_required && !options.some((option: any) => option.group.id === group.id)) throw new Error(`${product.name} requiere elegir ${group.name}.`);
-    const netUnitPrice = toNumber(product.base_price) + options.reduce((sum: number, item: any) => sum + toNumber(item.option.price_modifier), 0);
     const taxRate = context.organization.default_tax_rate ? toNumber(context.organization.default_tax_rate) / 100 : 0.19;
-    const grossUnitPrice = Math.round(netUnitPrice * (1 + taxRate));
+    const grossUnitPrice = toNumber(product.base_price) + options.reduce((sum: number, item: any) => sum + toNumber(item.option.price_modifier), 0);
+    const netUnitPrice = Math.round(grossUnitPrice / (1 + taxRate));
     return { product, quantity, notes: text(raw?.notes).slice(0, 280), options, netUnitPrice, grossUnitPrice };
   });
 }
 async function askAgent(messages: unknown[], cart: unknown[], context: Awaited<ReturnType<typeof getContext>>) {
   if (!claudeKey) throw new Error("Falta configurar CLAUDE_API_KEY en los secretos de la función.");
-  const taxRate = context.organization.default_tax_rate ? toNumber(context.organization.default_tax_rate) / 100 : 0.19;
-  const toGross = (net: number) => Math.round(net * (1 + taxRate));
   const menu = context.products.map((product) => {
     const prodIngs = (context.ingredients || []).filter((i: any) => i.product_id === product.id).map((i: any) => i.ingredients?.name).filter(Boolean);
     return { 
@@ -76,11 +74,11 @@ async function askAgent(messages: unknown[], cart: unknown[], context: Awaited<R
       name: product.name, 
       description: product.description, 
       ingredients: prodIngs.length > 0 ? prodIngs.join(", ") : undefined,
-      price: toGross(toNumber(product.base_price)), 
-      variants: context.variants.filter((group: any) => group.product_id === product.id).map((group: any) => ({ id: group.id, name: group.name, required: group.is_required, options: group.variant_options?.filter((option: any) => option.is_active).map((option: any) => ({ id: option.id, name: option.name, price_modifier: toGross(toNumber(option.price_modifier)) })) })) 
+      price: toNumber(product.base_price), 
+      variants: context.variants.filter((group: any) => group.product_id === product.id).map((group: any) => ({ id: group.id, name: group.name, required: group.is_required, options: group.variant_options?.filter((option: any) => option.is_active).map((option: any) => ({ id: option.id, name: option.name, price_modifier: toNumber(option.price_modifier) })) })) 
     };
   });
-  const instruction = `Eres el asistente de pedidos de ${context.organization.name}. Responde siempre en español, de forma cercana y breve. La carta adjunta es la única fuente de productos, precios y opciones. Nunca inventes productos, precios ni disponibilidad. Ayuda a armar el pedido y pregunta lo mínimo necesario por variantes obligatorias. Devuelve el carrito completo; conserva productos ya presentes salvo que el cliente pida cambiarlos. NUNCA calcules sumas ni el total del pedido, el sistema lo hará automáticamente. No confirmes ni cobres: la aplicación lo hace después. Cuando el pedido esté armado y correcto, pídele al cliente que diga la palabra "confirmar" para finalizar. Si la venta web está desactivada, igual responde preguntas sobre la carta, recomienda productos y puede armar el carrito, pero aclara que no se podrá confirmar el pedido todavía.\n\nCARTA: ${JSON.stringify(menu)}\n\nVENTA_WEB: ${Boolean(context.branch.accepts_online)}`;
+  const instruction = `Eres el asistente de pedidos de ${context.organization.name}. Responde siempre en español, de forma cercana y breve. La carta adjunta es la única fuente de productos, precios y opciones. Nunca inventes productos, precios ni disponibilidad. Ayuda a armar el pedido y pregunta lo mínimo necesario por variantes obligatorias. Devuelve el carrito completo; conserva productos ya presentes salvo que el cliente pida cambiarlos. NUNCA calcules sumas ni el total del pedido, el sistema lo hará automáticamente. SIEMPRE que menciones o recomiendes un producto o variante en tu mensaje, debes mostrar su precio exacto entre paréntesis, ejemplo: Hamburguesa ($6.990). No confirmes ni cobres: la aplicación lo hace después. Cuando el pedido esté armado y correcto, pídele al cliente que diga la palabra "confirmar" para finalizar. Si la venta web está desactivada, aclara que no se podrá confirmar el pedido todavía.\n\nCARTA: ${JSON.stringify(menu)}\n\nVENTA_WEB: ${Boolean(context.branch.accepts_online)}`;
   const schema = {
     type: "object", additionalProperties: false, required: ["message", "cart"], properties: {
       message: { type: "string" },
@@ -111,7 +109,7 @@ async function askAgent(messages: unknown[], cart: unknown[], context: Awaited<R
   if (!toolUse?.input) throw new Error("El asistente devolvió una respuesta no válida.");
   return toolUse.input;
 }
-async function confirmOrder(cart: unknown, customer: any, context: Awaited<ReturnType<typeof getContext>>) {
+async function confirmOrder(cart: unknown, customer: any, delivery: any, context: Awaited<ReturnType<typeof getContext>>) {
   if (!context.branch.accepts_online) throw new Error("Esta sucursal no está habilitada para recibir pedidos web.");
   const items = validateCart(cart, context);
   const customerName = text(customer?.name).trim(); const phone = text(customer?.phone).trim();
@@ -119,27 +117,71 @@ async function confirmOrder(cart: unknown, customer: any, context: Awaited<Retur
   // Tu operación consolida estos pedidos como WhatsApp, incluso durante la etapa web.
   const orderType = "whatsapp";
   const taxRate = context.organization.default_tax_rate ? toNumber(context.organization.default_tax_rate) / 100 : 0.19;
-  const netTotal = items.reduce((sum, item) => sum + item.netUnitPrice * item.quantity, 0);
-  const grossTotal = Math.round(netTotal * (1 + taxRate));
+  
+  const deliveryType = text(delivery?.type) === "delivery" ? "delivery" : "pickup";
+  const deliveryAddress = text(delivery?.address) || null;
+  const deliveryFee = deliveryType === "delivery" ? toNumber(delivery?.fee) : 0;
+
+  const itemsTotal = items.reduce((sum, item) => sum + item.grossUnitPrice * item.quantity, 0);
+  const grossTotal = itemsTotal + deliveryFee;
+  const netTotal = Math.round(grossTotal / (1 + taxRate));
   const taxAmount = grossTotal - netTotal;
   
   const custQuery = await db(`customers?organization_id=eq.${context.organization.id}&phone=eq.${encodeURIComponent(phone)}&select=id`);
   let customerId = custQuery?.[0]?.id;
+  const customerEmail = text(customer?.email).trim();
   if (!customerId) {
-    const newCust = await db("customers", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ organization_id: context.organization.id, full_name: customerName, phone: phone }) });
+    const newCust = await db("customers", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ organization_id: context.organization.id, full_name: customerName, phone: phone, email: customerEmail || null }) });
     customerId = newCust?.[0]?.id;
   } else {
-    await db(`customers?id=eq.${customerId}`, { method: "PATCH", body: JSON.stringify({ full_name: customerName }) });
+    await db(`customers?id=eq.${customerId}`, { method: "PATCH", body: JSON.stringify({ full_name: customerName, email: customerEmail || null }) });
   }
 
-  const orderRows = await db("orders", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ organization_id: context.organization.id, branch_id: context.branch.id, customer_id: customerId || null, order_type: orderType, status: "pending", customer_name: customerName, customer_phone: phone, notes: text(customer?.notes).slice(0, 280), subtotal: netTotal, tax_amount: taxAmount, total: grossTotal }) });
+  const orderRows = await db("orders", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ organization_id: context.organization.id, branch_id: context.branch.id, customer_id: customerId || null, order_type: orderType, delivery_type: deliveryType, delivery_address: deliveryAddress, delivery_fee: deliveryFee, status: "pending", customer_name: customerName, customer_phone: phone, notes: text(customer?.notes).slice(0, 280), subtotal: netTotal, tax_amount: taxAmount, total: grossTotal }) });
   const order = orderRows[0];
-  const orderItems = items.map((item) => ({ order_id: order.id, product_id: item.product.id, product_name: item.product.name, quantity: item.quantity, unit_price: item.netUnitPrice, total_price: item.netUnitPrice * item.quantity, notes: item.notes || null }));
+  const orderItems = items.map((item) => ({ order_id: order.id, product_id: item.product.id, product_name: item.product.name, quantity: item.quantity, unit_price: item.grossUnitPrice, total_price: item.grossUnitPrice * item.quantity, notes: item.notes || null }));
   await db("order_items", { method: "POST", body: JSON.stringify(orderItems) });
   const variants = items.flatMap((item, index) => item.options.map((selected: any) => ({ order_item_id: "", itemIndex: index, variant_group_id: selected.group.id, variant_option_id: selected.option.id, variant_group_name: selected.group.name, variant_option_name: selected.option.name, price_modifier: toNumber(selected.option.price_modifier) })));
   if (variants.length) { const createdItems = await db(`order_items?order_id=eq.${order.id}&select=id,product_id&order=created_at.asc`); const rows = variants.map(({ itemIndex, ...variant }: any) => ({ ...variant, order_item_id: createdItems[itemIndex]?.id })).filter((variant: any) => variant.order_item_id); if (rows.length) await db("order_item_variants", { method: "POST", body: JSON.stringify(rows) }); }
   
   await db("payments", { method: "POST", body: JSON.stringify({ order_id: order.id, method: "cash", status: "pending", amount: grossTotal }) });
+
+  if (customerEmail) {
+    const emailData = {
+      order_number: order.order_number,
+      order_type: orderType,
+      delivery_type: deliveryType,
+      delivery_address: deliveryAddress,
+      customer_name: customerName,
+      total: grossTotal,
+      subtotal: netTotal,
+      delivery_fee: deliveryFee,
+      payment_method: "cash",
+      items: items.map(item => ({
+        product_name: item.product.name,
+        quantity: item.quantity,
+        total_price: item.grossUnitPrice * item.quantity,
+        image_url: null,
+      })),
+      branch: {
+        name: context.branch.name || '',
+        address: context.organization.address || '',
+      },
+      organization: {
+        name: context.organization.name || 'FoodHub',
+        logo_url: context.organization.logo_url || null,
+      }
+    };
+    try {
+      await fetch(`${url}/functions/v1/send-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+        body: JSON.stringify({ type: "order_confirmed", email: customerEmail, data: emailData })
+      });
+    } catch (e) {
+      console.error("Error sending email:", e);
+    }
+  }
 
   return { order_id: order.id, order_number: order.order_number, total: grossTotal };
 }
@@ -152,7 +194,7 @@ Deno.serve(async (request) => {
     const context = await getContext(slug);
     if (body.action === "welcome") return json({ organization: { name: context.organization.name, currency: context.organization.currency, online_enabled: Boolean(context.branch.accepts_online) }, message: `¡Hola! Soy el asistente de ${context.organization.name}. ¿Qué te gustaría pedir hoy?` });
     if (body.action === "chat") { const reply = await askAgent(Array.isArray(body.messages) ? body.messages.slice(-10) : [], body.cart, context); const requestedCart = Array.isArray(reply.cart) ? reply.cart : []; const validCart = requestedCart.length ? validateCart(requestedCart, context) : []; return json({ message: text(reply.message), cart: validCart.map((item) => ({ product_id: item.product.id, name: item.product.name, quantity: item.quantity, notes: item.notes, variant_option_ids: item.options.map((option: any) => option.option.id), unit_price: item.grossUnitPrice })) }); }
-    if (body.action === "confirm") return json(await confirmOrder(body.cart, body.customer, context));
+    if (body.action === "confirm") return json(await confirmOrder(body.cart, body.customer, body.delivery, context));
     return json({ error: "Acción no reconocida." }, 400);
   } catch (error) { return json({ error: error instanceof Error ? error.message : "Ocurrió un error inesperado." }, 400); }
 });

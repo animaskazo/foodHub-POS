@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { 
   getFirstOrganizationId, 
@@ -33,7 +34,10 @@ const defaultHours = {
 
 const SettingsView = () => {
   useDocumentTitle('Configuración');
-  const [activeTab, setActiveTab] = useState('general');
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const activeTab = searchParams.get('tab') || 'general';
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [orgId, setOrgId] = useState(null);
@@ -214,45 +218,8 @@ const SettingsView = () => {
           subtitle="Gestiona la información pública de tu local y tu equipo."
         />
 
-        <div className="flex flex-col md:flex-row gap-6">
-          {/* Tabs Sidebar */}
-          <div className="w-full md:w-64 shrink-0">
-            <div className="bg-white rounded-2xl border border-gray-200 p-2 space-y-1">
-              <Button
-                variant="ghost"
-                onClick={() => setActiveTab('general')}
-                className={`w-full flex justify-start items-center gap-3 px-4 py-3 text-[15px] font-semibold transition-colors cursor-pointer ${
-                  activeTab === 'general' ? 'bg-gray-100 text-black' : 'text-gray-600'
-                }`}
-              >
-                <Store className="h-5 w-5" />
-                Información General
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => setActiveTab('hours')}
-                className={`w-full flex justify-start items-center gap-3 px-4 py-3 text-[15px] font-semibold transition-colors cursor-pointer ${
-                  activeTab === 'hours' ? 'bg-gray-100 text-black' : 'text-gray-600'
-                }`}
-              >
-                <Clock className="h-5 w-5" />
-                Horarios
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => setActiveTab('staff')}
-                className={`w-full flex justify-start items-center gap-3 px-4 py-3 text-[15px] font-semibold transition-colors cursor-pointer ${
-                  activeTab === 'staff' ? 'bg-gray-100 text-black' : 'text-gray-600'
-                }`}
-              >
-                <User className="h-5 w-5" />
-                Equipo (Staff)
-              </Button>
-            </div>
-          </div>
-
-          {/* Content Area */}
-          <div className="flex-1 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="pb-24">
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
             {activeTab === 'general' && (
               <div className="p-6 md:p-8 space-y-6">
                 

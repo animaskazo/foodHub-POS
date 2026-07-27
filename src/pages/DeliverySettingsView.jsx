@@ -116,7 +116,7 @@ const DeliverySettingsView = () => {
           subtitle="Configuración y zona de cobertura"
         />
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-6">
+        <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-8 space-y-6">
           <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl">
             <div>
               <h4 className="font-bold text-sm text-gray-800">Habilitar Delivery Propio</h4>

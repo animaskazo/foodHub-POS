@@ -231,6 +231,9 @@ export const createCategory = async (organizationId, categoryData) => {
   
   // Assign items if provided
   if (categoryData.items && categoryData.items.length > 0) {
+    // First remove these products from ANY other categories (enforce 1 category per product in UI logic)
+    await supabase.from('product_categories').delete().in('product_id', categoryData.items);
+
     const pcData = categoryData.items.map(productId => ({
       product_id: productId,
       category_id: categoryId
@@ -418,6 +421,9 @@ export const updateCategory = async (id, categoryData) => {
     
     // Insert new ones
     if (categoryData.items.length > 0) {
+      // First remove these products from ANY other categories (enforce 1 category per product in UI logic)
+      await supabase.from('product_categories').delete().in('product_id', categoryData.items);
+
       const pcData = categoryData.items.map(productId => ({
         product_id: productId,
         category_id: id
