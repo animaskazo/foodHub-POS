@@ -459,7 +459,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                                   </p>
                                   {item.order_item_ingredients && item.order_item_ingredients.length > 0 && (
                                     <p className="text-[11px] text-gray-500 mt-0.5 leading-tight">
-                                      + {item.order_item_ingredients.map(ing => ing.ingredient_name).join(', ')}
+                                      + {item.order_item_ingredients.map(ing => ing.price > 0 ? `${ing.ingredient_name} (+$${fmt(Math.round(ing.price))})` : ing.ingredient_name).join(', ')}
                                     </p>
                                   )}
                                   <p className="text-xs text-gray-500 mt-0.5">${fmt(Math.round(item.unit_price))} c/u</p>
@@ -481,7 +481,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                                     )}
                                     {child.order_item_ingredients && child.order_item_ingredients.length > 0 && (
                                       <span className="text-orange-500 ml-1">
-                                        (+ {child.order_item_ingredients.map(i => i.ingredient_name).join(', ')})
+                                        (+ {child.order_item_ingredients.map(i => i.price > 0 ? `${i.ingredient_name} (+$${fmt(Math.round(i.price))})` : i.ingredient_name).join(', ')})
                                       </span>
                                     )}
                                     {child.unit_price > 0 && (

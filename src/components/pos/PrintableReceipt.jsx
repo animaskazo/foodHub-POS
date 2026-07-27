@@ -94,23 +94,42 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
               </tr>
             </thead>
             <tbody>
-              {order.order_items?.filter(i => !i.parent_item_id).map((item, idx) => (
-                <React.Fragment key={idx}>
-                  <tr>
-                    <td className="align-top font-bold">{item.quantity}x</td>
-                    <td className="align-top">
-                      <div className="item-name">{item.product_name}</div>
-                      {item.order_item_variants?.map((v, vidx) => (
-                        <div key={`v-${vidx}`} className="text-xs pl-1 text-gray-800">- {v.variant_option_name}</div>
-                      ))}
-                      {item.order_item_ingredients?.map((ing, iidx) => (
-                        <div key={`i-${iidx}`} className="text-xs pl-1 text-gray-800">+ {ing.ingredient_name}</div>
-                      ))}
-                    </td>
-                    <td className="text-right align-top font-medium">${fmt(Math.round(item.unit_price) * item.quantity)}</td>
-                  </tr>
-                </React.Fragment>
-              ))}
+              {order.order_items?.filter(i => !i.parent_item_id).map((item, idx) => {
+                const childItems = order.order_items.filter(child => child.parent_item_id === item.id);
+                return (
+                  <React.Fragment key={idx}>
+                    <tr>
+                      <td className="align-top font-bold">{item.quantity}x</td>
+                      <td className="align-top">
+                        <div className="item-name">{item.product_name}</div>
+                        {item.order_item_variants?.map((v, vidx) => (
+                          <div key={`v-${vidx}`} className="text-xs pl-1 text-gray-800">- {v.variant_option_name}</div>
+                        ))}
+                        {item.order_item_ingredients?.map((ing, iidx) => (
+                          <div key={`i-${iidx}`} className="text-xs pl-1 text-gray-800">
+                            + {ing.ingredient_name} {ing.price > 0 && `(+$${fmt(Math.round(ing.price))})`}
+                          </div>
+                        ))}
+                        
+                        {/* Nested combo items */}
+                        {childItems.map((child, cIdx) => (
+                          <div key={`c-${cIdx}`} className="text-xs pl-2 mt-0.5 border-l border-gray-400 ml-1">
+                            {child.quantity / item.quantity}x {child.product_name}
+                            {child.order_item_variants?.map(v => (
+                              <span key={v.id}> ({v.variant_option_name})</span>
+                            ))}
+                            {child.order_item_ingredients?.map(ing => (
+                              <span key={ing.id}> (+ {ing.ingredient_name} {ing.price > 0 && `(+$${fmt(Math.round(ing.price))})`})</span>
+                            ))}
+                            {child.unit_price > 0 && <span> (+${fmt(Math.round(child.unit_price))})</span>}
+                          </div>
+                        ))}
+                      </td>
+                      <td className="text-right align-top font-medium">${fmt(Math.round(item.unit_price) * item.quantity)}</td>
+                    </tr>
+                  </React.Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -164,7 +164,7 @@ const DashboardView = () => {
           delivery_type,
           delivery_address,
           delivery_fee,
-          order_items (*),
+          order_items (*, order_item_variants(*), order_item_ingredients(*)),
           payments (*)
         `)
         .eq('organization_id', organization.id)
