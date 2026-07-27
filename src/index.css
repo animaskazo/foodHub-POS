@@ -209,6 +209,18 @@
   animation: pan 30s linear infinite;
 }
 
+/* Screen styles to hide print-only elements without display: none */
+@media screen {
+  .print-receipt-container {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: -1;
+  }
+}
+
 /* =========================================
    Print Styles for Thermal Receipt (80mm)
    ========================================= */

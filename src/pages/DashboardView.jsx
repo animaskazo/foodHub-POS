@@ -457,9 +457,7 @@ const DashboardView = () => {
         </div>
       )}
       {/* Printable Receipt for Auto-Printing New Orders */}
-      <div className="hidden">
-        <PrintableReceipt order={autoPrintOrder} organization={organization} />
-      </div>
+      <PrintableReceipt order={autoPrintOrder} organization={organization} />
 
       <ShiftModal 
         isOpen={isShiftModalOpen} 

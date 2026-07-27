@@ -284,7 +284,7 @@ serve(async (req) => {
             <tr>
               ${imageUrl ? `
               <td width="64" valign="top" style="padding: 12px 0; padding-right: 14px;">
-                <img src="${imageUrl}" alt="${item.name}"
+                <img src="${imageUrl}" alt="${item.product_name || item.name}"
                   style="width: 56px; height: 56px; border-radius: 8px; object-fit: cover; display: block; background-color: #f0f0f0;" />
               </td>` : `
               <td width="40" valign="top" style="padding: 12px 0; padding-right: 14px;">
@@ -292,7 +292,7 @@ serve(async (req) => {
               </td>`}
               <td valign="middle" style="padding: 12px 0; border-bottom: 1px solid #eeeeee;">
                 <span style="font-size: 14px; color: #888888; font-weight: 600;">${item.quantity}×</span>
-                <span style="font-size: 15px; color: #111111; font-weight: 500; margin-left: 4px;">${item.name}</span>
+                <span style="font-size: 15px; color: #111111; font-weight: 500; margin-left: 4px;">${item.product_name || item.name}</span>
               </td>
               <td width="90" valign="middle" align="right" style="padding: 12px 0; border-bottom: 1px solid #eeeeee; white-space: nowrap;">
                 <span style="font-size: 15px; color: #111111; font-weight: 600;">${itemTotal}</span>

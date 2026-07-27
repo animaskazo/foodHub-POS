@@ -18,7 +18,7 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
   }
 
   return (
-    <div ref={ref} className="print-receipt-container hidden">
+    <div ref={ref} className="print-receipt-container">
       <div className="receipt-content">
         {/* Order Type prominent at the very top */}
         <div className="receipt-order-type">
