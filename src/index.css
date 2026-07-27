@@ -281,12 +281,28 @@
   }
 
   .receipt-order-type {
-    font-size: 16px;
-    font-weight: 700;
+    font-size: 20px;
+    font-weight: 900;
     text-align: center;
     text-transform: uppercase;
-    margin-top: 1mm;
-    margin-bottom: 1mm;
+    margin-top: 3mm;
+    margin-bottom: 3mm;
+    padding: 2mm 0;
+    border-top: 2px dashed #000;
+    border-bottom: 2px dashed #000;
+  }
+
+  .receipt-unpaid-warning {
+    font-size: 18px;
+    font-weight: 900;
+    text-align: center;
+    text-transform: uppercase;
+    color: #fff;
+    background: #000;
+    margin-top: 4mm;
+    margin-bottom: 4mm;
+    padding: 3mm 0;
+    border: 2px solid #000;
   }
 
   .receipt-order-date {

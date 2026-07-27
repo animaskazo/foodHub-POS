@@ -123,28 +123,26 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
                     <p className="text-xs text-gray-400 mt-1">${fmt(Math.round(item.price))} c/u</p>
 
                     {/* Qty Controls */}
-                    <div className="flex items-center gap-3 mt-2">
-                      <Button
-                        size="icon-sm"
-                        variant="secondary"
+                    <div className="inline-flex items-center bg-gray-100/80 rounded-full mt-2.5">
+                      <button
                         onClick={() => onUpdateQty && onUpdateQty(item.cartItemId, item.quantity - 1)}
+                        className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-black hover:bg-gray-200 rounded-full transition-colors active:scale-95"
                       >
-                        <Minus />
-                      </Button>
-                      <span className="font-bold text-sm w-5 text-center">{item.quantity}</span>
-                      <Button
-                        size="icon-sm"
-                        variant="secondary"
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <span className="font-bold text-[15px] w-7 text-center text-gray-900">{item.quantity}</span>
+                      <button
                         onClick={() => onUpdateQty && onUpdateQty(item.cartItemId, item.quantity + 1)}
+                        className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-black hover:bg-gray-200 rounded-full transition-colors active:scale-95"
                       >
-                        <Plus />
-                      </Button>
+                        <Plus className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
 
                   {/* Price + Actions */}
-                  <div className="flex flex-col items-end gap-2 shrink-0">
-                    <span className="font-bold text-[15px]">${fmt((() => {
+                  <div className="flex flex-col items-end justify-between min-h-[4rem] pl-2">
+                    <span className="font-bold text-[16px]">${fmt((() => {
                     let unitPrice = Math.round(item.price);
                     if (item.selectedIngredients) {
                       unitPrice += item.selectedIngredients.reduce((s, ing) => s + (ing.price || 0), 0);
@@ -160,24 +158,22 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
                     }
                     return unitPrice * item.quantity;
                   })())}</span>
-                    <div className="flex items-center gap-1.5 mt-1">
+                    
+                    <div className="flex items-center gap-1">
                       {hasOptions && (
-                        <Button
-                          size="icon-sm"
-                          variant="secondary"
+                        <button
                           onClick={() => onItemClick && onItemClick(item)}
+                          className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors active:scale-95"
                         >
-                          <Edit2 />
-                        </Button>
+                          <Edit2 className="h-[18px] w-[18px]" />
+                        </button>
                       )}
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                      <button
                         onClick={() => onRemove && onRemove(item.cartItemId)}
+                        className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors active:scale-95"
                       >
-                        <Trash2 />
-                      </Button>
+                        <Trash2 className="h-[18px] w-[18px]" />
+                      </button>
                     </div>
                   </div>
                 </div>

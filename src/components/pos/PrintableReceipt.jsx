@@ -20,6 +20,17 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
   return (
     <div ref={ref} className="print-receipt-container hidden">
       <div className="receipt-content">
+        {/* Order Type prominent at the very top */}
+        <div className="receipt-order-type">
+          {(() => {
+            const actualType = ['online', 'whatsapp'].includes(order.order_type) ? order.delivery_type : order.order_type;
+            if (actualType === 'delivery') return 'DELIVERY';
+            if (actualType === 'pickup') return 'RETIRO EN LOCAL';
+            if (actualType === 'table') return 'MESA';
+            return actualType ? actualType.toUpperCase() : '';
+          })()}
+        </div>
+
         {/* Header Vanguardista */}
         <div className="receipt-header">
           {organization?.logo_url ? (
@@ -34,9 +45,8 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
         <div className="receipt-divider-solid"></div>
 
         {/* Order Info */}
-        <div>
+        <div className="text-center mt-2 mb-4">
           <div className="receipt-order-number">#{order.order_number}</div>
-          <div className="receipt-order-type">{order.delivery_type || order.order_type}</div>
           <div className="receipt-order-date">{formattedDate} - {formattedTime}</div>
         </div>
 
@@ -44,13 +54,31 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
 
         {/* Customer Info */}
         {(order.customer_name || order.customer_phone || order.delivery_address) && (
-          <div className="mb-4">
-            <div className="receipt-section-title">Datos del Cliente</div>
-            {order.customer_name && <p className="font-bold text-sm uppercase">{order.customer_name}</p>}
-            {order.delivery_address && order.delivery_type === 'delivery' && (
-              <p className="mt-1 leading-tight">{order.delivery_address}</p>
+          <div className="mb-4 flex justify-between items-start gap-2">
+            <div className="flex-1">
+              <div className="receipt-section-title">Datos del Cliente</div>
+              {order.customer_name && <p className="font-bold text-sm uppercase">{order.customer_name}</p>}
+              {order.delivery_address && (
+                <p className="mt-1 leading-tight">{order.delivery_address}</p>
+              )}
+              {order.customer_phone && <p className="mt-1">Tel: {order.customer_phone}</p>}
+            </div>
+            {waLink && (
+              <div className="flex flex-col items-center shrink-0">
+                <div className="bg-white p-1 border border-black rounded inline-block">
+                  <QRCodeSVG value={waLink} size={50} level="M" />
+                </div>
+                <p className="text-[8px] font-bold mt-1 uppercase tracking-tight text-center leading-none">WhatsApp</p>
+              </div>
             )}
-            {order.customer_phone && <p className="mt-1">Tel: {order.customer_phone}</p>}
+          </div>
+        )}
+
+        {/* Notes */}
+        {order.notes && (
+          <div className="mb-4">
+            <div className="receipt-section-title">Comentarios</div>
+            <p className="font-bold text-sm uppercase leading-tight bg-gray-100 p-2 rounded">{order.notes}</p>
           </div>
         )}
 
@@ -91,7 +119,7 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
         <div className="receipt-totals">
           <div className="flex justify-between mb-1">
             <span>Subtotal</span>
-            <span>${fmt(order.subtotal || order.total - (order.delivery_fee || 0))}</span>
+            <span>${fmt(order.total - (order.delivery_fee || 0))}</span>
           </div>
           {order.delivery_fee > 0 && (
             <div className="flex justify-between mb-1">
@@ -107,22 +135,19 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
 
         <div className="receipt-divider mt-4 mb-4"></div>
 
-        {/* Payment */}
-        <div className="text-center mb-6">
-          <div className="receipt-section-title">Medio de Pago</div>
-          <p className="font-bold text-sm uppercase">{getPaymentMethod(order)}</p>
-        </div>
+        {order.payments?.some(p => p.status === 'pending') ? (
+          <div className="receipt-unpaid-warning">
+            NO PAGADO<br/>COBRAR AL CLIENTE
+          </div>
+        ) : (
+          <div className="text-center mb-6">
+            <div className="receipt-section-title">Medio de Pago</div>
+            <p className="font-bold text-sm uppercase">{getPaymentMethod(order)}</p>
+          </div>
+        )}
 
-        {/* Footer & QR */}
+        {/* Footer */}
         <div className="text-center flex flex-col items-center">
-          {waLink ? (
-            <div className="mb-4 flex flex-col items-center">
-              <div className="bg-white p-2 border-2 border-black rounded-lg inline-block">
-                <QRCodeSVG value={waLink} size={100} level="M" />
-              </div>
-              <p className="text-xs font-bold mt-2 uppercase tracking-wide">Escanear para WhatsApp</p>
-            </div>
-          ) : null}
           <p className="font-bold text-lg mb-1">¡Gracias por preferirnos!</p>
           <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-2 border-t border-gray-300 pt-2 inline-block">Powered by FoodHub POS</p>
         </div>

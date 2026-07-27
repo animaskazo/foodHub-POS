@@ -21,7 +21,8 @@ import {
   Clock,
   User,
   DollarSign,
-  Printer
+  Printer,
+  ChevronLeft
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import FeedbackBubble from './FeedbackBubble';
@@ -31,6 +32,16 @@ const Layout = () => {
   const [isProductsOpen, setIsProductsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { isSuperAdmin, role } = useAuth();
+  
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
+    localStorage.getItem('sidebar_collapsed') === 'true'
+  );
+
+  const toggleSidebar = () => {
+    const newState = !isSidebarCollapsed;
+    setIsSidebarCollapsed(newState);
+    localStorage.setItem('sidebar_collapsed', newState.toString());
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -50,19 +61,19 @@ const Layout = () => {
       {/* Sidebar */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 w-64 bg-white border-r flex flex-col shadow-sm transition-transform duration-300 ease-in-out
-        lg:relative lg:translate-x-0
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        ${!isSidebarCollapsed ? 'lg:relative lg:translate-x-0' : 'lg:absolute lg:-translate-x-full'}
       `}>
         <div className="h-16 flex items-center justify-between px-6 border-b shrink-0">
           <div className="flex items-center">
             <Store className="h-6 w-6 text-black mr-2" />
             <span className="font-bold text-lg">FoodHub</span>
           </div>
-          <button 
-            className="lg:hidden p-1 text-gray-500 hover:text-black"
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            <X className="h-5 w-5" />
+          <button onClick={toggleSidebar} className="hidden lg:flex p-1 hover:bg-gray-100 rounded text-gray-500 transition-colors">
+            <ChevronLeft className={`h-5 w-5 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`} />
+          </button>
+          <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden p-1 hover:bg-gray-100 rounded text-gray-500 transition-colors">
+            <X className="h-6 w-6" />
           </button>
         </div>
         
@@ -288,20 +299,27 @@ const Layout = () => {
 
         {/* Footer / Logout */}
         <div className="p-4 border-t shrink-0 flex flex-col gap-2">
-          <NavLink 
-            to="/pos"
-            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm"
-          >
-            <MonitorPlay className="h-[18px] w-[18px]" />
-            Punto de Venta
-          </NavLink>
-          <NavLink 
-            to="/kitchen"
-            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors"
-          >
-            <ChefHat className="h-[18px] w-[18px]" />
-            Vista Cocina
-          </NavLink>
+          
+          <div className="flex flex-col gap-2 mb-1">
+            <NavLink 
+              to="/pos"
+              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-bold transition-all border ${
+                isActive ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100 hover:border-blue-200'
+              }`}
+            >
+              <MonitorPlay className="h-[18px] w-[18px]" />
+              Punto de Venta
+            </NavLink>
+            <NavLink 
+              to="/kitchen"
+              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-bold transition-all border ${
+                isActive ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100 hover:border-blue-200'
+              }`}
+            >
+              <ChefHat className="h-[18px] w-[18px]" />
+              Cocina
+            </NavLink>
+          </div>
           <button 
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-semibold text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors mt-2"
@@ -313,16 +331,19 @@ const Layout = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        {/* Mobile Header */}
-        <header className="lg:hidden bg-white border-b h-16 flex items-center px-4 shrink-0">
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto relative">
+        {/* Mobile Header OR Desktop Header when sidebar is collapsed */}
+        <header className={`${!isSidebarCollapsed ? 'lg:hidden' : 'lg:flex'} bg-white border-b h-16 flex items-center px-4 shrink-0 shadow-sm sticky top-0 z-40`}>
           <button 
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="p-2 -ml-2 mr-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            onClick={() => {
+              if (window.innerWidth >= 1024) toggleSidebar();
+              else setIsMobileMenuOpen(true);
+            }}
+            className="p-2 -ml-2 mr-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <Menu className="h-6 w-6" />
           </button>
-          <span className="font-bold text-lg">FoodHub</span>
+          <span className="font-bold text-lg lg:hidden">FoodHub</span>
         </header>
 
         <Outlet />

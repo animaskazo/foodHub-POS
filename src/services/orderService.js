@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 
-export const createOrder = async (cartItems, paymentMethod, orderType, total, subtotal, tax) => {
+export const createOrder = async (cartItems, paymentMethod, orderType, total, subtotal, tax, deliveryInfo = null, orderNotes = '', deliveryFee = 0) => {
   try {
     // 1. Get the current logged-in user's organization and branch
     const { data: { session } } = await supabase.auth.getSession();
@@ -30,19 +30,27 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
     // (Handled automatically by database trigger `set_order_number_trigger`)
 
     // 3. Insert order
+    const orderPayload = {
+      organization_id: organizationId,
+      branch_id: branchId,
+      order_type: orderType,
+      status: 'confirmed', 
+      subtotal: subtotal,
+      tax_amount: tax,
+      total: total,
+      notes: orderNotes,
+      delivery_fee: deliveryFee
+    };
+    
+    if (deliveryInfo) {
+      orderPayload.customer_name = deliveryInfo.customerName;
+      orderPayload.customer_phone = deliveryInfo.customerPhone;
+      orderPayload.delivery_address = deliveryInfo.deliveryAddress;
+    }
+
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .insert([
-        {
-          organization_id: organizationId,
-          branch_id: branchId,
-          order_type: orderType,
-          status: 'confirmed', 
-          subtotal: subtotal,
-          tax_amount: tax,
-          total: total,
-        }
-      ])
+      .insert([orderPayload])
       .select()
       .single();
 

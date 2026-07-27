@@ -114,7 +114,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                     <td className="px-8 py-5 text-base font-bold text-gray-900">
                       <div className="flex flex-col gap-2">
                         <span>{order.order_number}</span>
-                        {order.order_type === 'online' && order.payments?.some(p => p.status === 'pending') && (
+                        {['online', 'whatsapp'].includes(order.order_type) && order.payments?.some(p => p.status === 'pending') && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold w-fit">
                             <span className="w-1.5 h-1.5 bg-amber-500 inline-block" />
                             Pago pendiente

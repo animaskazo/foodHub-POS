@@ -140,19 +140,43 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
 const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdateQty, onRemoveItem, onViewCart, isOpen }) => {
   const [activeCategory, setActiveCategory] = useState('all');
   const [isHoursModalOpen, setIsHoursModalOpen] = useState(false);
-  const [logoFlipping, setLogoFlipping] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const catBarRef = useRef(null);
-  const catRefs = useRef({});
+  const [logoFlipping, setLogoFlipping] = useState(false);
 
   const totalQty = cartItems.reduce((s, i) => s + i.quantity, 0);
   const totalPrice = cartItems.reduce((s, i) => s + (Math.round(i.price) * i.quantity), 0);
+  const catRefs = useRef({});
+  const catBarRef = useRef(null);
+  const observerRef = useRef(null);
+  const isClickScrolling = useRef(false);
+
+  useEffect(() => {
+    if (!window.IntersectionObserver) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (isClickScrolling.current) return;
+      const visibleEntries = entries.filter(e => e.isIntersecting);
+      if (visibleEntries.length > 0) {
+        const sorted = visibleEntries.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        const topId = sorted[0].target.id.replace('category-', '');
+        setActiveCategory(topId);
+        scrollCategoryIntoView(topId);
+      }
+    }, { rootMargin: '-100px 0px -40% 0px', threshold: 0.1 });
+
+    observerRef.current = observer;
+    
+    // Slight delay to ensure elements are rendered
+    setTimeout(() => {
+      const elements = document.querySelectorAll('[id^="category-"]');
+      elements.forEach(el => observer.observe(el));
+    }, 500);
+
+    return () => observer.disconnect();
+  }, [categories, products]);
 
   const filteredProducts = useMemo(() => {
-    let list = products;
-    if (activeCategory !== 'all') list = list.filter(p => p.categoryId === activeCategory);
-    return list;
-  }, [products, activeCategory]);
+    return products;
+  }, [products]);
 
   const cartInfoMap = useMemo(() => {
     const map = {};
@@ -215,11 +239,8 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
     }
   };
 
-  const categoriesToRender = activeCategory === 'all'
-    ? categories
-    : categories.filter(c => c.id === activeCategory);
-
-  const renderFallback = activeCategory === 'all' && groupedProducts['other']?.length > 0;
+  const categoriesToRender = categories;
+  const renderFallback = groupedProducts['other']?.length > 0;
 
   return (
     <div className="flex flex-col min-h-0">
@@ -310,6 +331,17 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
               onClick={() => {
                 setActiveCategory(cat.id);
                 scrollCategoryIntoView(cat.id);
+                isClickScrolling.current = true;
+                if (cat.id === 'all') {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                  const el = document.getElementById(`category-${cat.id}`);
+                  if (el) {
+                    const y = el.getBoundingClientRect().top + window.scrollY - 100;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                  }
+                }
+                setTimeout(() => { isClickScrolling.current = false; }, 800);
               }}
               className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-bold transition-all ${activeCategory === cat.id
                 ? 'bg-black text-white shadow'
@@ -338,7 +370,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                 if (prods.length === 0) return null;
 
                 return (
-                  <div key={cat.id} className="space-y-4">
+                  <div key={cat.id} id={`category-${cat.id}`} className="space-y-4">
                     <h3 className="font-extrabold text-xl text-gray-900 pb-2 mb-1 px-1 sticky top-0 bg-white/90 backdrop-blur-sm z-10 pt-2">
                       {cat.name}
                     </h3>
@@ -361,7 +393,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
               })}
 
               {renderFallback && (
-                <div className="space-y-4">
+                <div id="category-other" className="space-y-4">
                   <h3 className="font-extrabold text-xl text-gray-900 pb-2 mb-1 px-1 sticky top-0 bg-white/90 backdrop-blur-sm z-10 pt-2">
                     Otros
                   </h3>

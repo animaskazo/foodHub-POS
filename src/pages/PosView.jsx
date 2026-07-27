@@ -302,13 +302,15 @@ const PosView = () => {
     setIsPaymentModalOpen(true);
   };
 
-  const handlePaymentConfirm = async (method, orderType) => {
+  const handlePaymentConfirm = async (method, orderType, deliveryInfo, orderNotes) => {
     try {
-      const total = cartItems.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
-      const subtotal = Math.round(total / (1 + taxRate));
-      const tax = total - subtotal;
+      const cartTotal = cartItems.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
+      const deliveryFee = deliveryInfo?.deliveryFee || 0;
+      const total = cartTotal + deliveryFee;
+      const subtotal = Math.round(cartTotal / (1 + taxRate));
+      const tax = cartTotal - subtotal;
       
-      const order = await createOrder(cartItems, method, orderType, total, subtotal, tax);
+      const order = await createOrder(cartItems, method, orderType, total, subtotal, tax, deliveryInfo, orderNotes, deliveryFee);
       
       setCartItems([]);
       setIsMobileCartOpen(false);
