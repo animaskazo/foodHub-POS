@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import Layout from './components/Layout';
 import CatalogManager from './pages/CatalogManager';
 import IngredientsManager from './pages/IngredientsManager';
@@ -57,6 +58,7 @@ function App() {
         <Route path="/products/:id" element={<CreateProductView />} />
         </Routes>
         <Toaster position="bottom-right" richColors expand={false} offset="80px" />
+        <Analytics />
       </BrowserRouter>
     </AuthProvider>
   );
