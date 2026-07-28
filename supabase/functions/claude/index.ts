@@ -59,7 +59,17 @@ Estructura del JSON:
   ]
 }
 
-Ten en cuenta que los precios deben ser números (sin símbolos). Si no hay ingredientes, deja el arreglo vacío. Procesa todo el texto bajo el producto como ingredientes si están separados por comas.
+Ten en cuenta que los precios deben ser números enteros (sin símbolos ni decimales).
+ATENCIÓN: En Chile los precios usan punto (.) como separador de miles y coma (,) como separador decimal.
+Ejemplos de conversión correcta:
+  - "$4.500" → 4500
+  - "$1.200" → 1200
+  - "$15.000" → 15000
+  - "$2.990" → 2990
+  - "$500" → 500
+  - " $ 3.500 " → 3500
+NUNCA uses punto como decimal. Si ves "4.500" es cuatro mil quinientos, NO 4.5.
+Si no hay ingredientes, deja el arreglo vacío. Procesa todo el texto bajo el producto como ingredientes si están separados por comas.
       `;
 
       const response = await fetch("https://api.anthropic.com/v1/messages", {
