@@ -20,7 +20,7 @@ function text(value: unknown) { return typeof value === "string" ? value : ""; }
 function toNumber(value: unknown) { const number = Number(value); return Number.isFinite(number) ? number : 0; }
 
 async function getContext(slug: string) {
-  const organizations = await db(`organizations?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=id,name,currency,primary_color,default_tax_rate,delivery_enabled,store_lat,store_lng,delivery_radius_km,delivery_fee,delivery_min_order,address,logo_url`);
+  const organizations = await db(`organizations?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=id,name,currency,primary_color,default_tax_rate,delivery_enabled,store_lat,store_lng,delivery_radius_km,delivery_fee,delivery_min_order,address,logo_url,business_hours,phone`);
   const organization = organizations[0];
   if (!organization) throw new Error("No existe un negocio activo para ese enlace.");
   const branches = await db(`branches?organization_id=eq.${organization.id}&is_active=eq.true&select=id,name,accepts_online`);
@@ -65,7 +65,7 @@ function validateCart(input: unknown, context: Awaited<ReturnType<typeof getCont
     return { product, quantity, notes: text(raw?.notes).slice(0, 280), options, netUnitPrice, grossUnitPrice };
   });
 }
-async function askAgent(messages: unknown[], cart: unknown[], context: Awaited<ReturnType<typeof getContext>>) {
+async function askAgent(messages: unknown[], cart: unknown[], context: Awaited<ReturnType<typeof getContext>>, phone?: string) {
   if (!claudeKey) throw new Error("Falta configurar CLAUDE_API_KEY en los secretos de la función.");
   const menu = context.products.map((product) => {
     const prodIngs = (context.ingredients || []).filter((i: any) => i.product_id === product.id).map((i: any) => i.ingredients?.name).filter(Boolean);
@@ -78,7 +78,56 @@ async function askAgent(messages: unknown[], cart: unknown[], context: Awaited<R
       variants: context.variants.filter((group: any) => group.product_id === product.id).map((group: any) => ({ id: group.id, name: group.name, required: group.is_required, options: group.variant_options?.filter((option: any) => option.is_active).map((option: any) => ({ id: option.id, name: option.name, price_modifier: toNumber(option.price_modifier) })) })) 
     };
   });
-  const instruction = `Eres el asistente de pedidos de ${context.organization.name}. Responde siempre en español, de forma cercana y breve. La carta adjunta es la única fuente de productos, precios y opciones. Nunca inventes productos, precios ni disponibilidad. Ayuda a armar el pedido y pregunta lo mínimo necesario por variantes obligatorias. Devuelve el carrito completo; conserva productos ya presentes salvo que el cliente pida cambiarlos. NUNCA calcules sumas ni el total del pedido, el sistema lo hará automáticamente. SIEMPRE que menciones o recomiendes un producto o variante en tu mensaje, debes mostrar su precio exacto entre paréntesis, ejemplo: Hamburguesa ($6.990). No confirmes ni cobres: la aplicación lo hace después. Cuando el pedido esté armado y correcto, pídele al cliente que diga la palabra "confirmar" para finalizar. Si la venta web está desactivada, aclara que no se podrá confirmar el pedido todavía.\n\nCARTA: ${JSON.stringify(menu)}\n\nVENTA_WEB: ${Boolean(context.branch.accepts_online)}`;
+  // Formatear el horario comercial para pasarlo a Claude
+  let hoursStr = "No especificado";
+  if (context.organization.business_hours) {
+    try {
+      const bh = typeof context.organization.business_hours === "string" 
+        ? JSON.parse(context.organization.business_hours) 
+        : context.organization.business_hours;
+      hoursStr = Object.entries(bh)
+        .map(([day, val]: [string, any]) => {
+          const dayName = { mon: "Lunes", tue: "Martes", wed: "Miércoles", thu: "Jueves", fri: "Viernes", sat: "Sábado", sun: "Domingo" }[day] || day;
+          return val.closed ? `${dayName}: Cerrado` : `${dayName}: ${val.open} a ${val.close}`;
+        })
+        .join(", ");
+    } catch (e) {
+      console.error("Error parsing business hours:", e);
+    }
+  }
+
+  // Buscar historial de pedidos si el teléfono está presente
+  let ordersStr = "No se encontraron pedidos recientes.";
+  if (phone) {
+    try {
+      // Query the database for the last 3 orders
+      const orders = await db(`orders?organization_id=eq.${context.organization.id}&customer_phone=eq.${encodeURIComponent(phone)}&select=order_number,status,delivery_type,total,created_at,order_items(product_name,quantity)&order=created_at.desc&limit=3`);
+      if (orders && orders.length > 0) {
+        ordersStr = orders.map((o: any) => {
+          const items = (o.order_items || []).map((i: any) => `${i.quantity}x ${i.product_name}`).join(", ");
+          const statusMap: any = { pending: "Pendiente de aprobación", confirmed: "Preparando en cocina", ready: "Listo", delivered: "Entregado", cancelled: "Cancelado" };
+          const status = statusMap[o.status] || o.status;
+          return `- Pedido #${o.order_number}: ${items || "Sin detalle"} (Total: ${toNumber(o.total).toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 })}, Estado: ${status})`;
+        }).join("\n");
+      }
+    } catch (e) {
+      console.error("Error fetching customer history for Claude:", e);
+    }
+  }
+
+  // Obtener fecha y hora actual en la zona horaria de Chile
+  const now = new Date();
+  const currentDate = new Intl.DateTimeFormat("es-CL", {
+    timeZone: "America/Santiago",
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(now);
+
+  const instruction = `Eres el asistente de pedidos de ${context.organization.name}. Responde siempre en español, de forma cercana y breve. La carta adjunta es la única fuente de productos, precios y opciones. Nunca inventes productos, precios ni disponibilidad. Ayuda a armar el pedido y pregunta lo mínimo necesario por variantes obligatorias. Devuelve el carrito completo; conserva productos ya presentes salvo que el cliente pida cambiarlos. NUNCA calcules sumas ni el total del pedido, el sistema lo hará automáticamente. SIEMPRE que menciones o recomiendes un producto o variante en tu mensaje, debes mostrar su precio exacto entre paréntesis, ejemplo: Hamburguesa ($6.990). No confirmes ni cobres: la aplicación lo hace después. Cuando el pedido esté armado y correcto, pídele al cliente que diga la palabra "confirmar" para finalizar. Si la venta web está desactivada, aclara que no se podrá confirmar el pedido todavía.\n\nINFORMACIÓN DEL LOCAL:\n- Dirección: ${context.organization.address || "No especificada"}\n- Teléfono: ${context.organization.phone || "No especificado"}\n- Horario de Atención: ${hoursStr}\n- Fecha y Hora Actual: ${currentDate}\n\nNota: Si el cliente pregunta si están abiertos o por la hora, utiliza la 'Fecha y Hora Actual' y compárala con el 'Horario de Atención' guardado en el sistema para responder.\n\nPEDIDOS RECIENTES DE ESTE CLIENTE (Teléfono: ${phone || "No especificado"}):\n${ordersStr}\n\nNota: Si el cliente pregunta por el estado de su pedido o sus pedidos anteriores, utiliza la sección de "PEDIDOS RECIENTES" de arriba para responder de forma clara y directa.\n\nCARTA: ${JSON.stringify(menu)}\n\nVENTA_WEB: ${Boolean(context.branch.accepts_online)}`;
   const schema = {
     type: "object", additionalProperties: false, required: ["message", "cart"], properties: {
       message: { type: "string" },
@@ -193,7 +242,7 @@ Deno.serve(async (request) => {
     const body = await request.json(); const slug = text(body.organization_slug); if (!slug || !/^[a-z0-9-]{2,80}$/.test(slug)) throw new Error("El enlace del negocio no es válido.");
     const context = await getContext(slug);
     if (body.action === "welcome") return json({ organization: { name: context.organization.name, currency: context.organization.currency, online_enabled: Boolean(context.branch.accepts_online) }, message: `¡Hola! Soy el asistente de ${context.organization.name}. ¿Qué te gustaría pedir hoy?` });
-    if (body.action === "chat") { const reply = await askAgent(Array.isArray(body.messages) ? body.messages.slice(-10) : [], body.cart, context); const requestedCart = Array.isArray(reply.cart) ? reply.cart : []; const validCart = requestedCart.length ? validateCart(requestedCart, context) : []; return json({ message: text(reply.message), cart: validCart.map((item) => ({ product_id: item.product.id, name: item.product.name, quantity: item.quantity, notes: item.notes, variant_option_ids: item.options.map((option: any) => option.option.id), unit_price: item.grossUnitPrice })) }); }
+    if (body.action === "chat") { const reply = await askAgent(Array.isArray(body.messages) ? body.messages.slice(-10) : [], body.cart, context, text(body.phone)); const requestedCart = Array.isArray(reply.cart) ? reply.cart : []; const validCart = requestedCart.length ? validateCart(requestedCart, context) : []; return json({ message: text(reply.message), cart: validCart.map((item) => ({ product_id: item.product.id, name: item.product.name, quantity: item.quantity, notes: item.notes, variant_option_ids: item.options.map((option: any) => option.option.id), unit_price: item.grossUnitPrice })) }); }
     if (body.action === "confirm") return json(await confirmOrder(body.cart, body.customer, body.delivery, context));
     return json({ error: "Acción no reconocida." }, 400);
   } catch (error) { return json({ error: error instanceof Error ? error.message : "Ocurrió un error inesperado." }, 400); }
