@@ -178,6 +178,41 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
 
     if (paymentError) throw paymentError;
 
+    // 6. Save/update customer record and associate with order
+    if (deliveryInfo?.customerPhone) {
+      try {
+        const { data: existingCustomer } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .eq('phone', deliveryInfo.customerPhone)
+          .maybeSingle();
+
+        if (existingCustomer) {
+          if (deliveryInfo.customerName) {
+            await supabase.from('customers').update({ full_name: deliveryInfo.customerName })
+              .eq('id', existingCustomer.id);
+          }
+          await supabase.from('orders').update({ customer_id: existingCustomer.id }).eq('id', order.id);
+        } else {
+          const { data: newCustomer } = await supabase
+            .from('customers')
+            .insert([{
+              organization_id: organizationId,
+              phone: deliveryInfo.customerPhone,
+              full_name: deliveryInfo.customerName || 'Cliente POS',
+            }])
+            .select().single();
+          if (newCustomer) {
+            await supabase.from('orders').update({ customer_id: newCustomer.id }).eq('id', order.id);
+          }
+        }
+      } catch (custError) {
+        console.error("Error saving customer record:", custError);
+        // Non-blocking: order was already created successfully
+      }
+    }
+
     return order;
   } catch (error) {
     console.error("Error creating order:", error);
