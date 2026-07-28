@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { 
@@ -22,7 +22,8 @@ import {
   User,
   DollarSign,
   Printer,
-  ChevronLeft
+  ChevronLeft,
+  MessageCircle
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import FeedbackBubble from './FeedbackBubble';
@@ -32,6 +33,31 @@ const Layout = () => {
   const [isProductsOpen, setIsProductsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { isSuperAdmin, role } = useAuth();
+  const [inboxEnabled, setInboxEnabled] = useState(false);
+
+  useEffect(() => {
+    const checkInbox = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const { data: staff } = await supabase
+          .from('staff')
+          .select('organization_id')
+          .eq('id', session.user.id)
+          .single();
+        if (!staff) return;
+        const { data: org } = await supabase
+          .from('organizations')
+          .select('whatsapp_inbox_enabled')
+          .eq('id', staff.organization_id)
+          .single();
+        if (org?.whatsapp_inbox_enabled) setInboxEnabled(true);
+      } catch (e) {
+        // silently ignore
+      }
+    };
+    checkInbox();
+  }, []);
   
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
     localStorage.getItem('sidebar_collapsed') === 'true'
@@ -185,6 +211,23 @@ const Layout = () => {
                 Clientes
               </NavLink>
             </li>
+
+            {inboxEnabled && (
+              <li className="pt-2">
+                <NavLink 
+                  to="/conversations" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={({ isActive }) => 
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${
+                      isActive ? 'bg-green-50 text-green-800' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                    }`
+                  }
+                >
+                  <MessageCircle className="h-[18px] w-[18px]" />
+                  Conversaciones
+                </NavLink>
+              </li>
+            )}
 
             <li className="pt-2">
               <NavLink 

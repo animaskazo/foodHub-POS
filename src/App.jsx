@@ -16,6 +16,7 @@ import DeliverySettingsView from './pages/DeliverySettingsView';
 import ShiftsSettingsView from './pages/ShiftsSettingsView';
 import OrderView from './pages/OrderView';
 import CustomersView from './pages/CustomersView';
+import ConversationsView from './pages/ConversationsView';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import UpdatePasswordView from './pages/UpdatePasswordView';
 import ForgotPasswordView from './pages/ForgotPasswordView';
@@ -45,6 +46,7 @@ function App() {
           <Route path="delivery" element={<DeliverySettingsView />} />
           <Route path="shifts-settings" element={<ShiftsSettingsView />} />
           <Route path="customers" element={<CustomersView />} />
+          <Route path="conversations" element={<ConversationsView />} />
         </Route>
         
         {/* Full-screen Modals & Views (Outside Layout) */}

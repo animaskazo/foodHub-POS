@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { Search, User, Mail, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, Truck } from 'lucide-react';
+import { Search, User, Mail, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, Truck, MessageCircle, RefreshCw, ToggleLeft, ToggleRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const SuperAdminView = () => {
   const [selectedOrganization, setSelectedOrganization] = useState(null);
@@ -112,7 +113,7 @@ const SuperAdminView = () => {
   const fetchOrganizations = async () => {
     const { data, error: fetchError } = await supabase
       .from('organizations')
-      .select('id, name, slug, created_at, orders(total)')
+      .select('id, name, slug, created_at, whatsapp_phone_number_id, whatsapp_inbox_url, whatsapp_inbox_enabled, orders(total)')
       .order('created_at', { ascending: false });
 
     if (fetchError) throw fetchError;
@@ -125,6 +126,9 @@ const SuperAdminView = () => {
         name: org.name,
         slug: org.slug,
         createdAt: org.created_at,
+        whatsappPhoneNumberId: org.whatsapp_phone_number_id,
+        whatsappInboxUrl: org.whatsapp_inbox_url,
+        whatsappInboxEnabled: org.whatsapp_inbox_enabled,
         orderCount: ordersArray.length,
         totalSales: totalSales,
       };
@@ -366,6 +370,140 @@ const SuperAdminView = () => {
             {/* Detail Tab Contents */}
             <div className="bg-white rounded-xl border p-4 md:p-6 min-h-[300px]">
               
+              {/* Overview */}
+              {detailTab === 'overview' && (
+                <div className="space-y-6">
+                  {/* WhatsApp Inbox Settings */}
+                  <div className="border rounded-xl overflow-hidden">
+                    <div className="bg-green-50/50 border-b px-4 py-3 flex items-center gap-2">
+                      <MessageCircle className="h-5 w-5 text-green-600" />
+                      <h3 className="font-semibold text-green-900">WhatsApp Inbox (Kapso)</h3>
+                    </div>
+                    <div className="p-4 md:p-5">
+                      {!selectedOrganization.whatsappPhoneNumberId ? (
+                        <div className="text-sm text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                          La organización no tiene un número de WhatsApp configurado (whatsapp_phone_number_id). Configúralo en la base de datos para habilitar el Inbox.
+                        </div>
+                      ) : (
+                        <div className="flex flex-col md:flex-row gap-6 md:items-start">
+                          <div className="flex-1 space-y-4">
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">Estado del Inbox</p>
+                              {selectedOrganization.whatsappInboxUrl ? (
+                                <p className="text-sm text-green-600 font-medium flex items-center gap-1.5 mt-1">
+                                  <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                                  Generado y listo
+                                </p>
+                              ) : (
+                                <p className="text-sm text-gray-500 mt-1">
+                                  No generado. Presiona "Generar Inbox" para crear el embed token en Kapso.
+                                </p>
+                              )}
+                            </div>
+
+                            {selectedOrganization.whatsappInboxUrl && (
+                              <div>
+                                <p className="text-sm font-medium text-gray-700 mb-2">Visibilidad para el Cliente</p>
+                                <button
+                                  onClick={async () => {
+                                    const newState = !selectedOrganization.whatsappInboxEnabled;
+                                    const toastId = toast.loading(newState ? 'Habilitando inbox...' : 'Deshabilitando inbox...');
+                                    try {
+                                      const res = await supabase.functions.invoke('manage-inbox', {
+                                        body: { action: 'toggle', organization_id: selectedOrganization.id, enabled: newState }
+                                      });
+                                      if (res.error) throw res.error;
+                                      
+                                      setSelectedOrganization(prev => ({ ...prev, whatsappInboxEnabled: newState }));
+                                      setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, whatsappInboxEnabled: newState } : o));
+                                      toast.success(newState ? 'Inbox habilitado' : 'Inbox deshabilitado', { id: toastId });
+                                    } catch (err) {
+                                      console.error(err);
+                                      toast.error('Error al cambiar visibilidad', { id: toastId });
+                                    }
+                                  }}
+                                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${
+                                    selectedOrganization.whatsappInboxEnabled
+                                      ? 'bg-green-50 border-green-200 text-green-700'
+                                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                                  }`}
+                                >
+                                  {selectedOrganization.whatsappInboxEnabled ? (
+                                    <ToggleRight className="h-5 w-5" />
+                                  ) : (
+                                    <ToggleLeft className="h-5 w-5" />
+                                  )}
+                                  <span className="text-sm font-medium">
+                                    {selectedOrganization.whatsappInboxEnabled ? 'Visible en Sidebar' : 'Oculto'}
+                                  </span>
+                                </button>
+                                <p className="text-xs text-gray-500 mt-2">
+                                  Si está habilitado, los usuarios de esta organización verán la pestaña "Conversaciones" en su menú lateral.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col gap-2 shrink-0 md:w-48">
+                            <Button
+                              onClick={async () => {
+                                const toastId = toast.loading(selectedOrganization.whatsappInboxUrl ? 'Regenerando inbox...' : 'Generando inbox...');
+                                try {
+                                  const res = await supabase.functions.invoke('manage-inbox', {
+                                    body: { action: 'create', organization_id: selectedOrganization.id }
+                                  });
+                                  if (res.error) throw new Error(res.error.message || 'Error en Edge Function');
+                                  
+                                  const embedUrl = res.data?.embed_url;
+                                  if (!embedUrl) throw new Error('No se recibió la URL');
+
+                                  setSelectedOrganization(prev => ({ ...prev, whatsappInboxUrl: embedUrl, whatsappInboxEnabled: true }));
+                                  setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, whatsappInboxUrl: embedUrl, whatsappInboxEnabled: true } : o));
+                                  toast.success('Inbox generado con éxito', { id: toastId });
+                                } catch (err) {
+                                  console.error(err);
+                                  toast.error(err.message || 'Error al generar inbox', { id: toastId });
+                                }
+                              }}
+                              className="w-full justify-center bg-black hover:bg-gray-800"
+                            >
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              {selectedOrganization.whatsappInboxUrl ? 'Regenerar Inbox' : 'Generar Inbox'}
+                            </Button>
+                            
+                            {selectedOrganization.whatsappInboxUrl && (
+                              <Button
+                                variant="outline"
+                                onClick={async () => {
+                                  if (!confirm('¿Seguro que quieres revocar el acceso al Inbox? El token actual dejará de funcionar inmediatamente.')) return;
+                                  const toastId = toast.loading('Revocando inbox...');
+                                  try {
+                                    const res = await supabase.functions.invoke('manage-inbox', {
+                                      body: { action: 'revoke', organization_id: selectedOrganization.id }
+                                    });
+                                    if (res.error) throw res.error;
+                                    
+                                    setSelectedOrganization(prev => ({ ...prev, whatsappInboxUrl: null, whatsappInboxEnabled: false }));
+                                    setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, whatsappInboxUrl: null, whatsappInboxEnabled: false } : o));
+                                    toast.success('Inbox revocado', { id: toastId });
+                                  } catch (err) {
+                                    console.error(err);
+                                    toast.error('Error al revocar inbox', { id: toastId });
+                                  }
+                                }}
+                                className="w-full justify-center text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                              >
+                                Revocar Acceso
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Orders */}
               {detailTab === 'orders' && (
                 <div>
