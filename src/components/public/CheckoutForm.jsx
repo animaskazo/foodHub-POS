@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard } from 'lucide-react';
+import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard, Truck, Info } from 'lucide-react';
 import { getCustomerByPhone } from '../../services/publicOrderService';
 import { geocodeAddress, calculateDistance, isPointInPolygon } from '../../utils/geo';
-import { MapPin, Info } from 'lucide-react';
+import { getAccessToken, createQuote } from '../../services/uberDirectService';
+import { MapPin } from 'lucide-react';
 
 const InputField = ({ icon: Icon, label, isLoading, rightElement, ...props }) => (
   <div className="relative">
@@ -28,7 +29,12 @@ const InputField = ({ icon: Icon, label, isLoading, rightElement, ...props }) =>
   </div>
 );
 
-const fmt = (n) => n.toLocaleString('es-CL');
+const fmt = (n, decimals) => n.toLocaleString('es-CL', decimals != null ? { minimumFractionDigits: decimals, maximumFractionDigits: decimals } : {});
+const fmtPrice = (amount, currency) => {
+  if (!amount) return '$0';
+  if (currency === 'CLP') return `$${Math.round(amount).toLocaleString('es-CL')}`;
+  return `$${amount.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 export const formatChileanPhone = (value) => {
   if (!value) return '';
@@ -83,6 +89,11 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           deliveryType: 'pickup',
           deliveryAddress: '',
           deliveryFee: 0,
+          deliveryCoords: null,
+          quoteId: null,
+          quotePrice: null,
+          quoteCurrency: 'USD',
+          deliveryCurrency: 'CLP',
         };
       }
     } catch (e) {}
@@ -91,15 +102,21 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       phone: '',
       email: '',
       notes: '',
-      paymentMethod: 'local', // local or online
-      deliveryType: 'pickup', // pickup or delivery
+      paymentMethod: 'local',
+      deliveryType: 'pickup',
       deliveryAddress: '',
       deliveryFee: 0,
+      deliveryCoords: null,
+      quoteId: null,
+      quotePrice: null,
+      quoteCurrency: 'USD',
+      deliveryCurrency: 'CLP',
     };
   });
   const [errors, setErrors] = useState({});
   const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [isQuoting, setIsQuoting] = useState(false);
   const [distanceError, setDistanceError] = useState(null);
   const [isValidatedAddress, setIsValidatedAddress] = useState(false);
 
@@ -147,7 +164,9 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       if (!form.deliveryAddress?.trim()) {
         errs.deliveryAddress = 'La dirección de entrega es requerida';
       } else if (org?.store_lat && org?.store_lng && !isValidatedAddress) {
-        errs.deliveryAddress = 'Por favor selecciona o valida una dirección válida en el mapa (presiona enter)';
+        errs.deliveryAddress = org.delivery_mode === 'uber_direct'
+          ? 'Por favor presiona "Validar" para verificar tu dirección'
+          : 'Por favor selecciona o valida una dirección válida en el mapa (presiona enter)';
       }
     }
     return errs;
@@ -181,25 +200,87 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     try {
       const coords = await geocodeAddress(form.deliveryAddress);
       if (coords) {
-        let isInside = false;
-        
-        // Use polygon if available, else fallback to old radius
-        if (org.delivery_polygon && org.delivery_polygon.length > 0) {
-          isInside = isPointInPolygon(coords, org.delivery_polygon);
-        } else {
-          // Fallback just in case
-          const distance = calculateDistance(org.store_lat, org.store_lng, coords.lat, coords.lng);
-          isInside = distance <= (org.delivery_radius_km || 5);
-        }
-
-        if (!isInside) {
-          setDistanceError('Tu dirección está fuera de nuestra zona de cobertura.');
-          setIsValidatedAddress(false);
-          update('deliveryFee', 0);
-        } else {
+        if (org.delivery_mode === 'uber_direct') {
           setDistanceError(null);
           setIsValidatedAddress(true);
-          update('deliveryFee', org.delivery_fee || 0);
+          update('deliveryCoords', coords);
+          update('deliveryFee', 0);
+          setIsQuoting(true);
+          try {
+            const city = coords.address?.city || coords.address?.town || coords.address?.village || coords.address?.county || 'Santiago';
+            const zip = coords.address?.postcode || '';
+
+            const pickupAddr = {
+              street_address: [org.address || 'Dirección del local'],
+              state: coords.address?.state || 'RM',
+              city,
+              zip_code: zip,
+              country: 'CL',
+            };
+            const dropoffAddr = {
+              street_address: [form.deliveryAddress],
+              state: coords.address?.state || 'RM',
+              city,
+              zip_code: zip,
+              country: 'CL',
+            };
+
+            console.log('[Uber Quote pickup]', pickupAddr);
+            console.log('[Uber Quote dropoff]', dropoffAddr);
+
+            const tokenRes = await getAccessToken(org.uber_client_id, org.uber_client_secret);
+            console.log('[Uber Token] obtained');
+
+            const quoteRes = await createQuote(org.uber_customer_id, tokenRes.access_token, {
+              pickup_address: JSON.stringify(pickupAddr),
+              dropoff_address: JSON.stringify(dropoffAddr),
+              pickup_latitude: org.store_lat,
+              pickup_longitude: org.store_lng,
+              dropoff_latitude: coords.lat,
+              dropoff_longitude: coords.lng,
+              pickup_phone_number: org.phone || '+56912345678',
+              dropoff_phone_number: form.phone,
+            });
+
+            console.log('[Uber Quote]', quoteRes);
+
+            const rawFee = quoteRes.fee || 0;
+            const currency = (quoteRes.currency_type || quoteRes.currency || 'USD').toUpperCase();
+            const price = currency === 'CLP' ? Math.round(rawFee / 100) : rawFee / 100;
+
+            update('quoteId', quoteRes.id);
+            update('quotePrice', price);
+            update('quoteCurrency', currency);
+            update('deliveryFee', price);
+            update('deliveryCurrency', currency);
+          } catch (quoteError) {
+            console.error('[Uber Quote Error]', quoteError.message || quoteError);
+            console.error('[Uber Quote Error details]', JSON.stringify(quoteError));
+            setDistanceError('No pudimos cotizar el envío con Uber. Intenta de nuevo.');
+            setIsValidatedAddress(false);
+            update('deliveryFee', 0);
+          } finally {
+            setIsQuoting(false);
+          }
+        } else {
+          let isInside = false;
+          
+          if (org.delivery_polygon && org.delivery_polygon.length > 0) {
+            isInside = isPointInPolygon(coords, org.delivery_polygon);
+          } else {
+            const distance = calculateDistance(org.store_lat, org.store_lng, coords.lat, coords.lng);
+            isInside = distance <= (org.delivery_radius_km || 5);
+          }
+
+          if (!isInside) {
+            setDistanceError('Tu dirección está fuera de nuestra zona de cobertura.');
+            setIsValidatedAddress(false);
+            update('deliveryFee', 0);
+          } else {
+            setDistanceError(null);
+            setIsValidatedAddress(true);
+            update('deliveryFee', org.delivery_fee || 0);
+          }
         }
       } else {
         setDistanceError('No pudimos encontrar la dirección. Asegúrate de incluir tu comuna o ciudad.');
@@ -281,6 +362,8 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                     onClick={() => {
                       update('deliveryType', 'pickup');
                       update('deliveryFee', 0);
+                      update('quoteId', null);
+                      update('quotePrice', null);
                       setDistanceError(null);
                       setIsValidatedAddress(false);
                     }}
@@ -307,8 +390,19 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                         : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
                     }`}
                   >
-                    <MapPin className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'delivery' ? 'text-black' : 'text-gray-400'}`} />
-                    <span className="text-sm font-bold">Delivery</span>
+                    {org?.delivery_mode === 'uber_direct' ? (
+                      <Truck className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'delivery' ? 'text-black' : 'text-gray-400'}`} />
+                    ) : (
+                      <MapPin className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'delivery' ? 'text-black' : 'text-gray-400'}`} />
+                    )}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-bold">Delivery</span>
+                      {org?.delivery_mode === 'uber_direct' && (
+                        <span className="text-[10px] bg-green-600 text-white font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">
+                          Uber
+                        </span>
+                      )}
+                    </div>
                   </label>
                 </div>
 
@@ -351,8 +445,27 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                     
                     {!distanceError && isValidatedAddress && (
                       <div className="flex items-center justify-between bg-green-50 text-green-700 px-3 py-2.5 rounded-xl border border-green-100">
-                        <span className="font-semibold text-xs pr-2">Super, nuestro delivery llega a tu dirección.</span>
-                        <span className="font-bold text-[13px] shrink-0">Valor ${fmt(form.deliveryFee)}</span>
+                        {org?.delivery_mode === 'uber_direct' && isQuoting ? (
+                          <>
+                            <span className="font-semibold text-xs pr-2">Cotizando envío con Uber…</span>
+                            <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                          </>
+                        ) : org?.delivery_mode === 'uber_direct' && form.quotePrice > 0 ? (
+                          <>
+                            <span className="font-semibold text-xs pr-2">Delivery vía Uber Direct</span>
+                            <span className="font-bold text-[13px] shrink-0">{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
+                          </>
+                        ) : org?.delivery_mode === 'uber_direct' ? (
+                          <>
+                            <span className="font-semibold text-xs pr-2">Delivery vía Uber Direct</span>
+                            <span className="font-bold text-[13px] shrink-0">Gratis</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-semibold text-xs pr-2">Super, nuestro delivery llega a tu dirección.</span>
+                            <span className="font-bold text-[13px] shrink-0">Valor ${fmt(form.deliveryFee)}</span>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -459,7 +572,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-8 pointer-events-none">
         <div className="max-w-3xl mx-auto flex flex-col items-center pointer-events-auto space-y-3">
           
-          {form.deliveryFee > 0 && form.deliveryType === 'delivery' && (
+          {form.deliveryType === 'delivery' && (form.deliveryFee > 0 || org?.delivery_mode === 'uber_direct') && (
             <div className="w-full flex flex-col gap-2 px-4 bg-white/80 backdrop-blur-md py-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100">
               <div className="flex justify-between items-center text-sm font-bold text-gray-700">
                 <span>Subtotal (Productos)</span>
@@ -467,7 +580,15 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               </div>
               <div className="flex justify-between items-center text-sm font-bold text-gray-700">
                 <span>Costo de envío</span>
-                <span>${fmt(form.deliveryFee)}</span>
+                {org?.delivery_mode === 'uber_direct' && isQuoting ? (
+                  <span className="text-gray-400 text-xs">Cotizando…</span>
+                ) : org?.delivery_mode === 'uber_direct' && form.quotePrice > 0 ? (
+                  <span>{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
+                ) : org?.delivery_mode === 'uber_direct' ? (
+                  <span>Gratis</span>
+                ) : (
+                  <span>${fmt(form.deliveryFee)}</span>
+                )}
               </div>
             </div>
           )}

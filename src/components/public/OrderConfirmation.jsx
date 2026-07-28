@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Clock, MapPin, ChevronRight, Loader2 } from 'lucide-react';
+import { CheckCircle2, Clock, MapPin, ChevronRight, Loader2, ExternalLink } from 'lucide-react';
 import { getPublicOrderById } from '../../services/publicOrderService';
 
 const fmt = (n) => n ? n.toLocaleString('es-CL') : '0';
@@ -108,6 +108,29 @@ const OrderConfirmation = ({ order, org }) => {
               )}
             </div>
           </div>
+
+          {/* Uber Direct tracking */}
+          {dbOrder?.uber_tracking_url && (
+            <a
+              href={dbOrder.uber_tracking_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-white rounded-2xl border border-green-200 p-4 flex items-center gap-4 hover:bg-green-50 transition-colors group"
+            >
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center shrink-0">
+                <ExternalLink className="h-5 w-5 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-green-700 text-sm group-hover:underline">
+                  Seguir delivery en vivo
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Delivery vía Uber Direct {dbOrder.uber_status ? `(${dbOrder.uber_status})` : ''}
+                </p>
+              </div>
+              <ExternalLink className="h-4 w-4 text-green-500 shrink-0" />
+            </a>
+          )}
 
           {/* Order summary */}
           <div className="bg-white rounded-2xl border border-gray-100 p-4">

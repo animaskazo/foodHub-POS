@@ -8,6 +8,8 @@ import OrderConfirmation from '../components/public/OrderConfirmation';
 import OrderError from '../components/public/OrderError';
 import ProductDetailView from '../components/public/ProductDetailView';
 import { getOrganizationByName, getPublicCatalog, createPublicOrder } from '../services/publicOrderService';
+import { getAccessToken, createQuote, createDelivery } from '../services/uberDirectService';
+import { geocodeAddress } from '../utils/geo';
 import { supabase } from '../lib/supabase';
 
 const OrderView = () => {
@@ -265,6 +267,90 @@ const OrderView = () => {
           throw new Error('Klap no retornó una URL de pago válida');
         }
         return; 
+      }
+
+      // ── Uber Direct: create delivery if mode is uber_direct ──
+      if (org.delivery_mode === 'uber_direct' && customerForm.deliveryType === 'delivery') {
+        try {
+          const tokenRes = await getAccessToken(org.uber_client_id, org.uber_client_secret)
+          const token = tokenRes.access_token
+
+          let dropoffCoords = customerForm.deliveryCoords
+          if (!dropoffCoords || !dropoffCoords.address) {
+            const fresh = await geocodeAddress(customerForm.deliveryAddress)
+            dropoffCoords = fresh || dropoffCoords
+          }
+
+          const city = dropoffCoords?.address?.city || dropoffCoords?.address?.town || dropoffCoords?.address?.village || dropoffCoords?.address?.county || 'Santiago'
+          const zip = dropoffCoords?.address?.postcode || ''
+          const state = dropoffCoords?.address?.state || 'RM'
+
+          const pickupAddr = {
+            street_address: [org.address || 'Dirección del local'],
+            state,
+            city,
+            zip_code: zip,
+            country: 'CL',
+          }
+          const dropoffAddr = {
+            street_address: [customerForm.deliveryAddress],
+            state,
+            city,
+            zip_code: zip,
+            country: 'CL',
+          }
+
+          let quoteId = customerForm.quoteId
+          if (!quoteId) {
+            const quote = await createQuote(org.uber_customer_id, token, {
+              pickup_address: JSON.stringify(pickupAddr),
+              dropoff_address: JSON.stringify(dropoffAddr),
+              pickup_latitude: org.store_lat,
+              pickup_longitude: org.store_lng,
+              dropoff_latitude: dropoffCoords?.lat,
+              dropoff_longitude: dropoffCoords?.lng,
+              pickup_phone_number: org.phone || '+56912345678',
+              dropoff_phone_number: customerForm.phone,
+            })
+            quoteId = quote.id
+          }
+
+          const delivery = await createDelivery(org.uber_customer_id, token, {
+            quote_id: quoteId,
+            pickup_address: JSON.stringify(pickupAddr),
+            pickup_name: org.name,
+            pickup_phone_number: org.phone || '+56912345678',
+            pickup_latitude: org.store_lat,
+            pickup_longitude: org.store_lng,
+            dropoff_address: JSON.stringify(dropoffAddr),
+            dropoff_name: customerForm.name,
+            dropoff_phone_number: customerForm.phone,
+            dropoff_latitude: dropoffCoords?.lat,
+            dropoff_longitude: dropoffCoords?.lng,
+            manifest_items: [{ name: 'Pedido FoodHub', quantity: cartItems.length, weight: 1 }],
+          })
+
+          const deliveryFee = delivery.fee ? ((delivery.currency || '').toUpperCase() === 'CLP' ? Math.round(delivery.fee / 100) : delivery.fee / 100) : customerForm.deliveryFee
+
+          const { error: updateError } = await supabase
+            .from('orders')
+            .update({
+              uber_delivery_id: delivery.id,
+              uber_tracking_url: delivery.tracking_url,
+              uber_status: delivery.status,
+              delivery_fee: deliveryFee,
+            })
+            .eq('id', order.id)
+
+          if (!updateError) {
+            order.uber_delivery_id = delivery.id
+            order.uber_tracking_url = delivery.tracking_url
+            order.uber_status = delivery.status
+            order.delivery_fee = deliveryFee
+          }
+        } catch (uberError) {
+          console.error('Uber Direct delivery creation failed:', uberError)
+        }
       }
 
       // Offline flow: order is already created above, just show confirmation

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer } from 'lucide-react';
+import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Modal from '../ui/Modal';
@@ -400,19 +400,30 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                     <div>
                       <div className="flex items-center gap-2 mb-2 text-gray-900">
                         <Van className="h-5 w-5 text-gray-400" />
-                        <h3 className="font-bold text-lg">Despacho con {selectedOrder.delivery_type}</h3>
+                        <h3 className="font-bold text-lg">Despacho a Domicilio</h3>
                       </div>
                       {selectedOrder.delivery_address ? (
                         <p className="text-sm text-gray-600 leading-relaxed">{selectedOrder.delivery_address}</p>
                       ) : (
                         <p className="text-sm text-gray-400 italic">Dirección no especificada</p>
                       )}
+                      {selectedOrder.uber_tracking_url && (
+                        <a
+                          href={selectedOrder.uber_tracking_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-green-600 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg border border-green-200 transition-colors"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Seguir delivery en vivo
+                        </a>
+                      )}
                     </div>
                   ) : (
                     <div>
                       <div className="flex items-center gap-2 mb-1 text-gray-900">
                         <PaperBag className="h-5 w-5 text-gray-400" />
-                        <h3 className="font-bold text-lg">Despacho con {selectedOrder.delivery_type}</h3>
+                        <h3 className="font-bold text-lg">Retiro en Local</h3>
                       </div>
                     </div>
                   )}

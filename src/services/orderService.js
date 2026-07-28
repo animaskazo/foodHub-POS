@@ -326,6 +326,7 @@ export const updateOrderStatus = async (orderId, status) => {
           total,
           subtotal,
           delivery_fee,
+          uber_delivery_id,
           branch_id,
           customer_id,
           payments ( method, status ),
@@ -366,10 +367,22 @@ export const updateOrderStatus = async (orderId, status) => {
         if (branch?.organization_id) {
           const { data: org } = await supabase
             .from('organizations')
-            .select('name, logo_url, address')
+            .select('name, logo_url, address, delivery_mode, uber_client_id, uber_client_secret, uber_customer_id')
             .eq('id', branch.organization_id)
             .single();
           orgData = org;
+        }
+
+        // ── Uber Direct: notify when ready ──
+        if (order.uber_delivery_id && orgData?.delivery_mode === 'uber_direct' && orgData?.uber_client_id) {
+          try {
+            const { getAccessToken, updateDeliveryStatus } = await import('./uberDirectService');
+            const tokenRes = await getAccessToken(orgData.uber_client_id, orgData.uber_client_secret);
+            const uberRes = await updateDeliveryStatus(orgData.uber_customer_id, tokenRes.access_token, order.uber_delivery_id, 'pickup_scheduled');
+            await supabase.from('orders').update({ uber_status: uberRes.status || 'pickup_scheduled' }).eq('id', orderId);
+          } catch (uberError) {
+            console.error('Uber Direct status update failed:', uberError);
+          }
         }
 
         if (customer && customer.email) {

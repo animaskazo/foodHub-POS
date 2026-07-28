@@ -1,0 +1,4 @@
+ALTER TABLE orders
+ADD COLUMN IF NOT EXISTS uber_delivery_id TEXT,
+ADD COLUMN IF NOT EXISTS uber_tracking_url TEXT,
+ADD COLUMN IF NOT EXISTS uber_status TEXT;

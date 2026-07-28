@@ -164,6 +164,9 @@ const DashboardView = () => {
           delivery_type,
           delivery_address,
           delivery_fee,
+          uber_delivery_id,
+          uber_tracking_url,
+          uber_status,
           order_items (*, order_item_variants(*), order_item_ingredients(*)),
           payments (*)
         `)

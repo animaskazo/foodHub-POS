@@ -43,6 +43,9 @@ const SuperAdminView = () => {
           subtotal,
           delivery_fee,
           created_at,
+          uber_delivery_id,
+          uber_tracking_url,
+          uber_status,
           payments ( method, status ),
           order_items (
             id,
@@ -895,9 +898,20 @@ const SuperAdminView = () => {
                 {selectedOrder.delivery_type === 'delivery' && selectedOrder.delivery_address && (
                   <div className="mt-3 bg-orange-50/50 border border-orange-100 p-3 rounded-lg flex gap-2.5">
                     <MapPin className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <span className="text-gray-500 block text-xs font-semibold uppercase tracking-wider">Dirección de Despacho</span>
                       <span className="text-sm font-medium text-gray-800">{selectedOrder.delivery_address}</span>
+                      {selectedOrder.uber_tracking_url && (
+                        <a
+                          href={selectedOrder.uber_tracking_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 hover:bg-green-100 px-2.5 py-1 rounded-lg border border-green-200 transition-colors"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Seguir delivery en vivo
+                        </a>
+                      )}
                     </div>
                   </div>
                 )}

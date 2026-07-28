@@ -14,12 +14,15 @@ export const calculateDistance = (lat1, lon1, lat2, lon2) => {
 // Obtiene lat/lng de una dirección usando OpenStreetMap Nominatim (gratuito)
 export const geocodeAddress = async (address) => {
   try {
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(address)}`);
     const data = await response.json();
     if (data && data.length > 0) {
+      const r = data[0];
       return {
-        lat: parseFloat(data[0].lat),
-        lng: parseFloat(data[0].lon)
+        lat: parseFloat(r.lat),
+        lng: parseFloat(r.lon),
+        displayName: r.display_name,
+        address: r.address || {},
       };
     }
     return null;
