@@ -10,7 +10,7 @@ const KitchenView = () => {
   const navigate = useNavigate();
   const { organization } = useAuth();
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const audioCtxRef = useRef(null);
   const prevOrdersRef = useRef([]);
   const [leavingOrders, setLeavingOrders] = useState(new Set());
@@ -18,6 +18,7 @@ const KitchenView = () => {
 
   // Fetch kitchen orders and track newly arrived orders for blink animation
   const fetchOrders = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const data = await getKitchenOrders();
       // Determine newly added orders (status pending or confirmed)
@@ -47,6 +48,8 @@ const KitchenView = () => {
     } catch (e) {
       console.error('Error fetching kitchen orders', e);
       if (!isBackground) alert('Error al cargar órdenes de cocina');
+    } finally {
+      if (!isBackground) setLoading(false);
     }
   };
 
@@ -109,7 +112,7 @@ const KitchenView = () => {
   useDocumentTitle('Cocina');
 
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(true);
     // Auto refresh every 5 seconds silently
     const interval = setInterval(() => {
       fetchOrders(true);
@@ -169,7 +172,7 @@ const KitchenView = () => {
             <span className="hidden sm:inline">Volver al POS</span>
             <span className="inline sm:hidden">POS</span>
           </Button>
-          
+
           <Button
             onClick={() => navigate('/')}
             className="px-3 py-2 bg-white text-black hover:bg-gray-100 rounded-xl transition-colors flex items-center justify-center shrink-0 shadow-sm gap-2 font-bold text-sm"
@@ -219,7 +222,7 @@ const KitchenView = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 w-full items-start pb-20">
+        <div className="flex flex-col md:flex-row md:flex-nowrap gap-4 md:gap-6 w-full items-start pb-20 overflow-x-auto hide-scrollbar">
           {orders.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center w-full h-full py-20 col-span-full">
               <ChefHat className="h-24 w-24 mb-6 text-gray-400" />
@@ -277,7 +280,7 @@ const KitchenView = () => {
             return (
               <div
                 key={order.id}
-                className={`w-full flex flex-col rounded-2xl border ${cfg.border} bg-zinc-950 overflow-hidden shadow-lg md:h-[calc(100vh-170px)] ${isLeaving ? 'ticket-leave' : isNew ? 'ticket-enter-new' : (order.status === 'pending' || order.status === 'confirmed') ? 'ticket-enter-pending' : 'ticket-enter'}`}
+                className={`order-card transition-all w-full md:w-80 min-w-[300px] flex-shrink-0 flex flex-col rounded-2xl border ${cfg.border} bg-zinc-950 overflow-hidden shadow-lg md:h-[calc(100vh-170px)] ${isLeaving ? 'ticket-leave' : isNew ? 'ticket-enter-new' : (order.status === 'pending' || order.status === 'confirmed') ? 'ticket-enter-pending' : 'ticket-enter'}`}
               >
                 {/* ── Header ── */}
                 <div className={`${cfg.headerBg} px-4 pt-4 pb-3.5 border-b border-zinc-900 shrink-0 space-y-3`}>
@@ -432,7 +435,7 @@ const KitchenView = () => {
                   {(order.status === 'confirmed' || order.status === 'pending') ? (
                     <Button
                       onClick={() => handleUpdateStatus(order.id, 'preparing')}
-                      className={`w-full py-3.5 ${cfg.btnClass} rounded-xl font-bold flex justify-center items-center gap-2 transition-all text-sm tracking-wide active:scale-[0.98]`}
+                      className={`w-full py-6 ${cfg.btnClass} rounded-xl font-bold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
                     >
                       <Play className="h-4 w-4 fill-current" />
                       Empezar Preparación
@@ -440,7 +443,7 @@ const KitchenView = () => {
                   ) : (
                     <Button
                       onClick={() => handleUpdateStatus(order.id, 'ready')}
-                      className={`w-full py-3.5 ${cfg.btnClass} rounded-xl font-extrabold flex justify-center items-center gap-2 transition-all text-sm tracking-wide active:scale-[0.98]`}
+                      className={`w-full py-6 ${cfg.btnClass} rounded-xl font-extrabold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
                     >
                       <CheckCircle2 className="h-5 w-5" strokeWidth={2.5} />
                       Marcar como Listo

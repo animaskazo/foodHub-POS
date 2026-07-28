@@ -14,6 +14,14 @@ const FOOD_AGENT_URL =
 const CONFIRM_RE =
   /\b(confirmar?|confirmo|quiero\s+confirmar|listo(\s+para\s+pedir)?|finalizar\s+pedido?|hacer\s+el\s+pedido|pagar|checkout|cerrar\s+pedido)\b/i;
 
+// Regex para detectar consulta de estado de pedido actual
+const STATUS_RE =
+  /\b(estado|como\s+va|dónde\s+viene|donde\s+viene|esta\s+listo|está\s+listo|seguimiento)\b/i;
+
+// Regex para detectar consulta de historial de pedidos anteriores
+const HISTORY_RE =
+  /\b(historial|pedidos\s+anteriores|mis\s+pedidos|pedidos\s+pasados|compras\s+anteriores|que\s+he\s+pedido)\b/i;
+
 // ── Supabase client (service role para acceder a whatsapp_sessions) ──────────
 function getSupabase() {
   return createClient(
@@ -62,6 +70,20 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
+function isPointInPolygon(point: { lat: number; lng: number }, vs: Array<{ lat: number; lng: number }>): boolean {
+  const x = point.lng, y = point.lat;
+  let inside = false;
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const xi = vs[i].lng, yi = vs[i].lat;
+    const xj = vs[j].lng, yj = vs[j].lat;
+    
+    const intersect = ((yi > y) !== (yj > y))
+        && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
 async function geocodeAddress(address: string) {
   try {
     const q = encodeURIComponent(`${address}, Chile`);
@@ -101,17 +123,22 @@ async function resolveOrgSlug(phoneNumberId: string): Promise<string> {
 }
 
 async function loadSession(phone: string, phoneNumberId: string): Promise<Session> {
+  const org_slug = await resolveOrgSlug(phoneNumberId);
+  const sessionKey = `${phone}_${org_slug}`;
+
   const sb = getSupabase();
   const { data } = await sb
     .from("whatsapp_sessions")
     .select("session_data")
-    .eq("phone", phone)
+    .eq("phone", sessionKey)
     .single();
 
-  if (data?.session_data) return data.session_data as Session;
-
-  // Sesión nueva — resolver org_slug desde el phone_number_id
-  const org_slug = await resolveOrgSlug(phoneNumberId);
+  if (data?.session_data) {
+    const session = data.session_data as Session;
+    // Asegurar que conserva el org_slug correcto por si acaso
+    session.org_slug = org_slug;
+    return session;
+  }
 
   return {
     messages: [],
@@ -122,9 +149,10 @@ async function loadSession(phone: string, phoneNumberId: string): Promise<Sessio
 }
 
 async function saveSession(phone: string, session: Session): Promise<void> {
+  const sessionKey = `${phone}_${session.org_slug}`;
   const sb = getSupabase();
   await sb.from("whatsapp_sessions").upsert(
-    { phone, session_data: session, updated_at: new Date().toISOString() },
+    { phone: sessionKey, session_data: session, updated_at: new Date().toISOString() },
     { onConflict: "phone" }
   );
 }
@@ -197,6 +225,186 @@ function buildConfirmSummary(session: Session): string {
   if (session.delivery_type === "delivery") text += `Tipo: *Delivery* (${session.delivery_address})\n`;
   else text += `Tipo: *Retiro en local*\n`;
   text += `A nombre de: *${session.customer_name || "Cliente"}*\n\n¿Deseas confirmar el pedido? (Responde Sí o No)`;
+  return text;
+}
+
+// ── Consultar Estado del Pedido Reciente ──────────────────────────────────────
+async function handleGetOrderStatus(
+  userPhone: string,
+  session: Session
+): Promise<string> {
+  const sb = getSupabase();
+  const { data: orgData } = await sb
+    .from("organizations")
+    .select("id, name")
+    .eq("slug", session.org_slug)
+    .maybeSingle();
+
+  if (!orgData) {
+    return "Lo siento, no pude encontrar la información del local.";
+  }
+
+  // Buscamos primero pedidos activos ('pending', 'confirmed', 'ready')
+  let { data: order, error } = await sb
+    .from("orders")
+    .select(`
+      order_number,
+      status,
+      delivery_type,
+      created_at,
+      order_items (
+        product_name,
+        quantity
+      )
+    `)
+    .eq("organization_id", orgData.id)
+    .eq("customer_phone", userPhone)
+    .in("status", ["pending", "confirmed", "ready"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Si no hay pedidos activos, buscar el último pedido finalizado/cancelado
+  if (!order && !error) {
+    const { data: lastOrder, error: lastError } = await sb
+      .from("orders")
+      .select(`
+        order_number,
+        status,
+        delivery_type,
+        created_at,
+        order_items (
+          product_name,
+          quantity
+        )
+      `)
+      .eq("organization_id", orgData.id)
+      .eq("customer_phone", userPhone)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    
+    order = lastOrder;
+    error = lastError;
+  }
+
+  if (error) {
+    console.error("Error fetching order status:", error);
+    return "Ocurrió un error al buscar tu pedido. Por favor, inténtalo de nuevo en unos minutos.";
+  }
+
+  if (!order) {
+    return `Hola, no encontré ningún pedido reciente asociado al número *${userPhone}* en *${orgData.name}*.`;
+  }
+
+  const itemsList = (order.order_items || [])
+    .map((i: any) => `${i.quantity}x ${i.product_name}`)
+    .join(", ");
+  
+  let statusDesc = "";
+  switch (order.status) {
+    case "pending":
+      statusDesc = "está *recibido y pendiente* de aprobación por el local. En unos minutos lo confirmarán 🕒.";
+      break;
+    case "confirmed":
+      statusDesc = "ha sido *confirmado* y ya se está preparando en la cocina 🍳.";
+      break;
+    case "ready":
+      if (order.delivery_type === "delivery") {
+        statusDesc = "está *listo para despacho* y pronto saldrá en camino 🛵.";
+      } else {
+        statusDesc = "está *listo para retirar* en el local. ¡Ya puedes pasar por él! 📍";
+      }
+      break;
+    case "delivered":
+      statusDesc = "figura como *entregado* ✅. ¡Espero que lo hayas disfrutado!";
+      break;
+    case "cancelled":
+      statusDesc = "ha sido *cancelado* ❌.";
+      break;
+    default:
+      statusDesc = `se encuentra en estado: *${order.status}*.`;
+  }
+
+  const date = new Date(order.created_at);
+  const timeStr = date.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", timeZone: "America/Santiago" });
+  const dateStr = date.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", timeZone: "America/Santiago" });
+
+  return `🔍 *Estado de tu pedido #${order.order_number}* (del ${dateStr} a las ${timeStr}):\n\n` +
+         `Detalle: _${itemsList || "Sin detalle"}_.\n\n` +
+         `Tu pedido ${statusDesc}`;
+}
+
+// ── Consultar Historial de Pedidos ──────────────────────────────────────────
+async function handleGetOrderHistory(
+  userPhone: string,
+  session: Session
+): Promise<string> {
+  const sb = getSupabase();
+  const { data: orgData } = await sb
+    .from("organizations")
+    .select("id, name")
+    .eq("slug", session.org_slug)
+    .maybeSingle();
+
+  if (!orgData) {
+    return "Lo siento, no pude encontrar la información del local.";
+  }
+
+  // Buscamos los últimos 3 pedidos del cliente
+  const { data: orders, error } = await sb
+    .from("orders")
+    .select(`
+      order_number,
+      status,
+      delivery_type,
+      total,
+      created_at,
+      order_items (
+        product_name,
+        quantity
+      )
+    `)
+    .eq("organization_id", orgData.id)
+    .eq("customer_phone", userPhone)
+    .order("created_at", { ascending: false })
+    .limit(3);
+
+  if (error) {
+    console.error("Error fetching order history:", error);
+    return "Ocurrió un error al buscar tu historial de pedidos. Por favor, inténtalo de nuevo.";
+  }
+
+  if (!orders || orders.length === 0) {
+    return `Hola, no registramos pedidos anteriores para el número *${userPhone}* en *${orgData.name}*.`;
+  }
+
+  let text = `📜 *Tu historial de pedidos en ${orgData.name}* (Últimos ${orders.length}):\n\n`;
+
+  orders.forEach((order: any, index: number) => {
+    const date = new Date(order.created_at);
+    const dateStr = date.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", timeZone: "America/Santiago" });
+    const itemsList = (order.order_items || [])
+      .map((i: any) => `${i.quantity}x ${i.product_name}`)
+      .join(", ");
+    
+    let statusEmoji = "";
+    switch (order.status) {
+      case "pending": statusEmoji = "🕒 Pendiente"; break;
+      case "confirmed": statusEmoji = "🍳 En cocina"; break;
+      case "ready": statusEmoji = "📦 Listo"; break;
+      case "delivered": statusEmoji = "✅ Entregado"; break;
+      case "cancelled": statusEmoji = "❌ Cancelado"; break;
+      default: statusEmoji = order.status;
+    }
+
+    text += `${index + 1}. *Pedido #${order.order_number}* (${dateStr})\n`;
+    text += `   • Detalle: _${itemsList || "Sin detalle"}_\n`;
+    text += `   • Total: *${money(order.total)}*\n`;
+    text += `   • Estado: *${statusEmoji}*\n\n`;
+  });
+
+  text += `Si quieres saber más detalles de tu pedido en curso, puedes escribir *"estado"* en cualquier momento.`;
   return text;
 }
 
@@ -278,18 +486,28 @@ async function processMessage(
       } else {
         const coords = await geocodeAddress(userText);
         const supabase = getSupabase();
-        const { data: orgData } = await supabase.from("organizations").select("store_lat, store_lng, delivery_radius_km, delivery_fee").eq("slug", session.org_slug).maybeSingle();
+        const { data: orgData } = await supabase.from("organizations").select("store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee").eq("slug", session.org_slug).maybeSingle();
         
         if (coords && orgData?.store_lat && orgData?.store_lng) {
-          const dist = calculateDistance(orgData.store_lat, orgData.store_lng, coords.lat, coords.lng);
-          const maxDist = orgData.delivery_radius_km || 5;
-          if (dist <= maxDist) {
+          let isInside = false;
+          let distStr = "";
+          
+          if (Array.isArray(orgData.delivery_polygon) && orgData.delivery_polygon.length > 0) {
+            isInside = isPointInPolygon(coords, orgData.delivery_polygon as Array<{ lat: number; lng: number }>);
+          } else {
+            const dist = calculateDistance(orgData.store_lat, orgData.store_lng, coords.lat, coords.lng);
+            const maxDist = orgData.delivery_radius_km || 5;
+            isInside = dist <= maxDist;
+            distStr = ` (distancia calculada: ${dist.toFixed(1)}km, límite: ${maxDist}km)`;
+          }
+
+          if (isInside) {
             session.delivery_address = userText;
             session.delivery_fee = orgData.delivery_fee || 0;
             collect.step = "confirm_prompt";
             replyText = "¡Cobertura confirmada! 🛵\n\n" + buildConfirmSummary(session);
           } else {
-            replyText = `Lo siento, esa dirección está a ${dist.toFixed(1)}km y nuestro límite es de ${maxDist}km. ¿Deseas intentar otra dirección o pasarlo a *Retiro*?`;
+            replyText = `Lo siento, esa dirección está fuera de nuestra zona de cobertura para entregas${distStr}. ¿Deseas intentar otra dirección o pasarlo a *Retiro*?`;
           }
         } else {
           replyText = "No pudimos encontrar esa dirección en el mapa. Asegúrate de incluir Calle, Número y Comuna, o si prefieres, responde 'Retiro'.";
@@ -357,6 +575,7 @@ async function processMessage(
           action: "chat",
           messages: session.messages.slice(-10),
           cart: session.cart,
+          phone: userPhone,
         });
         replyText = d.message ?? "(sin respuesta)";
         session.messages.push({ role: "assistant", content: replyText });
@@ -379,6 +598,14 @@ async function processMessage(
   } else if (CONFIRM_RE.test(userText) && session.cart.length === 0) {
     replyText =
       "Aún no tienes productos en tu pedido. ¡Cuéntame qué quieres pedir! 😊";
+
+  // ── Consultar Estado del Pedido ───────────────────────────────────────────
+  } else if (STATUS_RE.test(userText)) {
+    replyText = await handleGetOrderStatus(userPhone, session);
+
+  // ── Consultar Historial de Pedidos ─────────────────────────────────────────
+  } else if (HISTORY_RE.test(userText)) {
+    replyText = await handleGetOrderHistory(userPhone, session);
 
   // ── Chat normal con el agente ─────────────────────────────────────────────
   } else {
@@ -419,6 +646,7 @@ async function processMessage(
         action: "chat",
         messages: session.messages.slice(-10),
         cart: session.cart,
+        phone: userPhone,
       });
       replyText = d.message ?? "(sin respuesta)";
       session.messages.push({ role: "assistant", content: replyText });
