@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { Search, User, Mail, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, Truck, MessageCircle, RefreshCw, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Search, User, Mail, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, Truck, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import AIImportModal from '../components/catalog/AIImportModal';
+import EditProductModal from '../components/catalog/EditProductModal';
 
 const SuperAdminView = () => {
   const [selectedOrganization, setSelectedOrganization] = useState(null);
@@ -20,6 +22,8 @@ const SuperAdminView = () => {
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isAIImportOpen, setIsAIImportOpen] = useState(false);
+  const [editingProductId, setEditingProductId] = useState(null);
 
   const fetchOrgOrders = async (orgId) => {
     setLoadingOrders(true);
@@ -727,61 +731,103 @@ const SuperAdminView = () => {
 
               {/* Products */}
               {detailTab === 'products' && (
-                <div className="overflow-x-auto -mx-6 -my-6">
-                  <table className="w-full text-left border-collapse whitespace-nowrap">
-                    <thead>
-                      <tr className="bg-gray-50 border-b">
-                        <th className="px-6 py-4 text-sm font-semibold text-gray-600">Producto</th>
-                        <th className="px-6 py-4 text-sm font-semibold text-gray-600">SKU</th>
-                        <th className="px-6 py-4 text-sm font-semibold text-gray-600">Precio Base</th>
-                        <th className="px-6 py-4 text-sm font-semibold text-gray-600">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {orgProducts.map((prod) => (
-                        <tr key={prod.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              {prod.product_images?.[0]?.url ? (
-                                <img src={prod.product_images[0].url} alt={prod.name} className="h-10 w-10   object-cover bg-gray-100 border border-gray-200" />
-                              ) : (
-                                <div className="h-10 w-10   bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
-                                  <Package className="h-5 w-5 text-gray-400" />
-                                </div>
-                              )}
-                              <span className="font-medium text-gray-900">{prod.name}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500">
-                            {prod.sku || '-'}
-                          </td>
-                          <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                            ${Number(prod.base_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium ${
-                              prod.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                            }`}>
-                              {prod.status === 'available' ? 'Disponible' : prod.status}
-                            </span>
-                          </td>
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-gray-800">Productos del catálogo</h3>
+                    <Button
+                      variant="outline"
+                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                      onClick={() => setIsAIImportOpen(true)}
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" /> Importar menú con IA
+                    </Button>
+                  </div>
+                  <div className="overflow-x-auto -mx-6 -my-6">
+                    <table className="w-full text-left border-collapse whitespace-nowrap">
+                      <thead>
+                        <tr className="bg-gray-50 border-b">
+                          <th className="px-6 py-4 text-sm font-semibold text-gray-600">Producto</th>
+                          <th className="px-6 py-4 text-sm font-semibold text-gray-600">SKU</th>
+                          <th className="px-6 py-4 text-sm font-semibold text-gray-600">Precio Base</th>
+                          <th className="px-6 py-4 text-sm font-semibold text-gray-600">Estado</th>
+                          <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-right">Acción</th>
                         </tr>
-                      ))}
-                      {orgProducts.length === 0 && (
-                        <tr>
-                          <td colSpan="4" className="text-center py-12 text-gray-500">
-                            No hay productos registrados en este negocio.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y">
+                        {orgProducts.map((prod) => (
+                          <tr key={prod.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                {prod.product_images?.[0]?.url ? (
+                                  <img src={prod.product_images[0].url} alt={prod.name} className="h-10 w-10   object-cover bg-gray-100 border border-gray-200" />
+                                ) : (
+                                  <div className="h-10 w-10   bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
+                                    <Package className="h-5 w-5 text-gray-400" />
+                                  </div>
+                                )}
+                                <span className="font-medium text-gray-900">{prod.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500">
+                              {prod.sku || '-'}
+                            </td>
+                            <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                              ${Number(prod.base_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium ${
+                                prod.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {prod.status === 'available' ? 'Disponible' : prod.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setEditingProductId(prod.id)}
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs font-semibold"
+                              >
+                                Editar
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                        {orgProducts.length === 0 && (
+                          <tr>
+                            <td colSpan="5" className="text-center py-12 text-gray-500">
+                              No hay productos registrados en este negocio.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>
           </div>
         )}
       </div>
+
+      <AIImportModal 
+        isOpen={isAIImportOpen} 
+        onClose={() => setIsAIImportOpen(false)} 
+        onSuccess={() => {
+          if (selectedOrganization) fetchProducts();
+        }}
+        organizationId={selectedOrganization?.id}
+      />
+
+      <EditProductModal
+        isOpen={!!editingProductId}
+        onClose={() => setEditingProductId(null)}
+        onSuccess={() => {
+          if (selectedOrganization) fetchProducts();
+        }}
+        productId={editingProductId}
+        organizationId={selectedOrganization?.id}
+      />
 
       {/* Order Detail Modal */}
       {selectedOrder && (

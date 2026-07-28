@@ -6,7 +6,7 @@ import { extractMenuFromImage } from '../../services/aiService';
 import { processAndSaveMenu } from '../../services/importService';
 import { toast } from 'sonner';
 
-const AIImportModal = ({ isOpen, onClose, onSuccess }) => {
+const AIImportModal = ({ isOpen, onClose, onSuccess, organizationId = null }) => {
   const [step, setStep] = useState('upload'); // upload, processing, preview, saving
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -43,7 +43,7 @@ const AIImportModal = ({ isOpen, onClose, onSuccess }) => {
     setStep('saving');
     
     try {
-      await processAndSaveMenu(extractedData);
+      await processAndSaveMenu(extractedData, organizationId);
       toast.success("Menú importado exitosamente");
       onSuccess?.();
       onClose();

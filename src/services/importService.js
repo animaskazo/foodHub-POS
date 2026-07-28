@@ -3,8 +3,8 @@ import { getFirstOrganizationId, createCategory, createIngredient, createProduct
 /**
  * Procesa y guarda el JSON de menú estructurado en Supabase
  */
-export const processAndSaveMenu = async (menuData) => {
-  const orgId = await getFirstOrganizationId();
+export const processAndSaveMenu = async (menuData, overrideOrgId = null) => {
+  const orgId = overrideOrgId || await getFirstOrganizationId();
   if (!orgId) throw new Error("Organización no encontrada");
 
   const categoryMap = {}; // name -> id
