@@ -1,0 +1,2 @@
+ALTER TABLE organizations
+ADD COLUMN IF NOT EXISTS uber_enabled BOOLEAN DEFAULT false;
