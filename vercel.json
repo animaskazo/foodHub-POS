@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/s/:slug",
+      "destination": "https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/social-preview?slug=:slug"
+    },
+    {
       "source": "/food-agent-test.html",
       "destination": "/food-agent-test.html"
     },
