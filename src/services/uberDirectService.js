@@ -2,6 +2,8 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 const PROXY_FN = `${SUPABASE_URL}/functions/v1/uber-direct-proxy`
 
+const tokenCache = new Map()
+
 async function callProxy(payload) {
   const res = await fetch(PROXY_FN, {
     method: 'POST',
@@ -22,11 +24,21 @@ async function callProxy(payload) {
 }
 
 export const getAccessToken = async (clientId, clientSecret) => {
-  return callProxy({
+  const cacheKey = `${clientId}:${clientSecret}`
+  const cached = tokenCache.get(cacheKey)
+  if (cached && Date.now() < cached.expiresAt) {
+    console.log('[Uber Token] using cached token')
+    return cached
+  }
+  const data = await callProxy({
     action: 'get_access_token',
     client_id: clientId,
     client_secret: clientSecret,
   })
+  data.expiresAt = Date.now() + (data.expires_in || 3600) * 1000 - 60000
+  tokenCache.set(cacheKey, data)
+  console.log('[Uber Token] cached until:', new Date(data.expiresAt))
+  return data
 }
 
 export const createQuote = async (customerId, token, quoteData) => {
