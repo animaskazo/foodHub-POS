@@ -14,7 +14,10 @@ async function callProxy(payload) {
   })
 
   const data = await res.json()
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`)
+  if (!res.ok) {
+    console.error('[Uber Proxy Error] status:', res.status, 'body:', JSON.stringify(data))
+    throw new Error(data.error || `Request failed (${res.status})`)
+  }
   return data
 }
 

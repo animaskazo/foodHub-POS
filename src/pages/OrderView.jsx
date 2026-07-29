@@ -300,13 +300,31 @@ const OrderView = () => {
             country: 'CL',
           }
 
+          let pickupLat = org.store_lat
+          let pickupLng = org.store_lng
+          if (!pickupLat || !pickupLng) {
+            const cleanAddr = (org.address || '')
+              .replace(/\s+(LOCAL|DEPTO|OF|DPTO|CASA|PISO)\s*\d+/gi, '')
+              .replace(/^(Calle|Av\.?|Avda\.?|Pasaje|Pje\.?|Camino)\s+/i, '')
+              .replace(/,?\s*\d{5,}\s*/g, ',')
+              .replace(/\s*,\s*CL$/i, '')
+              .replace(/,+/g, ',')
+              .split(',').map(s => s.trim()).filter(Boolean).slice(0, 2).join(', ')
+              .trim()
+            const orgCoords = await geocodeAddress(cleanAddr ? cleanAddr + ', Chile' : 'Villa Alemana, Chile')
+            if (orgCoords) {
+              pickupLat = orgCoords.lat
+              pickupLng = orgCoords.lng
+            }
+          }
+
           let quoteId = customerForm.quoteId
           if (!quoteId) {
             const quote = await createQuote(org.uber_customer_id, token, {
               pickup_address: JSON.stringify(pickupAddr),
               dropoff_address: JSON.stringify(dropoffAddr),
-              pickup_latitude: org.store_lat,
-              pickup_longitude: org.store_lng,
+              pickup_latitude: pickupLat,
+              pickup_longitude: pickupLng,
               dropoff_latitude: dropoffCoords?.lat,
               dropoff_longitude: dropoffCoords?.lng,
               pickup_phone_number: org.phone || '+56912345678',
@@ -320,8 +338,8 @@ const OrderView = () => {
             pickup_address: JSON.stringify(pickupAddr),
             pickup_name: org.name,
             pickup_phone_number: org.phone || '+56912345678',
-            pickup_latitude: org.store_lat,
-            pickup_longitude: org.store_lng,
+            pickup_latitude: pickupLat,
+            pickup_longitude: pickupLng,
             dropoff_address: JSON.stringify(dropoffAddr),
             dropoff_name: customerForm.name,
             dropoff_phone_number: customerForm.phone,

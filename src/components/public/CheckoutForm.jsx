@@ -165,10 +165,12 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     if (form.deliveryType === 'delivery') {
       if (!form.deliveryAddress?.trim()) {
         errs.deliveryAddress = 'La dirección de entrega es requerida';
-      } else if (org?.store_lat && org?.store_lng && !isValidatedAddress) {
-        errs.deliveryAddress = deliveryMode === 'uber_direct'
-          ? 'Por favor presiona "Validar" para verificar tu dirección'
-          : 'Por favor selecciona o valida una dirección válida en el mapa (presiona enter)';
+      } else if (!isValidatedAddress) {
+        if (deliveryMode === 'uber_direct') {
+          errs.deliveryAddress = 'Por favor presiona "Validar" para verificar tu dirección';
+        } else if (org?.store_lat && org?.store_lng) {
+          errs.deliveryAddress = 'Por favor selecciona o valida una dirección válida en el mapa (presiona enter)';
+        }
       }
     }
     return errs;
@@ -195,7 +197,8 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   };
 
   const handleAddressBlur = async () => {
-    if (!form.deliveryAddress?.trim() || !org?.store_lat || !org?.store_lng) return;
+    if (!form.deliveryAddress?.trim()) return;
+    if (deliveryMode !== 'uber_direct' && (!org?.store_lat || !org?.store_lng)) return;
     
     setIsGeocoding(true);
     setDistanceError(null);
@@ -212,8 +215,18 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             const city = coords.address?.city || coords.address?.town || coords.address?.village || coords.address?.county || 'Santiago';
             const zip = coords.address?.postcode || '';
 
+            const cleanAddr = (org.address || '')
+              .replace(/\s+(LOCAL|DEPTO|OF|DPTO|CASA|PISO)\s*\d+/gi, '')
+              .replace(/^(Calle|Av\.?|Avda\.?|Pasaje|Pje\.?|Camino)\s+/i, '')
+              .replace(/,?\s*\d{5,}\s*/g, ',')
+              .replace(/\s*,\s*CL$/i, '')
+              .replace(/,+/g, ',')
+              .split(',').map(s => s.trim()).filter(Boolean).slice(0, 2).join(', ')
+              .trim();
+            const pickupStreet = cleanAddr || org.address || 'Dirección del local';
+
             const pickupAddr = {
-              street_address: [org.address || 'Dirección del local'],
+              street_address: [pickupStreet],
               state: coords.address?.state || 'RM',
               city,
               zip_code: zip,
@@ -233,11 +246,27 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             const tokenRes = await getAccessToken(org.uber_client_id, org.uber_client_secret);
             console.log('[Uber Token] obtained');
 
+            const geocodeQuery = cleanAddr ? cleanAddr + ', Chile' : 'Villa Alemana, Chile';
+            console.log('[Uber Quote] clean address for geocode:', geocodeQuery);
+            const orgCoordsRes = await geocodeAddress(geocodeQuery);
+            console.log('[Uber Quote] geocode org.address result:', orgCoordsRes);
+            const pickupLat = org.store_lat || orgCoordsRes?.lat || null;
+            const pickupLng = org.store_lng || orgCoordsRes?.lng || null;
+            console.log('[Uber Quote] pickupLat/Lng:', pickupLat, pickupLng);
+            if (!pickupLat || !pickupLng) {
+              throw new Error('No se pudo determinar la ubicación del local. Configura las coordenadas en Configuración > Delivery.');
+            }
+            if (orgCoordsRes) {
+              pickupAddr.city = orgCoordsRes.address?.city || orgCoordsRes.address?.town || orgCoordsRes.address?.village || orgCoordsRes.address?.county || city;
+              pickupAddr.state = orgCoordsRes.address?.state || 'RM';
+              pickupAddr.zip_code = orgCoordsRes.address?.postcode || '';
+            }
+
             const quoteRes = await createQuote(org.uber_customer_id, tokenRes.access_token, {
               pickup_address: JSON.stringify(pickupAddr),
               dropoff_address: JSON.stringify(dropoffAddr),
-              pickup_latitude: org.store_lat,
-              pickup_longitude: org.store_lng,
+              pickup_latitude: pickupLat,
+              pickup_longitude: pickupLng,
               dropoff_latitude: coords.lat,
               dropoff_longitude: coords.lng,
               pickup_phone_number: org.phone || '+56912345678',
@@ -257,7 +286,8 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             update('deliveryCurrency', currency);
           } catch (quoteError) {
             console.error('[Uber Quote Error]', quoteError.message || quoteError);
-            console.error('[Uber Quote Error details]', JSON.stringify(quoteError));
+            console.error('[Uber Quote Error name]', quoteError.name);
+            console.error('[Uber Quote Error stack]', quoteError.stack);
             setDistanceError('No pudimos cotizar el envío con Uber. Intenta de nuevo.');
             setIsValidatedAddress(false);
             update('deliveryFee', 0);
@@ -607,9 +637,10 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               isSubmitting || 
               !isOpen || 
               (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim())) ||
-              (form.deliveryType === 'delivery' && (totalAmount < (org?.delivery_min_order || 0)))
+              (form.deliveryType === 'delivery' && (totalAmount < (org?.delivery_min_order || 0))) ||
+              (form.deliveryType === 'delivery' && deliveryMode === 'uber_direct' && !form.quoteId)
             }
-            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-all px-8 text-[17px] tracking-wide ${(!isOpen || isSubmitting || (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim() || totalAmount < (org?.delivery_min_order || 0)))) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900 active:scale-[0.98]'}`}
+            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-all px-8 text-[17px] tracking-wide ${(!isOpen || isSubmitting || (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim() || totalAmount < (org?.delivery_min_order || 0) || (deliveryMode === 'uber_direct' && !form.quoteId)))) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900 active:scale-[0.98]'}`}
           >
             {isSubmitting ? (
               <><Loader2 className="h-5 w-5 animate-spin" /> Enviando pedido…</>

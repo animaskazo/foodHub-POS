@@ -52,7 +52,10 @@ serve(async (req) => {
         })
 
         const data = await res.json()
-        if (!res.ok) throw new Error(data.message || data.error || 'Create quote failed')
+        if (!res.ok) {
+          console.error('[Edge Uber Quote Error] full response:', JSON.stringify(data))
+          throw new Error(data.message || data.error || JSON.stringify(data) || 'Create quote failed')
+        }
 
         return new Response(JSON.stringify(data), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -71,7 +74,10 @@ serve(async (req) => {
         })
 
         const data = await res.json()
-        if (!res.ok) throw new Error(data.message || data.error || 'Create delivery failed')
+        if (!res.ok) {
+          console.error('[Edge Uber Delivery Error] full response:', JSON.stringify(data))
+          throw new Error(data.message || data.error || JSON.stringify(data) || 'Create delivery failed')
+        }
 
         return new Response(JSON.stringify(data), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
