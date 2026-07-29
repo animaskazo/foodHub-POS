@@ -75,6 +75,8 @@ export const formatChileanPhone = (value) => {
 };
 
 const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePayments = true, organizationId, isOpen = true, org }) => {
+  const uberEnabled = org?.uber_enabled !== false;
+  const deliveryMode = !uberEnabled && org?.delivery_mode === 'uber_direct' ? 'own' : org?.delivery_mode;
   const [form, setForm] = useState(() => {
     try {
       const saved = localStorage.getItem('checkout_customer_form');
@@ -164,7 +166,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       if (!form.deliveryAddress?.trim()) {
         errs.deliveryAddress = 'La dirección de entrega es requerida';
       } else if (org?.store_lat && org?.store_lng && !isValidatedAddress) {
-        errs.deliveryAddress = org.delivery_mode === 'uber_direct'
+        errs.deliveryAddress = deliveryMode === 'uber_direct'
           ? 'Por favor presiona "Validar" para verificar tu dirección'
           : 'Por favor selecciona o valida una dirección válida en el mapa (presiona enter)';
       }
@@ -200,7 +202,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     try {
       const coords = await geocodeAddress(form.deliveryAddress);
       if (coords) {
-        if (org.delivery_mode === 'uber_direct') {
+        if (deliveryMode === 'uber_direct') {
           setDistanceError(null);
           setIsValidatedAddress(true);
           update('deliveryCoords', coords);
@@ -390,14 +392,14 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                         : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
                     }`}
                   >
-                    {org?.delivery_mode === 'uber_direct' ? (
+                    {deliveryMode === 'uber_direct' ? (
                       <Truck className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'delivery' ? 'text-black' : 'text-gray-400'}`} />
                     ) : (
                       <MapPin className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'delivery' ? 'text-black' : 'text-gray-400'}`} />
                     )}
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-bold">Delivery</span>
-                      {org?.delivery_mode === 'uber_direct' && (
+                      {deliveryMode === 'uber_direct' && (
                         <span className="text-[10px] bg-green-600 text-white font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">
                           Uber
                         </span>
@@ -445,17 +447,17 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                     
                     {!distanceError && isValidatedAddress && (
                       <div className="flex items-center justify-between bg-green-50 text-green-700 px-3 py-2.5 rounded-xl border border-green-100">
-                        {org?.delivery_mode === 'uber_direct' && isQuoting ? (
+                        {deliveryMode === 'uber_direct' && isQuoting ? (
                           <>
                             <span className="font-semibold text-xs pr-2">Cotizando envío con Uber…</span>
                             <Loader2 className="h-4 w-4 animate-spin shrink-0" />
                           </>
-                        ) : org?.delivery_mode === 'uber_direct' && form.quotePrice > 0 ? (
+                        ) : deliveryMode === 'uber_direct' && form.quotePrice > 0 ? (
                           <>
                             <span className="font-semibold text-xs pr-2">Delivery vía Uber Direct</span>
                             <span className="font-bold text-[13px] shrink-0">{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
                           </>
-                        ) : org?.delivery_mode === 'uber_direct' ? (
+                        ) : deliveryMode === 'uber_direct' ? (
                           <>
                             <span className="font-semibold text-xs pr-2">Delivery vía Uber Direct</span>
                             <span className="font-bold text-[13px] shrink-0">Gratis</span>
@@ -572,7 +574,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-8 pointer-events-none">
         <div className="max-w-3xl mx-auto flex flex-col items-center pointer-events-auto space-y-3">
           
-          {form.deliveryType === 'delivery' && (form.deliveryFee > 0 || org?.delivery_mode === 'uber_direct') && (
+          {form.deliveryType === 'delivery' && (form.deliveryFee > 0 || deliveryMode === 'uber_direct') && (
             <div className="w-full flex flex-col gap-2 px-4 bg-white/80 backdrop-blur-md py-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100">
               <div className="flex justify-between items-center text-sm font-bold text-gray-700">
                 <span>Subtotal (Productos)</span>
@@ -580,11 +582,11 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               </div>
               <div className="flex justify-between items-center text-sm font-bold text-gray-700">
                 <span>Costo de envío</span>
-                {org?.delivery_mode === 'uber_direct' && isQuoting ? (
+                {deliveryMode === 'uber_direct' && isQuoting ? (
                   <span className="text-gray-400 text-xs">Cotizando…</span>
-                ) : org?.delivery_mode === 'uber_direct' && form.quotePrice > 0 ? (
+                ) : deliveryMode === 'uber_direct' && form.quotePrice > 0 ? (
                   <span>{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
-                ) : org?.delivery_mode === 'uber_direct' ? (
+                ) : deliveryMode === 'uber_direct' ? (
                   <span>Gratis</span>
                 ) : (
                   <span>${fmt(form.deliveryFee)}</span>

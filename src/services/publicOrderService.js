@@ -6,7 +6,7 @@ export const getOrganizationByName = async (orgName) => {
 
   const { data, error } = await supabase
     .from('organizations')
-    .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, business_hours, delivery_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, delivery_mode, uber_client_id, uber_client_secret, uber_customer_id, whatsapp_phone_number_id')
+    .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, business_hours, delivery_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, delivery_mode, uber_enabled, uber_client_id, uber_client_secret, uber_customer_id, whatsapp_phone_number_id')
     .ilike('name', decoded)
     .eq('is_active', true)
     .maybeSingle();
@@ -15,7 +15,7 @@ export const getOrganizationByName = async (orgName) => {
     // Try by slug as fallback
     const { data: bySlug, error: slugError } = await supabase
       .from('organizations')
-      .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, business_hours, delivery_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, delivery_mode, uber_client_id, uber_client_secret, uber_customer_id, whatsapp_phone_number_id')
+      .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, business_hours, delivery_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, delivery_mode, uber_enabled, uber_client_id, uber_client_secret, uber_customer_id, whatsapp_phone_number_id')
       .ilike('slug', decoded)
       .eq('is_active', true)
       .maybeSingle();

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { Search, User, Mail, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, Truck, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles } from 'lucide-react';
+import { User, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import AIImportModal from '../components/catalog/AIImportModal';
 import EditProductModal from '../components/catalog/EditProductModal';
@@ -99,6 +100,8 @@ const SuperAdminView = () => {
         role,
         created_at,
         organization_id,
+        uber_direct_enabled,
+        whatsapp_enabled,
         organizations ( name )
       `)
       .order('created_at', { ascending: false });
@@ -112,7 +115,9 @@ const SuperAdminView = () => {
       organizationId: staff.organization_id,
       organizationName: staff.organizations?.name || 'Unknown',
       role: staff.role === 'owner' ? 'Client Admin' : staff.role,
-      createdAt: staff.created_at
+      createdAt: staff.created_at,
+      uberDirectEnabled: staff.uber_direct_enabled || false,
+      whatsappEnabled: staff.whatsapp_enabled || false,
     }));
     setUsers(formattedUsers);
   };
@@ -120,7 +125,7 @@ const SuperAdminView = () => {
   const fetchOrganizations = async () => {
     const { data, error: fetchError } = await supabase
       .from('organizations')
-      .select('id, name, slug, created_at, whatsapp_phone_number_id, whatsapp_inbox_url, whatsapp_inbox_enabled, orders(total)')
+      .select('id, name, slug, created_at, whatsapp_phone_number_id, whatsapp_inbox_url, whatsapp_inbox_enabled, uber_enabled, delivery_mode, uber_client_id, uber_customer_id, orders(total)')
       .order('created_at', { ascending: false });
 
     if (fetchError) throw fetchError;
@@ -136,6 +141,10 @@ const SuperAdminView = () => {
         whatsappPhoneNumberId: org.whatsapp_phone_number_id,
         whatsappInboxUrl: org.whatsapp_inbox_url,
         whatsappInboxEnabled: org.whatsapp_inbox_enabled,
+        uberEnabled: org.uber_enabled || false,
+        deliveryMode: org.delivery_mode || 'own',
+        uberClientId: org.uber_client_id || '',
+        uberCustomerId: org.uber_customer_id || '',
         orderCount: ordersArray.length,
         totalSales: totalSales,
       };
@@ -372,144 +381,21 @@ const SuperAdminView = () => {
                   <span className="bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs font-bold leading-none flex items-center">{orgFeedbacks.length}</span>
                 )}
               </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setDetailTab('integrations')}
+                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
+                  detailTab === 'integrations' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                Integraciones
+              </Button>
             </div>
 
             {/* Detail Tab Contents */}
             <div className="bg-white rounded-xl border p-4 md:p-6 min-h-[300px]">
               
-              {/* Overview */}
-              {detailTab === 'overview' && (
-                <div className="space-y-6">
-                  {/* WhatsApp Inbox Settings */}
-                  <div className="border rounded-xl overflow-hidden">
-                    <div className="bg-green-50/50 border-b px-4 py-3 flex items-center gap-2">
-                      <MessageCircle className="h-5 w-5 text-green-600" />
-                      <h3 className="font-semibold text-green-900">WhatsApp Inbox (Kapso)</h3>
-                    </div>
-                    <div className="p-4 md:p-5">
-                      {!selectedOrganization.whatsappPhoneNumberId ? (
-                        <div className="text-sm text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
-                          La organización no tiene un número de WhatsApp configurado (whatsapp_phone_number_id). Configúralo en la base de datos para habilitar el Inbox.
-                        </div>
-                      ) : (
-                        <div className="flex flex-col md:flex-row gap-6 md:items-start">
-                          <div className="flex-1 space-y-4">
-                            <div>
-                              <p className="text-sm font-medium text-gray-700">Estado del Inbox</p>
-                              {selectedOrganization.whatsappInboxUrl ? (
-                                <p className="text-sm text-green-600 font-medium flex items-center gap-1.5 mt-1">
-                                  <span className="h-2 w-2 rounded-full bg-green-500"></span>
-                                  Generado y listo
-                                </p>
-                              ) : (
-                                <p className="text-sm text-gray-500 mt-1">
-                                  No generado. Presiona "Generar Inbox" para crear el embed token en Kapso.
-                                </p>
-                              )}
-                            </div>
 
-                            {selectedOrganization.whatsappInboxUrl && (
-                              <div>
-                                <p className="text-sm font-medium text-gray-700 mb-2">Visibilidad para el Cliente</p>
-                                <button
-                                  onClick={async () => {
-                                    const newState = !selectedOrganization.whatsappInboxEnabled;
-                                    const toastId = toast.loading(newState ? 'Habilitando inbox...' : 'Deshabilitando inbox...');
-                                    try {
-                                      const res = await supabase.functions.invoke('manage-inbox', {
-                                        body: { action: 'toggle', organization_id: selectedOrganization.id, enabled: newState }
-                                      });
-                                      if (res.error) throw res.error;
-                                      
-                                      setSelectedOrganization(prev => ({ ...prev, whatsappInboxEnabled: newState }));
-                                      setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, whatsappInboxEnabled: newState } : o));
-                                      toast.success(newState ? 'Inbox habilitado' : 'Inbox deshabilitado', { id: toastId });
-                                    } catch (err) {
-                                      console.error(err);
-                                      toast.error('Error al cambiar visibilidad', { id: toastId });
-                                    }
-                                  }}
-                                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${
-                                    selectedOrganization.whatsappInboxEnabled
-                                      ? 'bg-green-50 border-green-200 text-green-700'
-                                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
-                                  }`}
-                                >
-                                  {selectedOrganization.whatsappInboxEnabled ? (
-                                    <ToggleRight className="h-5 w-5" />
-                                  ) : (
-                                    <ToggleLeft className="h-5 w-5" />
-                                  )}
-                                  <span className="text-sm font-medium">
-                                    {selectedOrganization.whatsappInboxEnabled ? 'Visible en Sidebar' : 'Oculto'}
-                                  </span>
-                                </button>
-                                <p className="text-xs text-gray-500 mt-2">
-                                  Si está habilitado, los usuarios de esta organización verán la pestaña "Conversaciones" en su menú lateral.
-                                </p>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex flex-col gap-2 shrink-0 md:w-48">
-                            <Button
-                              onClick={async () => {
-                                const toastId = toast.loading(selectedOrganization.whatsappInboxUrl ? 'Regenerando inbox...' : 'Generando inbox...');
-                                try {
-                                  const res = await supabase.functions.invoke('manage-inbox', {
-                                    body: { action: 'create', organization_id: selectedOrganization.id }
-                                  });
-                                  if (res.error) throw new Error(res.error.message || 'Error en Edge Function');
-                                  
-                                  const embedUrl = res.data?.embed_url;
-                                  if (!embedUrl) throw new Error('No se recibió la URL');
-
-                                  setSelectedOrganization(prev => ({ ...prev, whatsappInboxUrl: embedUrl, whatsappInboxEnabled: true }));
-                                  setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, whatsappInboxUrl: embedUrl, whatsappInboxEnabled: true } : o));
-                                  toast.success('Inbox generado con éxito', { id: toastId });
-                                } catch (err) {
-                                  console.error(err);
-                                  toast.error(err.message || 'Error al generar inbox', { id: toastId });
-                                }
-                              }}
-                              className="w-full justify-center bg-black hover:bg-gray-800"
-                            >
-                              <RefreshCw className="h-4 w-4 mr-2" />
-                              {selectedOrganization.whatsappInboxUrl ? 'Regenerar Inbox' : 'Generar Inbox'}
-                            </Button>
-                            
-                            {selectedOrganization.whatsappInboxUrl && (
-                              <Button
-                                variant="outline"
-                                onClick={async () => {
-                                  if (!confirm('¿Seguro que quieres revocar el acceso al Inbox? El token actual dejará de funcionar inmediatamente.')) return;
-                                  const toastId = toast.loading('Revocando inbox...');
-                                  try {
-                                    const res = await supabase.functions.invoke('manage-inbox', {
-                                      body: { action: 'revoke', organization_id: selectedOrganization.id }
-                                    });
-                                    if (res.error) throw res.error;
-                                    
-                                    setSelectedOrganization(prev => ({ ...prev, whatsappInboxUrl: null, whatsappInboxEnabled: false }));
-                                    setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, whatsappInboxUrl: null, whatsappInboxEnabled: false } : o));
-                                    toast.success('Inbox revocado', { id: toastId });
-                                  } catch (err) {
-                                    console.error(err);
-                                    toast.error('Error al revocar inbox', { id: toastId });
-                                  }
-                                }}
-                                className="w-full justify-center text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                              >
-                                Revocar Acceso
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Orders */}
               {detailTab === 'orders' && (
@@ -729,6 +615,170 @@ const SuperAdminView = () => {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Integrations */}
+              {detailTab === 'integrations' && (
+                <div className="space-y-8">
+                  {/* WhatsApp Integration */}
+                  <div className="border rounded-xl overflow-hidden">
+                    <div className="p-4 md:p-5 flex items-center justify-between border-b">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
+                          <MessageCircle className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">WhatsApp</h3>
+                          <p className="text-xs text-gray-500">Inbox de conversaciones</p>
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-3 cursor-pointer select-none">
+                        <span className={`text-sm font-semibold ${selectedOrganization.whatsappInboxEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
+                          Visible en el menú
+                        </span>
+                        <Switch
+                          checked={selectedOrganization.whatsappInboxEnabled}
+                          onCheckedChange={async (checked) => {
+                            const toastId = toast.loading(checked ? 'Habilitando WhatsApp...' : 'Deshabilitando WhatsApp...');
+                            try {
+                              const res = await supabase.functions.invoke('manage-inbox', {
+                                body: { action: 'toggle', organization_id: selectedOrganization.id, enabled: checked }
+                              });
+                              if (res.error) throw res.error;
+                              setSelectedOrganization(prev => ({ ...prev, whatsappInboxEnabled: checked }));
+                              setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, whatsappInboxEnabled: checked } : o));
+                              toast.success(checked ? 'WhatsApp habilitado' : 'WhatsApp deshabilitado', { id: toastId });
+                            } catch (err) {
+                              console.error(err);
+                              toast.error('Error al cambiar estado', { id: toastId });
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                    <div className="px-4 md:px-5 py-3 bg-gray-50/50 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm">
+                        {selectedOrganization.whatsappInboxUrl ? (
+                          <span className="text-green-600 font-medium flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                            Inbox generado
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">Inbox no generado</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!selectedOrganization.whatsappInboxUrl ? (
+                          <Button
+                            size="sm"
+                            onClick={async () => {
+                              const toastId = toast.loading('Generando inbox...');
+                              try {
+                                const res = await supabase.functions.invoke('manage-inbox', {
+                                  body: { action: 'create', organization_id: selectedOrganization.id }
+                                });
+                                if (res.error) throw new Error(res.error.message || 'Error');
+                                const embedUrl = res.data?.embed_url;
+                                if (!embedUrl) throw new Error('No se recibió la URL');
+                                setSelectedOrganization(prev => ({ ...prev, whatsappInboxUrl: embedUrl, whatsappInboxEnabled: true }));
+                                setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, whatsappInboxUrl: embedUrl, whatsappInboxEnabled: true } : o));
+                                toast.success('Inbox generado', { id: toastId });
+                              } catch (err) {
+                                toast.error(err.message, { id: toastId });
+                              }
+                            }}
+                          >
+                            Generar Inbox
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              if (!confirm('¿Revocar acceso al Inbox?')) return;
+                              const toastId = toast.loading('Revocando inbox...');
+                              try {
+                                const res = await supabase.functions.invoke('manage-inbox', {
+                                  body: { action: 'revoke', organization_id: selectedOrganization.id }
+                                });
+                                if (res.error) throw res.error;
+                                setSelectedOrganization(prev => ({ ...prev, whatsappInboxUrl: null, whatsappInboxEnabled: false }));
+                                setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, whatsappInboxUrl: null, whatsappInboxEnabled: false } : o));
+                                toast.success('Inbox revocado', { id: toastId });
+                              } catch (err) {
+                                toast.error('Error al revocar', { id: toastId });
+                              }
+                            }}
+                            className="text-red-600 border-red-200 hover:bg-red-50"
+                          >
+                            Revocar
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Uber Direct Integration */}
+                  <div className="border rounded-xl overflow-hidden">
+                    <div className="p-4 md:p-5 flex items-center justify-between border-b">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                          <Globe className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">Uber Direct</h3>
+                          <p className="text-xs text-gray-500">Delivery a través de Uber</p>
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-3 cursor-pointer select-none">
+                        <span className={`text-sm font-semibold ${selectedOrganization.uberEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
+                          Visible en el menú
+                        </span>
+                        <Switch
+                          checked={selectedOrganization.uberEnabled}
+                          onCheckedChange={async (checked) => {
+                            const toastId = toast.loading(checked ? 'Habilitando Uber Direct...' : 'Deshabilitando Uber Direct...');
+                            try {
+                              const { error } = await supabase
+                                .from('organizations')
+                                .update({ uber_enabled: checked })
+                                .eq('id', selectedOrganization.id);
+                              if (error) throw error;
+                              setSelectedOrganization(prev => ({ ...prev, uberEnabled: checked }));
+                              setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, uberEnabled: checked } : o));
+                              toast.success(checked ? 'Uber Direct habilitado' : 'Uber Direct deshabilitado', { id: toastId });
+                            } catch (err) {
+                              console.error(err);
+                              toast.error('Error al actualizar', { id: toastId });
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                    <div className="px-4 md:px-5 py-3 bg-gray-50/50 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm">
+                        {selectedOrganization.uberClientId && selectedOrganization.uberCustomerId ? (
+                          <span className="text-green-600 font-medium flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                            Conectado
+                          </span>
+                        ) : (
+                          <span className="text-amber-600 font-medium flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-amber-500"></span>
+                            Sin conexión
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {selectedOrganization.uberClientId ? (
+                          <>Client ID: <span className="font-mono">{selectedOrganization.uberClientId}</span></>
+                        ) : (
+                          'Credenciales no configuradas'
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 

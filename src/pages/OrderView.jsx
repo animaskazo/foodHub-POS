@@ -270,7 +270,7 @@ const OrderView = () => {
       }
 
       // ── Uber Direct: create delivery if mode is uber_direct ──
-      if (org.delivery_mode === 'uber_direct' && customerForm.deliveryType === 'delivery') {
+      if (org.delivery_mode === 'uber_direct' && org.uber_enabled !== false && customerForm.deliveryType === 'delivery') {
         try {
           const tokenRes = await getAccessToken(org.uber_client_id, org.uber_client_secret)
           const token = tokenRes.access_token

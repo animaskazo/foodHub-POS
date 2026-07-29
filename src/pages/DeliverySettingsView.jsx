@@ -28,6 +28,8 @@ const DeliverySettingsView = () => {
 
   const [generalAddress, setGeneralAddress] = useState('');
 
+  const [uberEnabled, setUberEnabled] = useState(true);
+
   const [deliveryData, setDeliveryData] = useState({
     delivery_enabled: false,
     delivery_mode: 'own',
@@ -79,9 +81,12 @@ const DeliverySettingsView = () => {
           }
         }
 
+        const uberAllowed = orgData.uber_enabled !== false;
+        setUberEnabled(uberAllowed);
+
         setDeliveryData({
           delivery_enabled: orgData.delivery_enabled || false,
-          delivery_mode: orgData.delivery_mode || 'own',
+          delivery_mode: !uberAllowed && orgData.delivery_mode === 'uber_direct' ? 'own' : (orgData.delivery_mode || 'own'),
           store_lat: initialLat,
           store_lng: initialLng,
           delivery_polygon: orgData.delivery_polygon || [],
@@ -256,10 +261,27 @@ const DeliverySettingsView = () => {
   return (
     <div className="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        <PageHeader
-          title="Configuración de Delivery"
-          subtitle="Elige cómo gestionarás las entregas a domicilio"
-        />
+        <div className="flex items-start justify-between gap-4">
+          <PageHeader
+            title="Configuración de Delivery"
+            subtitle="Elige cómo gestionarás las entregas a domicilio"
+          />
+          <div className="flex items-center gap-4 shrink-0 pt-1">
+            {hasChanges && (
+              <span className="text-xs text-amber-600 font-bold animate-pulse select-none">
+                Tienes cambios sin guardar
+              </span>
+            )}
+            <Button
+              onClick={handleSaveDelivery}
+              disabled={saving || !hasChanges}
+              className="flex items-center gap-2 px-6 py-2.5 bg-black text-white font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+              Guardar cambios
+            </Button>
+          </div>
+        </div>
 
         <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-8 space-y-6">
 
@@ -285,18 +307,24 @@ const DeliverySettingsView = () => {
                 {MODES.map((mode) => {
                   const Icon = mode.icon;
                   const isActive = deliveryData.delivery_mode === mode.value;
+                  const isUber = mode.value === 'uber_direct';
+                  const locked = isUber && !uberEnabled;
                   return (
                     <button
                       key={mode.value}
+                      disabled={locked}
                       onClick={() => {
+                        if (locked) return;
                         setDeliveryData({ ...deliveryData, delivery_mode: mode.value });
                         setHasChanges(true);
                         setTestResult(null);
                       }}
                       className={`flex items-start gap-4 p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                        isActive
-                          ? 'border-blue-500 bg-blue-50/50'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
+                        locked
+                          ? 'border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed'
+                          : isActive
+                            ? 'border-blue-500 bg-blue-50/50'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
                       }`}
                     >
                       <div className={`p-2.5 rounded-xl ${isActive ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
@@ -306,9 +334,11 @@ const DeliverySettingsView = () => {
                         <p className={`font-bold text-sm ${isActive ? 'text-blue-800' : 'text-gray-800'}`}>
                           {mode.label}
                         </p>
-                        <p className="text-xs text-gray-500 mt-0.5">{mode.desc}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {locked ? 'Disponible solo con permiso del super admin' : mode.desc}
+                        </p>
                       </div>
-                      {isActive && (
+                      {isActive && !locked && (
                         <div className="h-5 w-5 rounded-full bg-blue-600 flex items-center justify-center shrink-0 mt-0.5">
                           <CheckCircle2 className="h-3 w-3 text-white" />
                         </div>
@@ -644,21 +674,7 @@ const DeliverySettingsView = () => {
             </>
           )}
 
-          <div className="pt-6 border-t border-gray-100 flex items-center justify-end gap-4">
-            {hasChanges && (
-              <span className="text-xs text-amber-600 font-bold animate-pulse select-none">
-                Tienes cambios sin guardar
-              </span>
-            )}
-            <Button
-              onClick={handleSaveDelivery}
-              disabled={saving || !hasChanges}
-              className="flex items-center gap-2 px-6 py-2.5 bg-black text-white font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
-              Guardar cambios
-            </Button>
-          </div>
+          <div className="pt-6 border-t border-gray-100"></div>
         </div>
       </div>
     </div>
