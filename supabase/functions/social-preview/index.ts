@@ -31,7 +31,7 @@ serve(async (req) => {
     const orgs = await res.json()
     const org = orgs?.[0]
 
-    const appOrigin = url.searchParams.get('origin') || `${url.protocol}//${url.host}`
+    const appOrigin = url.searchParams.get('origin') || 'https://food.digital-solutions.work'
     const name = org?.name || slug
     const description = org?.description || `Pide online en ${name}`
     const image = org?.cover_url || `${appOrigin}/favicon.svg`

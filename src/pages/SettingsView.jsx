@@ -425,21 +425,7 @@ const SettingsView = () => {
 
                     <div className="bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 mb-4">
                       <p className="text-xs text-blue-700 font-medium mb-1">📱 Compartir en redes sociales</p>
-                      <p className="text-xs text-blue-600">Usa este enlace para que se muestre la foto y nombre de tu tienda:</p>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className="text-sm text-blue-800 flex-1 truncate font-mono">
-                          {window.location.origin}/s/{formData.slug}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => navigator.clipboard.writeText(`${window.location.origin}/s/${formData.slug}`)}
-                          className="h-8 w-8 text-blue-500 hover:text-blue-700 shrink-0 cursor-pointer"
-                          title="Copiar enlace para redes"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <p className="text-xs text-blue-600">Al compartir este link en WhatsApp, Telegram, etc. se mostrará la foto y nombre de tu tienda automáticamente.</p>
                     </div>
 
                     {/* QR Code Section */}
