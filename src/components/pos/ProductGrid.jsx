@@ -292,8 +292,14 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
       {/* Products Grid */}
       <div className="flex-1 overflow-y-auto p-5 pb-24">
         {loading ? (
-          <div className="flex items-center justify-center h-full text-gray-400">
-            Cargando catálogo...
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+            {[75, 55, 65, 50, 70, 60].map((w, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-3 space-y-3">
+                <div className="w-full aspect-square bg-gray-200 rounded-xl animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: `${w}%` }}></div>
+                <div className="h-3 bg-gray-200 rounded animate-pulse" style={{ width: `${w - 20}%` }}></div>
+              </div>
+            ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">

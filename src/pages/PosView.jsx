@@ -15,6 +15,7 @@ import { Button } from '../components/ui/button';
 import { createOrder, updateOrderCustomer } from '../services/orderService';
 import { useAuth } from '../components/AuthContext';
 import { getShiftSettings, getCurrentShift } from '../services/shiftService';
+import { PosSkeleton } from '../components/ui/Skeleton';
 
 const PosView = () => {
   const { organization } = useAuth();
@@ -346,6 +347,8 @@ const PosView = () => {
       </div>
     );
   }
+
+  if (loadingShift) return <PosSkeleton />
 
   return (
     <div className="h-[100dvh] w-full flex flex-col overflow-hidden">
