@@ -313,6 +313,21 @@ export const updateOrderStatus = async (orderId, status) => {
 
     if (error) throw error;
 
+    // ── Uber Direct: update local status ──
+    if ((status === 'ready' || status === 'preparing') && orderId) {
+      const { data: uberCheck } = await supabase
+        .from('orders')
+        .select('uber_delivery_id')
+        .eq('id', orderId)
+        .single()
+
+      if (uberCheck?.uber_delivery_id) {
+        const uberStatus = status === 'ready' ? 'ready' : 'preparing'
+        console.log('[Uber] Updating local uber_status to', uberStatus)
+        await supabase.from('orders').update({ uber_status: uberStatus }).eq('id', orderId)
+      }
+    }
+
     if (status === 'ready') {
       // Fetch order details for the email
       const { data: order } = await supabase
@@ -327,6 +342,7 @@ export const updateOrderStatus = async (orderId, status) => {
           subtotal,
           delivery_fee,
           uber_delivery_id,
+          uber_tracking_url,
           branch_id,
           customer_id,
           payments ( method, status ),
@@ -373,18 +389,6 @@ export const updateOrderStatus = async (orderId, status) => {
           orgData = org;
         }
 
-        // ── Uber Direct: notify when ready ──
-        if (order.uber_delivery_id && orgData?.delivery_mode === 'uber_direct' && orgData?.uber_client_id) {
-          try {
-            const { getAccessToken, updateDeliveryStatus } = await import('./uberDirectService');
-            const tokenRes = await getAccessToken(orgData.uber_client_id, orgData.uber_client_secret);
-            const uberRes = await updateDeliveryStatus(orgData.uber_customer_id, tokenRes.access_token, order.uber_delivery_id, 'pickup_scheduled');
-            await supabase.from('orders').update({ uber_status: uberRes.status || 'pickup_scheduled' }).eq('id', orderId);
-          } catch (uberError) {
-            console.error('Uber Direct status update failed:', uberError);
-          }
-        }
-
         if (customer && customer.email) {
           const paymentMethod = order.payments?.length > 0 ? order.payments[0].method : 'En local';
           // Filter out placeholder addresses
@@ -407,6 +411,7 @@ export const updateOrderStatus = async (orderId, status) => {
             subtotal: order.total - (order.delivery_fee || 0),
             delivery_fee: order.delivery_fee,
             payment_method: paymentMethod,
+            uber_tracking_url: order.uber_tracking_url,
             items: order.order_items || [],
             branch: {
               name: branch?.name || '',

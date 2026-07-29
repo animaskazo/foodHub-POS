@@ -66,7 +66,11 @@ Deno.serve(async (req) => {
       instructions = "En breve te lo llevaremos a la mesa.";
     }
 
-    const message = `${greeting}\n\nTe avisamos que tu pedido *${record.order_number}* en *${org.name}* ya está listo. 🎉\n\n${instructions}`;
+    let message = `${greeting}\n\nTe avisamos que tu pedido *${record.order_number}* en *${org.name}* ya está listo. 🎉\n\n${instructions}`;
+
+    if (record.uber_tracking_url) {
+      message += `\n\n🛵 *Sigue tu delivery en vivo:*\n${record.uber_tracking_url}`;
+    }
 
     // Enviar a Kapso
     if (KAPSO_API_KEY) {

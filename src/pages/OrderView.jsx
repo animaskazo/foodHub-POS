@@ -327,7 +327,10 @@ const OrderView = () => {
             dropoff_phone_number: customerForm.phone,
             dropoff_latitude: dropoffCoords?.lat,
             dropoff_longitude: dropoffCoords?.lng,
-            manifest_items: [{ name: 'Pedido FoodHub', quantity: cartItems.length, weight: 1 }],
+            manifest_items: cartItems.map(item => ({
+              name: item.product_name || item.name || 'Producto',
+              quantity: item.quantity || 1,
+            })),
           })
 
           const deliveryFee = delivery.fee ? ((delivery.currency || '').toUpperCase() === 'CLP' ? Math.round(delivery.fee / 100) : delivery.fee / 100) : customerForm.deliveryFee
@@ -347,6 +350,22 @@ const OrderView = () => {
             order.uber_tracking_url = delivery.tracking_url
             order.uber_status = delivery.status
             order.delivery_fee = deliveryFee
+          }
+
+          // Send WhatsApp with tracking link
+          if (order.uber_tracking_url && customerForm.phone) {
+            try {
+              const { sendWhatsApp } = await import('../services/whatsappService')
+              const greeting = customerForm.name ? `¡Hola, ${customerForm.name.split(' ')[0]}! 👋` : '¡Hola! 👋'
+              await sendWhatsApp({
+                organizationId: org.id,
+                phone: customerForm.phone,
+                fromNumber: org.whatsapp_phone_number_id,
+                message: `${greeting}\n\nTu pedido *${order.order_number}* en *${org.name}* fue recibido y está siendo preparado. 🎉\n\n🛵 *Sigue tu delivery en vivo:*\n${order.uber_tracking_url}`,
+              })
+            } catch (wpErr) {
+              console.error('WhatsApp notification failed:', wpErr)
+            }
           }
         } catch (uberError) {
           console.error('Uber Direct delivery creation failed:', uberError)

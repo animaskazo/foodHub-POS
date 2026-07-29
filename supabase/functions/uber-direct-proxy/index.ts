@@ -117,21 +117,29 @@ serve(async (req) => {
 
       case 'update_delivery': {
         const { customer_id, token, delivery_id, ...updateData } = params
-        const res = await fetch(`${UBER_API_BASE}/${customer_id}/deliveries/${delivery_id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(updateData),
-        })
-
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.message || data.error || 'Update delivery failed')
-
-        return new Response(JSON.stringify(data), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 15000)
+        try {
+          const res = await fetch(`${UBER_API_BASE}/${customer_id}/deliveries/${delivery_id}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(updateData),
+            signal: controller.signal,
+          })
+          clearTimeout(timeout)
+          const data = await res.json()
+          if (!res.ok) throw new Error(data.message || data.error || `Update delivery failed (${res.status})`)
+          return new Response(JSON.stringify(data), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        } catch (fetchErr) {
+          clearTimeout(timeout)
+          if (fetchErr.name === 'AbortError') throw new Error('Uber API timeout after 15s')
+          throw fetchErr
+        }
       }
 
       default:

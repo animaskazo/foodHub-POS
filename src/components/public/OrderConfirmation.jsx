@@ -77,8 +77,24 @@ const OrderConfirmation = ({ order, org }) => {
               <Clock className="h-5 w-5 text-gray-600" />
             </div>
             <div>
-              <p className="font-bold text-gray-900 text-sm">En preparación</p>
-              <p className="text-xs text-gray-500 mt-0.5 mb-1.5">Tu pedido ya fue recibido y está siendo preparado</p>
+              <p className="font-bold text-gray-900 text-sm">
+                {dbOrder?.status === 'pending' ? 'Pendiente' :
+                 dbOrder?.status === 'confirmed' ? 'Confirmado' :
+                 dbOrder?.status === 'preparing' ? 'En preparación' :
+                 dbOrder?.status === 'ready' ? 'Listo' :
+                 dbOrder?.status === 'delivered' ? 'Entregado' :
+                 dbOrder?.status === 'cancelled' ? 'Cancelado' :
+                 'En preparación'}
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5 mb-1.5">
+                {dbOrder?.status === 'pending' ? 'Pedido recibido, esperando confirmación' :
+                 dbOrder?.status === 'confirmed' ? 'Pedido confirmado' :
+                 dbOrder?.status === 'preparing' ? 'Tu pedido está siendo preparado' :
+                 dbOrder?.status === 'ready' ? 'Tu pedido está listo' :
+                 dbOrder?.status === 'delivered' ? 'Pedido entregado' :
+                 dbOrder?.status === 'cancelled' ? 'Pedido cancelado' :
+                 'Tu pedido ya fue recibido y está siendo preparado'}
+              </p>
               {dbOrder?.customer_name && (
                 <div className="text-xs text-gray-700 bg-gray-50 rounded px-2 py-1 inline-block border border-gray-100">
                   <span className="font-bold">A nombre de:</span> {dbOrder.customer_name} 
@@ -125,7 +141,16 @@ const OrderConfirmation = ({ order, org }) => {
                   Seguir delivery en vivo
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Delivery vía Uber Direct {dbOrder.uber_status ? `(${dbOrder.uber_status})` : ''}
+                  Delivery vía Uber Direct 
+                  {dbOrder.uber_status === 'pending' ? ' — Pendiente' :
+                   dbOrder.uber_status === 'preparing' ? ' — Preparando pedido' :
+                   dbOrder.uber_status === 'ready' ? ' — Pedido listo' :
+                   dbOrder.uber_status === 'pickup' ? ' — Repartidor en camino al local' :
+                   dbOrder.uber_status === 'pickup_complete' ? ' — Repartidor recogió el pedido' :
+                   dbOrder.uber_status === 'dropoff' ? ' — Repartidor en camino a tu domicilio' :
+                   dbOrder.uber_status === 'delivered' ? ' — ¡Entregado!' :
+                   dbOrder.uber_status === 'canceled' ? ' — Cancelado' :
+                   ''}
                 </p>
               </div>
               <ExternalLink className="h-4 w-4 text-green-500 shrink-0" />

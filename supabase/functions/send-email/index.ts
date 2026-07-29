@@ -184,6 +184,13 @@ serve(async (req) => {
                     </p>
                   </td>
                 </tr>` : `<tr><td style="padding-bottom: 16px;"></td></tr>`}
+                ${data.uber_tracking_url ? `<tr>
+                  <td style="padding: 0 20px 20px 20px;">
+                    <a href="${data.uber_tracking_url}" target="_blank" style="display: inline-block; background-color: #16a34a; color: #ffffff; font-size: 13px; font-weight: 700; padding: 10px 24px; border-radius: 8px; text-decoration: none;">
+                      🔗 Seguir delivery en vivo
+                    </a>
+                  </td>
+                </tr>` : ''}
               </table>
             </td>
           </tr>
@@ -423,6 +430,48 @@ serve(async (req) => {
   </table>
 </body>
 </html>`
+    } else if (type === 'send_whatsapp') {
+      const { phone, organization_id, message, from_number } = data
+      if (!phone) throw new Error('Phone is required')
+
+      const KAPSO_API_KEY = Deno.env.get('KAPSO_API_KEY')
+      if (!KAPSO_API_KEY) throw new Error('KAPSO_API_KEY not set')
+
+      let phoneNumberId = from_number
+      if (!phoneNumberId) {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+        const orgRes = await fetch(`${supabaseUrl}/rest/v1/organizations?id=eq.${organization_id}&select=whatsapp_phone_number_id`, {
+          headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` },
+        })
+        const [org] = await orgRes.json()
+        phoneNumberId = org?.whatsapp_phone_number_id
+      }
+      if (!phoneNumberId) throw new Error('WhatsApp phone number not configured')
+
+      const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${phoneNumberId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': KAPSO_API_KEY,
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: phone.startsWith('+') ? phone : `+${phone}`,
+          type: 'text',
+          text: { body: message },
+        }),
+      })
+
+      if (!res.ok) {
+        const txt = await res.text()
+        throw new Error(`Kapso error: ${txt}`)
+      }
+
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     } else {
       throw new Error('Invalid email type')
     }
