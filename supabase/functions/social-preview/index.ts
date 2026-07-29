@@ -21,7 +21,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-    const res = await fetch(`${supabaseUrl}/rest/v1/organizations?select=name,slug,cover_url,description&slug=eq.${slug}`, {
+    const res = await fetch(`${supabaseUrl}/rest/v1/organizations?select=name,slug,logo_url,cover_url,description&slug=eq.${slug}`, {
       headers: {
         'apikey': supabaseKey,
         'Authorization': `Bearer ${supabaseKey}`,
@@ -34,7 +34,7 @@ serve(async (req) => {
     const appOrigin = url.searchParams.get('origin') || 'https://food.digital-solutions.work'
     const name = org?.name || slug
     const description = org?.description || `Pide online en ${name}`
-    const image = org?.cover_url || `${appOrigin}/favicon.svg`
+    const image = org?.logo_url || org?.cover_url || `${appOrigin}/favicon.svg`
     const appUrl = `${appOrigin}/order/${slug}`
 
     const html = `<!DOCTYPE html>

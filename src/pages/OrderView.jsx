@@ -466,13 +466,13 @@ const OrderView = () => {
             <meta name="description" content={org.description || `Pide online en ${org.name}`} />
             <meta property="og:title" content={org.name} />
             <meta property="og:description" content={org.description || `Pide online en ${org.name}`} />
-            {org.cover_url && <meta property="og:image" content={org.cover_url} />}
+            <meta property="og:image" content={org.logo_url || org.cover_url} />
             <meta property="og:url" content={`${window.location.origin}/order/${slug}`} />
             <meta property="og:type" content="website" />
             <meta name="twitter:card" content="summary_large_image" />
             <meta name="twitter:title" content={org.name} />
             <meta name="twitter:description" content={org.description || `Pide online en ${org.name}`} />
-            {org.cover_url && <meta name="twitter:image" content={org.cover_url} />}
+            <meta name="twitter:image" content={org.logo_url || org.cover_url} />
           </>
         )}
       </Helmet>
