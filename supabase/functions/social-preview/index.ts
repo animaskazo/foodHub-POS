@@ -31,10 +31,11 @@ serve(async (req) => {
     const orgs = await res.json()
     const org = orgs?.[0]
 
+    const appOrigin = url.searchParams.get('origin') || `${url.protocol}//${url.host}`
     const name = org?.name || slug
     const description = org?.description || `Pide online en ${name}`
-    const image = org?.cover_url || `${url.origin}/favicon.svg`
-    const appUrl = `${url.origin}/order/${slug}`
+    const image = org?.cover_url || `${appOrigin}/favicon.svg`
+    const appUrl = `${appOrigin}/order/${slug}`
 
     const html = `<!DOCTYPE html>
 <html lang="es">

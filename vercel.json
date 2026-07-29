@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/s/:slug",
-      "destination": "https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/social-preview?slug=:slug"
+      "destination": "https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/social-preview?slug=:slug&origin=https://food.digital-solutions.work"
     },
     {
       "source": "/food-agent-test.html",
