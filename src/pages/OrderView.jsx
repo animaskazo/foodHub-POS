@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import PublicHeader from '../components/public/PublicHeader';
 import MenuSection from '../components/public/MenuSection';
 import CartSummary from '../components/public/CartSummary';
@@ -458,8 +459,23 @@ const OrderView = () => {
 
   return (
     <div className="min-h-[100dvh] bg-gray-200/40 flex flex-col justify-start items-center">
-      {/* Set page title */}
-      <title>{org?.name ? `${org.name} · Pedidos` : 'Pedir en línea'}</title>
+      <Helmet>
+        <title>{org?.name ? `${org.name} · Pedidos` : 'Pedir en línea'}</title>
+        {org && (
+          <>
+            <meta name="description" content={org.description || `Pide online en ${org.name}`} />
+            <meta property="og:title" content={org.name} />
+            <meta property="og:description" content={org.description || `Pide online en ${org.name}`} />
+            {org.cover_url && <meta property="og:image" content={org.cover_url} />}
+            <meta property="og:url" content={`${window.location.origin}/order/${slug}`} />
+            <meta property="og:type" content="website" />
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta name="twitter:title" content={org.name} />
+            <meta name="twitter:description" content={org.description || `Pide online en ${org.name}`} />
+            {org.cover_url && <meta name="twitter:image" content={org.cover_url} />}
+          </>
+        )}
+      </Helmet>
 
       {/* Centered Mobile App Frame for Desktop */}
       <div className="w-full max-w-3xl mx-auto flex-1 flex flex-col bg-white md:shadow-[0_0_60px_rgba(0,0,0,0.05)] md:min-h-[100dvh] relative">
