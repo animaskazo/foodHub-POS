@@ -359,6 +359,7 @@ const PosView = () => {
             {/* Left Panel: Product Grid (100% on mobile, 60% on desktop) */}
             <div className="w-full md:w-[60%] overflow-hidden relative">
               <ProductGrid
+                organizationId={organization?.id}
                 onProductClick={handleProductClick}
                 cartItems={cartItems}
                 onOpenMobileMenu={() => setIsMobileMenuOpen(true)}

@@ -7,7 +7,7 @@ import Keyboard from 'react-simple-keyboard';
 // CSS del teclado importado via vite
 import 'react-simple-keyboard/build/css/index.css';
 
-import { getFirstOrganizationId, getCategories, getProducts } from '../../services/catalogService';
+import { getCategories, getProducts } from '../../services/catalogService';
 
 const spanishLayout = {
   default: [
@@ -31,7 +31,7 @@ const keyboardDisplay = {
   '{clear}': '✕ Limpiar',
 };
 
-const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
+const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMobileMenu }) => {
   const [categories, setCategories] = useState([{ id: 'all', name: 'Todos' }]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,28 +46,28 @@ const ProductGrid = ({ onProductClick, cartItems = [], onOpenMobileMenu }) => {
   const { pendingCount, newOrderFlag } = useKitchenOrders();
 
   useEffect(() => {
+    if (!organizationId) return;
     const loadCatalog = async () => {
       setLoading(true);
-      const orgId = await getFirstOrganizationId();
-      if (orgId) {
-        const cats = await getCategories(orgId);
-        const prods = await getProducts(orgId, { status: 'available' });
+      const [cats, prods] = await Promise.all([
+        getCategories(organizationId),
+        getProducts(organizationId, { status: 'available' }),
+      ]);
         
-        const activeCats = cats.filter(c => c.show_in_pos !== false && c.is_active !== false);
-        const activeCatIds = activeCats.map(c => c.id);
+      const activeCats = cats.filter(c => c.show_in_pos !== false && c.is_active !== false);
+      const activeCatIds = activeCats.map(c => c.id);
         
-        const activeProds = prods.filter(p => {
-          if (p.categoryId === 'none') return true; // uncategorized
-          return activeCatIds.includes(p.categoryId);
-        });
+      const activeProds = prods.filter(p => {
+        if (p.categoryId === 'none') return true;
+        return activeCatIds.includes(p.categoryId);
+      });
         
-        setCategories([{ id: 'all', name: 'Todos' }, ...activeCats]);
-        setProducts(activeProds);
-      }
+      setCategories([{ id: 'all', name: 'Todos' }, ...activeCats]);
+      setProducts(activeProds);
       setLoading(false);
     };
     loadCatalog();
-  }, []);
+  }, [organizationId]);
 
   const renderProductCard = (product) => {
     const qty = getCartQty(product.id);
