@@ -330,6 +330,10 @@ const OrderView = () => {
               dropoff_longitude: dropoffCoords?.lng,
               pickup_phone_number: org.phone || '+56912345678',
               dropoff_phone_number: customerForm.phone,
+              manifest_items: cartItems.map(item => ({
+                name: item.product_name || item.name || 'Producto',
+                quantity: item.quantity || 1,
+              })),
             })
             quoteId = quote.id
           }
@@ -520,6 +524,7 @@ const OrderView = () => {
             organizationId={org?.id}
             isOpen={isOpen}
             org={org}
+            cartItems={cartItems}
           />
         )}
         {step === 4 && (

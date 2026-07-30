@@ -74,7 +74,7 @@ export const formatChileanPhone = (value) => {
   }
 };
 
-const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePayments = true, organizationId, isOpen = true, org }) => {
+const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePayments = true, organizationId, isOpen = true, org, cartItems = [] }) => {
   const uberEnabled = org?.uber_enabled !== false;
   const deliveryMode = !uberEnabled && org?.delivery_mode === 'uber_direct' ? 'own' : org?.delivery_mode;
   const [form, setForm] = useState(() => {
@@ -271,6 +271,10 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               dropoff_longitude: coords.lng,
               pickup_phone_number: org.phone || '+56912345678',
               dropoff_phone_number: form.phone,
+              manifest_items: cartItems.map(item => ({
+                name: item.product_name || item.name || 'Producto',
+                quantity: item.quantity || 1,
+              })),
             });
 
             console.log('[Uber Quote]', quoteRes);
