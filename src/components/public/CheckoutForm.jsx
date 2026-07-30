@@ -262,6 +262,9 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               pickupAddr.zip_code = orgCoordsRes.address?.postcode || '';
             }
 
+            const pickupPhone = org.phone?.replace(/^0+/, '') || '';
+            const normalizedPickupPhone = pickupPhone.startsWith('+') ? pickupPhone : `+56${pickupPhone}`;
+
             const quoteRes = await createQuote(org.uber_customer_id, tokenRes.access_token, {
               pickup_address: JSON.stringify(pickupAddr),
               dropoff_address: JSON.stringify(dropoffAddr),
@@ -269,7 +272,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               pickup_longitude: pickupLng,
               dropoff_latitude: coords.lat,
               dropoff_longitude: coords.lng,
-              pickup_phone_number: org.phone || '+56912345678',
+              pickup_phone_number: normalizedPickupPhone,
               dropoff_phone_number: form.phone,
               manifest_items: cartItems.map(item => ({
                 name: item.product_name || item.name || 'Producto',

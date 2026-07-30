@@ -319,6 +319,9 @@ const OrderView = () => {
             }
           }
 
+          const pickupPhone = (org.phone || '').replace(/^0+/, '');
+          const normalizedPickupPhone = pickupPhone.startsWith('+') ? pickupPhone : `+56${pickupPhone}`;
+
           let quoteId = customerForm.quoteId
           if (!quoteId) {
             const quote = await createQuote(org.uber_customer_id, token, {
@@ -328,7 +331,7 @@ const OrderView = () => {
               pickup_longitude: pickupLng,
               dropoff_latitude: dropoffCoords?.lat,
               dropoff_longitude: dropoffCoords?.lng,
-              pickup_phone_number: org.phone || '+56912345678',
+              pickup_phone_number: normalizedPickupPhone,
               dropoff_phone_number: customerForm.phone,
               manifest_items: cartItems.map(item => ({
                 name: item.product_name || item.name || 'Producto',
@@ -342,7 +345,7 @@ const OrderView = () => {
             quote_id: quoteId,
             pickup_address: JSON.stringify(pickupAddr),
             pickup_name: org.name,
-            pickup_phone_number: org.phone || '+56912345678',
+            pickup_phone_number: normalizedPickupPhone,
             pickup_latitude: pickupLat,
             pickup_longitude: pickupLng,
             dropoff_address: JSON.stringify(dropoffAddr),
