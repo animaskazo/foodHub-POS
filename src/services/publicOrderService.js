@@ -369,67 +369,7 @@ export const createPublicOrder = async ({
     }
   }
 
-  // Send order confirmation email if customer provided an email
-  if (customer.email) {
-    const { sendEmail } = await import('./emailService');
-
-    // orgData is already fetched at the top
-
-    const PLACEHOLDER_ADDRESSES = ['por definir', 'principal'];
-    const isPlaceholder = (addr) =>
-      !addr || PLACEHOLDER_ADDRESSES.some(p => addr.toLowerCase().includes(p));
-    const rawAddress = orgData?.address || '';
-    const orgAddress = isPlaceholder(rawAddress) ? '' : rawAddress;
-
-    const emailData = {
-      order_number: order.order_number,
-      order_type: order.order_type,
-      delivery_type: order.delivery_type,
-      delivery_address: order.delivery_address,
-      customer_name: order.customer_name || customer.name || 'Cliente',
-      total: order.total,
-      subtotal: order.total - (order.delivery_fee || 0),
-      delivery_fee: order.delivery_fee,
-      payment_method: paymentMethod,
-      items: cartItems.map(item => {
-        let fullName = item.name;
-        if (item.variant) {
-          fullName += ` (${item.variant.name})`;
-        }
-        if (item.selectedIngredients && item.selectedIngredients.length > 0) {
-          fullName += ` + ${item.selectedIngredients.map(i => i.name).join(', ')}`;
-        }
-        if (item.type === 'bundle' && item.selectedOptions && item.selectedOptions.length > 0) {
-          fullName += ` [${item.selectedOptions.map(o => {
-            let n = o.name;
-            if (o.variant) n += ` (${o.variant.name})`;
-            if (o.selectedIngredients && o.selectedIngredients.length > 0) {
-              n += ` + ${o.selectedIngredients.map(i => i.name).join(', ')}`;
-            }
-            return n;
-          }).join(' | ')}]`;
-        }
-        return {
-          product_name: fullName,
-          quantity: item.quantity,
-          total_price: item.price * item.quantity,
-          image_url: item.image || item.image_url || item.imageUrl || null,
-        };
-      }),
-      branch: {
-        name: branch.name || '',
-        address: orgAddress,
-      },
-      organization: {
-        name: orgData?.name || 'FoodHub',
-        logo_url: orgData?.logo_url || null,
-      }
-    };
-
-    sendEmail({ type: 'order_confirmed', email: customer.email, data: emailData });
-  }
-
-  return order;
+  return { ...order, customer_email: customer.email, customer_name: customer.name, cart_items: cartItems, org_data: orgData };
 };
 
 // ── Get public order details by its ID (for confirmation page) ──

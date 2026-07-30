@@ -11,6 +11,7 @@ import ProductDetailView from '../components/public/ProductDetailView';
 import { getOrganizationByName, getPublicCatalog, createPublicOrder } from '../services/publicOrderService';
 import { getAccessToken, createQuote, createDelivery } from '../services/uberDirectService';
 import { geocodeAddress } from '../utils/geo';
+import { sendEmail } from '../services/emailService';
 import { supabase } from '../lib/supabase';
 
 const OrderView = () => {
@@ -123,8 +124,43 @@ const OrderView = () => {
             setSubmittedOrder(orderData);
             setCartItems([]);
             localStorage.removeItem(`cart_${slug}`);
-            setStep(4); // Move to confirmation step
-            // Clean URL to prevent re-fetching on refresh
+            setStep(4);
+
+            // Send confirmation email after Klap payment
+            const { data: customerData } = await supabase
+              .from('customers')
+              .select('email')
+              .eq('organization_id', orgData.id)
+              .eq('phone', orderData.customer_phone)
+              .maybeSingle()
+            if (customerData?.email) {
+              const items = (orderData.order_items || [])
+                .filter(item => !item.parent_item_id)
+                .map(item => ({
+                  product_name: item.product_name,
+                  quantity: item.quantity,
+                  total_price: item.total_price,
+                }))
+              sendEmail({
+                type: 'order_confirmed',
+                email: customerData.email,
+                data: {
+                  order_number: orderData.order_number,
+                  delivery_type: orderData.delivery_type,
+                  delivery_address: orderData.delivery_address,
+                  customer_name: orderData.customer_name || 'Cliente',
+                  total: orderData.total,
+                  subtotal: orderData.total - (orderData.delivery_fee || 0),
+                  delivery_fee: orderData.delivery_fee || 0,
+                  uber_tracking_url: orderData.uber_tracking_url,
+                  payment_method: 'online_gateway',
+                  items,
+                  branch: { name: orgData.name, address: orgData.address || '' },
+                  organization: { name: orgData.name, logo_url: orgData.logo_url || null },
+                },
+              })
+            }
+
             window.history.replaceState({}, '', `/order/${slug}`);
           } else {
             setError('No se pudo cargar la información del pedido.');
@@ -243,33 +279,6 @@ const OrderView = () => {
         deliveryFee: customerForm.deliveryFee
       });
 
-      if (customerForm.paymentMethod === 'online') {
-        const returnUrl = window.location.origin + `/order/${slug}?orderId=${order.id}&status=success`;
-        
-        console.log('[Klap Debug] Sending:', { orderId: order.id, amount: order.total, returnUrl });
-
-        const { data, error } = await supabase.functions.invoke('klap-create-payment', {
-          body: { orderId: order.id, amount: order.total, returnUrl }
-        });
-
-        console.log('[Klap Debug] Response data:', JSON.stringify(data));
-        console.log('[Klap Debug] Response error:', error);
-
-        if (error || !data?.success) {
-          const klapDetails = data?.details ? JSON.stringify(data.details) : '';
-          const errMsg = `${data?.error || error?.message || 'Error desconocido'}${klapDetails ? ` | Klap: ${klapDetails}` : ''}`;
-          console.error('[Klap Debug] Full error:', errMsg);
-          throw new Error(errMsg);
-        }
-
-        if (data.redirect_url) {
-          window.location.href = data.redirect_url;
-        } else {
-          throw new Error('Klap no retornó una URL de pago válida');
-        }
-        return; 
-      }
-
       // ── Uber Direct: create delivery if mode is uber_direct ──
       if (org.delivery_mode === 'uber_direct' && org.uber_enabled !== false && customerForm.deliveryType === 'delivery') {
         try {
@@ -319,12 +328,19 @@ const OrderView = () => {
             }
           }
 
-          const pickupPhone = (org.phone || '').replace(/^0+/, '');
-          const normalizedPickupPhone = pickupPhone.startsWith('+') ? pickupPhone : `+56${pickupPhone}`;
+          const normalizePhone = (phone) => {
+            if (!phone) return ''
+            let n = (phone || '').replace(/^0+/, '').replace(/[^\d+]/g, '')
+            if (n.startsWith('+')) return n
+            if (n.startsWith('56')) return `+${n}`
+            return `+56${n}`
+          }
+          const normalizedPickupPhone = normalizePhone(org.phone)
 
           let quoteId = customerForm.quoteId
           if (!quoteId) {
             const quote = await createQuote(org.uber_customer_id, token, {
+              external_store_id: org.id,
               pickup_address: JSON.stringify(pickupAddr),
               dropoff_address: JSON.stringify(dropoffAddr),
               pickup_latitude: pickupLat,
@@ -332,10 +348,11 @@ const OrderView = () => {
               dropoff_latitude: dropoffCoords?.lat,
               dropoff_longitude: dropoffCoords?.lng,
               pickup_phone_number: normalizedPickupPhone,
-              dropoff_phone_number: customerForm.phone,
+              dropoff_phone_number: normalizePhone(customerForm.phone),
               manifest_items: cartItems.map(item => ({
                 name: item.product_name || item.name || 'Producto',
                 quantity: item.quantity || 1,
+                value: item.price || 0,
               })),
             })
             quoteId = quote.id
@@ -343,6 +360,7 @@ const OrderView = () => {
 
           const delivery = await createDelivery(org.uber_customer_id, token, {
             quote_id: quoteId,
+            external_store_id: org.id,
             pickup_address: JSON.stringify(pickupAddr),
             pickup_name: org.name,
             pickup_phone_number: normalizedPickupPhone,
@@ -350,16 +368,18 @@ const OrderView = () => {
             pickup_longitude: pickupLng,
             dropoff_address: JSON.stringify(dropoffAddr),
             dropoff_name: customerForm.name,
-            dropoff_phone_number: customerForm.phone,
+            dropoff_phone_number: normalizePhone(customerForm.phone),
             dropoff_latitude: dropoffCoords?.lat,
             dropoff_longitude: dropoffCoords?.lng,
             manifest_items: cartItems.map(item => ({
               name: item.product_name || item.name || 'Producto',
               quantity: item.quantity || 1,
+              value: item.price || 0,
             })),
           })
 
           const deliveryFee = delivery.fee ? ((delivery.currency || '').toUpperCase() === 'CLP' ? Math.round(delivery.fee / 100) : delivery.fee / 100) : customerForm.deliveryFee
+          const adjustedTotal = order.total - (customerForm.deliveryFee || 0) + deliveryFee
 
           const { error: updateError } = await supabase
             .from('orders')
@@ -368,6 +388,7 @@ const OrderView = () => {
               uber_tracking_url: delivery.tracking_url,
               uber_status: delivery.status,
               delivery_fee: deliveryFee,
+              total: adjustedTotal,
             })
             .eq('id', order.id)
 
@@ -376,29 +397,83 @@ const OrderView = () => {
             order.uber_tracking_url = delivery.tracking_url
             order.uber_status = delivery.status
             order.delivery_fee = deliveryFee
-          }
-
-          // Send WhatsApp with tracking link
-          if (order.uber_tracking_url && customerForm.phone) {
-            try {
-              const { sendWhatsApp } = await import('../services/whatsappService')
-              const greeting = customerForm.name ? `¡Hola, ${customerForm.name.split(' ')[0]}! 👋` : '¡Hola! 👋'
-              await sendWhatsApp({
-                organizationId: org.id,
-                phone: customerForm.phone,
-                fromNumber: org.whatsapp_phone_number_id,
-                message: `${greeting}\n\nTu pedido *${order.order_number}* en *${org.name}* fue recibido y está siendo preparado. 🎉\n\n🛵 *Sigue tu delivery en vivo:*\n${order.uber_tracking_url}`,
-              })
-            } catch (wpErr) {
-              console.error('WhatsApp notification failed:', wpErr)
-            }
+            order.total = adjustedTotal
+          } else {
+            console.error('[Uber] Failed to update order with delivery info:', updateError)
           }
         } catch (uberError) {
           console.error('Uber Direct delivery creation failed:', uberError)
         }
       }
 
-      // Offline flow: order is already created above, just show confirmation
+      const finalDeliveryFee = order.delivery_fee || customerForm.deliveryFee || 0
+
+      if (customerForm.paymentMethod === 'online') {
+        const returnUrl = window.location.origin + `/order/${slug}?orderId=${order.id}&status=success`;
+
+        const { data, error } = await supabase.functions.invoke('klap-create-payment', {
+          body: { orderId: order.id, amount: order.total, returnUrl }
+        });
+
+        if (error || !data?.success) {
+          const klapDetails = data?.details ? JSON.stringify(data.details) : '';
+          const errMsg = `${data?.error || error?.message || 'Error desconocido'}${klapDetails ? ` | Klap: ${klapDetails}` : ''}`;
+          console.error('[Klap Debug] Full error:', errMsg);
+          throw new Error(errMsg);
+        }
+
+        if (data.redirect_url) {
+          window.location.href = data.redirect_url;
+        } else {
+          throw new Error('Klap no retornó una URL de pago válida');
+        }
+        return; 
+      }
+
+      // Send confirmation email (offline flow only)
+      if (customerForm.email) {
+        const items = cartItems.map(item => ({
+          product_name: item.name + (item.variant ? ` (${item.variant.name})` : ''),
+          quantity: item.quantity,
+          total_price: item.price * item.quantity,
+          image_url: item.image || item.image_url || item.imageUrl || null,
+        }))
+        sendEmail({
+          type: 'order_confirmed',
+          email: customerForm.email,
+          data: {
+            order_number: order.order_number,
+            delivery_type: customerForm.deliveryType,
+            delivery_address: customerForm.deliveryAddress,
+            customer_name: customerForm.name || 'Cliente',
+            total: order.total,
+            subtotal: order.total - finalDeliveryFee,
+            delivery_fee: finalDeliveryFee,
+            uber_tracking_url: order.uber_tracking_url,
+            payment_method: 'cash',
+            items,
+            branch: { name: org.name, address: org.address || '' },
+            organization: { name: org.name, logo_url: org.logo_url || null },
+          },
+        })
+      }
+
+      // Send WhatsApp with tracking link (offline flow only)
+      if (order.uber_tracking_url && customerForm.phone) {
+        try {
+          const { sendWhatsApp } = await import('../services/whatsappService')
+          const greeting = customerForm.name ? `¡Hola, ${customerForm.name.split(' ')[0]}! 👋` : '¡Hola! 👋'
+          await sendWhatsApp({
+            organizationId: org.id,
+            phone: customerForm.phone,
+            fromNumber: org.whatsapp_phone_number_id,
+            message: `${greeting}\n\nTu pedido *${order.order_number}* en *${org.name}* fue recibido y está siendo preparado. 🎉\n\n🛵 *Sigue tu delivery en vivo:*\n${order.uber_tracking_url}`,
+          })
+        } catch (wpErr) {
+          console.error('WhatsApp notification failed:', wpErr)
+        }
+      }
+
       setSubmittedOrder(order);
       setCartItems([]);
       localStorage.removeItem(`cart_${slug}`);

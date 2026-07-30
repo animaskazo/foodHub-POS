@@ -262,10 +262,21 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               pickupAddr.zip_code = orgCoordsRes.address?.postcode || '';
             }
 
-            const pickupPhone = org.phone?.replace(/^0+/, '') || '';
-            const normalizedPickupPhone = pickupPhone.startsWith('+') ? pickupPhone : `+56${pickupPhone}`;
+            const normalizePhone = (phone) => {
+              if (!phone) return ''
+              let n = phone.replace(/^0+/, '').replace(/[^\d+]/g, '')
+              if (n.startsWith('+')) return n
+              if (n.startsWith('56')) return `+${n}`
+              return `+56${n}`
+            }
+            const normalizedPickupPhone = normalizePhone(org.phone)
+            const normalizedDropoffPhone = normalizePhone(form.phone)
+            if (!normalizedDropoffPhone || normalizedDropoffPhone.replace(/\D/g, '').length < 9) {
+              throw new Error('Ingresa un teléfono válido antes de validar la dirección.')
+            }
 
             const quoteRes = await createQuote(org.uber_customer_id, tokenRes.access_token, {
+              external_store_id: org.id,
               pickup_address: JSON.stringify(pickupAddr),
               dropoff_address: JSON.stringify(dropoffAddr),
               pickup_latitude: pickupLat,
@@ -273,10 +284,11 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               dropoff_latitude: coords.lat,
               dropoff_longitude: coords.lng,
               pickup_phone_number: normalizedPickupPhone,
-              dropoff_phone_number: form.phone,
+              dropoff_phone_number: normalizedDropoffPhone,
               manifest_items: cartItems.map(item => ({
                 name: item.product_name || item.name || 'Producto',
                 quantity: item.quantity || 1,
+                value: item.price || 0,
               })),
             });
 

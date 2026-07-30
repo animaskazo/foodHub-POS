@@ -246,6 +246,7 @@ serve(async (req) => {
     } else if (type === 'order_confirmed') {
       const isDelivery2 = data.delivery_type === 'delivery'
       subject = `Pedido ${data.order_number || ''} recibido — ¡Lo estamos preparando!`
+      const uberTracking2 = data.uber_tracking_url
 
       const orgName2 = data.organization?.name || 'FoodHub'
       const orgLogo2 = data.organization?.logo_url || null
@@ -378,6 +379,13 @@ serve(async (req) => {
                     </p>
                   </td>
                 </tr>` : `<tr><td style="padding-bottom: 16px;"></td></tr>`}
+                ${uberTracking2 && isDelivery2 ? `<tr>
+                  <td style="padding: 0 20px 20px 20px;">
+                    <a href="${uberTracking2}" target="_blank" style="color: #16a34a; font-size: 13px; font-weight: 600; text-decoration: underline; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                      Seguir delivery en vivo
+                    </a>
+                  </td>
+                </tr>` : ''}
               </table>
             </td>
           </tr>
