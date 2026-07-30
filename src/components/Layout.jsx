@@ -23,7 +23,8 @@ import {
   DollarSign,
   Printer,
   ChevronLeft,
-  MessageCircle
+  MessageCircle,
+  BarChart3
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import FeedbackBubble from './FeedbackBubble';
@@ -209,6 +210,21 @@ const Layout = () => {
               >
                 <Users className="h-[18px] w-[18px]" />
                 Clientes
+              </NavLink>
+            </li>
+
+            <li className="pt-2">
+              <NavLink 
+                to="/reports" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={({ isActive }) => 
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${
+                    isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                  }`
+                }
+              >
+                <BarChart3 className="h-[18px] w-[18px]" />
+                Reportes
               </NavLink>
             </li>
 
