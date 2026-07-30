@@ -290,7 +290,6 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             update('deliveryCurrency', currency);
           } catch (quoteError) {
             console.error('[Uber Quote Error]', quoteError.message || quoteError);
-            console.error('[Uber Quote Error name]', quoteError.name);
             console.error('[Uber Quote Error stack]', quoteError.stack);
             setDistanceError('No pudimos cotizar el envío con Uber. Intenta de nuevo.');
             setIsValidatedAddress(false);
