@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import FeedbackBubble from './FeedbackBubble';
+import StockNotifications from './StockNotifications';
 
 const Layout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -422,6 +423,10 @@ const Layout = () => {
             <Menu className="h-6 w-6" />
           </button>
           <span className="font-bold text-lg lg:hidden">FoodHub</span>
+          <div className="flex-1" />
+          <div className="lg:hidden">
+            <StockNotifications />
+          </div>
         </header>
 
         <Outlet />

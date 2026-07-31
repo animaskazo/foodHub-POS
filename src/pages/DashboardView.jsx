@@ -22,7 +22,6 @@ import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import TransactionList from '../components/pos/TransactionList';
 import PrintableReceipt from '../components/pos/PrintableReceipt';
-import StockNotifications from '../components/StockNotifications';
 
 const DashboardView = () => {
   const { organization, loading: authLoading } = useAuth();
@@ -288,7 +287,6 @@ const DashboardView = () => {
           actions={
             <div className="flex items-center gap-3">
               {renderShiftButton(false)}
-              <StockNotifications />
             </div>
           }
         />

@@ -1,8 +1,9 @@
 import React from 'react';
+import StockNotifications from '../StockNotifications';
 
 const PageHeader = ({ title, subtitle, actions }) => {
   return (
-    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+    <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4 mb-4 md:mb-8">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-2">
           {title}
@@ -13,8 +14,11 @@ const PageHeader = ({ title, subtitle, actions }) => {
           </p>
         )}
       </div>
-      {actions && (
+      {(actions || true) && (
         <div className="flex flex-wrap gap-3 items-center shrink-0">
+          <div className="hidden md:block">
+            <StockNotifications />
+          </div>
           {actions}
         </div>
       )}
