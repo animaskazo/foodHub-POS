@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { checkInventoryStock, deductInventoryForOrder } from './inventoryService';
 
 // ── Get organization by its name (used as public identifier) ──
 export const getOrganizationByName = async (orgName) => {
@@ -179,6 +180,9 @@ export const createPublicOrder = async ({
 
   if (branchError || !branch) throw new Error('No se encontró una sucursal activa.');
 
+  // Check inventory stock before creating order
+  await checkInventoryStock(cartItems);
+
   // Database trigger `set_order_number_trigger` will automatically generate the order_number
 
   // Calculate totals (all prices already include IVA for display)
@@ -342,6 +346,13 @@ export const createPublicOrder = async ({
     status: paymentStatus,
     amount: total,
   }]);
+
+  // Deduct inventory (non-blocking)
+  try {
+    await deductInventoryForOrder(order.id, organizationId, branch.id);
+  } catch (invError) {
+    console.error("Error deducting inventory:", invError);
+  }
 
   // Save/update customer record
   if (customer.phone) {

@@ -5,6 +5,7 @@ import IngredientsManager from './pages/IngredientsManager';
 import CreateProductView from './pages/CreateProductView';
 import CategoriesList from './pages/CategoriesList';
 import CreateCategoryView from './pages/CreateCategoryView';
+import InventoryManager from './pages/InventoryManager';
 import PosView from './pages/PosView';
 import KitchenView from './pages/KitchenView';
 import LoginView from './pages/LoginView';
@@ -42,6 +43,7 @@ function App() {
           } />
           <Route path="categories" element={<CategoriesList />} />
           <Route path="ingredients" element={<IngredientsManager />} />
+          <Route path="inventory" element={<InventoryManager />} />
           <Route path="products" element={<CatalogManager />} />
           <Route path="settings" element={<SettingsView />} />
           <Route path="delivery" element={<DeliverySettingsView />} />

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { checkInventoryStock, deductInventoryForOrder } from './inventoryService';
 
 export const createOrder = async (cartItems, paymentMethod, orderType, total, subtotal, tax, deliveryInfo = null, orderNotes = '', deliveryFee = 0) => {
   try {
@@ -26,7 +27,10 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
     if (branchError || !branchData) throw new Error("No branch found for this organization. " + (branchError?.message || ''));
     const branchId = branchData.id;
 
-    // 2. Generate an order number sequentially per branch
+    // 2b. Check inventory stock before creating order
+    await checkInventoryStock(cartItems);
+
+    // 3. Generate an order number sequentially per branch
     // (Handled automatically by database trigger `set_order_number_trigger`)
 
     // 3. Insert order
@@ -178,7 +182,14 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
 
     if (paymentError) throw paymentError;
 
-    // 6. Save/update customer record and associate with order
+    // 6. Deduct inventory (non-blocking)
+    try {
+      await deductInventoryForOrder(order.id, organizationId, branchId);
+    } catch (invError) {
+      console.error("Error deducting inventory:", invError);
+    }
+
+    // 7. Save/update customer record and associate with order
     if (deliveryInfo?.customerPhone) {
       try {
         const { data: existingCustomer } = await supabase

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/button';
+import IngredientIcon from '../ui/IngredientIcon';
 
 const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, editingItem, onDelete, cartItems = [] }) => {
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -155,6 +156,7 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
                           </svg>
                         )}
                       </div>
+                      <IngredientIcon icon={ing.icon} className="h-5 w-5 text-gray-900 shrink-0" />
                       <span className="font-bold text-[15px] sm:text-sm text-gray-900 leading-snug">{ing.name}</span>
                     </div>
                     <span className="font-bold text-[15px] sm:text-sm text-gray-900 shrink-0 ml-2">

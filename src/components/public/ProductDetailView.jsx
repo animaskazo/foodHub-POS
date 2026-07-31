@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import IngredientIcon from '../ui/IngredientIcon';
 
 const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, initialExtras = [], initialQuantity = 1 }) => {
   const isBundle = product.type === 'bundle';
@@ -268,8 +269,9 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                   {baseIngredients.map(i => (
                     <span
                       key={i.id || i.name}
-                      className="inline-flex items-center px-3 py-1.5 rounded-full bg-white border border-gray-200 text-gray-600 text-[12px] font-semibold"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-gray-600 text-[12px] font-semibold"
                     >
+                      <IngredientIcon name={i.name} icon={i.icon} size={14} className="text-gray-500 shrink-0" />
                       {i.name}
                     </span>
                   ))}
@@ -340,6 +342,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                               </svg>
                             )}
                           </div>
+                          <IngredientIcon name={ing.name} icon={ing.icon} className="h-5 w-5 text-gray-900 shrink-0" />
                           <span className="font-bold text-sm text-gray-900">{ing.name}</span>
                         </div>
                         <span className="font-bold text-sm text-gray-900">
@@ -466,7 +469,10 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                                       : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                                   }`}
                                 >
-                                  <span className="truncate">{ing.name}</span>
+                                  <span className="flex items-center gap-1.5 truncate min-w-0">
+                                    <IngredientIcon name={ing.name} icon={ing.icon} size={14} className="text-gray-500 shrink-0" />
+                                    <span className="truncate">{ing.name}</span>
+                                  </span>
                                   <span className="font-semibold shrink-0 text-orange-600 ml-1">+${ingPrice.toLocaleString('es-CL')}</span>
                                 </button>
                               );

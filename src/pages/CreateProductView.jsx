@@ -4,15 +4,15 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import EditorHeader from '../components/ui/EditorHeader';
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+
 import { Input } from "@/components/ui/input";
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getFirstOrganizationId, createProduct, getProductById, updateProduct, getCategories, getIngredients, getProducts } from '../services/catalogService';
+import { getInventoryItems, getProductRecipes, replaceProductRecipes } from '../services/inventoryService';
 import { uploadImage } from '../services/storageService';
 import { generateProductDescription, generateProductImage } from '../services/aiService';
-import Modal from '../components/ui/Modal';
+import IngredientIcon from '../components/ui/IngredientIcon';
 import {
   Select,
   SelectContent,
@@ -21,15 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  X, Tag, ScanLine, Image as ImageIcon, Store, Globe, MessageCircle, Plus, Search, Info, ChevronDown, Trash2, Loader2, Sparkles
+  X, Image as ImageIcon, Store, Globe, MessageCircle, Plus, Search, ChevronDown, Trash2, Loader2, Sparkles, Check
 } from 'lucide-react';
-
-const InfoIcon = () => (
-  <svg className="h-4 w-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <circle cx="12" cy="12" r="10" strokeWidth="1.5" />
-    <path d="M12 8v4m0 4h.01" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
 
 const SectionRow = ({ title, description, badge, children }) => (
   <div className="section-row">
@@ -71,6 +64,8 @@ const CreateProductView = () => {
   const [globalIngredients, setGlobalIngredients] = useState([]);
   const [baseIngredients, setBaseIngredients] = useState([]);
   const [extraIngredients, setExtraIngredients] = useState([]);
+  const [baseIngSearch, setBaseIngSearch] = useState('');
+  const [extraIngSearch, setExtraIngSearch] = useState('');
   const [allProducts, setAllProducts] = useState([]);
   const [bundleSlots, setBundleSlots] = useState([]);
   const [hasChanges, setHasChanges] = useState(false);
@@ -79,6 +74,10 @@ const CreateProductView = () => {
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageDetails, setImageDetails] = useState('');
   const [showImageModal, setShowImageModal] = useState(false);
+  const [recipeItems, setRecipeItems] = useState([]);
+  const [recipeEntries, setRecipeEntries] = useState([]);
+  const [recipeOpen, setRecipeOpen] = useState(false);
+  const [recipeSearch, setRecipeSearch] = useState('');
   const [channels, setChannels] = useState({
     pos: true,
     table: true,
@@ -107,15 +106,17 @@ const CreateProductView = () => {
       try {
         const orgId = await getFirstOrganizationId();
         if (orgId) {
-          const [fetchedCategories, fetchedIngredients, fetchedProducts] = await Promise.all([
+          const [fetchedCategories, fetchedIngredients, fetchedProducts, fetchedInventoryItems] = await Promise.all([
             getCategories(orgId),
             getIngredients(orgId),
-            getProducts(orgId)
+            getProducts(orgId),
+            getInventoryItems(orgId)
           ]);
           setCategories(fetchedCategories);
           setGlobalIngredients(fetchedIngredients.filter(i => i.is_active));
           // Filtramos otros combos del selector para evitar anidación infinita
           setAllProducts(fetchedProducts.filter(p => p.type !== 'bundle' && p.id !== id));
+          setRecipeItems(fetchedInventoryItems.filter(i => i.is_active));
         }
 
         if (isEditing) {
@@ -144,7 +145,7 @@ const CreateProductView = () => {
                 name: v.name,
                 price: absGrossPrice.toString(),
                 status: v.is_active ? 'available' : 'unavailable',
-                sku: v.sku || ''
+                sku: v.sku || '',
               };
             });
             setVariants(mappedVariants);
@@ -175,6 +176,12 @@ const CreateProductView = () => {
             }));
             setBundleSlots(mappedSlots);
           }
+
+          const recipes = await getProductRecipes(id);
+          setRecipeEntries(recipes.map(r => ({
+            inventoryItemId: r.inventory_item_id,
+            quantity: String(r.quantity)
+          })));
         }
       } catch (error) {
         console.error("Error init product view:", error);
@@ -293,6 +300,7 @@ const CreateProductView = () => {
         .map(v => {
           let vNetPrice = parseFloat(v.price) || 0;
           return {
+            uiId: v.id,
             name: v.name,
             sku: v.sku,
             is_active: v.status === 'available',
@@ -335,11 +343,13 @@ const CreateProductView = () => {
 
       if (isEditing) {
         await updateProduct(id, productPayload);
+        await replaceProductRecipes(id, recipeEntries);
         toast.success("Producto actualizado exitosamente");
       } else {
         const orgId = await getFirstOrganizationId();
         if (!orgId) throw new Error("Organización no encontrada");
         const created = await createProduct(orgId, productPayload);
+        await replaceProductRecipes(created.id, recipeEntries);
         toast.success("Producto creado exitosamente");
         navigate(`/products/${created.id}`, { replace: true });
       }
@@ -351,6 +361,40 @@ const CreateProductView = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const updateVariantPortions = (ingredientId, variantId, delta) => {
+    setBaseIngredients(prev => {
+      const idx = prev.findIndex(b => b.ingredientId === ingredientId && b.variantOptionId === variantId);
+      const current = idx >= 0 ? (prev[idx].portionMultiplier || 1) : 1;
+      const next = Math.max(1, current + delta);
+      if (idx >= 0) {
+        return prev.map((b, i) => i === idx ? { ...b, portionMultiplier: next } : b);
+      }
+      return [...prev, { ingredientId, portionMultiplier: next, variantOptionId: variantId }];
+    });
+    setHasChanges(true);
+  };
+
+  const productLevelBaseIngredients = baseIngredients
+    .filter(b => !b.variantOptionId)
+    .map(b => globalIngredients.find(g => g.id === b.ingredientId))
+    .filter(Boolean);
+
+  const filteredRecipeItems = recipeItems.filter(i => i.name.toLowerCase().includes(recipeSearch.toLowerCase()));
+
+  const toggleRecipeItem = (item) => {
+    setRecipeEntries(prev => {
+      const exists = prev.some(r => r.inventoryItemId === item.id);
+      if (exists) return prev.filter(r => r.inventoryItemId !== item.id);
+      return [...prev, { inventoryItemId: item.id, quantity: '1' }];
+    });
+    setHasChanges(true);
+  };
+
+  const setRecipeQuantity = (inventoryItemId, quantity) => {
+    setRecipeEntries(prev => prev.map(r => r.inventoryItemId === inventoryItemId ? { ...r, quantity } : r));
+    setHasChanges(true);
   };
 
   return (
@@ -427,35 +471,33 @@ const CreateProductView = () => {
 
               {/* Descripción */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Descripción</label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">Descripción</label>
+                  {formData.name.trim() && (
+                    <Button
+                      type="button"
+                      onClick={handleGenerateAIDescription}
+                      disabled={isGeneratingDescription}
+                      className="h-7 px-2.5 gap-1.5 bg-white border border-gray-200 text-blue-600 text-[11px] font-bold flex items-center transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none cursor-pointer shadow-sm"
+                      title="Crear descripción con IA"
+                      variant="secondary">
+                      {isGeneratingDescription ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+                      ) : (
+                        <Sparkles className="h-3.5 w-3.5 text-blue-600 fill-current" />
+                      )}
+                      Crear con IA
+                    </Button>
+                  )}
+                </div>
                 <div className="form-field relative">
                   <textarea
-                    className="w-full h-28 px-4 pt-4 bg-transparent text-[15px] outline-none placeholder-gray-400 resize-none pr-32"
+                    className="w-full h-28 px-4 pt-4 bg-transparent text-[15px] outline-none placeholder-gray-400 resize-none"
                     placeholder="Descripción para el cliente"
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
                   />
-                  {formData.name.trim() && (
-                    <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                      <span className="text-[11px] font-bold text-blue-600 pointer-events-none select-none">
-                        Crear con IA
-                      </span>
-                      <Button
-                        type="button"
-                        onClick={handleGenerateAIDescription}
-                        disabled={isGeneratingDescription}
-                        className="w-9 h-9 bg-white hover:  border border-gray-200 text-blue-600 flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none cursor-pointer shadow-sm"
-                        title="Crear descripción con IA"
-                        variant="secondary">
-                        {isGeneratingDescription ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                        ) : (
-                          <Sparkles className="h-4.5 w-4.5 text-blue-600 fill-current" />
-                        )}
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -546,43 +588,70 @@ const CreateProductView = () => {
                       <p className="text-sm text-gray-500 leading-relaxed">Selecciona los ingredientes que vienen incluidos por defecto en este artículo.</p>
                     </div>
                     {globalIngredients.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100 max-h-60 overflow-y-auto">
-                        {globalIngredients.map(ing => (
-                          <label key={`base-${ing.id}`} className="flex items-center gap-3 bg-white p-3   border border-gray-200 cursor-pointer hover:border-gray-300 transition-colors">
-                            <input
-                              type="checkbox"
-                              className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
-                              checked={baseIngredients.includes(ing.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setBaseIngredients([...baseIngredients, ing.id]);
-                                } else {
-                                  setBaseIngredients(baseIngredients.filter(id => id !== ing.id));
-                                }
-                                setHasChanges(true);
-                              }}
+                      <div>
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                              className="pl-9 w-full rounded-lg"
+                              placeholder="Buscar ingredientes..."
+                              value={baseIngSearch}
+                              onChange={(e) => setBaseIngSearch(e.target.value)}
                             />
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium text-gray-900">{ing.name}</span>
-                            </div>
-                          </label>
-                        ))}
+                          </div>
+                          <span className={`text-xs font-semibold shrink-0 px-2.5 py-1 rounded-full ${productLevelBaseIngredients.length ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                            {productLevelBaseIngredients.length} seleccionado{productLevelBaseIngredients.length !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+
+                        {globalIngredients.filter(ing => ing.name.toLowerCase().includes(baseIngSearch.toLowerCase())).length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto pr-1">
+                            {globalIngredients
+                              .filter(ing => ing.name.toLowerCase().includes(baseIngSearch.toLowerCase()))
+                              .map(ing => {
+                                const baseIng = baseIngredients.find(b => b.ingredientId === ing.id && !b.variantOptionId);
+                                const isSelected = !!baseIng;
+                                const unitLabel = ing.unit === 'unit' ? 'unidad' : (ing.unit || 'unidad');
+                                return (
+                                  <div
+                                    key={`base-${ing.id}`}
+                                    onClick={() => {
+                                      if (isSelected) {
+                                        setBaseIngredients(baseIngredients.filter(b => b.ingredientId !== ing.id));
+                                      } else {
+                                        setBaseIngredients([...baseIngredients, { ingredientId: ing.id, portionMultiplier: 1, variantOptionId: null }]);
+                                      }
+                                      setHasChanges(true);
+                                    }}
+                                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all select-none ${
+                                      isSelected
+                                        ? 'border-blue-400 bg-blue-50 shadow-sm'
+                                        : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40'
+                                    }`}
+                                  >
+                                    <div className={`flex items-center justify-center w-5 h-5 rounded-md border shrink-0 transition-colors ${
+                                      isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 bg-white text-transparent'
+                                    }`}>
+                                      <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                                    </div>
+                                    <IngredientIcon icon={ing.icon} name={ing.name} className={`h-6 w-6 shrink-0 ${isSelected ? 'text-blue-600' : 'text-gray-900'}`} />
+                                    <div className="flex flex-col flex-1 min-w-0">
+                                      <span className={`text-sm font-medium truncate ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>{ing.name}</span>
+                                      <span className={`text-xs mt-0.5 ${ing.portion_quantity ? 'text-gray-500' : 'text-gray-400'}`}>
+                                        {ing.portion_quantity ? `(${ing.portion_quantity} ${unitLabel})` : 'Porción sin definir'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-400 italic">No se encontraron ingredientes para "{baseIngSearch}".</p>
+                        )}
                       </div>
                     ) : (
                       <p className="text-sm text-gray-400 italic">No hay ingredientes creados en el catálogo.</p>
                     )}
-                  </div>
-
-                  {/* SKU */}
-                  <div className="form-field flex items-center px-4 gap-2">
-                    <input
-                      className="flex-1 h-12 bg-transparent text-[15px] outline-none placeholder-gray-400"
-                      placeholder="SKU (opcional)"
-                      name="sku"
-                      value={formData.sku}
-                      onChange={handleChange}
-                    />
-                    <InfoIcon />
                   </div>
 
                   {/* Sección: Variantes (Directo en el Card) */}
@@ -593,91 +662,138 @@ const CreateProductView = () => {
                     </div>
 
                     {variants.length > 0 && (
-                      <div className="overflow-x-auto pb-2 mt-4">
-                        <table className="w-full text-sm text-left border-collapse min-w-[550px]">
-                          <thead>
-                            <tr className="border-b border-gray-100 text-gray-900">
-                              <th className="py-3 font-bold text-[13px] w-[35%]">Nombre de Variante</th>
-                              <th className="py-3 font-bold text-[13px] w-[20%]">SKU</th>
-                              <th className="py-3 font-bold text-[13px] w-[25%]">Precio c/u</th>
-                              <th className="py-3 font-bold text-[13px] text-center w-[10%]">Estado</th>
-                              <th className="py-3 w-[10%]"></th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100">
-                            {variants.map((v) => (
-                              <tr key={v.id} className="border-b border-gray-100 last:border-0">
-                                <td className="py-3 pr-2">
+                      <div className="flex flex-col gap-3 mt-4">
+                        {variants.map((v) => (
+                          <div key={v.id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
+                            <div className="grid grid-cols-2 sm:grid-cols-12 gap-2 bg-gray-50/60 p-3 border-b border-gray-100">
+                              <div className="col-span-2 sm:col-span-4">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Variante</label>
+                                <Input
+                                  type="text"
+                                  placeholder="Ej: Familiar, Mediana..."
+                                  value={v.name}
+                                  onChange={(e) => {
+                                    setVariants(variants.map(v2 => v2.id === v.id ? { ...v2, name: e.target.value } : v2));
+                                    setHasChanges(true);
+                                  }}
+                                  className="font-semibold rounded-md bg-white"
+                                />
+                              </div>
+                              <div className="sm:col-span-2">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">SKU</label>
+                                <Input
+                                  type="text"
+                                  placeholder="SKU"
+                                  value={v.sku}
+                                  onChange={(e) => {
+                                    setVariants(variants.map(v2 => v2.id === v.id ? { ...v2, sku: e.target.value } : v2));
+                                    setHasChanges(true);
+                                  }}
+                                  className="font-semibold rounded-md bg-white"
+                                />
+                              </div>
+                              <div className="sm:col-span-3">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Precio c/u</label>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
                                   <Input
-                                    type="text"
-                                    placeholder="Ej: Familiar, Mediana..."
-                                    value={v.name}
+                                    type="number"
+                                    placeholder="Precio de variante"
+                                    value={v.price}
                                     onChange={(e) => {
-                                      setVariants(variants.map(v2 => v2.id === v.id ? { ...v2, name: e.target.value } : v2));
+                                      setVariants(variants.map(v2 => v2.id === v.id ? { ...v2, price: e.target.value } : v2));
                                       setHasChanges(true);
                                     }}
-                                    className="font-semibold rounded-md"
+                                    className="pl-7 font-semibold rounded-md bg-white"
                                   />
-                                </td>
-                                <td className="py-3 pr-2">
-                                  <Input
-                                    type="text"
-                                    placeholder="SKU"
-                                    value={v.sku}
-                                    onChange={(e) => {
-                                      setVariants(variants.map(v2 => v2.id === v.id ? { ...v2, sku: e.target.value } : v2));
+                                </div>
+                              </div>
+                              <div className="sm:col-span-2 flex flex-col justify-end items-start sm:items-center">
+                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 hidden sm:block">Estado</span>
+                                <div className="flex items-center gap-2">
+                                  <Switch
+                                    checked={v.status === 'available'}
+                                    onCheckedChange={(checked) => {
+                                      setVariants(variants.map(v2 => v2.id === v.id ? { ...v2, status: checked ? 'available' : 'unavailable' } : v2));
                                       setHasChanges(true);
                                     }}
-                                    className="font-semibold rounded-md"
                                   />
-                                </td>
-                                <td className="py-3 pr-2">
-                                  <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
-                                    <Input
-                                      type="number"
-                                      placeholder="Precio de variante"
-                                      value={v.price}
-                                      onChange={(e) => {
-                                        setVariants(variants.map(v2 => v2.id === v.id ? { ...v2, price: e.target.value } : v2));
-                                        setHasChanges(true);
-                                      }}
-                                      className="pl-7 font-semibold rounded-md"
-                                    />
-                                  </div>
-                                </td>
-                                <td className="py-3 text-center pr-2">
-                                  <div className="flex justify-center items-center">
-                                    <Switch
-                                      checked={v.status === 'available'}
-                                      onCheckedChange={(checked) => {
-                                        setVariants(variants.map(v2 => v2.id === v.id ? { ...v2, status: checked ? 'available' : 'unavailable' } : v2));
-                                        setHasChanges(true);
-                                      }}
-                                    />
-                                  </div>
-                                </td>
-                                <td className="py-3 text-right pl-2">
-                                  <Button
-                                    type="button"
-                                    onClick={() => {
-                                      setVariants(variants.filter(v2 => v2.id !== v.id));
-                                      setHasChanges(true);
-                                    }}
-                                    className="p-2.5 text-gray-400 hover:text-red-500 transition-colors bg-white   hover:bg-red-50 border border-gray-100"
-                                  >
-                                    <Trash2 className="h-4.5 w-4.5" />
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                                  <span className="text-xs text-gray-500 sm:hidden">
+                                    {v.status === 'available' ? 'Activo' : 'Inactivo'}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="sm:col-span-1 flex items-end justify-end">
+                                <Button
+                                  type="button"
+                                  onClick={() => {
+                                    setVariants(variants.filter(v2 => v2.id !== v.id));
+                                    setBaseIngredients(baseIngredients.filter(b => b.variantOptionId !== v.id));
+                                    setHasChanges(true);
+                                  }}
+                                  className="p-2.5 text-gray-400 hover:text-red-500 transition-colors bg-white hover:bg-red-50 border border-gray-100"
+                                >
+                                  <Trash2 className="h-4.5 w-4.5" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="p-3 flex flex-col gap-2">
+                              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                                Ingredientes base{v.name ? ` de ${v.name}` : ''}
+                              </span>
+                              {productLevelBaseIngredients.length > 0 ? (
+                                <div className="flex flex-col gap-1.5">
+                                  {productLevelBaseIngredients.map(ing => {
+                                    const vEntry = baseIngredients.find(b => b.ingredientId === ing.id && b.variantOptionId === v.id);
+                                    const portions = vEntry?.portionMultiplier || 1;
+                                    const unitLabel = ing.unit === 'unit' ? 'unidad' : (ing.unit || 'unidad');
+                                    const totalQuantity = ing.portion_quantity
+                                      ? parseFloat((ing.portion_quantity * portions).toFixed(3))
+                                      : null;
+                                    return (
+                                      <div key={ing.id} className="flex items-center justify-between gap-3 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                          <IngredientIcon icon={ing.icon} name={ing.name} className="h-5 w-5 text-gray-900 shrink-0" />
+                                          <div className="flex flex-col min-w-0">
+                                            <span className="text-sm font-medium text-gray-800 truncate">{ing.name}</span>
+                                            <span className={`text-xs ${ing.portion_quantity ? 'text-gray-400' : 'text-gray-400 italic'}`}>
+                                              {totalQuantity !== null ? `${totalQuantity} ${unitLabel}` : 'Porción sin definir'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0">
+                                          <button
+                                            type="button"
+                                            onClick={() => updateVariantPortions(ing.id, v.id, -1)}
+                                            className="w-6 h-6 flex items-center justify-center rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 text-base leading-none"
+                                          >
+                                            −
+                                          </button>
+                                          <span className="text-sm font-bold text-gray-800 w-6 text-center">{portions}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => updateVariantPortions(ing.id, v.id, 1)}
+                                            className="w-6 h-6 flex items-center justify-center rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 text-base leading-none"
+                                          >
+                                            +
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-gray-400 italic">Selecciona ingredientes base en la sección anterior.</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
 
                     <Button
                       type="button"
+                      className="mt-8"
                       onClick={() => {
                         setVariants([...variants, { id: Date.now(), name: '', price: '', status: 'available', sku: '' }]);
                         setHasChanges(true);
@@ -694,28 +810,67 @@ const CreateProductView = () => {
                       <p className="text-sm text-gray-500 leading-relaxed">Selecciona qué ingredientes adicionales se pueden agregar (se cobrará el precio extra).</p>
                     </div>
                     {globalIngredients.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100 max-h-60 overflow-y-auto">
-                        {globalIngredients.map(ing => (
-                          <label key={`extra-${ing.id}`} className="flex items-center gap-3 bg-white p-3   border border-gray-200 cursor-pointer hover:border-gray-300 transition-colors">
-                            <input
-                              type="checkbox"
-                              className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
-                              checked={extraIngredients.includes(ing.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setExtraIngredients([...extraIngredients, ing.id]);
-                                } else {
-                                  setExtraIngredients(extraIngredients.filter(id => id !== ing.id));
-                                }
-                                setHasChanges(true);
-                              }}
+                      <div>
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                              className="pl-9 w-full rounded-lg"
+                              placeholder="Buscar opciones..."
+                              value={extraIngSearch}
+                              onChange={(e) => setExtraIngSearch(e.target.value)}
                             />
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium text-gray-900">{ing.name}</span>
-                              <span className="text-xs text-gray-500">+${ing.price}</span>
-                            </div>
-                          </label>
-                        ))}
+                          </div>
+                          <span className={`text-xs font-semibold shrink-0 px-2.5 py-1 rounded-full ${extraIngredients.length ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                            {extraIngredients.length} seleccionado{extraIngredients.length !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+
+                        {globalIngredients.filter(ing => ing.name.toLowerCase().includes(extraIngSearch.toLowerCase())).length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto pr-1">
+                            {globalIngredients
+                              .filter(ing => ing.name.toLowerCase().includes(extraIngSearch.toLowerCase()))
+                              .map(ing => {
+                                const extraIng = extraIngredients.find(e => e.ingredientId === ing.id);
+                                const isSelected = !!extraIng;
+                                const unitLabel = ing.unit === 'unit' ? 'unidad' : (ing.unit || 'unidad');
+                                return (
+                                  <div
+                                    key={`extra-${ing.id}`}
+                                    onClick={() => {
+                                      if (isSelected) {
+                                        setExtraIngredients(extraIngredients.filter(e => e.ingredientId !== ing.id));
+                                      } else {
+                                        setExtraIngredients([...extraIngredients, { ingredientId: ing.id, portionMultiplier: 1, variantOptionId: null }]);
+                                      }
+                                      setHasChanges(true);
+                                    }}
+                                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all select-none ${
+                                      isSelected
+                                        ? 'border-blue-400 bg-blue-50 shadow-sm'
+                                        : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40'
+                                    }`}
+                                  >
+                                    <div className={`flex items-center justify-center w-5 h-5 rounded-md border shrink-0 transition-colors ${
+                                      isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 bg-white text-transparent'
+                                    }`}>
+                                      <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                                    </div>
+                                    <IngredientIcon icon={ing.icon} name={ing.name} className={`h-6 w-6 shrink-0 ${isSelected ? 'text-blue-600' : 'text-gray-900'}`} />
+                                    <div className="flex flex-col flex-1 min-w-0">
+                                      <span className={`text-sm font-medium truncate ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>{ing.name}</span>
+                                      <span className={`text-xs mt-0.5 ${ing.portion_quantity ? 'text-gray-500' : 'text-gray-400'}`}>
+                                        {ing.portion_quantity ? `(${ing.portion_quantity} ${unitLabel})` : 'Porción sin definir'}
+                                        <span className="text-gray-500"> · +${ing.price}</span>
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-400 italic">No se encontraron opciones para "{extraIngSearch}".</p>
+                        )}
                       </div>
                     ) : (
                       <p className="text-sm text-gray-400 italic">No hay ingredientes creados en el catálogo.</p>
@@ -723,18 +878,15 @@ const CreateProductView = () => {
                   </div>
                 </>
               )}
-
-              {/* Configuración del Combo (Builder Dinámico) */}
               {formData.type === 'Combo / Promoción' && (
-                <div className="bg-white rounded-2xl border border-gray-100 p-6 mt-2 space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-bold text-[15px] text-gray-900">Configuración de Combo / Paquete</h3>
-                      <p className="text-xs text-gray-500 mt-0.5">Define los slots de elección y los productos disponibles para este combo.</p>
+                <div className="bg-white rounded-2xl border border-gray-100 p-5 mt-2">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-[15px] text-gray-900">Configuración de Combo / Paquete</h4>
+                      <p className="text-sm text-gray-500 leading-relaxed">Define los slots de elección y los productos disponibles para este combo.</p>
                     </div>
                     <Button
                       type="button"
-                      variant="outline"
                       onClick={() => {
                         setBundleSlots([...bundleSlots, {
                           id: 'new-' + Date.now(),
@@ -745,36 +897,25 @@ const CreateProductView = () => {
                         }]);
                         setHasChanges(true);
                       }}
-                      className="font-semibold h-9 cursor-pointer text-xs flex items-center gap-1.5"
+                      className="shrink-0"
                     >
                       <Plus className="h-4 w-4" /> Agregar Slot
                     </Button>
                   </div>
 
                   {bundleSlots.length === 0 ? (
-                    <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-250">
+                    <div className="text-center py-10 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                       <p className="text-sm">No has agregado ningún grupo de selección aún.</p>
                       <p className="text-xs mt-1">Presiona "Agregar Slot" para comenzar.</p>
                     </div>
                   ) : (
-                    <div className="space-y-6">
+                    <div className="flex flex-col gap-3">
                       {bundleSlots.map((slot) => (
-                        <div key={slot.id} className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-4 relative">
-                          <Button
-                            type="button"
-                            onClick={() => {
-                              setBundleSlots(bundleSlots.filter(s => s.id !== slot.id));
-                              setHasChanges(true);
-                            }}
-                            className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-red-500 transition-colors   bg-white border border-gray-200 cursor-pointer"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pr-10">
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Nombre del Slot</label>
-                              <input
+                        <div key={slot.id} className="border border-gray-200 rounded-2xl overflow-hidden bg-white">
+                          <div className="grid grid-cols-2 md:grid-cols-12 gap-2 bg-gray-50/60 p-3 border-b border-gray-100">
+                            <div className="col-span-2 md:col-span-6">
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Nombre del Slot</label>
+                              <Input
                                 type="text"
                                 placeholder="Ej: Elige Pizza, Bebida"
                                 value={slot.name}
@@ -782,13 +923,12 @@ const CreateProductView = () => {
                                   setBundleSlots(bundleSlots.map(s => s.id === slot.id ? { ...s, name: e.target.value } : s));
                                   setHasChanges(true);
                                 }}
-                                className="w-full h-10 px-3 border border-gray-200 bg-white   text-xs font-semibold text-gray-900 focus:outline-none focus:border-black placeholder-gray-400"
+                                className="font-semibold rounded-md bg-white"
                               />
                             </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Mín. Selecciones</label>
-                              <input
+                            <div className="md:col-span-2">
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Mín.</label>
+                              <Input
                                 type="number"
                                 min="0"
                                 value={slot.minSelections}
@@ -796,13 +936,12 @@ const CreateProductView = () => {
                                   setBundleSlots(bundleSlots.map(s => s.id === slot.id ? { ...s, minSelections: parseInt(e.target.value) || 0 } : s));
                                   setHasChanges(true);
                                 }}
-                                className="w-full h-10 px-3 border border-gray-200 bg-white   text-xs font-semibold text-gray-900 focus:outline-none focus:border-black"
+                                className="font-semibold rounded-md bg-white"
                               />
                             </div>
-
-                            <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Máx. Selecciones</label>
-                              <input
+                            <div className="md:col-span-2">
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1 block">Máx.</label>
+                              <Input
                                 type="number"
                                 min="1"
                                 value={slot.maxSelections}
@@ -810,18 +949,30 @@ const CreateProductView = () => {
                                   setBundleSlots(bundleSlots.map(s => s.id === slot.id ? { ...s, maxSelections: parseInt(e.target.value) || 1 } : s));
                                   setHasChanges(true);
                                 }}
-                                className="w-full h-10 px-3 border border-gray-200 bg-white   text-xs font-semibold text-gray-900 focus:outline-none focus:border-black"
+                                className="font-semibold rounded-md bg-white"
                               />
+                            </div>
+                            <div className="md:col-span-2 flex items-end justify-end">
+                              <Button
+                                type="button"
+                                onClick={() => {
+                                  setBundleSlots(bundleSlots.filter(s => s.id !== slot.id));
+                                  setHasChanges(true);
+                                }}
+                                className="p-2.5 text-gray-400 hover:text-red-500 transition-colors bg-white hover:bg-red-50 border border-gray-100"
+                              >
+                                <Trash2 className="h-4.5 w-4.5" />
+                              </Button>
                             </div>
                           </div>
 
-                          <div className="space-y-2 pt-1">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Opciones de productos</label>
+                          <div className="p-3 flex flex-col gap-2">
+                            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Opciones de productos</span>
                             {slot.options && slot.options.length > 0 && (
-                              <div className="space-y-2">
+                              <div className="flex flex-col gap-1.5">
                                 {slot.options.map((opt) => (
-                                  <div key={opt.id} className="flex items-center gap-2 bg-white p-2   border border-gray-200">
-                                    <div className="flex-1 min-w-0">
+                                  <div key={opt.id} className="flex flex-wrap items-center gap-2">
+                                    <div className="flex-1 min-w-[160px]">
                                       <Select
                                         value={opt.productId}
                                         onValueChange={(val) => {
@@ -836,7 +987,7 @@ const CreateProductView = () => {
                                           setHasChanges(true);
                                         }}
                                       >
-                                        <SelectTrigger className="w-full bg-white border-gray-200 text-xs   h-9">
+                                        <SelectTrigger className="w-full bg-white border-gray-100 text-xs   h-9 rounded-md">
                                           <SelectValue placeholder="Selecciona producto">
                                             {opt.name || "Selecciona producto"}
                                           </SelectValue>
@@ -854,7 +1005,7 @@ const CreateProductView = () => {
                                       const selectedProd = allProducts.find(p => p.id === opt.productId);
                                       if (selectedProd && selectedProd.variants && selectedProd.variants.length > 0) {
                                         return (
-                                          <div className="w-36 shrink-0">
+                                          <div className="w-40 shrink-0">
                                             <Select
                                               value={opt.variantId || 'all'}
                                               onValueChange={(val) => {
@@ -868,7 +1019,7 @@ const CreateProductView = () => {
                                                 setHasChanges(true);
                                               }}
                                             >
-                                              <SelectTrigger className="w-full bg-white border-gray-200 text-xs   h-9">
+                                              <SelectTrigger className="w-full bg-white border-gray-100 text-xs   h-9 rounded-md">
                                                 <SelectValue placeholder="Variante">
                                                   {opt.variantId
                                                     ? selectedProd.variants.find(v => v.id === opt.variantId)?.name
@@ -890,8 +1041,8 @@ const CreateProductView = () => {
 
                                     <div className="w-24 shrink-0">
                                       <div className="relative">
-                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-[10px] font-bold">$</span>
-                                        <input
+                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 text-xs font-bold">$</span>
+                                        <Input
                                           type="number"
                                           placeholder="Extra"
                                           value={opt.priceModifier}
@@ -905,12 +1056,12 @@ const CreateProductView = () => {
                                             }));
                                             setHasChanges(true);
                                           }}
-                                          className="w-full h-9 pl-5 pr-1.5 border border-gray-200   text-xs font-semibold text-gray-900 focus:outline-none focus:border-black"
+                                          className="pl-6 h-9 rounded-md bg-white font-semibold text-xs"
                                         />
                                       </div>
                                     </div>
 
-                                    <label className="flex items-center gap-1 cursor-pointer select-none">
+                                    <label className="flex items-center gap-1 cursor-pointer select-none shrink-0">
                                       <input
                                         type="checkbox"
                                         checked={opt.isDefault}
@@ -943,7 +1094,7 @@ const CreateProductView = () => {
                                         }));
                                         setHasChanges(true);
                                       }}
-                                      className="p-1.5 text-gray-400 hover:text-red-500 transition-colors bg-white   hover:bg-red-50 border border-gray-200 cursor-pointer"
+                                      className="p-1.5 text-gray-400 hover:text-red-500 transition-colors bg-white   hover:bg-red-50 border border-gray-100 cursor-pointer shrink-0"
                                     >
                                       <X className="h-3.5 w-3.5" />
                                     </Button>
@@ -982,11 +1133,114 @@ const CreateProductView = () => {
                 </div>
               )}
 
+              {/* Receta (Insumos) */}
+              <div className="bg-white rounded-2xl border border-gray-100 p-5 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setRecipeOpen(!recipeOpen)}
+                  className="w-full flex items-center justify-between gap-3 text-left cursor-pointer group"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-semibold text-[15px] text-gray-900">Receta (Insumos)</h4>
+                      {recipeEntries.length > 0 && (
+                        <span className="text-[11px] px-2 py-0.5 bg-blue-100 text-blue-700 font-semibold">
+                          {recipeEntries.length} insumo{recipeEntries.length !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500 leading-relaxed mt-0.5">
+                      Define cuánto de cada materia prima se consume al preparar este artículo (ej: 20 g de café, 150 ml de leche).
+                    </p>
+                  </div>
+                  <ChevronDown className={`h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200 group-hover:text-gray-600 ${recipeOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {recipeOpen && (
+                  <div className="mt-4 space-y-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        className="pl-9 w-full rounded-lg"
+                        placeholder="Buscar insumos..."
+                        value={recipeSearch}
+                        onChange={(e) => setRecipeSearch(e.target.value)}
+                      />
+                    </div>
+
+                    {recipeItems.length === 0 ? (
+                      <p className="text-sm text-gray-400 italic">
+                        No hay insumos creados. Créalos primero en el módulo de Inventario.
+                      </p>
+                    ) : filteredRecipeItems.length === 0 ? (
+                      <p className="text-sm text-gray-400 italic">No se encontraron insumos para "{recipeSearch}".</p>
+                    ) : (
+                      <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-1">
+                        {filteredRecipeItems.map(item => {
+                          const entry = recipeEntries.find(r => r.inventoryItemId === item.id);
+                          const isSelected = !!entry;
+                          const unitLabel = item.unit === 'unit' ? 'unidad' : (item.unit || 'unidad');
+                          return (
+                            <div
+                              key={item.id}
+                              className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                                isSelected ? 'border-blue-400 bg-blue-50 shadow-sm' : 'border-gray-200 bg-white'
+                              }`}
+                            >
+                              <label className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleRecipeItem(item)}
+                                  className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-sm font-medium truncate ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>{item.name}</p>
+                                  <p className="text-xs text-gray-400">{unitLabel}</p>
+                                </div>
+                              </label>
+
+                              {isSelected && (
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    value={entry.quantity}
+                                    onChange={(e) => setRecipeQuantity(item.id, e.target.value)}
+                                    className="w-20 h-9 rounded-md bg-white text-sm font-semibold text-right"
+                                  />
+                                  <span className="text-xs font-medium text-gray-500 w-10 shrink-0">{unitLabel}</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
             </div>
 
             {/* Right column */}
             <div className="space-y-4">
+
+              {/* SKU */}
+              <div className="bg-white rounded-xl border border-gray-100 p-5">
+                <p className="font-semibold text-[15px] mb-3">SKU</p>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="SKU (opcional)"
+                    name="sku"
+                    value={formData.sku}
+                    onChange={handleChange}
+                    className="w-full bg-gray-50 border-gray-200"
+                  />
+                </div>
+              </div>
 
               {/* Estado */}
               <div className="bg-white rounded-xl border border-gray-100 p-5">

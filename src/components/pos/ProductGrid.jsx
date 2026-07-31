@@ -8,6 +8,7 @@ import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
 
 import { getCategories, getProducts } from '../../services/catalogService';
+import { getOutOfStockProductIds } from '../../services/inventoryService';
 
 const spanishLayout = {
   default: [
@@ -39,6 +40,7 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
   const [search, setSearch] = useState('');
   const [tapped, setTapped] = useState(null);
   const [showKeyboard, setShowKeyboard] = useState(false);
+  const [outOfStockIds, setOutOfStockIds] = useState([]);
   const keyboardRef = useRef(null);
   const overlayRef = useRef(null);
   const searchBarRef = useRef(null);
@@ -49,10 +51,12 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
     if (!organizationId) return;
     const loadCatalog = async () => {
       setLoading(true);
-      const [cats, prods] = await Promise.all([
+      const [cats, prods, outOfStock] = await Promise.all([
         getCategories(organizationId),
         getProducts(organizationId, { status: 'available' }),
+        getOutOfStockProductIds(organizationId),
       ]);
+      setOutOfStockIds(outOfStock);
         
       const activeCats = cats.filter(c => c.show_in_pos !== false && c.is_active !== false);
       const activeCatIds = activeCats.map(c => c.id);
@@ -74,6 +78,7 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
     const hasImage = !!product.image;
     const activeVariants = product.variants?.filter(v => v.is_active) || [];
     const hasVariants = activeVariants.length > 0;
+    const isOutOfStock = outOfStockIds.includes(product.id);
     const displayPrice = hasVariants
       ? activeVariants.reduce((min, v) => {
           const price = product.price + (v.price_modifier || 0);
@@ -84,17 +89,24 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
     return (
       <button
         key={product.id}
-        onClick={() => handleTap(product)}
+        onClick={() => !isOutOfStock && handleTap(product)}
         className={`
           relative bg-white rounded-2xl overflow-hidden shadow-sm border select-none transition-transform
           ${tapped === product.id ? 'scale-[0.97] brightness-95' : ''}
           ${qty > 0 ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200'}
+          ${isOutOfStock ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-md'}
         `}
         style={{ aspectRatio: '1/1', WebkitTapHighlightColor: 'transparent' }}
       >
         {qty > 0 && (
           <div className="absolute top-2 right-2 bg-blue-600 text-white font-bold text-sm w-7 h-7 rounded-full flex items-center justify-center z-10 shadow-sm border-2 border-white">
             {qty}
+          </div>
+        )}
+
+        {isOutOfStock && (
+          <div className="absolute top-2 left-2 bg-red-500 text-white text-[11px] font-bold px-2 py-1 rounded-md z-10 shadow-sm border border-red-400">
+            Sin stock
           </div>
         )}
         

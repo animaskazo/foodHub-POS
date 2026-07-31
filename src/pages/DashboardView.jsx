@@ -22,6 +22,7 @@ import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import TransactionList from '../components/pos/TransactionList';
 import PrintableReceipt from '../components/pos/PrintableReceipt';
+import StockNotifications from '../components/StockNotifications';
 
 const DashboardView = () => {
   const { organization, loading: authLoading } = useAuth();
@@ -287,16 +288,7 @@ const DashboardView = () => {
           actions={
             <div className="flex items-center gap-3">
               {renderShiftButton(false)}
-              <select
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
-                className="fixed top-3 right-4 z-50 md:static bg-white border border-gray-200 text-gray-700 rounded-lg px-3 py-1.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer appearance-none pr-8 transition-all"
-                style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
-              >
-                <option value="today">Hoy</option>
-                <option value="7days">Últimos 7 días</option>
-                <option value="30days">Últimos 30 días</option>
-              </select>
+              <StockNotifications />
             </div>
           }
         />
@@ -398,20 +390,32 @@ const DashboardView = () => {
         {/* Sales Record */}
         <div className="md:bg-white md:rounded-2xl md:border md:border-gray-200 overflow-hidden flex flex-col">
           {/* Toolbar */}
-          <div className="pb-4 md:p-6 md:border-b flex justify-between items-center">
+          <div className="pb-4 md:p-6 md:border-b flex justify-between items-center gap-3">
             <h2 className="text-lg font-semibold text-gray-900">Registro Diario</h2>
-            <select
-              value={kitchenStatusFilter}
-              onChange={(e) => setKitchenStatusFilter(e.target.value)}
-              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:border-gray-300"
-            >
-              <option value="all">Todos los estados</option>
-              <option value="pending">Pendientes</option>
-              <option value="preparing">En preparación</option>
-              <option value="ready">Listos</option>
-              <option value="delivered">Entregados</option>
-              <option value="cancelled">Cancelados</option>
-            </select>
+            <div className="flex items-center gap-2">
+              <select
+                value={dateRange}
+                onChange={(e) => setDateRange(e.target.value)}
+                className="bg-white border border-gray-200 text-gray-700 rounded-lg px-3 py-1.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer appearance-none pr-8 transition-all"
+                style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
+              >
+                <option value="today">Hoy</option>
+                <option value="7days">Últimos 7 días</option>
+                <option value="30days">Últimos 30 días</option>
+              </select>
+              <select
+                value={kitchenStatusFilter}
+                onChange={(e) => setKitchenStatusFilter(e.target.value)}
+                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:border-gray-300"
+              >
+                <option value="all">Todos los estados</option>
+                <option value="pending">Pendientes</option>
+                <option value="preparing">En preparación</option>
+                <option value="ready">Listos</option>
+                <option value="delivered">Entregados</option>
+                <option value="cancelled">Cancelados</option>
+              </select>
+            </div>
           </div>
           
           <TransactionList 

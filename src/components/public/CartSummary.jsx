@@ -1,5 +1,6 @@
 import React from 'react';
 import { Trash2, Plus, Minus, ChevronRight } from 'lucide-react';
+import IngredientIcon from '../ui/IngredientIcon';
 
 const fmt = (n) => n.toLocaleString('es-CL');
 
@@ -61,8 +62,9 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
                   {item.selectedIngredients?.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {item.selectedIngredients.map(ing => (
-                        <span key={ing.id} className="text-[10px] bg-orange-100 text-orange-700 font-bold px-2 py-0.5 rounded-full">
-                          + {ing.name}
+                        <span key={ing.id} className="inline-flex items-center gap-1 text-[10px] bg-orange-100 text-orange-700 font-bold px-2 py-0.5 rounded-full">
+                          <IngredientIcon name={ing.name} icon={ing.icon} size={11} className="text-orange-600 shrink-0" />
+                          {ing.name}
                         </span>
                       ))}
                     </div>

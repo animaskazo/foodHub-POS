@@ -1,5 +1,49 @@
 import { supabase } from '../lib/supabase';
 
+// Deduplica filas de product_ingredients por ingrediente: el PK es (product_id, ingredient_id),
+// así que un mismo ingrediente no puede repetirse (ej. seleccionado como base Y extra, o con
+// entradas por variante). Se priorizan las entradas a nivel de producto (variant_option_id null).
+const buildIngredientsRows = (productId, baseIngredients, extraIngredients, variantIdMap) => {
+  const base = baseIngredients || [];
+  const extra = extraIngredients || [];
+  const all = [...base, ...extra];
+  const rows = [];
+  const seen = new Set();
+
+  const getFlags = (ingId) => ({
+    isBase: base.some(i => (typeof i === 'string' ? i : i.ingredientId) === ingId),
+    isExtra: extra.some(i => (typeof i === 'string' ? i : i.ingredientId) === ingId)
+  });
+
+  const pushRow = (ing, ingId) => {
+    if (!ingId || seen.has(ingId)) return;
+    seen.add(ingId);
+    const { isBase, isExtra } = getFlags(ingId);
+    const rawVariantId = (typeof ing === 'string' ? null : ing.variantOptionId) || null;
+    rows.push({
+      product_id: productId,
+      ingredient_id: ingId,
+      is_base: isBase,
+      is_extra: isExtra,
+      portion_multiplier: (typeof ing === 'string' ? 1 : ing.portionMultiplier) || 1,
+      variant_option_id: rawVariantId ? (variantIdMap[rawVariantId] || rawVariantId) : null
+    });
+  };
+
+  // Primero las entradas a nivel de producto
+  for (const ing of all) {
+    const ingId = typeof ing === 'string' ? ing : ing.ingredientId;
+    if (ing && (typeof ing === 'string' || !ing.variantOptionId)) pushRow(ing, ingId);
+  }
+  // Luego las entradas por variante (solo si el ingrediente aún no está)
+  for (const ing of all) {
+    const ingId = typeof ing === 'string' ? ing : ing.ingredientId;
+    if (ing && typeof ing !== 'string' && ing.variantOptionId) pushRow(ing, ingId);
+  }
+
+  return rows;
+};
+
 export const getFirstOrganizationId = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
@@ -81,11 +125,18 @@ export const getProducts = async (organizationId, filters = {}) => {
       product_ingredients (
         is_base,
         is_extra,
+        portion_multiplier,
+        variant_option_id,
         ingredients (
           id,
           name,
           price,
-          is_active
+          is_active,
+          unit,
+          stock_quantity,
+          low_stock_threshold,
+          portion_quantity,
+          icon
         )
       ),
       bundle_slots (
@@ -119,11 +170,18 @@ export const getProducts = async (organizationId, filters = {}) => {
             product_ingredients (
               is_base,
               is_extra,
+              portion_multiplier,
+              variant_option_id,
               ingredients (
                 id,
                 name,
                 price,
-                is_active
+                is_active,
+                unit,
+                stock_quantity,
+                low_stock_threshold,
+                portion_quantity,
+                icon
               )
             )
           )
@@ -166,7 +224,9 @@ export const getProducts = async (organizationId, filters = {}) => {
         return {
           ...pi.ingredients,
           isBase: pi.is_base !== false,
-          isExtra: pi.is_extra === true
+          isExtra: pi.is_extra === true,
+          portionMultiplier: pi.portion_multiplier || 1,
+          variantOptionId: pi.variant_option_id || null
         };
       }).filter(Boolean) || [],
       bundleSlots: product.bundle_slots?.map(slot => ({
@@ -192,7 +252,9 @@ export const getProducts = async (organizationId, filters = {}) => {
               return {
                 ...pi.ingredients,
                 isBase: pi.is_base !== false,
-                isExtra: pi.is_extra === true
+                isExtra: pi.is_extra === true,
+                portionMultiplier: pi.portion_multiplier || 1,
+                variantOptionId: pi.variant_option_id || null
               };
             }).filter(Boolean) || []
           };
@@ -292,6 +354,7 @@ export const createProduct = async (organizationId, productData) => {
   }
   
   // Guardar variantes
+  let variantIdMap = {};
   if (productData.variants && productData.variants.length > 0) {
     const { data: variantGroup, error: groupError } = await supabase
       .from('variant_groups')
@@ -309,29 +372,24 @@ export const createProduct = async (organizationId, productData) => {
         price_modifier: v.price_modifier,
         is_active: v.is_active
       }));
-      const { error: optionsError } = await supabase
+      const { data: createdOptions, error: optionsError } = await supabase
         .from('variant_options')
-        .insert(optionsToInsert);
+        .insert(optionsToInsert)
+        .select('id');
         
-      if (optionsError) console.error('Error creating variant options:', optionsError);
+      if (optionsError) {
+        console.error('Error creating variant options:', optionsError);
+      } else {
+        (productData.variants || []).forEach((v, i) => {
+          if (createdOptions && createdOptions[i]) variantIdMap[v.uiId] = createdOptions[i].id;
+        });
+      }
     }
   }
 
   // Guardar ingredientes
   if (productData.baseIngredients || productData.extraIngredients) {
-    const ingredientsToInsert = [];
-    const baseSet = new Set(productData.baseIngredients || []);
-    const extraSet = new Set(productData.extraIngredients || []);
-    const allIngredientIds = new Set([...baseSet, ...extraSet]);
-    
-    for (const ingId of allIngredientIds) {
-      ingredientsToInsert.push({
-        product_id: product.id,
-        ingredient_id: ingId,
-        is_base: baseSet.has(ingId),
-        is_extra: extraSet.has(ingId)
-      });
-    }
+    const ingredientsToInsert = buildIngredientsRows(product.id, productData.baseIngredients, productData.extraIngredients, variantIdMap);
     
     if (ingredientsToInsert.length > 0) {
       const { error: ingError } = await supabase
@@ -458,7 +516,9 @@ export const getProductById = async (id) => {
       product_ingredients (
         ingredient_id,
         is_base,
-        is_extra
+        is_extra,
+        portion_multiplier,
+        variant_option_id
       ),
       bundle_slots (
         id,
@@ -494,8 +554,16 @@ export const getProductById = async (id) => {
     }
     
     // Extraer ingredientes
-    data.baseIngredients = data.product_ingredients?.filter(pi => pi.is_base !== false).map(pi => pi.ingredient_id) || [];
-    data.extraIngredients = data.product_ingredients?.filter(pi => pi.is_extra === true).map(pi => pi.ingredient_id) || [];
+    data.baseIngredients = data.product_ingredients?.filter(pi => pi.is_base !== false).map(pi => ({
+      ingredientId: pi.ingredient_id,
+      portionMultiplier: pi.portion_multiplier || 1,
+      variantOptionId: pi.variant_option_id || null
+    })) || [];
+    data.extraIngredients = data.product_ingredients?.filter(pi => pi.is_extra === true).map(pi => ({
+      ingredientId: pi.ingredient_id,
+      portionMultiplier: pi.portion_multiplier || 1,
+      variantOptionId: pi.variant_option_id || null
+    })) || [];
 
     // Extraer slots y opciones de combo
     if (data.bundle_slots) {
@@ -569,6 +637,7 @@ export const updateProduct = async (id, productData) => {
   }
 
   // Actualizar variantes
+  let variantIdMap = {};
   if (productData.variants) {
     // Eliminar grupos actuales (elimina opciones en cascada)
     await supabase.from('variant_groups').delete().eq('product_id', id);
@@ -588,7 +657,18 @@ export const updateProduct = async (id, productData) => {
           price_modifier: v.price_modifier,
           is_active: v.is_active
         }));
-        await supabase.from('variant_options').insert(optionsToInsert);
+        const { data: createdOptions, error: optionsError } = await supabase
+          .from('variant_options')
+          .insert(optionsToInsert)
+          .select('id');
+
+        if (optionsError) {
+          console.error('Error creating variant options in update:', optionsError);
+        } else {
+          (productData.variants || []).forEach((v, i) => {
+            if (createdOptions && createdOptions[i]) variantIdMap[v.uiId] = createdOptions[i].id;
+          });
+        }
       } else {
         console.error('Error creating variant group in update:', groupError);
       }
@@ -599,19 +679,7 @@ export const updateProduct = async (id, productData) => {
   if (productData.baseIngredients !== undefined || productData.extraIngredients !== undefined) {
     await supabase.from('product_ingredients').delete().eq('product_id', id);
     
-    const ingredientsToInsert = [];
-    const baseSet = new Set(productData.baseIngredients || []);
-    const extraSet = new Set(productData.extraIngredients || []);
-    const allIngredientIds = new Set([...baseSet, ...extraSet]);
-    
-    for (const ingId of allIngredientIds) {
-      ingredientsToInsert.push({
-        product_id: id,
-        ingredient_id: ingId,
-        is_base: baseSet.has(ingId),
-        is_extra: extraSet.has(ingId)
-      });
-    }
+    const ingredientsToInsert = buildIngredientsRows(id, productData.baseIngredients, productData.extraIngredients, variantIdMap);
     
     if (ingredientsToInsert.length > 0) {
       const { error: ingError } = await supabase
@@ -722,12 +790,31 @@ export const createIngredient = async (organizationId, ingredientData) => {
         name: ingredientData.name,
         price: ingredientData.price || 0,
         is_active: ingredientData.is_active !== false,
-        image_url: ingredientData.image_url || null
+        image_url: ingredientData.image_url || null,
+        icon: ingredientData.icon || null,
+        unit: ingredientData.unit || 'unit',
+        stock_quantity: ingredientData.stock_quantity || 0,
+        low_stock_threshold: ingredientData.low_stock_threshold || null,
+        portion_quantity: ingredientData.portion_quantity || 0
       }
     ])
     .select();
     
   if (error) throw error;
+
+  if (ingredientData.stock_quantity && parseFloat(ingredientData.stock_quantity) > 0) {
+    await supabase
+      .from('ingredient_movements')
+      .insert([{
+        ingredient_id: data[0].id,
+        organization_id: organizationId,
+        quantity: ingredientData.stock_quantity,
+        movement_type: 'initial_stock',
+        reference_type: 'manual',
+        notes: 'Stock inicial',
+      }]);
+  }
+
   return data[0];
 };
 
@@ -738,7 +825,12 @@ export const updateIngredient = async (id, ingredientData) => {
       name: ingredientData.name,
       price: ingredientData.price || 0,
       is_active: ingredientData.is_active !== false,
-      image_url: ingredientData.image_url !== undefined ? ingredientData.image_url : null
+      image_url: ingredientData.image_url !== undefined ? ingredientData.image_url : null,
+      icon: ingredientData.icon !== undefined ? ingredientData.icon : null,
+      unit: ingredientData.unit !== undefined ? ingredientData.unit : undefined,
+      stock_quantity: ingredientData.stock_quantity !== undefined ? ingredientData.stock_quantity : undefined,
+      low_stock_threshold: ingredientData.low_stock_threshold !== undefined ? ingredientData.low_stock_threshold : null,
+      portion_quantity: ingredientData.portion_quantity !== undefined ? ingredientData.portion_quantity : 0
     })
     .eq('id', id)
     .select();
@@ -824,7 +916,8 @@ export const duplicateProduct = async (id) => {
     categoryId: prod.categoryId,
     imageUrl: prod.imageUrl,
     variants: prod.variants,
-    ingredients: prod.ingredients
+    baseIngredients: prod.baseIngredients,
+    extraIngredients: prod.extraIngredients
   };
   return await createProduct(prod.organization_id, newProductData);
 };
@@ -847,7 +940,12 @@ export const duplicateIngredient = async (id) => {
     name: `Copia de ${ing.name}`,
     price: ing.price,
     is_active: ing.is_active,
-    image_url: ing.image_url
+    image_url: ing.image_url,
+    icon: ing.icon,
+    unit: ing.unit,
+    stock_quantity: ing.stock_quantity,
+    low_stock_threshold: ing.low_stock_threshold,
+    portion_quantity: ing.portion_quantity
   };
   return await createIngredient(ing.organization_id, newIngData);
 };

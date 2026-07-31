@@ -24,7 +24,9 @@ import {
   Printer,
   ChevronLeft,
   MessageCircle,
-  BarChart3
+  BarChart3,
+  ShoppingBag,
+  ClipboardList
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import FeedbackBubble from './FeedbackBubble';
@@ -96,12 +98,14 @@ const Layout = () => {
             <Store className="h-6 w-6 text-black mr-2" />
             <span className="font-bold text-lg">FoodHub</span>
           </div>
-          <button onClick={toggleSidebar} className="hidden lg:flex p-1 hover:bg-gray-100 rounded text-gray-500 transition-colors">
-            <ChevronLeft className={`h-5 w-5 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`} />
-          </button>
-          <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden p-1 hover:bg-gray-100 rounded text-gray-500 transition-colors">
-            <X className="h-6 w-6" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button onClick={toggleSidebar} className="hidden lg:flex p-1 hover:bg-gray-100 rounded text-gray-500 transition-colors">
+              <ChevronLeft className={`h-5 w-5 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`} />
+            </button>
+            <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden p-1 hover:bg-gray-100 rounded text-gray-500 transition-colors">
+              <X className="h-6 w-6" />
+            </button>
+          </div>
         </div>
         
         <nav className="flex-1 overflow-y-auto py-4">
@@ -190,12 +194,27 @@ const Layout = () => {
                         }`
                       }
                     >
-                      <Package className="h-[18px] w-[18px]" />
-                      Artículos
+                      <ShoppingBag className="h-[18px] w-[18px]" />
+                      Productos
                     </NavLink>
                   </li>
                 </ul>
               )}
+            </li>
+
+            <li className="pt-2">
+              <NavLink 
+                to="/inventory" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={({ isActive }) => 
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${
+                    isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                  }`
+                }
+              >
+                <ClipboardList className="h-[18px] w-[18px]" />
+                Inventario
+              </NavLink>
             </li>
 
             <li className="pt-2">

@@ -142,14 +142,14 @@ const CatalogManager = () => {
     }
   };
 
-  useDocumentTitle('Artículos');
+  useDocumentTitle('Productos');
 
 
   return (
     <div className="flex-1 overflow-auto bg-gray-50 p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         <PageHeader 
-          title="Artículos"
+          title="Productos"
           subtitle="Administra la lista de comida, bebidas y adiciones de tu local."
         />
 
