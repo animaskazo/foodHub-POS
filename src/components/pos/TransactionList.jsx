@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink } from 'lucide-react';
+import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Modal from '../ui/Modal';
@@ -112,15 +112,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                     className="border-b border-gray-50 hover:bg-gray-50 transition-colors text-sm cursor-pointer active:bg-gray-100 group"
                   >
                     <td className="px-8 py-5 text-base font-bold text-gray-900">
-                      <div className="flex flex-col gap-2">
-                        <span>{order.order_number}</span>
-                        {['online', 'whatsapp'].includes(order.order_type) && order.payments?.some(p => p.status === 'pending') && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold w-fit">
-                            <span className="w-1.5 h-1.5 bg-amber-500 inline-block" />
-                            Pago pendiente
-                          </span>
-                        )}
-                      </div>
+                      <span>{order.order_number}</span>
                     </td>
                     <td className="px-8 py-5">
                       {order.customer_name ? (
@@ -131,7 +123,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                     </td>
                     <td className="px-8 py-5 text-gray-600">{formattedDate}</td>
                     <td className="px-8 py-5">
-                      {getStatusTag(order.status)}
+                      {getStatusTag(order)}
                     </td>
                     <td className="px-8 py-5">
                       {(() => {
@@ -178,13 +170,22 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                           </Badge>
                         );
                         if (hasPending) return (
-                          <Button
-                            variant="secondary"
-                            size="xs"
-                            onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
-                          >
-                            Confirmar pago
-                          </Button>
+                          <div className="flex flex-col items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold w-fit">
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-60" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                              </span>
+                              Pago pendiente
+                            </span>
+                            <Button
+                              variant="secondary"
+                              size="xs"
+                              onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
+                            >
+                              Confirmar pago
+                            </Button>
+                          </div>
                         );
                         return null;
                       })()}
@@ -250,7 +251,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                     )}
                   </div>
                   <div className="flex flex-col items-end">
-                    {getStatusTag(order.status)}
+                    {getStatusTag(order)}
                   </div>
                 </div>
 
@@ -268,6 +269,12 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                     <CreditCard className="w-3.5 h-3.5" />
                     {getPaymentMethod(order)}
                   </Badge>
+                  {order.scheduled_at && (
+                    <Badge variant="purple">
+                      <CalendarClock className="w-3.5 h-3.5" />
+                      {new Date(order.scheduled_at).toLocaleString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </Badge>
+                  )}
                   {order.ready_at && (
                     <Badge variant="warning">
                       <Timer className="w-3.5 h-3.5" />
@@ -284,8 +291,12 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                   <div className="flex flex-col">
                     <div className="flex items-center mb-1">
                       {['online', 'whatsapp'].includes(order.order_type) && order.payments?.some(p => p.status === 'pending') ? (
-                        <span className="text-[10px] text-red-600 font-bold uppercase tracking-wider animate-pulse">
-                          Pendiente de Pago
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-60" />
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
+                          </span>
+                          Pago pendiente
                         </span>
                       ) : (
                         <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Total</span>
@@ -366,7 +377,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
 
               {/* Información General */}
               <div className="flex flex-wrap items-center gap-2 mt-1">
-                {getStatusTag(selectedOrder.status)}
+                {getStatusTag(selectedOrder)}
 
                 <Badge variant="grayOutline">
                   <CreditCard className="h-3.5 w-3.5" />
@@ -378,6 +389,22 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                   {getKitchenTime(selectedOrder) === '-' ? 'Sin tiempo' : getKitchenTime(selectedOrder)}
                 </Badge>
               </div>
+
+              {/* Día y hora del pedido programado */}
+              {selectedOrder.scheduled_at && (
+                (() => {
+                  const d = new Date(selectedOrder.scheduled_at);
+                  return (
+                    <div className="bg-purple-50 border border-purple-200 rounded-xl px-3 py-2.5 flex items-center gap-3">
+                      <CalendarClock className="h-4.5 w-4.5 text-purple-700 shrink-0" />
+                      <p className="text-sm font-bold text-purple-900 capitalize leading-tight">
+                        Programado: {d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })} a las{' '}
+                        {d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} hrs
+                      </p>
+                    </div>
+                  );
+                })()
+              )}
 
               {/* Detalles del Cliente */}
               {selectedOrder.customer_name && (

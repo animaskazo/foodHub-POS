@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Clock, MapPin, ChevronRight, Loader2, ExternalLink } from 'lucide-react';
+import { CheckCircle2, Clock, MapPin, ChevronRight, Loader2, ExternalLink, CalendarClock } from 'lucide-react';
 import { getPublicOrderById } from '../../services/publicOrderService';
 
 const fmt = (n) => n ? n.toLocaleString('es-CL') : '0';
@@ -41,6 +41,14 @@ const OrderConfirmation = ({ order, org }) => {
   const displayTotal = dbOrder?.total || 0;
   const items = dbOrder?.order_items || [];
 
+  const formatSchedule = (iso) => {
+    const d = new Date(iso);
+    const dateLabel = d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+    const timeLabel = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    return { dateLabel, timeLabel };
+  };
+  const schedule = dbOrder?.scheduled_at ? formatSchedule(dbOrder.scheduled_at) : null;
+
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col items-center">
@@ -78,7 +86,8 @@ const OrderConfirmation = ({ order, org }) => {
             </div>
             <div>
               <p className="font-bold text-gray-900 text-sm">
-                {dbOrder?.status === 'pending' ? 'Pendiente' :
+                {dbOrder?.status === 'scheduled' ? 'Programado' :
+                 dbOrder?.status === 'pending' ? 'Pendiente' :
                  dbOrder?.status === 'confirmed' ? 'Confirmado' :
                  dbOrder?.status === 'preparing' ? 'En preparación' :
                  dbOrder?.status === 'ready' ? 'Listo' :
@@ -87,7 +96,8 @@ const OrderConfirmation = ({ order, org }) => {
                  'En preparación'}
               </p>
               <p className="text-xs text-gray-500 mt-0.5 mb-1.5">
-                {dbOrder?.status === 'pending' ? 'Pedido recibido, esperando confirmación' :
+                {dbOrder?.status === 'scheduled' ? 'Pedido agendado, lo prepararemos a la hora indicada' :
+                 dbOrder?.status === 'pending' ? 'Pedido recibido, esperando confirmación' :
                  dbOrder?.status === 'confirmed' ? 'Pedido confirmado' :
                  dbOrder?.status === 'preparing' ? 'Tu pedido está siendo preparado' :
                  dbOrder?.status === 'ready' ? 'Tu pedido está listo' :
@@ -103,6 +113,22 @@ const OrderConfirmation = ({ order, org }) => {
               )}
             </div>
           </div>
+
+          {/* Scheduled day & time */}
+          {schedule && (
+            <div className="bg-amber-50 rounded-2xl border border-amber-100 p-4 flex items-center gap-4">
+              <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
+                <CalendarClock className="h-5 w-5 text-amber-700" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-amber-700/70 uppercase tracking-wider">
+                  {dbOrder?.delivery_type === 'delivery' ? 'Día y hora de entrega' : 'Día y hora de retiro'}
+                </p>
+                <p className="font-bold text-gray-900 text-base capitalize">{schedule.dateLabel}</p>
+                <p className="text-sm font-bold text-amber-800">a las {schedule.timeLabel} hrs</p>
+              </div>
+            </div>
+          )}
 
           {/* Pickup/Delivery info */}
           <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4">

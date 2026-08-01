@@ -457,6 +457,7 @@ const SuperAdminView = () => {
                                 </td>
                                 <td className="px-6 py-4">
                                   <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded ${
+                                    order.status === 'scheduled' ? 'bg-indigo-100 text-indigo-800' :
                                     order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                                     order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
                                     order.status === 'preparing' ? 'bg-purple-100 text-purple-800' :
@@ -464,7 +465,8 @@ const SuperAdminView = () => {
                                     order.status === 'completed' ? 'bg-green-100 text-green-800' :
                                     'bg-red-100 text-red-800'
                                   }`}>
-                                    {order.status === 'pending' ? 'Pendiente' :
+                                    {order.status === 'scheduled' ? 'Programado' :
+                                     order.status === 'pending' ? 'Pendiente' :
                                      order.status === 'confirmed' ? 'Confirmado' :
                                      order.status === 'preparing' ? 'Preparando' :
                                      order.status === 'ready' ? 'Listo' :
@@ -907,6 +909,7 @@ const SuperAdminView = () => {
                 <div>
                   <span className="text-gray-500 block text-xs uppercase font-bold tracking-wider">Estado de preparación</span>
                   <span className={`inline-block mt-1 px-2.5 py-0.5 rounded text-xs font-bold ${
+                    selectedOrder.status === 'scheduled' ? 'bg-indigo-100 text-indigo-800' :
                     selectedOrder.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                     selectedOrder.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
                     selectedOrder.status === 'preparing' ? 'bg-purple-100 text-purple-800' :

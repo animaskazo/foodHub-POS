@@ -152,8 +152,17 @@ const CustomersView = () => {
 
   const fmt = (n) => Number(n).toLocaleString('es-CL');
 
-  const getStatusTag = (status) => {
+  const getStatusTag = (statusOrOrder) => {
+    let status = statusOrOrder;
+    if (statusOrOrder && typeof statusOrOrder === 'object') {
+      const now = Date.now();
+      const hasFutureSchedule = statusOrOrder.scheduled_at && new Date(statusOrOrder.scheduled_at).getTime() > now;
+      status = (hasFutureSchedule && (statusOrOrder.status === 'scheduled' || statusOrOrder.status === 'pending'))
+        ? 'scheduled'
+        : statusOrOrder.status;
+    }
     const statusMap = {
+      scheduled: { label: 'Programado', variant: 'purple' },
       pending: { label: 'Pendiente', variant: 'grayOutline' },
       confirmed: { label: 'Confirmado', variant: 'info' },
       preparing: { label: 'Preparando', variant: 'warning' },
@@ -400,7 +409,7 @@ const CustomersView = () => {
                             <div className="flex items-center gap-2">
                               <span className="font-extrabold text-gray-900">#{order.order_number}</span>
                               {getChannelChip(order.order_type)}
-                              {getStatusTag(order.status)}
+                              {getStatusTag(order)}
                             </div>
                             <span className="font-black text-gray-900">${fmt(order.total || 0)}</span>
                           </div>

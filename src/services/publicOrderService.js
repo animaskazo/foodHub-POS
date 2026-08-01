@@ -7,7 +7,7 @@ export const getOrganizationByName = async (orgName) => {
 
   const { data, error } = await supabase
     .from('organizations')
-    .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, business_hours, delivery_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, delivery_mode, uber_enabled, uber_client_id, uber_client_secret, uber_customer_id, whatsapp_phone_number_id')
+    .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, business_hours, pickup_hours, instant_enabled, scheduling_enabled, delivery_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, delivery_mode, uber_enabled, uber_client_id, uber_client_secret, uber_customer_id, whatsapp_phone_number_id')
     .ilike('name', decoded)
     .eq('is_active', true)
     .maybeSingle();
@@ -16,7 +16,7 @@ export const getOrganizationByName = async (orgName) => {
     // Try by slug as fallback
     const { data: bySlug, error: slugError } = await supabase
       .from('organizations')
-      .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, business_hours, delivery_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, delivery_mode, uber_enabled, uber_client_id, uber_client_secret, uber_customer_id, whatsapp_phone_number_id')
+      .select('id, name, slug, logo_url, cover_url, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, business_hours, pickup_hours, instant_enabled, scheduling_enabled, delivery_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, delivery_mode, uber_enabled, uber_client_id, uber_client_secret, uber_customer_id, whatsapp_phone_number_id')
       .ilike('slug', decoded)
       .eq('is_active', true)
       .maybeSingle();
@@ -167,7 +167,8 @@ export const createPublicOrder = async ({
   paymentStatus = 'pending',
   deliveryType = 'pickup',
   deliveryAddress = null,
-  deliveryFee = 0
+  deliveryFee = 0,
+  scheduledAt = null
 }) => {
   // Get first active branch
   const { data: branch, error: branchError } = await supabase
@@ -220,7 +221,8 @@ export const createPublicOrder = async ({
       organization_id: organizationId,
       branch_id: branch.id,
       order_type: 'online',
-      status: 'confirmed',
+      status: scheduledAt ? 'scheduled' : 'confirmed',
+      scheduled_at: scheduledAt || null,
       customer_name: customer.name,
       customer_phone: customer.phone || null,
       notes: notes || null,
@@ -394,6 +396,8 @@ export const getPublicOrderById = async (orderId) => {
       subtotal,
       tax_amount,
       notes,
+      status,
+      scheduled_at,
       delivery_type,
       delivery_address,
       delivery_fee,

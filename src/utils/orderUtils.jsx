@@ -1,6 +1,7 @@
 import React from 'react';
-import { Timer, CheckCircle2, Utensils, CheckCheck, XCircle, RefreshCcw, Filter } from 'lucide-react';
+import { Timer, CheckCircle2, Utensils, CheckCheck, XCircle, RefreshCcw, Filter, CalendarClock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import Tooltip from '@/components/ui/tooltip';
 
 export const fmt = (n) => Number(n).toLocaleString('es-CL');
 
@@ -25,8 +26,28 @@ export const getPaymentMethod = (order) => {
   return methodMap[payment.method] || payment.method;
 };
 
-export const getStatusTag = (status) => {
+export const getStatusTag = (statusOrOrder) => {
+  let status = statusOrOrder;
+  let scheduledLabel = null;
+  if (statusOrOrder && typeof statusOrOrder === 'object') {
+    const now = Date.now();
+    const hasFutureSchedule = statusOrOrder.scheduled_at && new Date(statusOrOrder.scheduled_at).getTime() > now;
+    status = (hasFutureSchedule && (statusOrOrder.status === 'scheduled' || statusOrOrder.status === 'pending'))
+      ? 'scheduled'
+      : statusOrOrder.status;
+    if (hasFutureSchedule && statusOrOrder.scheduled_at) {
+      scheduledLabel = new Date(statusOrOrder.scheduled_at).toLocaleString('es-CL', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
+  }
+
   const statusMap = {
+    scheduled: { label: 'Programado', variant: 'purple', icon: CalendarClock },
     pending: { label: 'Pendiente', variant: 'grayOutline', icon: Timer },
     confirmed: { label: 'Confirmado', variant: 'info', icon: CheckCircle2 },
     preparing: { label: 'Preparando', variant: 'warning', icon: Utensils },
@@ -38,10 +59,15 @@ export const getStatusTag = (status) => {
 
   const mapped = statusMap[status] || { label: status, variant: 'grayOutline', icon: Filter };
 
-  return (
+  const badge = (
     <Badge variant={mapped.variant}>
       {mapped.icon && <mapped.icon className="w-3.5 h-3.5" />}
       {mapped.label}
     </Badge>
   );
+
+  if (scheduledLabel) {
+    return <Tooltip text={`Programado · ${scheduledLabel}`}>{badge}</Tooltip>;
+  }
+  return badge;
 };

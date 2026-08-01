@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
 import { getShiftSettings, getCurrentShift } from '../services/shiftService';
+import { activateDueScheduledOrders } from '../services/orderService';
 import ShiftModal from '../components/shifts/ShiftModal';
 import {
   TrendingUp,
@@ -15,6 +16,7 @@ import {
   Globe,
   MessageCircle,
   Van,
+  CalendarClock,
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
@@ -29,6 +31,7 @@ const DashboardView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [channelFilter, setChannelFilter] = useState('all'); // all, table, pickup, online, whatsapp
+  const [showScheduled, setShowScheduled] = useState(false);
   const [kitchenStatusFilter, setKitchenStatusFilter] = useState('all'); // all, pending, preparing, ready, delivered, cancelled
   const [dateRange, setDateRange] = useState('today'); // today, 7days, 30days
   const [showMetricsMobile, setShowMetricsMobile] = useState(false);
@@ -132,6 +135,9 @@ const DashboardView = () => {
       setError(null);
     }
     try {
+      // Activar pedidos programados cuya hora ya llegó
+      await activateDueScheduledOrders();
+
       const endOfDay = new Date();
       endOfDay.setHours(23, 59, 59, 999);
 
@@ -157,6 +163,7 @@ const DashboardView = () => {
           subtotal,
           tax_amount,
           created_at,
+          scheduled_at,
           ready_at,
           notes,
           customer_name,
@@ -179,8 +186,14 @@ const DashboardView = () => {
 
       const newOrders = data || [];
       if (isBackground && prevOrdersRef.current.length > 0) {
-        const prevIds = new Set(prevOrdersRef.current.map(o => o.id));
-        const arrived = newOrders.filter(o => !prevIds.has(o.id) && (o.status === 'confirmed' || o.status === 'pending'));
+        const prevStatusMap = new Map(prevOrdersRef.current.map(o => [o.id, o.status]));
+        const now = Date.now();
+        const isActive = (o) => !o.scheduled_at || new Date(o.scheduled_at).getTime() <= now;
+        // Pedidos nuevos inmediatos (no programados futuros)
+        const isNewImmediate = (o) => !prevStatusMap.has(o.id) && isActive(o) && (o.status === 'confirmed' || o.status === 'pending');
+        // Pedidos programados que recién se activaron (scheduled/pending -> confirmed)
+        const isActivated = (o) => ['scheduled', 'pending'].includes(prevStatusMap.get(o.id)) && o.status === 'confirmed' && !!o.scheduled_at;
+        const arrived = newOrders.filter(o => isNewImmediate(o) || isActivated(o));
         if (arrived.length > 0) {
           playBellSound();
           setNewOrderAlert(arrived[0]);
@@ -212,16 +225,28 @@ const DashboardView = () => {
   // Filter orders based on selected channel and kitchen status
   const filteredOrders = useMemo(() => {
     let result = orders;
+    const now = Date.now();
     if (channelFilter === 'delivery') {
       result = result.filter(order => order.delivery_type === 'delivery');
     } else if (channelFilter !== 'all') {
       result = result.filter(order => order.order_type === channelFilter);
     }
+    if (showScheduled) {
+      result = result.filter(order =>
+        order.scheduled_at && new Date(order.scheduled_at).getTime() > now && (order.status === 'scheduled' || order.status === 'pending')
+      );
+      return result;
+    }
     if (kitchenStatusFilter !== 'all') {
       result = result.filter(order => order.status === kitchenStatusFilter);
     }
     return result;
-  }, [orders, channelFilter, kitchenStatusFilter]);
+  }, [orders, channelFilter, kitchenStatusFilter, showScheduled]);
+
+  const scheduledCount = useMemo(() => {
+    const now = Date.now();
+    return orders.filter(o => o.scheduled_at && new Date(o.scheduled_at).getTime() > now && (o.status === 'scheduled' || o.status === 'pending')).length;
+  }, [orders]);
 
   // Calculate Metrics
   const metrics = useMemo(() => {
@@ -302,40 +327,58 @@ const DashboardView = () => {
         {/* Filters */}
         <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar mb-6">
           <Button
-            variant={channelFilter === 'all' ? 'default' : 'secondary'}
-            onClick={() => setChannelFilter('all')}
+            size="sm"
+            variant={channelFilter === 'all' && !showScheduled ? 'default' : 'secondary'}
+            onClick={() => { setChannelFilter('all'); setShowScheduled(false); }}
           >
             Todos
           </Button>
           <Button
+            size="sm"
             variant={channelFilter === 'table' ? 'default' : 'secondary'}
-            onClick={() => setChannelFilter('table')}
+            onClick={() => { setChannelFilter('table'); setShowScheduled(false); }}
           >
-            <Store className="h-4 w-4 mr-1" /> Local
+            <Store className="h-3.5 w-3.5 mr-1" /> Local
           </Button>
           <Button
+            size="sm"
             variant={channelFilter === 'pickup' ? 'default' : 'secondary'}
-            onClick={() => setChannelFilter('pickup')}
+            onClick={() => { setChannelFilter('pickup'); setShowScheduled(false); }}
           >
-            <PaperBag className="h-4 w-4 mr-1" /> Retiro
+            <PaperBag className="h-3.5 w-3.5 mr-1" /> Retiro
           </Button>
           <Button
+            size="sm"
             variant={channelFilter === 'delivery' ? 'default' : 'secondary'}
-            onClick={() => setChannelFilter('delivery')}
+            onClick={() => { setChannelFilter('delivery'); setShowScheduled(false); }}
           >
-            <Van className="h-4 w-4 mr-1" /> Delivery
+            <Van className="h-3.5 w-3.5 mr-1" /> Delivery
           </Button>
           <Button
+            size="sm"
             variant={channelFilter === 'online' ? 'default' : 'secondary'}
-            onClick={() => setChannelFilter('online')}
+            onClick={() => { setChannelFilter('online'); setShowScheduled(false); }}
           >
-            <Globe className="h-4 w-4 mr-1" /> Online
+            <Globe className="h-3.5 w-3.5 mr-1" /> Online
           </Button>
           <Button
+            size="sm"
             variant={channelFilter === 'whatsapp' ? 'default' : 'secondary'}
-            onClick={() => setChannelFilter('whatsapp')}
+            onClick={() => { setChannelFilter('whatsapp'); setShowScheduled(false); }}
           >
-            <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+            <MessageCircle className="h-3.5 w-3.5 mr-1" /> WhatsApp
+          </Button>
+          <Button
+            size="sm"
+            variant={showScheduled ? 'default' : 'secondary'}
+            onClick={() => { setShowScheduled(!showScheduled); setChannelFilter('all'); }}
+          >
+            <CalendarClock className="h-3.5 w-3.5 mr-1" /> Programados
+            {scheduledCount > 0 && (
+              <span className={`ml-1.5 text-[11px] font-bold px-1.5 py-0.5 rounded-full ${showScheduled ? 'bg-white/20 text-white' : 'bg-amber-400 text-black'}`}>
+                {scheduledCount}
+              </span>
+            )}
           </Button>
         </div>
 
@@ -407,6 +450,7 @@ const DashboardView = () => {
                 className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:border-gray-300"
               >
                 <option value="all">Todos los estados</option>
+                <option value="scheduled">Programados</option>
                 <option value="pending">Pendientes</option>
                 <option value="preparing">En preparación</option>
                 <option value="ready">Listos</option>

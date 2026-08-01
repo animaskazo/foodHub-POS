@@ -261,6 +261,20 @@ const OrderView = () => {
   // ── Checkout ──────────────────────────────────────────────
   const handleCheckout = async (customerForm) => {
     setIsSubmitting(true);
+    const scheduledAt = customerForm.scheduleType === 'scheduled' && customerForm.scheduledAt ? customerForm.scheduledAt : null;
+    const scheduledAtMs = scheduledAt ? new Date(scheduledAt).getTime() : null;
+    const deliveryWindow = scheduledAtMs ? (() => {
+      const t = scheduledAtMs;
+      const now = Date.now();
+      const pickupReady = Math.max(t - 30 * 60000, now + 15 * 60000);
+      const pickupDeadline = Math.max(t, pickupReady + 30 * 60000);
+      return {
+        pickup_ready_dt: new Date(pickupReady).toISOString(),
+        pickup_deadline_dt: new Date(pickupDeadline).toISOString(),
+        dropoff_ready_dt: new Date(t).toISOString(),
+        dropoff_deadline_dt: new Date(Math.max(t + 60 * 60000, pickupReady + 90 * 60000)).toISOString(),
+      };
+    })() : null;
     try {
       // First, create the order in the database with status pending
       const order = await createPublicOrder({
@@ -276,10 +290,11 @@ const OrderView = () => {
         paymentStatus: 'pending',
         deliveryType: customerForm.deliveryType,
         deliveryAddress: customerForm.deliveryAddress,
-        deliveryFee: customerForm.deliveryFee
+        deliveryFee: customerForm.deliveryFee,
+        scheduledAt,
       });
 
-      // ── Uber Direct: create delivery if mode is uber_direct ──
+      // ── Uber Direct: create delivery if mode is uber_direct (immediate or scheduled) ──
       if (org.delivery_mode === 'uber_direct' && org.uber_enabled !== false && customerForm.deliveryType === 'delivery') {
         try {
           const tokenRes = await getAccessToken(org.uber_client_id, org.uber_client_secret)
@@ -337,7 +352,7 @@ const OrderView = () => {
           }
           const normalizedPickupPhone = normalizePhone(org.phone)
 
-          let quoteId = customerForm.quoteId
+          let quoteId = scheduledAt ? null : customerForm.quoteId
           if (!quoteId) {
             const quote = await createQuote(org.uber_customer_id, token, {
               external_store_id: org.id,
@@ -354,6 +369,7 @@ const OrderView = () => {
                 quantity: item.quantity || 1,
                 value: item.price || 0,
               })),
+              ...(deliveryWindow || {}),
             })
             quoteId = quote.id
           }
@@ -376,6 +392,7 @@ const OrderView = () => {
               quantity: item.quantity || 1,
               value: item.price || 0,
             })),
+            ...(deliveryWindow || {}),
           })
 
           const deliveryFee = delivery.fee ? ((delivery.currency || '').toUpperCase() === 'CLP' ? Math.round(delivery.fee / 100) : delivery.fee / 100) : customerForm.deliveryFee

@@ -300,14 +300,32 @@ export const getKitchenOrders = async () => {
         order_items(*, products(description, product_images(url)), order_item_variants(variant_option_name), order_item_ingredients(ingredient_name))
       `)
       .eq('branch_id', branchData.id)
-      .in('status', ['pending', 'confirmed', 'preparing'])
+      .in('status', ['scheduled', 'pending', 'confirmed', 'preparing'])
       .order('created_at', { ascending: true });
 
     if (error) throw error;
-    return data;
+
+    // Excluir pedidos programados futuros (aún no les llegó su hora)
+    const now = Date.now();
+    return (data || []).filter(o => !o.scheduled_at || new Date(o.scheduled_at).getTime() <= now);
   } catch (error) {
     console.error("Error fetching kitchen orders:", error);
     return [];
+  }
+};
+
+// Activa pedidos programados cuya hora ya llegó (scheduled/pending -> confirmed)
+export const activateDueScheduledOrders = async () => {
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'confirmed' })
+      .in('status', ['pending', 'scheduled'])
+      .not('scheduled_at', 'is', null)
+      .lte('scheduled_at', new Date().toISOString());
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error activating scheduled orders:', error);
   }
 };
 

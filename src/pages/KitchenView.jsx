@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Clock, ChefHat, CheckCircle2, Play, RefreshCw, Volume2, Store, ShoppingBag, ShoppingCart, Globe, MessageCircle, User, ArrowLeft, Home, Van } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getKitchenOrders, updateOrderStatus } from '../services/orderService';
+import { getKitchenOrders, updateOrderStatus, activateDueScheduledOrders } from '../services/orderService';
 import { useAuth } from '../components/AuthContext';
 import { Button } from '@/components/ui/button';
 
@@ -20,10 +20,12 @@ const KitchenView = () => {
   const fetchOrders = async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     try {
+      // Activar pedidos programados cuya hora ya llegó
+      await activateDueScheduledOrders();
       const data = await getKitchenOrders();
       // Determine newly added orders (status pending or confirmed)
       const prevIds = prevOrdersRef.current.map(o => o.id);
-      const added = data.filter(o => !prevIds.includes(o.id) && (o.status === 'pending' || o.status === 'confirmed'));
+      const added = data.filter(o => !prevIds.includes(o.id) && (o.status === 'scheduled' || o.status === 'pending' || o.status === 'confirmed'));
       if (added.length > 0) {
         // Add their IDs to the blink set
         setNewOrderIds(prev => {
@@ -155,7 +157,13 @@ const KitchenView = () => {
     return `hace ${diffMins} min`;
   };
 
-  const pendingCount = orders.filter(o => o.status === 'confirmed' || o.status === 'pending').length;
+  // Formatea la hora programada para mostrarla en el ticket
+  const formatScheduled = (scheduledAt) => {
+    if (!scheduledAt) return null;
+    return new Date(scheduledAt).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const pendingCount = orders.filter(o => o.status === 'confirmed' || o.status === 'pending' || o.status === 'scheduled').length;
   const preparingCount = orders.filter(o => o.status === 'preparing').length;
 
   return (
@@ -231,7 +239,8 @@ const KitchenView = () => {
             </div>
           )}
           {orders.map(order => {
-            const elapsed = getElapsedTime(order.created_at);
+            const elapsed = getElapsedTime(order.scheduled_at || order.created_at);
+            const scheduledTime = formatScheduled(order.scheduled_at);
             const elapsedMins = elapsed.includes('min') ? parseInt(elapsed.match(/\d+/)?.[0] || 0) : 0;
             const isUrgent = elapsedMins >= 15;
             const isWarning = elapsedMins >= 8 && elapsedMins < 15;
@@ -252,6 +261,14 @@ const KitchenView = () => {
                 headerBg: 'bg-[#f59e0b]/[0.02]',
                 label: 'Pendiente',
                 labelCls: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+                btnClass: 'bg-zinc-800 hover:bg-zinc-700 text-white',
+              },
+              scheduled: {
+                border: 'border-2 border-indigo-500/40',
+                glow: 'shadow-black/40',
+                headerBg: 'bg-[#6366f1]/[0.04]',
+                label: 'Programado',
+                labelCls: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
                 btnClass: 'bg-zinc-800 hover:bg-zinc-700 text-white',
               },
               confirmed: {
@@ -280,7 +297,7 @@ const KitchenView = () => {
             return (
               <div
                 key={order.id}
-                className={`order-card transition-all w-full md:w-80 min-w-[300px] flex-shrink-0 flex flex-col rounded-2xl border ${cfg.border} bg-zinc-950 overflow-hidden shadow-lg md:h-[calc(100vh-170px)] ${isLeaving ? 'ticket-leave' : isNew ? 'ticket-enter-new' : (order.status === 'pending' || order.status === 'confirmed') ? 'ticket-enter-pending' : 'ticket-enter'}`}
+                className={`order-card transition-all w-full md:w-80 min-w-[300px] flex-shrink-0 flex flex-col rounded-2xl border ${cfg.border} bg-zinc-950 overflow-hidden shadow-lg md:h-[calc(100vh-170px)] ${isLeaving ? 'ticket-leave' : isNew ? 'ticket-enter-new' : (order.status === 'scheduled' || order.status === 'pending' || order.status === 'confirmed') ? 'ticket-enter-pending' : 'ticket-enter'}`}
               >
                 {/* ── Header ── */}
                 <div className={`${cfg.headerBg} px-4 pt-4 pb-3.5 border-b border-zinc-900 shrink-0 space-y-3`}>
@@ -303,9 +320,17 @@ const KitchenView = () => {
 
                   {/* Row 2: badge status + channel + user */}
                   <div className="flex items-center justify-between">
-                    <span className={`text-[11px] uppercase tracking-wider font-extrabold px-2.5 py-1 shrink-0 ${cfg.labelCls}`}>
-                      {cfg.label}
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`text-[11px] uppercase tracking-wider font-extrabold px-2.5 py-1 ${cfg.labelCls}`}>
+                        {cfg.label}
+                      </span>
+                      {scheduledTime && (
+                        <span className="text-[11px] font-extrabold px-2.5 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                          <Clock className="h-3 w-3 inline-block mr-1" />
+                          {scheduledTime}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 text-xs text-zinc-400 font-medium min-w-0">
                       <div className="flex items-center gap-1 shrink-0">
                         <channel.Icon className="h-3.5 w-3.5" />
@@ -432,7 +457,7 @@ const KitchenView = () => {
                       <span>{elapsed}</span>
                     </div>
                   </div>
-                  {(order.status === 'confirmed' || order.status === 'pending') ? (
+                  {(order.status === 'confirmed' || order.status === 'pending' || order.status === 'scheduled') ? (
                     <Button
                       onClick={() => handleUpdateStatus(order.id, 'preparing')}
                       className={`w-full py-6 ${cfg.btnClass} rounded-xl font-bold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}

@@ -8,7 +8,7 @@ import {
   getStaff 
 } from '../services/organizationService';
 import { uploadImage } from '../services/storageService';
-import { Store, User, Clock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2 } from 'lucide-react';
+import { Store, User, Clock, CalendarClock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2 } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -57,6 +57,10 @@ const SettingsView = () => {
   });
   
   const [businessHours, setBusinessHours] = useState(defaultHours);
+  const [pickupHours, setPickupHours] = useState(defaultHours);
+  const [hoursTab, setHoursTab] = useState('comercial'); // 'comercial' | 'retiro'
+  const [instantEnabled, setInstantEnabled] = useState(true);
+  const [schedulingEnabled, setSchedulingEnabled] = useState(true);
   const [staff, setStaff] = useState([]);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
@@ -102,6 +106,11 @@ const SettingsView = () => {
         if (orgData.business_hours && Object.keys(orgData.business_hours).length > 0) {
           setBusinessHours(orgData.business_hours);
         }
+        if (orgData.pickup_hours && Object.keys(orgData.pickup_hours).length > 0) {
+          setPickupHours(orgData.pickup_hours);
+        }
+        setInstantEnabled(orgData.instant_enabled !== false);
+        setSchedulingEnabled(orgData.scheduling_enabled !== false);
         setStaff(staffData);
 
         // Obtener el rol del usuario logueado actualmente
@@ -210,6 +219,44 @@ const SettingsView = () => {
     }
   };
 
+  const handlePickupDayClosedToggle = (dayKey, closedValue) => {
+    setPickupHours(prev => ({
+      ...prev,
+      [dayKey]: {
+        ...prev[dayKey],
+        closed: closedValue
+      }
+    }));
+  };
+
+  const handlePickupDayTimeChange = (dayKey, field, value) => {
+    setPickupHours(prev => ({
+      ...prev,
+      [dayKey]: {
+        ...prev[dayKey],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleSavePickupHours = async () => {
+    if (!orgId) return;
+    setSaving(true);
+    try {
+      await updateOrganizationDetails(orgId, {
+        pickup_hours: pickupHours,
+        instant_enabled: instantEnabled,
+        scheduling_enabled: schedulingEnabled,
+      });
+      alert('Horarios de retiro guardados exitosamente');
+    } catch (error) {
+      console.error(error);
+      alert('Error al guardar horarios de retiro. Por favor, asegúrate de haber ejecutado la migración SQL 041 en el SQL Editor de tu consola Supabase.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -217,6 +264,56 @@ const SettingsView = () => {
       </div>
     );
   }
+
+  const renderDayRow = (dayKey, dayData, onToggle, onTimeChange) => (
+    <div key={dayKey} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white rounded-2xl border border-gray-200 gap-4">
+      <div className="flex items-center gap-3 min-w-[130px]">
+        <span className={`w-2 h-2 rounded-full shrink-0 ${dayData.closed ? 'bg-red-400' : 'bg-emerald-500'}`} />
+        <span className="font-bold text-sm text-gray-800">{daysTranslations[dayKey]}</span>
+      </div>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        {!dayData.closed && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 h-11">
+              <Clock className="h-4 w-4 text-gray-400 shrink-0" />
+              <input
+                type="time"
+                value={dayData.open || '09:00'}
+                onChange={(e) => onTimeChange(dayKey, 'open', e.target.value)}
+                className="bg-transparent text-sm font-semibold outline-none w-[88px] text-gray-800"
+              />
+            </div>
+            <span className="text-gray-400 font-semibold text-xs">a</span>
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 h-11">
+              <Clock className="h-4 w-4 text-gray-400 shrink-0" />
+              <input
+                type="time"
+                value={dayData.close || '22:00'}
+                onChange={(e) => onTimeChange(dayKey, 'close', e.target.value)}
+                className="bg-transparent text-sm font-semibold outline-none w-[88px] text-gray-800"
+              />
+            </div>
+          </div>
+        )}
+        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl w-fit">
+          <button
+            type="button"
+            onClick={() => onToggle(dayKey, false)}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${!dayData.closed ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            Abierto
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggle(dayKey, true)}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${dayData.closed ? 'bg-white text-red-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            Cerrado
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8">
@@ -486,64 +583,127 @@ const SettingsView = () => {
 
             {activeTab === 'hours' && (
               <div className="p-6 md:p-8 space-y-6">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">Horario Comercial</h3>
-                  <p className="text-sm text-gray-500">Configura los días y horas de apertura de tu local.</p>
-                </div>
-
-                <div className="space-y-4">
-                  {Object.keys(daysTranslations).map((dayKey) => {
-                    const dayData = businessHours[dayKey] || { open: '09:00', close: '22:00', closed: false };
-                    return (
-                      <div key={dayKey} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 gap-4">
-                        <div className="flex items-center gap-3 min-w-[120px]">
-                          <input 
-                            type="checkbox"
-                            checked={!dayData.closed}
-                            onChange={(e) => handleDayClosedToggle(dayKey, !e.target.checked)}
-                            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-                          />
-                          <span className="font-semibold text-sm capitalize text-gray-800">{daysTranslations[dayKey]}</span>
-                        </div>
-
-                        {!dayData.closed ? (
-                          <div className="flex items-center gap-2">
-                            <div className="form-field flex items-center px-3 h-10">
-                              <input 
-                                type="time"
-                                value={dayData.open || '09:00'}
-                                onChange={(e) => handleDayTimeChange(dayKey, 'open', e.target.value)}
-                                className="bg-transparent text-sm font-semibold outline-none w-[90px]"
-                              />
-                            </div>
-                            <span className="text-gray-400 font-semibold text-xs">a</span>
-                            <div className="form-field flex items-center px-3 h-10">
-                              <input 
-                                type="time"
-                                value={dayData.close || '22:00'}
-                                onChange={(e) => handleDayTimeChange(dayKey, 'close', e.target.value)}
-                                className="bg-transparent text-sm font-semibold outline-none w-[90px]"
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-xs font-bold text-red-500 uppercase bg-red-50 px-2.5 py-1 rounded">Cerrado</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="pt-6 border-t border-gray-100 flex justify-end">
-                  <Button
-                    onClick={handleSaveHours}
-                    disabled={saving}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-black text-white   font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
+                {/* Tab switcher */}
+                <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 rounded-2xl">
+                  <button
+                    onClick={() => setHoursTab('comercial')}
+                    className={`py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                      hoursTab === 'comercial' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'
+                    }`}
                   >
-                    {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
-                    Guardar Horarios
-                  </Button>
+                    Horario Comercial
+                  </button>
+                  <button
+                    onClick={() => setHoursTab('retiro')}
+                    className={`py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                      hoursTab === 'retiro' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'
+                    }`}
+                  >
+                    Horario de Retiro
+                  </button>
                 </div>
+
+                {hoursTab === 'comercial' && (
+                  <>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">Horario Comercial</h3>
+                      <p className="text-sm text-gray-500">Días y horas en que tu local recibe pedidos.</p>
+                    </div>
+
+                    <div className="space-y-3">
+                      {Object.keys(daysTranslations).map((dayKey) =>
+                        renderDayRow(
+                          dayKey,
+                          businessHours[dayKey] || { open: '09:00', close: '22:00', closed: false },
+                          handleDayClosedToggle,
+                          handleDayTimeChange
+                        )
+                      )}
+                    </div>
+
+                    <div className="pt-6 border-t border-gray-100 flex justify-end">
+                      <Button
+                        onClick={handleSaveHours}
+                        disabled={saving}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-black text-white   font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+                        Guardar Horarios
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {hoursTab === 'retiro' && (
+                  <>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">Horarios de Retiro</h3>
+                      <p className="text-sm text-gray-500">
+                        Define en qué horarios tus clientes pueden retirar o agendar sus pedidos online. Fuera de estos horarios solo podrán agendar.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-4 p-5 bg-white border border-gray-200 rounded-2xl">
+                        <div className="flex items-center gap-4">
+                          <div className="h-11 w-11 rounded-2xl bg-black text-white flex items-center justify-center shrink-0">
+                            <Clock className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-sm text-gray-800">Pedidos para Ahora</p>
+                            <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
+                              Permite que tus clientes pidan con retiro inmediato mientras estés dentro del horario de retiro.
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={instantEnabled}
+                          onCheckedChange={setInstantEnabled}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between gap-4 p-5 bg-white border border-gray-200 rounded-2xl">
+                        <div className="flex items-center gap-4">
+                          <div className="h-11 w-11 rounded-2xl bg-black text-white flex items-center justify-center shrink-0">
+                            <CalendarClock className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-sm text-gray-800">Pedidos Programados</p>
+                            <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
+                              Permite que tus clientes agenden su pedido para una hora futura dentro del horario de retiro.
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={schedulingEnabled}
+                          onCheckedChange={setSchedulingEnabled}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {Object.keys(daysTranslations).map((dayKey) =>
+                        renderDayRow(
+                          dayKey,
+                          pickupHours[dayKey] || { open: '09:00', close: '22:00', closed: false },
+                          handlePickupDayClosedToggle,
+                          handlePickupDayTimeChange
+                        )
+                      )}
+                    </div>
+
+                    <div className="pt-6 border-t border-gray-100 flex justify-end">
+                      <Button
+                        onClick={handleSavePickupHours}
+                        disabled={saving}
+                        className="flex items-center gap-2 px-6 py-2.5 bg-black text-white   font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+                        Guardar Horarios de Retiro
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
