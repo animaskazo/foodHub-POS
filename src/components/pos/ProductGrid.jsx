@@ -9,6 +9,7 @@ import 'react-simple-keyboard/build/css/index.css';
 
 import { getCategories, getProducts } from '../../services/catalogService';
 import { getOutOfStockProductIds } from '../../services/inventoryService';
+import PrepTimeSelector from '../ui/PrepTimeSelector';
 
 const spanishLayout = {
   default: [
@@ -213,6 +214,9 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
           >
             <Menu className="h-7 w-7" />
           </button>
+
+          {/* Prep Time Quick Selector */}
+          <PrepTimeSelector compact />
 
           {/* Mobile Kitchen Badge Trigger */}
           <button

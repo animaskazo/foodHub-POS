@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard, Truck, Info, CalendarClock, Clock } from 'lucide-react';
+import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard, Truck, Info, CalendarClock, Clock, ChefHat } from 'lucide-react';
 import { getCustomerByPhone } from '../../services/publicOrderService';
 import { geocodeAddress, calculateDistance, isPointInPolygon } from '../../utils/geo';
 import { getAccessToken, createQuote } from '../../services/uberDirectService';
@@ -86,7 +86,8 @@ const getSlots = (org, dateStr) => {
   const open = toMinutes(day.open);
   const close = toMinutes(day.close);
   const end = close < open ? 24 * 60 : close; // cruce de medianoche
-  const minFuture = Date.now() + 10 * 60000;
+  const prep = (org?.prep_time && org.prep_time > 0) ? org.prep_time : 10;
+  const minFuture = Date.now() + prep * 60000;
   const slots = [];
   for (let t = open; t < end; t += 30) {
     const slotDate = new Date(y, m - 1, d, Math.floor(t / 60), t % 60);
@@ -140,6 +141,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   const schedulingEnabled = org?.scheduling_enabled !== false;
   const showScheduleSection = instantAvailable || schedulingEnabled;
   const initScheduleType = instantAvailable ? 'now' : (schedulingEnabled ? 'scheduled' : 'now');
+  const kitchenPrepMinutes = (org?.prep_time && org.prep_time > 0) ? org.prep_time : 10;
 
   const [form, setForm] = useState(() => {
     try {
@@ -493,6 +495,14 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
 
+          {/* Banner: Tiempo estimado de preparación (cocina) */}
+          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200">
+            <ChefHat className="h-4 w-4 shrink-0 text-amber-600" />
+            <p className="text-xs font-semibold text-amber-800">
+              Tu pedido estará listo en <span className="font-bold">{kitchenPrepMinutes} minutos</span>.
+            </p>
+          </div>
+
           {/* Section: Personal data */}
           <div className="space-y-4">
             <div>
@@ -834,7 +844,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       {/* Submit CTA */}
       <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-8 pointer-events-none">
         <div className="max-w-3xl mx-auto flex flex-col items-center pointer-events-auto space-y-3">
-          
+
           {form.deliveryType === 'delivery' && (form.deliveryFee > 0 || deliveryMode === 'uber_direct') && (
             <div className="w-full flex flex-col gap-2 px-4 bg-white/80 backdrop-blur-md py-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100">
               <div className="flex justify-between items-center text-sm font-bold text-gray-700">

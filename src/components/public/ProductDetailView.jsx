@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import IngredientIcon from '../ui/IngredientIcon';
 
-const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, initialExtras = [], initialQuantity = 1 }) => {
+const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, initialExtras = [], initialQuantity = 1, isOutOfStock = false }) => {
   const isBundle = product.type === 'bundle';
   const hasVariants = product.variants?.length > 0;
   const extraIngredients = product.ingredients?.filter(i => i.isExtra) || [];
@@ -505,11 +505,20 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
             
             <button
               onClick={handleConfirm}
-              disabled={!isBundle && hasVariants && !selectedVariant}
-              className="flex-1 h-14 bg-blue-600 text-white font-bold rounded-full flex items-center justify-between px-6 hover:bg-blue-700 transition-colors active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 shadow-md shadow-blue-600/20"
+              disabled={isOutOfStock || (!isBundle && hasVariants && !selectedVariant)}
+              className={`flex-1 h-14 font-bold rounded-full flex items-center justify-center px-6 transition-colors active:scale-[0.98] disabled:opacity-100 disabled:active:scale-100 ${
+                isOutOfStock
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/20 disabled:opacity-50'
+              }`}
             >
-              <span>Agregar</span>
-              <span className="text-lg">${(finalGross * quantity).toLocaleString('es-CL')}</span>
+              <span className="font-bold">{isOutOfStock ? 'Sin stock' : 'Agregar'}</span>
+              {!isOutOfStock && (
+                <>
+                  <span className="mx-1.5 opacity-40">·</span>
+                  <span className="text-lg">${(finalGross * quantity).toLocaleString('es-CL')}</span>
+                </>
+              )}
             </button>
           </div>
         </div>

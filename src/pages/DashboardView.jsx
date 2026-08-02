@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
+import PrepTimeSelector from '../components/ui/PrepTimeSelector';
 import TransactionList from '../components/pos/TransactionList';
 import PrintableReceipt from '../components/pos/PrintableReceipt';
 
@@ -311,6 +312,7 @@ const DashboardView = () => {
           }
           actions={
             <div className="flex items-center gap-3">
+              <PrepTimeSelector />
               {renderShiftButton(false)}
             </div>
           }

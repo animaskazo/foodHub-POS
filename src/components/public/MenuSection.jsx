@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { X, Plus, Check, MapPin, ExternalLink, Clock } from 'lucide-react';
+import { X, Plus, Check, MapPin, ExternalLink, Clock, ChefHat } from 'lucide-react';
 import ProductDetailView from './ProductDetailView';
 import Modal from '../ui/Modal';
+import { getOutOfStockProductIds } from '../../services/inventoryService';
 
 const fmt = (n) => Math.round(n).toLocaleString('es-CL');
 
 // ── Product Card ──────────────────────────────────────────────
-const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpdateQty, onRemoveItem }) => {
+const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpdateQty, onRemoveItem, isOutOfStock }) => {
   const [tapped, setTapped] = useState(false);
   const hasVariants = product.variants?.length > 0;
   const hasExtras = product.ingredients?.some(i => i.isExtra);
@@ -33,7 +34,7 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
   return (
     <div
       onClick={handleTap}
-      className={`bg-white rounded-2xl overflow-hidden border border-gray-200/60 transition-all duration-200 active:scale-[0.97] cursor-pointer flex flex-col h-full ${tapped ? 'scale-[0.97]' : ''}`}
+      className={`bg-white rounded-2xl overflow-hidden border border-gray-200/60 transition-all duration-200 ${isOutOfStock ? 'opacity-70 grayscale' : 'active:scale-[0.97] cursor-pointer'} flex flex-col h-full ${tapped ? 'scale-[0.97]' : ''}`}
     >
       {/* Image */}
       <div className="aspect-square bg-gray-100 relative overflow-hidden shrink-0">
@@ -47,6 +48,11 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <span className="text-4xl">🍽️</span>
+          </div>
+        )}
+        {isOutOfStock && (
+          <div className="absolute top-2.5 left-2.5 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow z-10 border border-red-400">
+            Sin stock
           </div>
         )}
         {quantity > 0 && (
@@ -91,6 +97,14 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
                 </button>
               </div>
             )
+          ) : isOutOfStock ? (
+            <button
+              disabled
+              className="px-3 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center gap-1 font-extrabold text-xs cursor-not-allowed"
+              aria-label={`Agotado ${product.name}`}
+            >
+              <span>Agotado</span>
+            </button>
           ) : (
             <button
               onClick={(e) => {
@@ -142,6 +156,19 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
   const [isHoursModalOpen, setIsHoursModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [logoFlipping, setLogoFlipping] = useState(false);
+  const [outOfStockIds, setOutOfStockIds] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (org?.id) {
+      getOutOfStockProductIds(org.id)
+        .then(ids => { if (!cancelled) setOutOfStockIds(ids); })
+        .catch(() => {});
+    } else {
+      setOutOfStockIds([]);
+    }
+    return () => { cancelled = true; };
+  }, [org?.id]);
 
   const totalQty = cartItems.reduce((s, i) => s + i.quantity, 0);
   const totalPrice = cartItems.reduce((s, i) => s + (Math.round(i.price) * i.quantity), 0);
@@ -295,8 +322,13 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                 {org.description}
               </p>
             )}
-            {(org.business_hours || org.address) && (
+            {(org.business_hours || org.address || org.prep_time) && (
               <div className="mt-3.5 flex flex-wrap gap-2">
+                {isOpen && org.prep_time > 0 && (
+                  <span className="inline-flex items-center gap-1.5 text-[13px] text-amber-800 font-bold bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
+                    <ChefHat className="w-3.5 h-3.5" /> Tiempo de cocina aprox. {org.prep_time} min
+                  </span>
+                )}
                 {org.business_hours && (
                   <button
                     onClick={() => setIsHoursModalOpen(true)}
@@ -385,6 +417,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                           onAddDirect={() => handleAddDirect(p)}
                           onUpdateQty={onUpdateQty}
                           onRemoveItem={onRemoveItem}
+                          isOutOfStock={outOfStockIds.includes(p.id)}
                         />
                       ))}
                     </div>
@@ -408,6 +441,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                         onAddDirect={() => handleAddDirect(p)}
                         onUpdateQty={onUpdateQty}
                         onRemoveItem={onRemoveItem}
+                        isOutOfStock={outOfStockIds.includes(p.id)}
                       />
                     ))}
                   </div>
@@ -442,6 +476,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
       {selectedProduct && (
         <ProductDetailView
           product={selectedProduct}
+          isOutOfStock={outOfStockIds.includes(selectedProduct.id)}
           onAdd={(productToAdd) => {
             onAddItem({
               ...productToAdd,

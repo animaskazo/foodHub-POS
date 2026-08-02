@@ -19,6 +19,7 @@ import OrderView from './pages/OrderView';
 import CustomersView from './pages/CustomersView';
 import ConversationsView from './pages/ConversationsView';
 import ReportsView from './pages/ReportsView';
+import SubscriptionConfirmation from './components/public/SubscriptionConfirmation';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import UpdatePasswordView from './pages/UpdatePasswordView';
 import ForgotPasswordView from './pages/ForgotPasswordView';
@@ -61,6 +62,7 @@ function App() {
         <Route path="/pos" element={<PosView />} />
         <Route path="/kitchen" element={<KitchenView />} />
         <Route path="/order/:slug" element={<OrderView />} />
+        <Route path="/subscription-confirmation" element={<SubscriptionConfirmation />} />
         <Route path="/categories/:id" element={<CreateCategoryView />} />
         <Route path="/products/:id" element={<CreateProductView />} />
         </Routes>

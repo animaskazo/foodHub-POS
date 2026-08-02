@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Modal from '../ui/Modal';
 import PaymentModal from './PaymentModal';
+import AddressMap from './AddressMap';
 import PrintableReceipt from './PrintableReceipt';
 import { useAuth } from '../AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -346,7 +347,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        maxWidth="max-w-2xl"
+        maxWidth="max-w-5xl"
         fullScreenOnMobile={true}
         title={
           selectedOrder ? (
@@ -374,9 +375,10 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
         }
       >
         {selectedOrder && (
-          <div className="flex flex-col h-full">
-            {/* Contenido desplazable */}
-            <div className="p-6 space-y-6">
+          <div className={`p-6 flex flex-col gap-6 ${selectedOrder.delivery_type === 'delivery' ? 'lg:flex-row lg:gap-8' : ''}`}>
+
+            {/* Columna izquierda: datos del cliente + mapa (solo delivery) */}
+            <div className={`space-y-6 ${selectedOrder.delivery_type === 'delivery' ? 'lg:w-[42%] lg:min-w-[300px] lg:shrink-0' : ''}`}>
 
               {/* Información General */}
               <div className="flex flex-wrap items-center gap-2 mt-1">
@@ -392,22 +394,6 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                   {getKitchenTime(selectedOrder) === '-' ? 'Sin tiempo' : getKitchenTime(selectedOrder)}
                 </Badge>
               </div>
-
-              {/* Día y hora del pedido programado */}
-              {selectedOrder.scheduled_at && (
-                (() => {
-                  const d = new Date(selectedOrder.scheduled_at);
-                  return (
-                    <div className="bg-purple-50 border border-purple-200 rounded-xl px-3 py-2.5 flex items-center gap-3">
-                      <CalendarClock className="h-4.5 w-4.5 text-purple-700 shrink-0" />
-                      <p className="text-sm font-bold text-purple-900 capitalize leading-tight">
-                        Programado: {d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })} a las{' '}
-                        {d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} hrs
-                      </p>
-                    </div>
-                  );
-                })()
-              )}
 
               {/* Detalles del Cliente */}
               {selectedOrder.customer_name && (
@@ -458,6 +444,33 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* Mapa (fixed, proporción 4:3) - solo delivery */}
+              {selectedOrder.delivery_type === 'delivery' && (
+                <div className="aspect-[4/3] w-full rounded-xl overflow-hidden border border-gray-200 shadow-sm lg:sticky lg:top-4">
+                  <AddressMap address={selectedOrder.delivery_address} />
+                </div>
+              )}
+            </div>
+
+            {/* Columna derecha: información del pedido */}
+            <div className={`space-y-6 ${selectedOrder.delivery_type === 'delivery' ? 'flex-1 min-w-0' : ''}`}>
+
+              {/* Programado */}
+              {selectedOrder.scheduled_at && (
+                (() => {
+                  const d = new Date(selectedOrder.scheduled_at);
+                  return (
+                    <div className="bg-purple-100 border border-purple-200 rounded-xl px-3 py-2.5 flex items-center gap-3">
+                      <CalendarClock className="h-4 w-4 text-purple-700 shrink-0" />
+                      <p className="text-sm font-bold text-purple-700 leading-tight">
+                        Programado: {d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })} a las{' '}
+                        {d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} hrs
+                      </p>
+                    </div>
+                  );
+                })()
               )}
 
               {/* Notas del cliente */}
@@ -541,60 +554,58 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                 </div>
               </div>
 
-            </div>
-
-            {/* Footer con Totales */}
-            <div className="bg-gray-50 p-6 border-t border-gray-100 mt-auto">
-              <div className="space-y-2 mb-4 text-sm">
-                <div className="flex justify-between text-gray-500">
-                  <span>Subtotal</span>
-                  <span>${fmt(selectedOrder.subtotal || 0)}</span>
-                </div>
-                {selectedOrder.delivery_fee > 0 && (
+              {/* Cálculo del Total */}
+              <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                <div className="space-y-2 mb-4 text-sm">
                   <div className="flex justify-between text-gray-500">
-                    <span>Despacho</span>
-                    <span>${fmt(selectedOrder.delivery_fee || 0)}</span>
+                    <span>Subtotal</span>
+                    <span>${fmt(selectedOrder.subtotal || 0)}</span>
                   </div>
-                )}
-                <div className="flex justify-between text-gray-500">
-                  <span>IVA (19%)</span>
-                  <span>${fmt(selectedOrder.tax_amount || 0)}</span>
+                  {selectedOrder.delivery_fee > 0 && (
+                    <div className="flex justify-between text-gray-500">
+                      <span>Despacho</span>
+                      <span>${fmt(selectedOrder.delivery_fee || 0)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-gray-500">
+                    <span>IVA (19%)</span>
+                    <span>${fmt(selectedOrder.tax_amount || 0)}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex justify-between items-end pt-4 border-t border-gray-200 mt-2">
-                <div className="flex flex-col">
-                  <span className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-1">Total</span>
-                  <span className="font-black text-3xl text-gray-900 leading-none">${fmt(selectedOrder.total || 0)}</span>
+                <div className="flex justify-between items-end pt-4 border-t border-gray-200 mt-2">
+                  <div className="flex flex-col">
+                    <span className="text-xs text-gray-400 uppercase tracking-widest font-bold mb-1">Total</span>
+                    <span className="font-black text-3xl text-gray-900 leading-none">${fmt(selectedOrder.total || 0)}</span>
+                  </div>
+
+                  <div>
+                    {(() => {
+                      const hasPending = selectedOrder.payments?.some(p => p.status === 'pending');
+                      const isConfirmed = selectedOrder.payments?.some(p => p.status === 'paid');
+                      if (isConfirmed) return (
+                        <Badge variant="success">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Pagado
+                        </Badge>
+                      );
+                      if (hasPending) return (
+                        <Button
+                          variant="secondary"
+                          size="xs"
+                          onClick={() => {
+                            setPendingPaymentOrder(selectedOrder);
+                            setIsPaymentConfirmOpen(true);
+                          }}
+                        >
+                          Confirmar pago
+                        </Button>
+                      );
+                      return null;
+                    })()}
+                  </div>
                 </div>
 
-                <div>
-                  {(() => {
-                    const hasPending = selectedOrder.payments?.some(p => p.status === 'pending');
-                    const isConfirmed = selectedOrder.payments?.some(p => p.status === 'paid');
-                    if (isConfirmed) return (
-                      <Badge variant="success">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Pagado
-                      </Badge>
-                    );
-                    if (hasPending) return (
-                      <Button
-                        variant="secondary"
-                        size="xs"
-                        onClick={() => {
-                          setPendingPaymentOrder(selectedOrder);
-                          setIsPaymentConfirmOpen(true);
-                        }}
-                      >
-                        Confirmar pago
-                      </Button>
-                    );
-                    return null;
-                  })()}
-                </div>
+                <PrintableReceipt order={selectedOrder} organization={organization} />
               </div>
-              
-              {/* Printable Receipt (Hidden by default, shown when printing) */}
-              <PrintableReceipt order={selectedOrder} organization={organization} />
             </div>
           </div>
         )}

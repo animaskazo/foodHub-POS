@@ -8,7 +8,7 @@ import {
   getStaff 
 } from '../services/organizationService';
 import { uploadImage } from '../services/storageService';
-import { Store, User, Clock, CalendarClock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2 } from 'lucide-react';
+import { Store, User, Clock, CalendarClock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2, Timer } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -61,6 +61,7 @@ const SettingsView = () => {
   const [hoursTab, setHoursTab] = useState('comercial'); // 'comercial' | 'retiro'
   const [instantEnabled, setInstantEnabled] = useState(true);
   const [schedulingEnabled, setSchedulingEnabled] = useState(true);
+  const [prepTime, setPrepTime] = useState(15);
   const [staff, setStaff] = useState([]);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
@@ -111,6 +112,7 @@ const SettingsView = () => {
         }
         setInstantEnabled(orgData.instant_enabled !== false);
         setSchedulingEnabled(orgData.scheduling_enabled !== false);
+        setPrepTime(orgData.prep_time != null ? orgData.prep_time : 15);
         setStaff(staffData);
 
         // Obtener el rol del usuario logueado actualmente
@@ -247,6 +249,7 @@ const SettingsView = () => {
         pickup_hours: pickupHours,
         instant_enabled: instantEnabled,
         scheduling_enabled: schedulingEnabled,
+        prep_time: prepTime,
       });
       alert('Horarios de retiro guardados exitosamente');
     } catch (error) {
@@ -678,6 +681,29 @@ const SettingsView = () => {
                           checked={schedulingEnabled}
                           onCheckedChange={setSchedulingEnabled}
                         />
+                      </div>
+
+                      <div className="flex items-center justify-between gap-4 p-5 bg-white border border-gray-200 rounded-2xl">
+                        <div className="flex items-center gap-4">
+                          <div className="h-11 w-11 rounded-2xl bg-black text-white flex items-center justify-center shrink-0">
+                            <Timer className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-sm text-gray-800">Tiempo de preparación</p>
+                            <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
+                              Cuántos minutos de anticipación necesita tu local antes de que el cliente pueda agendar o retirar su pedido.
+                            </p>
+                          </div>
+                        </div>
+                        <select
+                          value={prepTime}
+                          onChange={(e) => setPrepTime(Number(e.target.value))}
+                          className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-black"
+                        >
+                          {[5, 10, 15, 20, 25, 30, 40, 60].map(m => (
+                            <option key={m} value={m}>{m} min</option>
+                          ))}
+                        </select>
                       </div>
                     </div>
 
