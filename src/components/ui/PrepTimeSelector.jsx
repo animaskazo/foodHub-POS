@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Timer, Loader2, Check } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { updateOrganizationDetails } from '../../services/organizationService';
+import Tooltip from './tooltip';
 
 const PREP_OPTIONS = [5, 10, 15, 20, 25, 30, 40, 60];
 
@@ -9,6 +10,15 @@ const PrepTimeSelector = ({ compact = false }) => {
   const { organization } = useAuth();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    setIsDesktop(mq.matches);
+    const handler = (e) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   const initial = organization?.prep_time != null ? organization.prep_time : 15;
   const [current, setCurrent] = useState(initial);
@@ -35,13 +45,14 @@ const PrepTimeSelector = ({ compact = false }) => {
   };
 
   return (
-    <div
-      className={`flex items-center gap-1 rounded-lg select-none shrink-0 ${
-        compact
-          ? 'bg-gray-100 h-11 px-2'
-          : 'bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm gap-2'
-      }`}
-    >
+    <Tooltip text="Tiempo de preparación estimado en la cocina" enabled={isDesktop}>
+      <div
+        className={`flex items-center gap-1 rounded-lg select-none shrink-0 ${
+          compact
+            ? 'bg-gray-100 h-11 px-2'
+            : 'bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm gap-2'
+        }`}
+      >
       {saved ? (
         <Check className="h-4 w-4 text-emerald-500" />
       ) : saving ? (
@@ -60,7 +71,8 @@ const PrepTimeSelector = ({ compact = false }) => {
           <option key={m} value={m}>{m} min</option>
         ))}
       </select>
-    </div>
+      </div>
+    </Tooltip>
   );
 };
 

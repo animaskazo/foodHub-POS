@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 
-const Tooltip = ({ text, children }) => {
+const Tooltip = ({ text, children, enabled = true }) => {
   const [visible, setVisible] = useState(false);
+
+  if (!enabled) return <>{children}</>;
 
   return (
     <div

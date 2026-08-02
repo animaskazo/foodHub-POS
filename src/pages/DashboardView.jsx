@@ -23,6 +23,7 @@ import {
 import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import PrepTimeSelector from '../components/ui/PrepTimeSelector';
+import StockNotifications from '../components/StockNotifications';
 import TransactionList from '../components/pos/TransactionList';
 import PrintableReceipt from '../components/pos/PrintableReceipt';
 
@@ -312,7 +313,10 @@ const DashboardView = () => {
           }
           actions={
             <div className="flex items-center gap-3">
-              <PrepTimeSelector />
+              <div className="hidden md:flex items-center gap-3">
+                <PrepTimeSelector />
+                <StockNotifications />
+              </div>
               {renderShiftButton(false)}
             </div>
           }

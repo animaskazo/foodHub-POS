@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { 
   LayoutDashboard, 
@@ -31,8 +31,11 @@ import {
 import { supabase } from '../lib/supabase';
 import FeedbackBubble from './FeedbackBubble';
 import StockNotifications from './StockNotifications';
+import PrepTimeSelector from './ui/PrepTimeSelector';
 
 const Layout = () => {
+  const location = useLocation();
+  const isDashboard = location.pathname === '/';
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProductsOpen, setIsProductsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -424,9 +427,12 @@ const Layout = () => {
           </button>
           <span className="font-bold text-lg lg:hidden">FoodHub</span>
           <div className="flex-1" />
-          <div className="lg:hidden">
-            <StockNotifications />
-          </div>
+          {isDashboard && (
+            <div className="flex items-center gap-2 lg:hidden">
+              <PrepTimeSelector compact />
+              <StockNotifications />
+            </div>
+          )}
         </header>
 
         <Outlet />

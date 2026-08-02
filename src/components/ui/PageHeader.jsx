@@ -1,5 +1,4 @@
 import React from 'react';
-import StockNotifications from '../StockNotifications';
 
 const PageHeader = ({ title, subtitle, actions }) => {
   return (
@@ -16,9 +15,6 @@ const PageHeader = ({ title, subtitle, actions }) => {
       </div>
       {(actions || true) && (
         <div className="flex flex-wrap gap-3 items-center shrink-0">
-          <div className="hidden md:block">
-            <StockNotifications />
-          </div>
           {actions}
         </div>
       )}
