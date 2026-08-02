@@ -253,7 +253,7 @@ const InventoryManager = () => {
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-gray-50 p-6 md:p-8">
+    <div className="min-h-full bg-gray-50 p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         <PageHeader
           title="Inventario de Insumos"
@@ -297,7 +297,7 @@ const InventoryManager = () => {
           )}
 
           {/* Table */}
-          <div className="flex-1 overflow-auto">
+          <div>
             <table className="w-full text-sm text-left">
               <thead className="bg-white border-b text-gray-500 font-medium sticky top-0 z-10">
                   <tr>

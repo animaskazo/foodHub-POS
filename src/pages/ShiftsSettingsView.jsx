@@ -112,7 +112,7 @@ const ShiftsSettingsView = () => {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8">
+    <div className="min-h-full bg-gray-50 p-6 md:p-8">
       <div className="max-w-7xl mx-auto pb-24">
         <PageHeader 
           title="Caja y Turnos" 

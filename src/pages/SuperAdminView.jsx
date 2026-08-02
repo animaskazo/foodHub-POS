@@ -198,7 +198,7 @@ const SuperAdminView = () => {
   const orgProducts = products.filter(p => p.organization_id === selectedOrganization?.id);
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="min-h-full bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b px-4 md:px-8 py-6 shrink-0 flex items-center justify-between sticky top-0 z-10">
         <div>
@@ -208,7 +208,7 @@ const SuperAdminView = () => {
       </header>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-4 md:p-8">
+      <div className="p-4 md:p-8">
         
         {error && (
           <div className="p-4 mb-6 bg-red-50 text-red-700 text-sm   border">

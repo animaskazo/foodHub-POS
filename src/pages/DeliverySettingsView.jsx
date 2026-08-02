@@ -259,7 +259,7 @@ const DeliverySettingsView = () => {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8">
+    <div className="min-h-full bg-gray-50 p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-start justify-between gap-4">
           <PageHeader

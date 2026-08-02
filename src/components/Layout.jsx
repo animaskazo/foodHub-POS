@@ -413,7 +413,7 @@ const Layout = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto relative">
+      <main className="flex-1 flex flex-col min-w-0 relative">
         {/* Mobile Header OR Desktop Header when sidebar is collapsed */}
         <header className={`${!isSidebarCollapsed ? 'lg:hidden' : 'lg:flex'} bg-white border-b h-16 flex items-center px-4 shrink-0 shadow-sm sticky top-0 z-40`}>
           <button 
@@ -435,7 +435,10 @@ const Layout = () => {
           )}
         </header>
 
-        <Outlet />
+        {/* General scroll container */}
+        <div className="flex-1 overflow-y-auto relative">
+          <Outlet />
+        </div>
       </main>
       {(isSuperAdmin || role === 'owner') && <FeedbackBubble />}
     </div>

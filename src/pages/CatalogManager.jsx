@@ -146,7 +146,7 @@ const CatalogManager = () => {
 
 
   return (
-    <div className="flex-1 overflow-auto bg-gray-50 p-6 md:p-8">
+    <div className="min-h-full bg-gray-50 p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         <PageHeader 
           title="Productos"
@@ -211,7 +211,7 @@ const CatalogManager = () => {
       )}
 
       {/* Table Section */}
-      <div className="flex-1 overflow-auto">
+      <div>
         <table className="w-full text-left border-collapse text-sm">
           <thead>
             <tr className="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider border-b border-gray-150 sticky top-0 z-10">
