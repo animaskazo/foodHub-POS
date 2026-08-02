@@ -86,6 +86,29 @@ serve(async (req) => {
         ? `$${Number(data.delivery_fee).toLocaleString('es-CL')}`
         : 'Gratis'
 
+      const scheduledBlock = data.scheduled_at ? (() => {
+        const d = new Date(data.scheduled_at)
+        const dateStr = d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })
+        const timeStr = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
+        return `
+          <tr>
+            <td style="padding: 16px 16px 0 16px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3e8ff; border: 1px solid #e9d5ff; border-radius: 12px; overflow: hidden;">
+                <tr>
+                  <td style="padding: 14px 18px;">
+                    <p style="margin: 0; font-size: 14px; font-weight: 700; color: #581c87; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                      📅 Programado: ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)} a las ${timeStr} hrs
+                    </p>
+                    <p style="margin: 4px 0 0 0; font-size: 13px; color: #6d28d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                      Tu pedido se preparará para esa fecha y hora.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`
+      })() : ''
+
       const itemsHtml = (data.items || []).map((item: any) => {
         // Support both direct image URL (from publicOrderService) and nested Supabase structure
         const imageUrl = item.image_url
@@ -158,6 +181,8 @@ serve(async (req) => {
               </p>
             </td>
           </tr>
+
+          ${scheduledBlock}
 
           <!-- ██ PICKUP/DELIVERY LOCATION ██ -->
           <tr>
@@ -277,6 +302,29 @@ serve(async (req) => {
         : isDelivery2 ? 'Despacho a Domicilio'
         : 'Retiro en local'
 
+      const scheduledBlock2 = data.scheduled_at ? (() => {
+        const d = new Date(data.scheduled_at)
+        const dateStr = d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })
+        const timeStr = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
+        return `
+          <tr>
+            <td style="padding: 16px 16px 0 16px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f3e8ff; border: 1px solid #e9d5ff; border-radius: 12px; overflow: hidden;">
+                <tr>
+                  <td style="padding: 14px 18px;">
+                    <p style="margin: 0; font-size: 14px; font-weight: 700; color: #581c87; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                      📅 Programado: ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)} a las ${timeStr} hrs
+                    </p>
+                    <p style="margin: 4px 0 0 0; font-size: 13px; color: #6d28d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                      Tu pedido se preparará para esa fecha y hora.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`
+      })() : ''
+
       const itemsHtml2 = (data.items || []).map((item: any) => {
         const imageUrl = item.image_url
           || item.image
@@ -353,6 +401,8 @@ serve(async (req) => {
               </p>
             </td>
           </tr>
+
+          ${scheduledBlock2}
 
           <!-- PICKUP/DELIVERY LOCATION -->
           <tr>

@@ -245,7 +245,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                     )}
                     <span className="font-black text-gray-900 text-2xl leading-none">{order.order_number}</span>
                     {order.customer_name && (
-                      <span className="text-xs font-medium text-gray-500 truncate max-w-[150px]">
+                      <span className="text-base font-bold text-gray-900 truncate max-w-[180px]">
                         {order.customer_name}
                       </span>
                     )}
@@ -256,30 +256,33 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                 </div>
 
                 {/* Middle: Order Details (Time, Payment, Kitchen) */}
-                <div className="flex flex-wrap gap-3.5 items-center">
-                  <Badge variant="grayOutline">
-                    <Clock className="w-3.5 h-3.5" />
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-1.5 text-xs text-gray-700">
+                    <Clock className="w-3.5 h-3.5 shrink-0" />
                     {formattedDate}
-                  </Badge>
-                  <Badge
+                  </div>
+                  <div
                     title={order.payments?.find(p => p.reference_code)?.reference_code ? `ID Klap: ${order.payments.find(p => p.reference_code).reference_code}` : ''}
-                    variant={order.payments?.find(p => p.reference_code) ? 'info' : 'grayOutline'}
-                    className={order.payments?.find(p => p.reference_code) ? 'cursor-help' : ''}
+                    className={`flex items-center gap-1.5 text-xs ${order.payments?.find(p => p.reference_code) ? 'cursor-help text-blue-700' : 'text-gray-700'}`}
                   >
-                    <CreditCard className="w-3.5 h-3.5" />
+                    <CreditCard className="w-3.5 h-3.5 shrink-0" />
                     {getPaymentMethod(order)}
-                  </Badge>
+                  </div>
                   {order.scheduled_at && (
-                    <Badge variant="purple">
-                      <CalendarClock className="w-3.5 h-3.5" />
-                      {new Date(order.scheduled_at).toLocaleString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                    </Badge>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-700">
+                      <CalendarClock className="w-3.5 h-3.5 shrink-0" />
+                      {(() => {
+                        const d = new Date(order.scheduled_at);
+                        const month = d.toLocaleDateString('es-CL', { month: 'long' });
+                        return `Pedido programado para el ${d.getDate()} de ${month.charAt(0).toUpperCase() + month.slice(1)}`;
+                      })()}
+                    </div>
                   )}
                   {order.ready_at && (
-                    <Badge variant="warning">
-                      <Timer className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-1.5 text-xs text-gray-700">
+                      <Timer className="w-3.5 h-3.5 shrink-0" />
                       Cocina: {getKitchenTime(order)}
-                    </Badge>
+                    </div>
                   )}
                 </div>
 
