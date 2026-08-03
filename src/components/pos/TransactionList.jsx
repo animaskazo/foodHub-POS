@@ -380,7 +380,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
         fullScreenOnMobile={true}
         title={
           selectedOrder ? (
-            <div className="flex items-start justify-between w-full pr-8">
+            <div className="flex items-center justify-between w-full">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Orden #{selectedOrder.order_number}</h2>
                 <div className="flex items-center gap-2 mt-1">
