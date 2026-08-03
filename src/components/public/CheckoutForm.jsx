@@ -105,7 +105,7 @@ export const formatChileanPhone = (value) => {
     if (!digits.startsWith('56')) {
       digits = '56' + digits;
     }
-    
+
     let formatted = '+56';
     if (digits.length > 2) {
       const remaining = digits.slice(2);
@@ -122,7 +122,7 @@ export const formatChileanPhone = (value) => {
     return formatted;
   } else {
     if (digits.length === 0) return hasPlus ? '+' : '';
-    
+
     let formatted = digits.slice(0, 1);
     if (digits.length > 1) {
       formatted += ' ' + digits.slice(1, 5);
@@ -166,7 +166,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           scheduledAt: '',
         };
       }
-    } catch (e) {}
+    } catch (e) { }
     return {
       name: '',
       phone: '',
@@ -324,14 +324,14 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    
+
     try {
       localStorage.setItem('checkout_customer_form', JSON.stringify({
         name: form.name,
         phone: form.phone,
         email: form.email
       }));
-    } catch (e) {}
+    } catch (e) { }
 
     onSubmit(form);
   };
@@ -339,7 +339,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   const handleAddressBlur = async () => {
     if (!form.deliveryAddress?.trim()) return;
     if (deliveryMode !== 'uber_direct' && (!org?.store_lat || !org?.store_lng)) return;
-    
+
     setIsGeocoding(true);
     setDistanceError(null);
     try {
@@ -469,7 +469,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           }
         } else {
           let isInside = false;
-          
+
           if (org.delivery_polygon && org.delivery_polygon.length > 0) {
             isInside = isPointInPolygon(coords, org.delivery_polygon);
           } else {
@@ -573,7 +573,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             {org?.delivery_enabled ? (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <label 
+                  <label
                     onClick={() => {
                       update('deliveryType', 'pickup');
                       update('deliveryFee', 0);
@@ -582,28 +582,26 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                       setDistanceError(null);
                       setIsValidatedAddress(false);
                     }}
-                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer text-center ${
-                      form.deliveryType === 'pickup' 
-                        ? 'bg-white border-black shadow-sm text-black' 
+                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer text-center ${form.deliveryType === 'pickup'
+                        ? 'bg-white border-black shadow-sm text-black'
                         : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     <Store className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'pickup' ? 'text-black' : 'text-gray-400'}`} />
                     <span className="text-sm font-bold">Retiro en Local</span>
                   </label>
 
-                  <label 
+                  <label
                     onClick={() => {
                       update('deliveryType', 'delivery');
                       if (!isValidatedAddress || distanceError) {
                         update('deliveryFee', org?.delivery_fee || 0);
                       }
                     }}
-                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer text-center ${
-                      form.deliveryType === 'delivery' 
-                        ? 'bg-white border-black shadow-sm text-black' 
+                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer text-center ${form.deliveryType === 'delivery'
+                        ? 'bg-white border-black shadow-sm text-black'
                         : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     {deliveryMode === 'uber_direct' ? (
                       <Truck className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'delivery' ? 'text-black' : 'text-gray-400'}`} />
@@ -650,14 +648,14 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                         </button>
                       }
                     />
-                    
+
                     {distanceError && (
                       <div className="flex items-start gap-2 bg-red-50 text-red-600 p-3 rounded-xl border border-red-100">
                         <Info className="h-4 w-4 shrink-0 mt-0.5" />
                         <p className="text-xs font-semibold leading-relaxed">{distanceError}</p>
                       </div>
                     )}
-                    
+
                     {!distanceError && isValidatedAddress && (
                       <div className="flex items-center justify-between bg-green-50 text-green-700 px-3 py-2.5 rounded-xl border border-green-100">
                         {deliveryMode === 'uber_direct' && isQuoting ? (
@@ -712,11 +710,10 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                       update('scheduleType', 'now');
                       setErrors(e => ({ ...e, scheduledAt: null }));
                     }}
-                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer text-center ${
-                      form.scheduleType === 'now'
+                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer text-center ${form.scheduleType === 'now'
                         ? 'bg-white border-black shadow-sm text-black'
                         : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     <Clock className={`h-5 w-5 mb-1.5 ${form.scheduleType === 'now' ? 'text-black' : 'text-gray-400'}`} />
                     <span className="text-sm font-bold">Ahora</span>
@@ -724,11 +721,10 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
 
                   <label
                     onClick={handleOpenScheduler}
-                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer text-center ${
-                      form.scheduleType === 'scheduled'
+                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer text-center ${form.scheduleType === 'scheduled'
                         ? 'bg-white border-black shadow-sm text-black'
                         : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     <CalendarClock className={`h-5 w-5 mb-1.5 ${form.scheduleType === 'scheduled' ? 'text-black' : 'text-gray-400'}`} />
                     <span className="text-sm font-bold">Programar</span>
@@ -746,11 +742,10 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               ) : (
                 <label
                   onClick={handleOpenScheduler}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 cursor-pointer text-center ${
-                    form.scheduleType === 'scheduled'
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 cursor-pointer text-center ${form.scheduleType === 'scheduled'
                       ? 'bg-white border-black shadow-sm text-black'
                       : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   <CalendarClock className={`h-5 w-5 mb-1.5 ${form.scheduleType === 'scheduled' ? 'text-black' : 'text-gray-400'}`} />
                   <span className="text-sm font-bold">Programar</span>
@@ -777,50 +772,48 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             {/* Payment Methods as radio rows */}
             <div className="space-y-2">
               {acceptsLocalPayments !== false && (
-                <label 
+                <label
                   onClick={() => update('paymentMethod', 'local')}
-                  className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
-                    form.paymentMethod === 'local' 
-                      ? 'bg-white border-black shadow-sm' 
+                  className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${form.paymentMethod === 'local'
+                      ? 'bg-white border-black shadow-sm'
                       : 'bg-gray-50/50 border-gray-200 hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-2.5">
                     <Banknote className={`h-4.5 w-4.5 transition-colors ${form.paymentMethod === 'local' ? 'text-gray-900' : 'text-gray-400'}`} />
                     <span className={`text-sm font-bold ${form.paymentMethod === 'local' ? 'text-gray-900' : 'text-gray-500'}`}>En Caja (Efectivo / Tarjeta)</span>
                   </div>
-                  <input 
-                    type="radio" 
+                  <input
+                    type="radio"
                     name="paymentMethod"
                     checked={form.paymentMethod === 'local'}
-                    onChange={() => {}} // Handled by container click
+                    onChange={() => { }} // Handled by container click
                     className="h-4 w-4 accent-black text-black border-gray-300 focus:ring-black"
                   />
                 </label>
               )}
 
               {acceptsOnlinePayments && (
-                <label 
+                <label
                   onClick={() => update('paymentMethod', 'online')}
-                  className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
-                    form.paymentMethod === 'online' 
-                      ? 'bg-white border-black shadow-sm' 
+                  className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${form.paymentMethod === 'online'
+                      ? 'bg-white border-black shadow-sm'
                       : 'bg-gray-50/50 border-gray-200 hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-2.5">
                     <CreditCard className={`h-4.5 w-4.5 transition-colors ${form.paymentMethod === 'online' ? 'text-gray-900' : 'text-gray-400'}`} />
                     <div className="flex items-center gap-1.5">
                       <span className={`text-sm font-bold ${form.paymentMethod === 'online' ? 'text-gray-900' : 'text-gray-500'}`}>
-                        Pagar Online - Puedes usar Apple Pay o Android Pay
+                        Pagar Online - Puedes usar Apple Pay o Google Pay
                       </span>
                     </div>
                   </div>
-                  <input 
-                    type="radio" 
+                  <input
+                    type="radio"
                     name="paymentMethod"
                     checked={form.paymentMethod === 'online'}
-                    onChange={() => {}} // Handled by container click
+                    onChange={() => { }} // Handled by container click
                     className="h-4 w-4 accent-black text-black border-gray-300 focus:ring-black"
                   />
                 </label>
@@ -883,7 +876,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           <button
             onClick={handleSubmit}
             disabled={
-              isSubmitting || 
+              isSubmitting ||
               (showScheduleSection && (form.scheduleType === 'now' ? !instantAvailable : !form.scheduledAt)) ||
               (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim())) ||
               (form.deliveryType === 'delivery' && (totalAmount < (org?.delivery_min_order || 0))) ||
@@ -973,11 +966,10 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                           <label
                             key={slot}
                             onClick={() => handlePickSlot(slot)}
-                            className={`flex items-center justify-between px-4 py-4 rounded-2xl border-2 transition-all cursor-pointer ${
-                              selected
+                            className={`flex items-center justify-between px-4 py-4 rounded-2xl border-2 transition-all cursor-pointer ${selected
                                 ? 'border-black bg-white shadow-lg shadow-black/10'
                                 : 'border-gray-200 bg-white hover:border-gray-300'
-                            }`}
+                              }`}
                           >
                             <div className="flex items-center gap-3.5">
                               <Clock className={`h-4 w-4 ${selected ? 'text-black' : 'text-gray-400'}`} />
@@ -987,9 +979,8 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                               {selected && (
                                 <span className="text-[11px] font-bold text-white bg-black px-2.5 py-1 rounded-full">Seleccionado</span>
                               )}
-                              <span className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
-                                selected ? 'border-black' : 'border-gray-300'
-                              }`}>
+                              <span className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${selected ? 'border-black' : 'border-gray-300'
+                                }`}>
                                 {selected && <span className="w-2.5 h-2.5 rounded-full bg-black" />}
                               </span>
                             </div>
