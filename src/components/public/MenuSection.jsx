@@ -273,9 +273,9 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
     <div className="flex flex-col min-h-0">
       {/* Header del Negocio (Cover, Logo y Info) */}
       {org && (
-        <div className="max-w-3xl mx-auto w-full shrink-0 relative">
+        <div className="max-w-3xl mx-auto w-full shrink-0">
           <div
-            className="w-full h-32 md:h-40 bg-gray-100 bg-cover bg-center relative border-b border-gray-200/50 shadow-sm overflow-hidden"
+            className="w-full h-32 md:h-40 bg-gray-100 bg-cover bg-center relative border-b border-gray-200/50 shadow-sm"
             style={(!org.cover_is_video && org.cover_url) ? { backgroundImage: `url(${org.cover_url})` } : { backgroundImage: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)' }}
           >
             {org.cover_is_video && org.cover_url && (
@@ -288,41 +288,41 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                 className="absolute inset-0 w-full h-full object-cover"
               />
             )}
-          </div>
-          {/* Logo - coin flip with two faces */}
-          <div
-            className={`absolute -bottom-8 left-5 w-20 h-20 md:w-24 md:h-24 cursor-pointer select-none z-10 ${logoFlipping ? 'logo-coin-flip' : ''}`}
-            style={{ transformStyle: 'preserve-3d', perspective: '600px' }}
-            onClick={() => {
-              if (logoFlipping) return;
-              setLogoFlipping(true);
-              setTimeout(() => setLogoFlipping(false), 1450);
-            }}
-          >
-            {/* Front face: logo */}
+            {/* Logo - coin flip with two faces */}
             <div
-              className="absolute inset-0 rounded-full bg-white border-2 border-white shadow-md overflow-hidden bg-cover bg-center flex items-center justify-center"
-              style={{
-                backfaceVisibility: 'hidden',
-                WebkitBackfaceVisibility: 'hidden',
-                ...(org.logo_url ? { backgroundImage: `url(${org.logo_url})` } : {})
+              className={`absolute -bottom-8 left-5 w-20 h-20 md:w-24 md:h-24 cursor-pointer select-none z-30 ${logoFlipping ? 'logo-coin-flip' : ''}`}
+              style={{ transformStyle: 'preserve-3d', perspective: '600px' }}
+              onClick={() => {
+                if (logoFlipping) return;
+                setLogoFlipping(true);
+                setTimeout(() => setLogoFlipping(false), 1450);
               }}
             >
-              {!org.logo_url && <span className="text-4xl">🏬</span>}
+              {/* Front face: logo */}
+              <div
+                className="absolute inset-0 rounded-full bg-white border-2 border-white shadow-md overflow-hidden bg-cover bg-center flex items-center justify-center"
+                style={{
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  ...(org.logo_url ? { backgroundImage: `url(${org.logo_url})` } : {})
+                }}
+              >
+                {!org.logo_url && <span className="text-4xl">🏬</span>}
+              </div>
+              {/* Back face: white */}
+              <div
+                className="absolute inset-0 rounded-full bg-white border-2 border-white shadow-md"
+                style={{
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  transform: 'rotateY(180deg)'
+                }}
+              />
+              </div>
+              {/* Address button on cover removed as it will be next to hours */}
             </div>
-            {/* Back face: white */}
-            <div
-              className="absolute inset-0 rounded-full bg-white border-2 border-white shadow-md"
-              style={{
-                backfaceVisibility: 'hidden',
-                WebkitBackfaceVisibility: 'hidden',
-                transform: 'rotateY(180deg)'
-              }}
-            />
-            </div>
-            {/* Address button on cover removed as it will be next to hours */}
 
-          <div className="pt-10 pb-4 px-4">
+            <div className="pt-10 pb-4 px-4">
             <h1 className="font-black text-3xl md:text-4xl text-gray-900 tracking-tight mb-2">
               {org.name}
             </h1>
