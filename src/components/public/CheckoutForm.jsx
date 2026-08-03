@@ -139,7 +139,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   const deliveryMode = !uberEnabled && org?.delivery_mode === 'uber_direct' ? 'own' : org?.delivery_mode;
   const instantAvailable = canOrderNow(org);
   const schedulingEnabled = org?.scheduling_enabled === true;
-  const showScheduleSection = instantAvailable || schedulingEnabled;
+  const showScheduleSection = schedulingEnabled;
   const initScheduleType = instantAvailable ? 'now' : (schedulingEnabled ? 'scheduled' : 'now');
   const kitchenPrepMinutes = (org?.prep_time && org.prep_time > 0) ? org.prep_time : 10;
 
