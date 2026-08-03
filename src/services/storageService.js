@@ -77,11 +77,15 @@ export const uploadImage = async (file, path = 'general') => {
   if (!file) throw new Error('No file provided');
 
   let fileToUpload = file;
-  try {
-    // Intentar procesar y recortar la imagen antes de subirla
-    fileToUpload = await processImage(file, path);
-  } catch (err) {
-    console.warn('No se pudo procesar la imagen, se subirá la original:', err);
+  const isVideo = file.type.startsWith('video/');
+
+  if (!isVideo) {
+    try {
+      // Intentar procesar y recortar la imagen antes de subirla
+      fileToUpload = await processImage(file, path);
+    } catch (err) {
+      console.warn('No se pudo procesar la imagen, se subirá la original:', err);
+    }
   }
 
   // Generate a unique file name to avoid collisions

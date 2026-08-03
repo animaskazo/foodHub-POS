@@ -48,6 +48,7 @@ const SettingsView = () => {
     description: '',
     logo_url: '',
     cover_url: '',
+    cover_is_video: false,
     phone: '',
     email: '',
     address: '',
@@ -96,6 +97,7 @@ const SettingsView = () => {
           description: orgData.description || '',
           logo_url: orgData.logo_url || '',
           cover_url: orgData.cover_url || '',
+          cover_is_video: orgData.cover_is_video === true,
           phone: orgData.phone || '',
           email: orgData.email || '',
           address: orgData.address || '',
@@ -147,8 +149,9 @@ const SettingsView = () => {
         setFormData(prev => ({ ...prev, logo_url: url }));
       } else {
         setIsUploadingCover(true);
+        const isVideo = file.type.startsWith('video/');
         const url = await uploadImage(file, 'cover');
-        setFormData(prev => ({ ...prev, cover_url: url }));
+        setFormData(prev => ({ ...prev, cover_url: url, cover_is_video: isVideo }));
       }
     } catch (error) {
       console.error('Error uploading:', error);
@@ -170,6 +173,7 @@ const SettingsView = () => {
         description: formData.description,
         logo_url: formData.logo_url,
         cover_url: formData.cover_url,
+        cover_is_video: formData.cover_is_video || false,
         phone: formData.phone,
         email: formData.email,
         address: formData.address,
@@ -361,12 +365,16 @@ const SettingsView = () => {
 
                   {/* Portada */}
                   <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 flex flex-col items-center">
-                    <p className="font-semibold text-sm text-gray-700 mb-3 text-left w-full">Imagen de Portada (Cover)</p>
+                    <p className="font-semibold text-sm text-gray-700 mb-3 text-left w-full">Portada (foto o video)</p>
                     <div 
                       className="w-full h-24 rounded-xl bg-white border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden relative"
-                      style={formData.cover_url ? { backgroundImage: `url(${formData.cover_url})` } : {}}
+                      style={!formData.cover_is_video && formData.cover_url ? { backgroundImage: `url(${formData.cover_url})` } : {}}
                     >
-                      {!formData.cover_url && <span className="text-3xl">🖼️</span>}
+                      {formData.cover_is_video && formData.cover_url ? (
+                        <video src={formData.cover_url} autoPlay muted loop playsInline className="w-full h-full object-cover" />
+                      ) : !formData.cover_url ? (
+                        <span className="text-3xl">🎞️</span>
+                      ) : null}
                       {isUploadingCover && (
                         <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
                           <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
@@ -377,7 +385,7 @@ const SettingsView = () => {
                       {formData.cover_url ? 'Cambiar Portada' : 'Subir Portada'}
                       <input 
                         type="file" 
-                        accept="image/*"
+                        accept="image/*,video/*"
                         onChange={(e) => handleImageUpload(e, 'cover')}
                         disabled={isUploadingCover}
                         className="hidden"
