@@ -67,7 +67,6 @@ const SettingsView = () => {
   const [staff, setStaff] = useState([]);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
-  const [currentUser, setCurrentUser] = useState({ role: 'cashier', email: '' });
   const [autoPrintEnabled, setAutoPrintEnabled] = useState(
     localStorage.getItem('pos_auto_print_enabled') === 'true'
   );
@@ -118,20 +117,6 @@ const SettingsView = () => {
         setSchedulingEnabled(orgData.scheduling_enabled === true);
         setPrepTime(orgData.prep_time != null ? orgData.prep_time : 0);
         setStaff(staffData);
-
-        // Obtener el rol del usuario logueado actualmente
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: staffMember } = await supabase
-            .from('staff')
-            .select('role')
-            .eq('id', user.id)
-            .maybeSingle();
-          setCurrentUser({
-            role: staffMember?.role || 'cashier',
-            email: user.email || ''
-          });
-        }
       }
     } catch (error) {
       console.error('Error loading settings:', error);
@@ -521,7 +506,6 @@ const SettingsView = () => {
                   </div>
                   <Switch
                     checked={formData.accepts_local_payments !== false}
-                    disabled={currentUser.role !== 'owner' && currentUser.role !== 'admin'}
                     onCheckedChange={(checked) => setFormData({...formData, accepts_local_payments: checked})}
                   />
                 </div>
@@ -545,7 +529,6 @@ const SettingsView = () => {
                   </div>
                   <Switch 
                     checked={formData.accepts_online_payments !== false}
-                    disabled={currentUser.role !== 'owner' && currentUser.role !== 'admin'}
                     onCheckedChange={(checked) => setFormData({...formData, accepts_online_payments: checked})}
                   />
                 </div>
@@ -560,7 +543,6 @@ const SettingsView = () => {
                   </div>
                   <Switch
                     checked={formData.hide_cancelled_orders === true}
-                    disabled={currentUser.role !== 'owner' && currentUser.role !== 'admin'}
                     onCheckedChange={(checked) => setFormData({...formData, hide_cancelled_orders: checked})}
                   />
                 </div>
