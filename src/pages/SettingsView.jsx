@@ -52,9 +52,9 @@ const SettingsView = () => {
     phone: '',
     email: '',
     address: '',
-    address: '',
     accepts_online_payments: true,
-    online_payments_allowed: false
+    online_payments_allowed: false,
+    accepts_local_payments: true
   });
   
   const [businessHours, setBusinessHours] = useState(defaultHours);
@@ -101,9 +101,9 @@ const SettingsView = () => {
           phone: orgData.phone || '',
           email: orgData.email || '',
           address: orgData.address || '',
-          address: orgData.address || '',
           accepts_online_payments: orgData.accepts_online_payments !== false,
-          online_payments_allowed: orgData.online_payments_allowed === true
+          online_payments_allowed: orgData.online_payments_allowed === true,
+          accepts_local_payments: orgData.accepts_local_payments !== false
         });
         
         if (orgData.business_hours && Object.keys(orgData.business_hours).length > 0) {
@@ -208,7 +208,8 @@ const SettingsView = () => {
         phone: formData.phone,
         email: formData.email,
         address: formData.address,
-        accepts_online_payments: formData.accepts_online_payments
+        accepts_online_payments: formData.accepts_online_payments,
+        accepts_local_payments: formData.accepts_local_payments !== false
       });
       setFormData(prev => ({ ...prev, slug: formattedSlug }));
       alert('Configuración guardada exitosamente');
@@ -505,6 +506,21 @@ const SettingsView = () => {
                       className="flex-1 h-12 bg-transparent outline-none text-[15px]"
                     />
                   </div>
+                </div>
+
+                {/* Switch para habilitar/deshabilitar pago en caja */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl">
+                  <div>
+                    <p className="font-bold text-sm text-gray-800">Habilitar Pago en Caja</p>
+                    <p className="text-xs text-gray-500 max-w-sm mt-0.5">
+                      Permite que tus clientes paguen con efectivo o tarjeta al retirar o recibir su pedido.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formData.accepts_local_payments !== false}
+                    disabled={currentUser.role !== 'owner'}
+                    onCheckedChange={(checked) => setFormData({...formData, accepts_local_payments: checked})}
+                  />
                 </div>
 
                 {/* Switch para habilitar/deshabilitar pago online */}

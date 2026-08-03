@@ -134,7 +134,7 @@ export const formatChileanPhone = (value) => {
   }
 };
 
-const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePayments = true, organizationId, org, cartItems = [] }) => {
+const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePayments = true, acceptsLocalPayments = true, organizationId, org, cartItems = [] }) => {
   const uberEnabled = org?.uber_enabled !== false;
   const deliveryMode = !uberEnabled && org?.delivery_mode === 'uber_direct' ? 'own' : org?.delivery_mode;
   const instantAvailable = canOrderNow(org);
@@ -205,8 +205,18 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   const [isValidatedAddress, setIsValidatedAddress] = useState(false);
 
   useEffect(() => {
-    if (!organizationId) return;
+    const onlineEnabled = acceptsOnlinePayments === true;
+    const localEnabled = acceptsLocalPayments !== false;
+    if (!onlineEnabled && !localEnabled) return;
+    if (!localEnabled && form.paymentMethod === 'local') {
+      setForm(f => ({ ...f, paymentMethod: 'online' }));
+    } else if (!onlineEnabled && form.paymentMethod === 'online') {
+      setForm(f => ({ ...f, paymentMethod: 'local' }));
+    }
+  }, [acceptsOnlinePayments, acceptsLocalPayments, form.paymentMethod]);
 
+  useEffect(() => {
+    if (!organizationId) return;
     const cleanDigits = form.phone.replace(/\D/g, '');
     // Trigger online search once they have typed at least a full phone number (9 digits)
     if (cleanDigits.length < 9) return;
@@ -766,59 +776,55 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
 
             {/* Payment Methods as radio rows */}
             <div className="space-y-2">
-              <label 
-                onClick={() => update('paymentMethod', 'local')}
-                className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
-                  form.paymentMethod === 'local' 
-                    ? 'bg-white border-black shadow-sm' 
-                    : 'bg-gray-50/50 border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Banknote className={`h-4.5 w-4.5 transition-colors ${form.paymentMethod === 'local' ? 'text-gray-900' : 'text-gray-400'}`} />
-                  <span className={`text-sm font-bold ${form.paymentMethod === 'local' ? 'text-gray-900' : 'text-gray-500'}`}>En Caja (Efectivo / Tarjeta)</span>
-                </div>
-                <input 
-                  type="radio" 
-                  name="paymentMethod"
-                  checked={form.paymentMethod === 'local'}
-                  onChange={() => {}} // Handled by container click
-                  className="h-4 w-4 accent-black text-black border-gray-300 focus:ring-black"
-                />
-              </label>
-
-              <label 
-                onClick={() => acceptsOnlinePayments && update('paymentMethod', 'online')}
-                className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all ${
-                  !acceptsOnlinePayments 
-                    ? 'bg-gray-50/30 border-gray-100 opacity-60 cursor-not-allowed' 
-                    : form.paymentMethod === 'online' 
-                      ? 'bg-white border-black shadow-sm cursor-pointer' 
-                      : 'bg-gray-50/50 border-gray-200 hover:border-gray-300 cursor-pointer'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <CreditCard className={`h-4.5 w-4.5 transition-colors ${form.paymentMethod === 'online' && acceptsOnlinePayments ? 'text-gray-900' : 'text-gray-400'}`} />
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-sm font-bold ${form.paymentMethod === 'online' && acceptsOnlinePayments ? 'text-gray-900' : 'text-gray-500'}`}>
-                      En Línea (Webpay / Tarjetas)
-                    </span>
-                    {!acceptsOnlinePayments && (
-                      <span className="text-[10px] bg-gray-200 text-gray-600 font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider">
-                        Pronto
-                      </span>
-                    )}
+              {acceptsLocalPayments !== false && (
+                <label 
+                  onClick={() => update('paymentMethod', 'local')}
+                  className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
+                    form.paymentMethod === 'local' 
+                      ? 'bg-white border-black shadow-sm' 
+                      : 'bg-gray-50/50 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Banknote className={`h-4.5 w-4.5 transition-colors ${form.paymentMethod === 'local' ? 'text-gray-900' : 'text-gray-400'}`} />
+                    <span className={`text-sm font-bold ${form.paymentMethod === 'local' ? 'text-gray-900' : 'text-gray-500'}`}>En Caja (Efectivo / Tarjeta)</span>
                   </div>
-                </div>
-                <input 
-                  type="radio" 
-                  name="paymentMethod"
-                  disabled={!acceptsOnlinePayments}
-                  checked={form.paymentMethod === 'online' && acceptsOnlinePayments}
-                  onChange={() => {}} // Handled by container click
-                  className="h-4 w-4 accent-black text-black border-gray-300 focus:ring-black cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                />
-              </label>
+                  <input 
+                    type="radio" 
+                    name="paymentMethod"
+                    checked={form.paymentMethod === 'local'}
+                    onChange={() => {}} // Handled by container click
+                    className="h-4 w-4 accent-black text-black border-gray-300 focus:ring-black"
+                  />
+                </label>
+              )}
+
+              {acceptsOnlinePayments && (
+                <label 
+                  onClick={() => update('paymentMethod', 'online')}
+                  className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
+                    form.paymentMethod === 'online' 
+                      ? 'bg-white border-black shadow-sm' 
+                      : 'bg-gray-50/50 border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <CreditCard className={`h-4.5 w-4.5 transition-colors ${form.paymentMethod === 'online' ? 'text-gray-900' : 'text-gray-400'}`} />
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-sm font-bold ${form.paymentMethod === 'online' ? 'text-gray-900' : 'text-gray-500'}`}>
+                        Pagar Online - Puedes usar Apple Pay o Android Pay
+                      </span>
+                    </div>
+                  </div>
+                  <input 
+                    type="radio" 
+                    name="paymentMethod"
+                    checked={form.paymentMethod === 'online'}
+                    onChange={() => {}} // Handled by container click
+                    className="h-4 w-4 accent-black text-black border-gray-300 focus:ring-black"
+                  />
+                </label>
+              )}
             </div>
           </div>
 
