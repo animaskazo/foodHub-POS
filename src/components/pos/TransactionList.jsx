@@ -381,15 +381,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
         title={
           selectedOrder ? (
             <div className="flex items-center justify-between w-full">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">Orden #{selectedOrder.order_number}</h2>
-                <div className="flex items-center gap-2 mt-1">
-                  <Clock className="h-3.5 w-3.5 text-gray-400" />
-                  <p className="text-sm text-gray-500">
-                    {new Date(selectedOrder.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })} a las {new Date(selectedOrder.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-              </div>
+              <h2 className="text-xl font-bold text-gray-900">{selectedOrder.order_number}</h2>
               <div className="flex items-center gap-2 shrink-0 ml-4">
                 {canCancel && selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && (
                   <Button size="sm" variant="destructive" onClick={() => setIsCancelConfirmOpen(true)} aria-label="Cancelar Pedido">
@@ -649,6 +641,14 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                 </div>
 
                 <PrintableReceipt order={selectedOrder} organization={organization} />
+
+                {/* Fecha del pedido */}
+                <div className="flex items-center justify-center gap-2 pt-4 border-t border-gray-100 text-gray-500">
+                  <Clock className="h-3.5 w-3.5 text-gray-400" />
+                  <p className="text-xs">
+                    Pedido realizado el {new Date(selectedOrder.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })} a las {new Date(selectedOrder.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
