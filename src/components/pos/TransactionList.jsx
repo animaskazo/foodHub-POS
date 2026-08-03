@@ -390,7 +390,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0 pr-3 mr-1 border-r border-gray-200">
+              <div className="flex items-center gap-2 shrink-0 ml-4">
                 {canCancel && selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && (
                   <Button size="sm" variant="destructive" onClick={() => setIsCancelConfirmOpen(true)} aria-label="Cancelar Pedido">
                     <Ban className="w-4 h-4" />
