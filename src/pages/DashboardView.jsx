@@ -227,6 +227,10 @@ const DashboardView = () => {
   // Filter orders based on selected channel and kitchen status
   const filteredOrders = useMemo(() => {
     let result = orders;
+    const hideCancelled = organization?.hide_cancelled_orders === true;
+    if (hideCancelled) {
+      result = result.filter(order => order.status !== 'cancelled');
+    }
     const now = Date.now();
     if (channelFilter === 'delivery') {
       result = result.filter(order => order.delivery_type === 'delivery');
@@ -243,7 +247,7 @@ const DashboardView = () => {
       result = result.filter(order => order.status === kitchenStatusFilter);
     }
     return result;
-  }, [orders, channelFilter, kitchenStatusFilter, showScheduled]);
+  }, [orders, channelFilter, kitchenStatusFilter, showScheduled, organization?.hide_cancelled_orders]);
 
   const scheduledCount = useMemo(() => {
     const now = Date.now();

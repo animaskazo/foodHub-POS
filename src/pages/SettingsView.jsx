@@ -54,7 +54,8 @@ const SettingsView = () => {
     address: '',
     accepts_online_payments: true,
     online_payments_allowed: false,
-    accepts_local_payments: true
+    accepts_local_payments: true,
+    hide_cancelled_orders: false
   });
   
   const [businessHours, setBusinessHours] = useState(defaultHours);
@@ -103,7 +104,8 @@ const SettingsView = () => {
           address: orgData.address || '',
           accepts_online_payments: orgData.accepts_online_payments !== false,
           online_payments_allowed: orgData.online_payments_allowed === true,
-          accepts_local_payments: orgData.accepts_local_payments !== false
+          accepts_local_payments: orgData.accepts_local_payments !== false,
+          hide_cancelled_orders: orgData.hide_cancelled_orders === true
         });
         
         if (orgData.business_hours && Object.keys(orgData.business_hours).length > 0) {
@@ -209,7 +211,8 @@ const SettingsView = () => {
         email: formData.email,
         address: formData.address,
         accepts_online_payments: formData.accepts_online_payments,
-        accepts_local_payments: formData.accepts_local_payments !== false
+        accepts_local_payments: formData.accepts_local_payments !== false,
+        hide_cancelled_orders: formData.hide_cancelled_orders === true
       });
       setFormData(prev => ({ ...prev, slug: formattedSlug }));
       alert('Configuración guardada exitosamente');
@@ -518,7 +521,7 @@ const SettingsView = () => {
                   </div>
                   <Switch
                     checked={formData.accepts_local_payments !== false}
-                    disabled={currentUser.role !== 'owner'}
+                    disabled={currentUser.role !== 'owner' && currentUser.role !== 'admin'}
                     onCheckedChange={(checked) => setFormData({...formData, accepts_local_payments: checked})}
                   />
                 </div>
@@ -541,9 +544,24 @@ const SettingsView = () => {
                     </p>
                   </div>
                   <Switch 
-                    checked={formData.accepts_online_payments && formData.online_payments_allowed}
-                    disabled={!formData.online_payments_allowed || currentUser.role !== 'owner'}
+                    checked={formData.accepts_online_payments !== false}
+                    disabled={currentUser.role !== 'owner' && currentUser.role !== 'admin'}
                     onCheckedChange={(checked) => setFormData({...formData, accepts_online_payments: checked})}
+                  />
+                </div>
+
+                {/* Switch para ocultar pedidos cancelados */}
+                <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl">
+                  <div>
+                    <p className="font-bold text-sm text-gray-800">Ocultar Pedidos Cancelados</p>
+                    <p className="text-xs text-gray-500 max-w-sm mt-0.5">
+                      Oculta los pedidos cancelados del registro diario y del historial de ventas.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formData.hide_cancelled_orders === true}
+                    disabled={currentUser.role !== 'owner' && currentUser.role !== 'admin'}
+                    onCheckedChange={(checked) => setFormData({...formData, hide_cancelled_orders: checked})}
                   />
                 </div>
 

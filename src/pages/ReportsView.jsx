@@ -65,7 +65,9 @@ const ReportsView = () => {
         ])
         if (sr.error) throw sr.error
         if (or.error) throw or.error
-        setShifts(sr.data || []); setOrders(or.data || [])
+        setShifts(sr.data || [])
+        const hideCancelled = organization?.hide_cancelled_orders === true
+        setOrders(hideCancelled ? (or.data || []).filter(o => o.status !== 'cancelled') : (or.data || []))
       } catch (err) { console.error(err); setError('Error al cargar los datos.') }
       finally { setLoading(false) }
     })()
