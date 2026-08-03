@@ -88,8 +88,8 @@ serve(async (req) => {
 
       const scheduledBlock = data.scheduled_at ? (() => {
         const d = new Date(data.scheduled_at)
-        const dateStr = d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })
-        const timeStr = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
+        const dateStr = d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Santiago' })
+        const timeStr = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Santiago' })
         return `
           <tr>
             <td style="padding: 16px 16px 0 16px;">
@@ -304,8 +304,8 @@ serve(async (req) => {
 
       const scheduledBlock2 = data.scheduled_at ? (() => {
         const d = new Date(data.scheduled_at)
-        const dateStr = d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })
-        const timeStr = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
+        const dateStr = d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Santiago' })
+        const timeStr = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Santiago' })
         return `
           <tr>
             <td style="padding: 16px 16px 0 16px;">
