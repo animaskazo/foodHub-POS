@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock } from 'lucide-react';
+import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock, Ban } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Modal from '../ui/Modal';
@@ -8,14 +8,18 @@ import AddressMap from './AddressMap';
 import PrintableReceipt from './PrintableReceipt';
 import { useAuth } from '../AuthContext';
 import { supabase } from '../../lib/supabase';
+import { updateOrderStatus } from '../../services/orderService';
 import { fmt, getKitchenTime, getPaymentMethod, getStatusTag } from '../../utils/orderUtils';
 
 const TransactionList = ({ orders, loading, onOrderUpdated }) => {
-  const { organization } = useAuth();
+  const { organization, role, isSuperAdmin } = useAuth();
+  const canCancel = role === 'owner' || role === 'admin' || isSuperAdmin;
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pendingPaymentOrder, setPendingPaymentOrder] = useState(null);
   const [isPaymentConfirmOpen, setIsPaymentConfirmOpen] = useState(false);
+  const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const handleOpenModal = (order) => {
     setSelectedOrder(order);
@@ -38,6 +42,24 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
   const handleClosePaymentConfirm = () => {
     setPendingPaymentOrder(null);
     setIsPaymentConfirmOpen(false);
+  };
+
+  const handleCancelOrder = async () => {
+    if (!selectedOrder) return;
+    setIsCancelling(true);
+    try {
+      await updateOrderStatus(selectedOrder.id, 'cancelled');
+      setIsCancelConfirmOpen(false);
+      handleCloseModal();
+      if (onOrderUpdated) {
+        await onOrderUpdated();
+      }
+    } catch (err) {
+      console.error('Error cancelando pedido:', err);
+      alert(`No se pudo cancelar el pedido: ${err.message || JSON.stringify(err)}`);
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   const handleConfirmOnlinePayment = async (method) => {
@@ -368,15 +390,23 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                   </p>
                 </div>
               </div>
-              <Button size="sm" variant="outline" onClick={() => {
-                const originalTitle = document.title;
-                document.title = `Orden_#${selectedOrder.order_number}`;
-                window.print();
-                document.title = originalTitle;
-              }} className="shrink-0">
-                <Printer className="w-4 h-4 mr-2" />
-                Imprimir Ticket
-              </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                {canCancel && selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && (
+                  <Button size="sm" variant="destructive" onClick={() => setIsCancelConfirmOpen(true)}>
+                    <Ban className="w-4 h-4 mr-2" />
+                    Cancelar Pedido
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" onClick={() => {
+                  const originalTitle = document.title;
+                  document.title = `Orden_#${selectedOrder.order_number}`;
+                  window.print();
+                  document.title = originalTitle;
+                }}>
+                  <Printer className="w-4 h-4 mr-2" />
+                  Imprimir Ticket
+                </Button>
+              </div>
             </div>
           ) : "Detalles de Orden"
         }
@@ -636,6 +666,40 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
           confirmTotal={pendingPaymentOrder.total}
         />
       )}
+
+      {/* Modal confirmar cancelación de pedido */}
+      <Modal
+        isOpen={isCancelConfirmOpen}
+        onClose={() => setIsCancelConfirmOpen(false)}
+        title="Cancelar pedido"
+        maxWidth="max-w-sm"
+      >
+        <div className="p-6">
+          <p className="text-gray-600 mb-6">
+            ¿Estás seguro de que deseas cancelar la orden <strong>#{selectedOrder?.order_number}</strong>?
+            Esta acción no se puede deshacer.
+          </p>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => setIsCancelConfirmOpen(false)}
+              className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
+            >
+              Volver
+            </Button>
+            <Button
+              onClick={handleCancelOrder}
+              disabled={isCancelling}
+              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
+            >
+              {isCancelling ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Cancelar Pedido'
+              )}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 };
