@@ -634,7 +634,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                       if (hasPending) return (
                         <Button
                           variant="secondary"
-                          size="xs"
+                          size="default"
                           onClick={() => {
                             setPendingPaymentOrder(selectedOrder);
                             setIsPaymentConfirmOpen(true);
