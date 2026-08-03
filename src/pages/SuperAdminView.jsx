@@ -47,7 +47,7 @@ const SuperAdminView = () => {
           uber_delivery_id,
           uber_tracking_url,
           uber_status,
-          payments ( method, status ),
+          payments ( method, status, reference_code ),
           order_items (
             id,
             product_name,
@@ -1033,11 +1033,16 @@ const SuperAdminView = () => {
                     <span className="text-gray-600">Método de pago:</span>
                     <span className="font-semibold text-gray-800 capitalize">{selectedOrder.payments[0].method}</span>
                   </div>
-                  <span className={`px-2 py-0.5 text-xs font-semibold rounded ${
-                    selectedOrder.payments[0].status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {selectedOrder.payments[0].status === 'completed' ? 'Pagado' : 'Pendiente'}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    {selectedOrder.payments[0].reference_code && (
+                      <span className="text-xs text-blue-700 font-mono">{selectedOrder.payments[0].reference_code}</span>
+                    )}
+                    <span className={`px-2 py-0.5 text-xs font-semibold rounded ${
+                      selectedOrder.payments[0].status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {selectedOrder.payments[0].status === 'completed' ? 'Pagado' : 'Pendiente'}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>

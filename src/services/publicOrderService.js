@@ -168,7 +168,8 @@ export const createPublicOrder = async ({
   deliveryType = 'pickup',
   deliveryAddress = null,
   deliveryFee = 0,
-  scheduledAt = null
+  scheduledAt = null,
+  referenceCode = null
 }) => {
   // Get first active branch
   const { data: branch, error: branchError } = await supabase
@@ -347,6 +348,7 @@ export const createPublicOrder = async ({
     method: paymentMethod,
     status: paymentStatus,
     amount: total,
+    reference_code: referenceCode || null,
   }]);
 
   // Deduct inventory (non-blocking)
@@ -406,7 +408,7 @@ export const getPublicOrderById = async (orderId) => {
       uber_delivery_id,
       uber_tracking_url,
       uber_status,
-      payments ( method ),
+      payments ( method, reference_code ),
       order_items (
         id,
         parent_item_id,

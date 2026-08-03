@@ -103,7 +103,7 @@ const OrderView = () => {
           const pendingRaw = localStorage.getItem(`pending_order_${slug}`);
           if (pendingRaw && !submittedOrder?.order_number) {
             try {
-              const { cartItems: pendingCart, customerForm, scheduledAt } = JSON.parse(pendingRaw);
+              const { cartItems: pendingCart, customerForm, scheduledAt, klapOrderId } = JSON.parse(pendingRaw);
 
               const order = await createPublicOrder({
                 organizationId: orgData.id,
@@ -120,6 +120,7 @@ const OrderView = () => {
                 deliveryAddress: customerForm.deliveryAddress,
                 deliveryFee: customerForm.deliveryFee,
                 scheduledAt,
+                referenceCode: klapOrderId || null,
               });
 
               // Uber Direct delivery (if applicable)
@@ -513,6 +514,12 @@ const OrderView = () => {
           localStorage.removeItem(pendingKey);
           throw new Error(errMsg);
         }
+
+        // Store the Klap payment order id so we can link the transaction later
+        localStorage.setItem(pendingKey, JSON.stringify({
+          ...pendingData,
+          klapOrderId: data?.klap_order_id || null,
+        }));
 
         if (data.redirect_url) {
           window.location.href = data.redirect_url;

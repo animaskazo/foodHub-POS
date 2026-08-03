@@ -262,13 +262,20 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                     <Clock className="w-3.5 h-3.5 shrink-0" />
                     {formattedDate}
                   </div>
-                  <div
-                    title={order.payments?.find(p => p.reference_code)?.reference_code ? `ID Klap: ${order.payments.find(p => p.reference_code).reference_code}` : ''}
-                    className={`flex items-center gap-1.5 text-xs ${order.payments?.find(p => p.reference_code) ? 'cursor-help text-blue-700' : 'text-gray-700'}`}
-                  >
+                  <div className="flex items-center gap-1.5 text-xs text-gray-700">
                     <CreditCard className="w-3.5 h-3.5 shrink-0" />
                     {getPaymentMethod(order)}
                   </div>
+                  {order.payments?.find(p => p.reference_code)?.reference_code && (
+                    <div
+                      title="ID de transacción Klap (clic para copiar)"
+                      onClick={(e) => { e.stopPropagation(); navigator.clipboard?.writeText(order.payments.find(p => p.reference_code).reference_code); }}
+                      className="flex items-center gap-1.5 text-xs text-blue-700 cursor-pointer hover:underline w-fit"
+                    >
+                      <span className="font-bold">Klap:</span>
+                      <span className="font-mono truncate max-w-[180px]">{order.payments.find(p => p.reference_code).reference_code}</span>
+                    </div>
+                  )}
                   {order.scheduled_at && (
                     <div className="flex items-center gap-1.5 text-xs text-gray-700">
                       <CalendarClock className="w-3.5 h-3.5 shrink-0" />
@@ -388,6 +395,13 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                   <CreditCard className="h-3.5 w-3.5" />
                   {getPaymentMethod(selectedOrder)}
                 </Badge>
+
+                {selectedOrder.payments?.find(p => p.reference_code)?.reference_code && (
+                  <Badge variant="grayOutline">
+                    <span className="font-bold">Klap:</span>
+                    <span className="font-mono ml-1">{selectedOrder.payments.find(p => p.reference_code).reference_code}</span>
+                  </Badge>
+                )}
 
                 <Badge variant="warning">
                   <Timer className="h-3.5 w-3.5" />
