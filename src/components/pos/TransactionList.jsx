@@ -392,9 +392,9 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {canCancel && selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && (
-                  <Button size="sm" variant="destructive" onClick={() => setIsCancelConfirmOpen(true)}>
-                    <Ban className="w-4 h-4 mr-2" />
-                    Cancelar Pedido
+                  <Button size="sm" variant="destructive" onClick={() => setIsCancelConfirmOpen(true)} aria-label="Cancelar Pedido">
+                    <Ban className="w-4 h-4" />
+                    <span className="hidden md:inline ml-2">Cancelar Pedido</span>
                   </Button>
                 )}
                 <Button size="sm" variant="outline" onClick={() => {
@@ -402,9 +402,9 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                   document.title = `Orden_#${selectedOrder.order_number}`;
                   window.print();
                   document.title = originalTitle;
-                }}>
-                  <Printer className="w-4 h-4 mr-2" />
-                  Imprimir Ticket
+                }} aria-label="Imprimir Ticket">
+                  <Printer className="w-4 h-4" />
+                  <span className="hidden md:inline ml-2">Imprimir Ticket</span>
                 </Button>
               </div>
             </div>
