@@ -62,32 +62,13 @@ const OrderView = () => {
 
   useEffect(() => {
     const handleReturn = async () => {
-      const orderId = searchParams.get('orderId');
       const status = searchParams.get('status');
-      
-      if (!orderId) return;
 
       if (status === 'error') {
         // Just clean URL for error, state is already step 5
+        localStorage.removeItem(`pending_order_${slug}`);
         window.history.replaceState({}, '', `/order/${slug}`);
         return;
-      }
-
-      if (status === 'success' && !submittedOrder?.order_number) {
-        // Attempt to recover pending order
-        try {
-          const pendingData = localStorage.getItem(`pending_order_${slug}`);
-          if (pendingData) {
-            setIsSubmitting(true);
-            const { cartItems: pendingCart, customerForm, totalAmount } = JSON.parse(pendingData);
-            
-            // Only create if we have the org loaded or we can wait
-            // Since this runs on mount, org might be null. 
-            // We should ensure org is loaded before creating.
-          }
-        } catch (e) {
-          console.error(e);
-        }
       }
     };
     handleReturn();
@@ -118,53 +99,142 @@ const OrderView = () => {
         const status = searchParams.get('status');
         
         if (orderId && status === 'success') {
-          const { getPublicOrderById } = await import('../services/publicOrderService');
-          const orderData = await getPublicOrderById(orderId);
-          if (orderData) {
-            setSubmittedOrder(orderData);
-            setCartItems([]);
-            localStorage.removeItem(`cart_${slug}`);
-            setStep(4);
+          // If there's a pending order saved locally (payment completed), create it now
+          const pendingRaw = localStorage.getItem(`pending_order_${slug}`);
+          if (pendingRaw && !submittedOrder?.order_number) {
+            try {
+              const { cartItems: pendingCart, customerForm, scheduledAt } = JSON.parse(pendingRaw);
 
-            // Send confirmation email after Klap payment
-            const { data: customerData } = await supabase
-              .from('customers')
-              .select('email')
-              .eq('organization_id', orgData.id)
-              .eq('phone', orderData.customer_phone)
-              .maybeSingle()
-            if (customerData?.email) {
-              const items = (orderData.order_items || [])
-                .filter(item => !item.parent_item_id)
-                .map(item => ({
-                  product_name: item.product_name,
-                  quantity: item.quantity,
-                  total_price: item.total_price,
-                }))
-              sendEmail({
-                type: 'order_confirmed',
-                email: customerData.email,
-                data: {
-                  order_number: orderData.order_number,
-                  delivery_type: orderData.delivery_type,
-                  delivery_address: orderData.delivery_address,
-                  customer_name: orderData.customer_name || 'Cliente',
-                  total: orderData.total,
-                  subtotal: orderData.total - (orderData.delivery_fee || 0),
-                  delivery_fee: orderData.delivery_fee || 0,
-                  uber_tracking_url: orderData.uber_tracking_url,
-                  payment_method: 'online_gateway',
-                  scheduled_at: orderData.scheduled_at,
-                  items,
-                  branch: { name: orgData.name, address: orgData.address || '' },
-                  organization: { name: orgData.name, logo_url: orgData.logo_url || null },
+              const order = await createPublicOrder({
+                organizationId: orgData.id,
+                cartItems: pendingCart,
+                customer: {
+                  name: customerForm.name,
+                  phone: customerForm.phone,
+                  email: customerForm.email,
                 },
-              })
-            }
+                notes: customerForm.notes,
+                paymentMethod: 'online_gateway',
+                paymentStatus: 'paid',
+                deliveryType: customerForm.deliveryType,
+                deliveryAddress: customerForm.deliveryAddress,
+                deliveryFee: customerForm.deliveryFee,
+                scheduledAt,
+              });
 
-            window.history.replaceState({}, '', `/order/${slug}`);
+              // Uber Direct delivery (if applicable)
+              const uberInfo = await createUberDelivery(orgData, customerForm, pendingCart, scheduledAt);
+              if (uberInfo) {
+                const adjustedTotal = order.total - (customerForm.deliveryFee || 0) + uberInfo.deliveryFee;
+                const { error: updateError } = await supabase
+                  .from('orders')
+                  .update({
+                    uber_delivery_id: uberInfo.deliveryId,
+                    uber_tracking_url: uberInfo.trackingUrl,
+                    uber_status: uberInfo.status,
+                    delivery_fee: uberInfo.deliveryFee,
+                    total: adjustedTotal,
+                  })
+                  .eq('id', order.id);
+                if (!updateError) {
+                  order.uber_delivery_id = uberInfo.deliveryId;
+                  order.uber_tracking_url = uberInfo.trackingUrl;
+                  order.uber_status = uberInfo.status;
+                  order.delivery_fee = uberInfo.deliveryFee;
+                  order.total = adjustedTotal;
+                } else {
+                  console.error('[Uber] Failed to update order with delivery info:', updateError);
+                }
+              }
+
+              // Send confirmation email
+              if (customerForm.email) {
+                const items = pendingCart.map(item => ({
+                  product_name: item.name + (item.variant ? ` (${item.variant.name})` : ''),
+                  quantity: item.quantity,
+                  total_price: item.price * item.quantity,
+                  image_url: item.image || item.image_url || item.imageUrl || null,
+                }));
+                sendEmail({
+                  type: 'order_confirmed',
+                  email: customerForm.email,
+                  data: {
+                    order_number: order.order_number,
+                    delivery_type: order.delivery_type,
+                    delivery_address: order.delivery_address,
+                    customer_name: order.customer_name || customerForm.name || 'Cliente',
+                    total: order.total,
+                    subtotal: order.total - (order.delivery_fee || 0),
+                    delivery_fee: order.delivery_fee || 0,
+                    uber_tracking_url: order.uber_tracking_url,
+                    payment_method: 'online_gateway',
+                    scheduled_at: order.scheduled_at,
+                    items,
+                    branch: { name: orgData.name, address: orgData.address || '' },
+                    organization: { name: orgData.name, logo_url: orgData.logo_url || null },
+                  },
+                });
+              }
+
+              localStorage.removeItem(`pending_order_${slug}`);
+              localStorage.removeItem(`cart_${slug}`);
+              setSubmittedOrder(order);
+              setCartItems([]);
+              setStep(4);
+              window.history.replaceState({}, '', `/order/${slug}?orderId=${order.id}&orderNumber=${order.order_number}&status=success`);
+            } catch (e) {
+              console.error(e);
+              setError('No se pudo crear el pedido después del pago. Contacta al local.');
+            }
           } else {
-            setError('No se pudo cargar la información del pedido.');
+            const { getPublicOrderById } = await import('../services/publicOrderService');
+            const orderData = await getPublicOrderById(orderId);
+            if (orderData) {
+              setSubmittedOrder(orderData);
+              setCartItems([]);
+              localStorage.removeItem(`cart_${slug}`);
+              setStep(4);
+
+              // Send confirmation email after Klap payment
+              const { data: customerData } = await supabase
+                .from('customers')
+                .select('email')
+                .eq('organization_id', orgData.id)
+                .eq('phone', orderData.customer_phone)
+                .maybeSingle()
+              if (customerData?.email) {
+                const items = (orderData.order_items || [])
+                  .filter(item => !item.parent_item_id)
+                  .map(item => ({
+                    product_name: item.product_name,
+                    quantity: item.quantity,
+                    total_price: item.total_price,
+                  }))
+                sendEmail({
+                  type: 'order_confirmed',
+                  email: customerData.email,
+                  data: {
+                    order_number: orderData.order_number,
+                    delivery_type: orderData.delivery_type,
+                    delivery_address: orderData.delivery_address,
+                    customer_name: orderData.customer_name || 'Cliente',
+                    total: orderData.total,
+                    subtotal: orderData.total - (orderData.delivery_fee || 0),
+                    delivery_fee: orderData.delivery_fee || 0,
+                    uber_tracking_url: orderData.uber_tracking_url,
+                    payment_method: 'online_gateway',
+                    scheduled_at: orderData.scheduled_at,
+                    items,
+                    branch: { name: orgData.name, address: orgData.address || '' },
+                    organization: { name: orgData.name, logo_url: orgData.logo_url || null },
+                  },
+                })
+              }
+
+              window.history.replaceState({}, '', `/order/${slug}`);
+            } else {
+              setError('No se pudo cargar la información del pedido.');
+            }
           }
         }
         
@@ -259,25 +329,201 @@ const OrderView = () => {
     setCartItems(prev => prev.filter(i => i.cartItemId !== cartItemId));
   }, []);
 
+  // ── Subtotal computation (same formula as createPublicOrder) ──
+  const computeSubtotal = (items) => items.reduce((acc, item) => {
+    let unitPrice = Math.round(item.price);
+    if (item.selectedIngredients) {
+      unitPrice += item.selectedIngredients.reduce((s, i) => s + (i.price || 0), 0);
+    }
+    if (item.selectedOptions) {
+      unitPrice += item.selectedOptions.reduce((s, o) => {
+        let optTotal = o.price || 0;
+        if (o.selectedIngredients) {
+          optTotal += o.selectedIngredients.reduce((s2, i2) => s2 + (i2.price || 0), 0);
+        }
+        return s + optTotal;
+      }, 0);
+    }
+    return acc + unitPrice * item.quantity;
+  }, 0);
+
+  // ── Uber Direct: create delivery, returns info to apply to an order ──
+  const createUberDelivery = async (orgData, customerForm, cart, scheduledAt) => {
+    if (orgData.delivery_mode !== 'uber_direct' || orgData.uber_enabled === false || customerForm.deliveryType !== 'delivery') {
+      return null;
+    }
+    try {
+      const scheduledAtMs = scheduledAt ? new Date(scheduledAt).getTime() : null;
+      const deliveryWindow = scheduledAtMs ? (() => {
+        const t = scheduledAtMs;
+        const now = Date.now();
+        const pickupReady = Math.max(t - 30 * 60000, now + 15 * 60000);
+        const pickupDeadline = Math.max(t, pickupReady + 30 * 60000);
+        return {
+          pickup_ready_dt: new Date(pickupReady).toISOString(),
+          pickup_deadline_dt: new Date(pickupDeadline).toISOString(),
+          dropoff_ready_dt: new Date(t).toISOString(),
+          dropoff_deadline_dt: new Date(Math.max(t + 60 * 60000, pickupReady + 90 * 60000)).toISOString(),
+        };
+      })() : null;
+
+      const tokenRes = await getAccessToken(orgData.uber_client_id, orgData.uber_client_secret)
+      const token = tokenRes.access_token
+
+      let dropoffCoords = customerForm.deliveryCoords
+      if (!dropoffCoords || !dropoffCoords.address) {
+        const fresh = await geocodeAddress(customerForm.deliveryAddress)
+        dropoffCoords = fresh || dropoffCoords
+      }
+
+      const city = dropoffCoords?.address?.city || dropoffCoords?.address?.town || dropoffCoords?.address?.village || dropoffCoords?.address?.county || 'Santiago'
+      const zip = dropoffCoords?.address?.postcode || ''
+      const state = dropoffCoords?.address?.state || 'RM'
+
+      const pickupAddr = {
+        street_address: [orgData.address || 'Dirección del local'],
+        state,
+        city,
+        zip_code: zip,
+        country: 'CL',
+      }
+      const dropoffAddr = {
+        street_address: [customerForm.deliveryAddress],
+        state,
+        city,
+        zip_code: zip,
+        country: 'CL',
+      }
+
+      let pickupLat = orgData.store_lat
+      let pickupLng = orgData.store_lng
+      if (!pickupLat || !pickupLng) {
+        const cleanAddr = (orgData.address || '')
+          .replace(/\s+(LOCAL|DEPTO|OF|DPTO|CASA|PISO)\s*\d+/gi, '')
+          .replace(/^(Calle|Av\.?|Avda\.?|Pasaje|Pje\.?|Camino)\s+/i, '')
+          .replace(/,?\s*\d{5,}\s*/g, ',')
+          .replace(/\s*,\s*CL$/i, '')
+          .replace(/,+/g, ',')
+          .split(',').map(s => s.trim()).filter(Boolean).slice(0, 2).join(', ')
+          .trim()
+        const orgCoords = await geocodeAddress(cleanAddr ? cleanAddr + ', Chile' : 'Villa Alemana, Chile')
+        if (orgCoords) {
+          pickupLat = orgCoords.lat
+          pickupLng = orgCoords.lng
+        }
+      }
+
+      const normalizePhone = (phone) => {
+        if (!phone) return ''
+        let n = (phone || '').replace(/^0+/, '').replace(/[^\d+]/g, '')
+        if (n.startsWith('+')) return n
+        if (n.startsWith('56')) return `+${n}`
+        return `+56${n}`
+      }
+      const normalizedPickupPhone = normalizePhone(orgData.phone)
+
+      let quoteId = scheduledAt ? null : customerForm.quoteId
+      if (!quoteId) {
+        const quote = await createQuote(orgData.uber_customer_id, token, {
+          external_store_id: orgData.id,
+          pickup_address: JSON.stringify(pickupAddr),
+          dropoff_address: JSON.stringify(dropoffAddr),
+          pickup_latitude: pickupLat,
+          pickup_longitude: pickupLng,
+          dropoff_latitude: dropoffCoords?.lat,
+          dropoff_longitude: dropoffCoords?.lng,
+          pickup_phone_number: normalizedPickupPhone,
+          dropoff_phone_number: normalizePhone(customerForm.phone),
+          manifest_items: cart.map(item => ({
+            name: item.product_name || item.name || 'Producto',
+            quantity: item.quantity || 1,
+            value: item.price || 0,
+          })),
+          ...(deliveryWindow || {}),
+        })
+        quoteId = quote.id
+      }
+
+      const delivery = await createDelivery(orgData.uber_customer_id, token, {
+        quote_id: quoteId,
+        external_store_id: orgData.id,
+        pickup_address: JSON.stringify(pickupAddr),
+        pickup_name: orgData.name,
+        pickup_phone_number: normalizedPickupPhone,
+        pickup_latitude: pickupLat,
+        pickup_longitude: pickupLng,
+        dropoff_address: JSON.stringify(dropoffAddr),
+        dropoff_name: customerForm.name,
+        dropoff_phone_number: normalizePhone(customerForm.phone),
+        dropoff_latitude: dropoffCoords?.lat,
+        dropoff_longitude: dropoffCoords?.lng,
+        manifest_items: cart.map(item => ({
+          name: item.product_name || item.name || 'Producto',
+          quantity: item.quantity || 1,
+          value: item.price || 0,
+        })),
+        ...(deliveryWindow || {}),
+      })
+
+      const deliveryFee = delivery.fee ? ((delivery.currency || '').toUpperCase() === 'CLP' ? Math.round(delivery.fee / 100) : delivery.fee / 100) : customerForm.deliveryFee
+
+      return {
+        deliveryId: delivery.id,
+        trackingUrl: delivery.tracking_url,
+        status: delivery.status,
+        deliveryFee,
+      }
+    } catch (uberError) {
+      console.error('Uber Direct delivery creation failed:', uberError)
+      return null
+    }
+  }
+
   // ── Checkout ──────────────────────────────────────────────
   const handleCheckout = async (customerForm) => {
     setIsSubmitting(true);
     const scheduledAt = customerForm.scheduleType === 'scheduled' && customerForm.scheduledAt ? customerForm.scheduledAt : null;
-    const scheduledAtMs = scheduledAt ? new Date(scheduledAt).getTime() : null;
-    const deliveryWindow = scheduledAtMs ? (() => {
-      const t = scheduledAtMs;
-      const now = Date.now();
-      const pickupReady = Math.max(t - 30 * 60000, now + 15 * 60000);
-      const pickupDeadline = Math.max(t, pickupReady + 30 * 60000);
-      return {
-        pickup_ready_dt: new Date(pickupReady).toISOString(),
-        pickup_deadline_dt: new Date(pickupDeadline).toISOString(),
-        dropoff_ready_dt: new Date(t).toISOString(),
-        dropoff_deadline_dt: new Date(Math.max(t + 60 * 60000, pickupReady + 90 * 60000)).toISOString(),
-      };
-    })() : null;
     try {
-      // First, create the order in the database with status pending
+      // ── Online payment: DO NOT create the order yet ──
+      // Save the pending order to localStorage, then redirect to Klap.
+      // The order is created only when the customer returns with status=success.
+      if (customerForm.paymentMethod === 'online') {
+        const pendingKey = `pending_order_${slug}`;
+        const sessionId = (crypto && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        const pendingData = {
+          cartItems,
+          customerForm,
+          scheduledAt,
+          totalAmount: computeSubtotal(cartItems) + (customerForm.deliveryFee || 0),
+        };
+        localStorage.setItem(pendingKey, JSON.stringify(pendingData));
+
+        const returnUrl = window.location.origin + `/order/${slug}?orderId=${sessionId}&status=success`;
+
+        const { data, error } = await supabase.functions.invoke('klap-create-payment', {
+          body: { orderId: sessionId, amount: pendingData.totalAmount, returnUrl }
+        });
+
+        if (error || !data?.success) {
+          const klapDetails = data?.details ? JSON.stringify(data.details) : '';
+          const errMsg = `${data?.error || error?.message || 'Error desconocido'}${klapDetails ? ` | Klap: ${klapDetails}` : ''}`;
+          console.error('[Klap Debug] Full error:', errMsg);
+          localStorage.removeItem(pendingKey);
+          throw new Error(errMsg);
+        }
+
+        if (data.redirect_url) {
+          window.location.href = data.redirect_url;
+        } else {
+          localStorage.removeItem(pendingKey);
+          throw new Error('Klap no retornó una URL de pago válida');
+        }
+        return;
+      }
+
+      // Offline (cash) flow: create the order directly
       const order = await createPublicOrder({
         organizationId: org.id,
         cartItems,
@@ -287,7 +533,7 @@ const OrderView = () => {
           email: customerForm.email,
         },
         notes: customerForm.notes,
-        paymentMethod: customerForm.paymentMethod === 'online' ? 'online_gateway' : 'cash',
+        paymentMethod: 'cash',
         paymentStatus: 'pending',
         deliveryType: customerForm.deliveryType,
         deliveryAddress: customerForm.deliveryAddress,
@@ -296,157 +542,32 @@ const OrderView = () => {
       });
 
       // ── Uber Direct: create delivery if mode is uber_direct (immediate or scheduled) ──
-      if (org.delivery_mode === 'uber_direct' && org.uber_enabled !== false && customerForm.deliveryType === 'delivery') {
-        try {
-          const tokenRes = await getAccessToken(org.uber_client_id, org.uber_client_secret)
-          const token = tokenRes.access_token
-
-          let dropoffCoords = customerForm.deliveryCoords
-          if (!dropoffCoords || !dropoffCoords.address) {
-            const fresh = await geocodeAddress(customerForm.deliveryAddress)
-            dropoffCoords = fresh || dropoffCoords
-          }
-
-          const city = dropoffCoords?.address?.city || dropoffCoords?.address?.town || dropoffCoords?.address?.village || dropoffCoords?.address?.county || 'Santiago'
-          const zip = dropoffCoords?.address?.postcode || ''
-          const state = dropoffCoords?.address?.state || 'RM'
-
-          const pickupAddr = {
-            street_address: [org.address || 'Dirección del local'],
-            state,
-            city,
-            zip_code: zip,
-            country: 'CL',
-          }
-          const dropoffAddr = {
-            street_address: [customerForm.deliveryAddress],
-            state,
-            city,
-            zip_code: zip,
-            country: 'CL',
-          }
-
-          let pickupLat = org.store_lat
-          let pickupLng = org.store_lng
-          if (!pickupLat || !pickupLng) {
-            const cleanAddr = (org.address || '')
-              .replace(/\s+(LOCAL|DEPTO|OF|DPTO|CASA|PISO)\s*\d+/gi, '')
-              .replace(/^(Calle|Av\.?|Avda\.?|Pasaje|Pje\.?|Camino)\s+/i, '')
-              .replace(/,?\s*\d{5,}\s*/g, ',')
-              .replace(/\s*,\s*CL$/i, '')
-              .replace(/,+/g, ',')
-              .split(',').map(s => s.trim()).filter(Boolean).slice(0, 2).join(', ')
-              .trim()
-            const orgCoords = await geocodeAddress(cleanAddr ? cleanAddr + ', Chile' : 'Villa Alemana, Chile')
-            if (orgCoords) {
-              pickupLat = orgCoords.lat
-              pickupLng = orgCoords.lng
-            }
-          }
-
-          const normalizePhone = (phone) => {
-            if (!phone) return ''
-            let n = (phone || '').replace(/^0+/, '').replace(/[^\d+]/g, '')
-            if (n.startsWith('+')) return n
-            if (n.startsWith('56')) return `+${n}`
-            return `+56${n}`
-          }
-          const normalizedPickupPhone = normalizePhone(org.phone)
-
-          let quoteId = scheduledAt ? null : customerForm.quoteId
-          if (!quoteId) {
-            const quote = await createQuote(org.uber_customer_id, token, {
-              external_store_id: org.id,
-              pickup_address: JSON.stringify(pickupAddr),
-              dropoff_address: JSON.stringify(dropoffAddr),
-              pickup_latitude: pickupLat,
-              pickup_longitude: pickupLng,
-              dropoff_latitude: dropoffCoords?.lat,
-              dropoff_longitude: dropoffCoords?.lng,
-              pickup_phone_number: normalizedPickupPhone,
-              dropoff_phone_number: normalizePhone(customerForm.phone),
-              manifest_items: cartItems.map(item => ({
-                name: item.product_name || item.name || 'Producto',
-                quantity: item.quantity || 1,
-                value: item.price || 0,
-              })),
-              ...(deliveryWindow || {}),
-            })
-            quoteId = quote.id
-          }
-
-          const delivery = await createDelivery(org.uber_customer_id, token, {
-            quote_id: quoteId,
-            external_store_id: org.id,
-            pickup_address: JSON.stringify(pickupAddr),
-            pickup_name: org.name,
-            pickup_phone_number: normalizedPickupPhone,
-            pickup_latitude: pickupLat,
-            pickup_longitude: pickupLng,
-            dropoff_address: JSON.stringify(dropoffAddr),
-            dropoff_name: customerForm.name,
-            dropoff_phone_number: normalizePhone(customerForm.phone),
-            dropoff_latitude: dropoffCoords?.lat,
-            dropoff_longitude: dropoffCoords?.lng,
-            manifest_items: cartItems.map(item => ({
-              name: item.product_name || item.name || 'Producto',
-              quantity: item.quantity || 1,
-              value: item.price || 0,
-            })),
-            ...(deliveryWindow || {}),
+      const uberInfo = await createUberDelivery(org, customerForm, cartItems, scheduledAt);
+      if (uberInfo) {
+        const adjustedTotal = order.total - (customerForm.deliveryFee || 0) + uberInfo.deliveryFee;
+        const { error: updateError } = await supabase
+          .from('orders')
+          .update({
+            uber_delivery_id: uberInfo.deliveryId,
+            uber_tracking_url: uberInfo.trackingUrl,
+            uber_status: uberInfo.status,
+            delivery_fee: uberInfo.deliveryFee,
+            total: adjustedTotal,
           })
+          .eq('id', order.id)
 
-          const deliveryFee = delivery.fee ? ((delivery.currency || '').toUpperCase() === 'CLP' ? Math.round(delivery.fee / 100) : delivery.fee / 100) : customerForm.deliveryFee
-          const adjustedTotal = order.total - (customerForm.deliveryFee || 0) + deliveryFee
-
-          const { error: updateError } = await supabase
-            .from('orders')
-            .update({
-              uber_delivery_id: delivery.id,
-              uber_tracking_url: delivery.tracking_url,
-              uber_status: delivery.status,
-              delivery_fee: deliveryFee,
-              total: adjustedTotal,
-            })
-            .eq('id', order.id)
-
-          if (!updateError) {
-            order.uber_delivery_id = delivery.id
-            order.uber_tracking_url = delivery.tracking_url
-            order.uber_status = delivery.status
-            order.delivery_fee = deliveryFee
-            order.total = adjustedTotal
-          } else {
-            console.error('[Uber] Failed to update order with delivery info:', updateError)
-          }
-        } catch (uberError) {
-          console.error('Uber Direct delivery creation failed:', uberError)
+        if (!updateError) {
+          order.uber_delivery_id = uberInfo.deliveryId
+          order.uber_tracking_url = uberInfo.trackingUrl
+          order.uber_status = uberInfo.status
+          order.delivery_fee = uberInfo.deliveryFee
+          order.total = adjustedTotal
+        } else {
+          console.error('[Uber] Failed to update order with delivery info:', updateError)
         }
       }
 
       const finalDeliveryFee = order.delivery_fee || customerForm.deliveryFee || 0
-
-      if (customerForm.paymentMethod === 'online') {
-        const returnUrl = window.location.origin + `/order/${slug}?orderId=${order.id}&status=success`;
-
-        const { data, error } = await supabase.functions.invoke('klap-create-payment', {
-          body: { orderId: order.id, amount: order.total, returnUrl }
-        });
-
-        if (error || !data?.success) {
-          const klapDetails = data?.details ? JSON.stringify(data.details) : '';
-          const errMsg = `${data?.error || error?.message || 'Error desconocido'}${klapDetails ? ` | Klap: ${klapDetails}` : ''}`;
-          console.error('[Klap Debug] Full error:', errMsg);
-          throw new Error(errMsg);
-        }
-
-        if (data.redirect_url) {
-          window.location.href = data.redirect_url;
-        } else {
-          throw new Error('Klap no retornó una URL de pago válida');
-        }
-        return; 
-      }
 
       // Send confirmation email (offline flow only)
       if (customerForm.email) {

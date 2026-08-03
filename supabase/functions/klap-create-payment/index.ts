@@ -54,8 +54,8 @@ serve(async (req) => {
 
     const apiKey = Deno.env.get("KLAP_API_KEY") || "mKaTZ4yBm3rVFapqNctziKCvXsjD6fDO";
 
-    // Llamada estándar a la API de Klap (Multicaja)
-    const klapResponse = await fetch("https://api-pasarela-sandbox.mcdesaqa.cl/payment-gateway/v1/orders", {
+    // Llamada estándar a la API de Klap (Multicaja) — producción
+    const klapResponse = await fetch("https://api.pasarela.multicaja.cl/payment-gateway/v1/orders", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -138,6 +138,33 @@ const SettingsView = () => {
     }
   };
 
+  const validateVideo = (file) => {
+    return new Promise((resolve) => {
+      if (file.size > 10 * 1024 * 1024) {
+        alert('El video no puede pesar más de 10MB.');
+        resolve(false);
+        return;
+      }
+      const url = URL.createObjectURL(file);
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        URL.revokeObjectURL(url);
+        if (video.duration > 15) {
+          alert('El video no puede durar más de 15 segundos.');
+          resolve(false);
+          return;
+        }
+        resolve(true);
+      };
+      video.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(true);
+      };
+      video.src = url;
+    });
+  };
+
   const handleImageUpload = async (e, type) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -148,8 +175,12 @@ const SettingsView = () => {
         const url = await uploadImage(file, 'logo');
         setFormData(prev => ({ ...prev, logo_url: url }));
       } else {
-        setIsUploadingCover(true);
         const isVideo = file.type.startsWith('video/');
+        if (isVideo && !(await validateVideo(file))) {
+          e.target.value = '';
+          return;
+        }
+        setIsUploadingCover(true);
         const url = await uploadImage(file, 'cover');
         setFormData(prev => ({ ...prev, cover_url: url, cover_is_video: isVideo }));
       }
@@ -391,6 +422,7 @@ const SettingsView = () => {
                         className="hidden"
                       />
                     </label>
+                    <p className="mt-2 text-[11px] text-gray-400 text-center">Videos: máx. 10MB y 15 segundos</p>
                   </div>
                 </div>
 
