@@ -60,8 +60,8 @@ const SettingsView = () => {
   const [pickupHours, setPickupHours] = useState(defaultHours);
   const [hoursTab, setHoursTab] = useState('comercial'); // 'comercial' | 'retiro'
   const [instantEnabled, setInstantEnabled] = useState(true);
-  const [schedulingEnabled, setSchedulingEnabled] = useState(true);
-  const [prepTime, setPrepTime] = useState(15);
+  const [schedulingEnabled, setSchedulingEnabled] = useState(false);
+  const [prepTime, setPrepTime] = useState(0);
   const [staff, setStaff] = useState([]);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
@@ -111,8 +111,8 @@ const SettingsView = () => {
           setPickupHours(orgData.pickup_hours);
         }
         setInstantEnabled(orgData.instant_enabled !== false);
-        setSchedulingEnabled(orgData.scheduling_enabled !== false);
-        setPrepTime(orgData.prep_time != null ? orgData.prep_time : 15);
+        setSchedulingEnabled(orgData.scheduling_enabled === true);
+        setPrepTime(orgData.prep_time != null ? orgData.prep_time : 0);
         setStaff(staffData);
 
         // Obtener el rol del usuario logueado actualmente

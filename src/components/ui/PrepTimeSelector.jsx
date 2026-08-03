@@ -4,7 +4,7 @@ import { useAuth } from '../AuthContext';
 import { updateOrganizationDetails } from '../../services/organizationService';
 import Tooltip from './tooltip';
 
-const PREP_OPTIONS = [5, 10, 15, 20, 25, 30, 40, 60];
+const PREP_OPTIONS = [0, 5, 10, 15, 20, 25, 30, 40, 60];
 
 const PrepTimeSelector = ({ compact = false }) => {
   const { organization } = useAuth();
@@ -68,7 +68,7 @@ const PrepTimeSelector = ({ compact = false }) => {
           : 'bg-gray-50 border border-gray-200 text-gray-800 rounded-lg px-2 py-1.5 text-sm font-bold outline-none focus:ring-2 focus:ring-black cursor-pointer'}
       >
         {PREP_OPTIONS.map((m) => (
-          <option key={m} value={m}>{m} min</option>
+          <option key={m} value={m}>{m === 0 ? 'No informar' : `${m} min`}</option>
         ))}
       </select>
       </div>

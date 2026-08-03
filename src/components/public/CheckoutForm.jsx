@@ -138,7 +138,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   const uberEnabled = org?.uber_enabled !== false;
   const deliveryMode = !uberEnabled && org?.delivery_mode === 'uber_direct' ? 'own' : org?.delivery_mode;
   const instantAvailable = canOrderNow(org);
-  const schedulingEnabled = org?.scheduling_enabled !== false;
+  const schedulingEnabled = org?.scheduling_enabled === true;
   const showScheduleSection = instantAvailable || schedulingEnabled;
   const initScheduleType = instantAvailable ? 'now' : (schedulingEnabled ? 'scheduled' : 'now');
   const kitchenPrepMinutes = (org?.prep_time && org.prep_time > 0) ? org.prep_time : 10;
@@ -496,12 +496,14 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
         <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
 
           {/* Banner: Tiempo estimado de preparación (cocina) */}
-          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200">
-            <ChefHat className="h-4 w-4 shrink-0 text-amber-600" />
-            <p className="text-xs font-semibold text-amber-800">
-              Tu pedido estará listo en <span className="font-bold">{kitchenPrepMinutes} minutos</span>.
-            </p>
-          </div>
+          {org?.prep_time > 0 && (
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200">
+              <ChefHat className="h-4 w-4 shrink-0 text-amber-600" />
+              <p className="text-xs font-semibold text-amber-800">
+                Tu pedido estará listo en <span className="font-bold">{kitchenPrepMinutes} minutos</span>.
+              </p>
+            </div>
+          )}
 
           {/* Section: Personal data */}
           <div className="space-y-4">
