@@ -381,7 +381,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
         title={
           selectedOrder ? (
             <div className="flex items-center justify-between w-full">
-              <h2 className="text-xl font-bold text-gray-900">{selectedOrder.order_number}</h2>
+              <h2 className="text-3xl font-black text-gray-900">{selectedOrder.order_number}</h2>
               <div className="flex items-center gap-2 shrink-0 ml-4">
                 {canCancel && selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && (
                   <Button size="sm" variant="destructive" onClick={() => setIsCancelConfirmOpen(true)} aria-label="Cancelar Pedido">
