@@ -110,187 +110,8 @@ const ReportsView = () => {
     return { rev, cnt, avg, payments, channels, fees }
   }
 
-  const exportPDF = async (data, label) => {
-    const { default: jsPDF } = await import('jspdf')
-    await import('jspdf-autotable')
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-    const pageW = 210
-    const margin = 20
-    const contentW = pageW - margin * 2
-
-    const orgName = organization?.name || 'FoodHub'
-    const title = `Reporte ${label}`
-    const subtitle = `${MONTHS[cm]} ${cy}`
-
-    // Header
-    doc.setFillColor(15, 15, 15)
-    doc.rect(0, 0, pageW, 38, 'F')
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(18)
-    doc.setFont('helvetica', 'bold')
-    doc.text(orgName, margin, 20)
-    doc.setFontSize(11)
-    doc.setFont('helvetica', 'normal')
-    doc.text(title, margin, 30)
-    doc.text(subtitle, margin + doc.getTextWidth(title + '  '), 30)
-
-    // Date generated
-    const now = new Date()
-    const dateStr = now.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    doc.setTextColor(150, 150, 150)
-    doc.setFontSize(8)
-    doc.text(`Generado el ${dateStr}`, margin, 46)
-
-    let y = 54
-
-    // Summary
-    const totalRev = data.reduce((s, d) => s + calcDay(d.orders).rev, 0)
-    const totalOrd = data.reduce((s, d) => s + d.orders.length, 0)
-    const totalAvg = totalOrd > 0 ? Math.round(totalRev / totalOrd) : 0
-    const totalFees = data.reduce((s, d) => s + calcDay(d.orders).fees, 0)
-
-    doc.setFillColor(248, 249, 250)
-    doc.roundedRect(margin, y, contentW / 3 - 3, 22, 2, 2, 'F')
-    doc.roundedRect(margin + contentW / 3 + 1.5, y, contentW / 3 - 3, 22, 2, 2, 'F')
-    doc.roundedRect(margin + 2 * (contentW / 3) + 3, y, contentW / 3 - 3, 22, 2, 2, 'F')
-
-    doc.setTextColor(100, 100, 100)
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'bold')
-    doc.text('VENTAS TOTALES', margin + 4, y + 7)
-    doc.text('ÓRDENES', margin + contentW / 3 + 5.5, y + 7)
-    doc.text('TICKET PROM.', margin + 2 * (contentW / 3) + 7, y + 7)
-    doc.setTextColor(0, 0, 0)
-    doc.setFontSize(14)
-    doc.setFont('helvetica', 'bold')
-    doc.text(fmt(totalRev), margin + 4, y + 18)
-    doc.text(String(totalOrd), margin + contentW / 3 + 5.5, y + 18)
-    doc.text(fmt(totalAvg), margin + 2 * (contentW / 3) + 7, y + 18)
-
-    y += 32
-
-    // Payments summary
-    const allPayments = {}
-    data.forEach(d => {
-      const { payments } = calcDay(d.orders)
-      Object.entries(payments).forEach(([k, v]) => { allPayments[k] = (allPayments[k] || 0) + v })
-    })
-
-    doc.setTextColor(60, 60, 60)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'bold')
-    doc.text('Métodos de pago', margin, y)
-    y += 8
-
-    const payTable = Object.entries(paymentMeta).map(([key, m]) => {
-      const amt = allPayments[key] || 0
-      return [m.label, fmt(amt), totalRev > 0 ? `${Math.round((amt / totalRev) * 100)}%` : '0%']
-    })
-
-    doc.autoTable({
-      startY: y,
-      head: [['Método', 'Monto', '%']],
-      body: payTable,
-      theme: 'grid',
-      headStyles: { fillColor: [15, 15, 15], fontSize: 8, fontStyle: 'bold' },
-      bodyStyles: { fontSize: 9 },
-      columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 50, halign: 'right' }, 2: { cellWidth: 30, halign: 'right' } },
-      margin: { left: margin, right: margin },
-      tableWidth: contentW,
-    })
-
-    y = doc.lastAutoTable.finalY + 12
-
-    // Daily breakdown table
-    doc.setTextColor(60, 60, 60)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'bold')
-    doc.text('Detalle por día', margin, y)
-    y += 8
-
-    const dayRows = data.map(d => {
-      const { rev, cnt, avg, payments } = calcDay(d.orders)
-      const dt = new Date(d.date + 'T12:00:00')
-      return [
-        `${DAYS[dt.getDay()]}, ${dt.getDate()} ${MONTHS[dt.getMonth()]}`,
-        fmt(rev),
-        String(cnt),
-        fmt(avg),
-        fmt(payments.cash || 0),
-        fmt(payments.card || 0),
-        fmt(payments.transfer || 0),
-        fmt(payments.online_gateway || 0),
-      ]
-    })
-
-    // Totals row
-    const tPay = {}
-    data.forEach(d => {
-      const { payments } = calcDay(d.orders)
-      Object.entries(payments).forEach(([k, v]) => { tPay[k] = (tPay[k] || 0) + v })
-    })
-    dayRows.push([
-      'TOTAL',
-      fmt(totalRev), String(totalOrd), fmt(totalAvg),
-      fmt(tPay.cash || 0), fmt(tPay.card || 0), fmt(tPay.transfer || 0), fmt(tPay.online_gateway || 0),
-    ])
-
-    doc.autoTable({
-      startY: y,
-      head: [['Día', 'Ventas', 'Ord.', 'Ticket', 'Efectivo', 'Tarjeta', 'Transf.', 'Online']],
-      body: dayRows,
-      theme: 'grid',
-      headStyles: { fillColor: [15, 15, 15], fontSize: 7, fontStyle: 'bold' },
-      bodyStyles: { fontSize: 7 },
-      footStyles: { fillColor: [248, 249, 250], fontStyle: 'bold', fontSize: 7 },
-      columnStyles: {
-        0: { cellWidth: 42 },
-        1: { cellWidth: 28, halign: 'right' },
-        2: { cellWidth: 14, halign: 'center' },
-        3: { cellWidth: 28, halign: 'right' },
-        4: { cellWidth: 22, halign: 'right' },
-        5: { cellWidth: 22, halign: 'right' },
-        6: { cellWidth: 22, halign: 'right' },
-        7: { cellWidth: 22, halign: 'right' },
-      },
-      margin: { left: margin, right: margin },
-      tableWidth: contentW,
-    })
-
-    // Footer
-    const totalPages = doc.internal.getNumberOfPages()
-    for (let i = 1; i <= totalPages; i++) {
-      doc.setPage(i)
-      doc.setTextColor(180, 180, 180)
-      doc.setFontSize(7)
-      doc.text(`${orgName} · Reporte ${label}`, margin, 290)
-      doc.text(`Página ${i} de ${totalPages}`, pageW - margin, 290, { align: 'right' })
-    }
-
-    doc.save(`reporte-${label.toLowerCase()}-${MONTHS[cm].toLowerCase()}-${cy}.pdf`)
-  }
-
-  const exportExcel = (data, label) => {
-    const XLSX = require('xlsx')
-    const wb = XLSX.utils.book_new()
-
-    const orgName = organization?.name || 'FoodHub'
-    const title = `Reporte ${label} - ${MONTHS[cm]} ${cy}`
-
-    // Summary
-    const totalRev = data.reduce((s, d) => s + calcDay(d.orders).rev, 0)
-    const totalOrd = data.reduce((s, d) => s + d.orders.length, 0)
-    const totalAvg = totalOrd > 0 ? Math.round(totalRev / totalOrd) : 0
-    const totalFees = data.reduce((s, d) => s + calcDay(d.orders).fees, 0)
-
-    const allPayments = {}
-    data.forEach(d => {
-      const { payments } = calcDay(d.orders)
-      Object.entries(payments).forEach(([k, v]) => { allPayments[k] = (allPayments[k] || 0) + v })
-    })
-
-    // Daily rows
-    const dayRows = data.map(d => {
+  const buildDayRows = (data) => {
+    const rows = data.map(d => {
       const { rev, cnt, avg, payments, channels, fees } = calcDay(d.orders)
       const dt = new Date(d.date + 'T12:00:00')
       const chStr = Object.entries(channelMeta)
@@ -311,22 +132,22 @@ const ReportsView = () => {
       }
     })
 
-    // Totals row
+    const totalRev = data.reduce((s, d) => s + calcDay(d.orders).rev, 0)
+    const totalOrd = data.reduce((s, d) => s + d.orders.length, 0)
+    const totalAvg = totalOrd > 0 ? Math.round(totalRev / totalOrd) : 0
     const tPay = {}
-    data.forEach(d => {
-      const { payments } = calcDay(d.orders)
-      Object.entries(payments).forEach(([k, v]) => { tPay[k] = (tPay[k] || 0) + v })
-    })
     const totalChannels = {}
     data.forEach(d => {
-      const { channels } = calcDay(d.orders)
+      const { payments, channels } = calcDay(d.orders)
+      Object.entries(payments).forEach(([k, v]) => { tPay[k] = (tPay[k] || 0) + v })
       Object.entries(channels).forEach(([k, v]) => { totalChannels[k] = (totalChannels[k] || 0) + v })
     })
     const totalChStr = Object.entries(channelMeta)
       .filter(([k]) => totalChannels[k])
       .map(([k, m]) => `${m.label}: ${totalChannels[k]}`)
       .join(', ')
-    dayRows.push({
+
+    rows.push({
       'Día': 'TOTAL',
       'Ventas': totalRev,
       'Órdenes': totalOrd,
@@ -335,9 +156,33 @@ const ReportsView = () => {
       'Tarjeta': tPay.card || 0,
       'Transferencia': tPay.transfer || 0,
       'Online': tPay.online_gateway || 0,
-      'Delivery Fees': totalFees,
+      'Delivery Fees': data.reduce((s, d) => s + calcDay(d.orders).fees, 0),
       'Canales': totalChStr,
     })
+
+    return rows
+  }
+
+  const exportExcel = async (data, label) => {
+    const mod = await import('xlsx')
+    const XLSX = mod.utils ? mod : mod.default
+    const wb = XLSX.utils.book_new()
+
+    const orgName = organization?.name || 'FoodHub'
+    const title = `Reporte ${label} - ${MONTHS[cm]} ${cy}`
+
+    const totalRev = data.reduce((s, d) => s + calcDay(d.orders).rev, 0)
+    const totalOrd = data.reduce((s, d) => s + d.orders.length, 0)
+    const totalAvg = totalOrd > 0 ? Math.round(totalRev / totalOrd) : 0
+    const totalFees = data.reduce((s, d) => s + calcDay(d.orders).fees, 0)
+
+    const allPayments = {}
+    data.forEach(d => {
+      const { payments } = calcDay(d.orders)
+      Object.entries(payments).forEach(([k, v]) => { allPayments[k] = (allPayments[k] || 0) + v })
+    })
+
+    const dayRows = buildDayRows(data)
 
     // Summary sheet
     const summaryData = [
@@ -370,6 +215,61 @@ const ReportsView = () => {
     XLSX.writeFile(wb, `reporte-${label.toLowerCase()}-${MONTHS[cm].toLowerCase()}-${cy}.xlsx`)
   }
 
+  const exportCSV = (data, label) => {
+    const orgName = organization?.name || 'FoodHub'
+    const title = `Reporte ${label} - ${MONTHS[cm]} ${cy}`
+
+    const totalRev = data.reduce((s, d) => s + calcDay(d.orders).rev, 0)
+    const totalOrd = data.reduce((s, d) => s + d.orders.length, 0)
+    const totalAvg = totalOrd > 0 ? Math.round(totalRev / totalOrd) : 0
+    const totalFees = data.reduce((s, d) => s + calcDay(d.orders).fees, 0)
+
+    const allPayments = {}
+    data.forEach(d => {
+      const { payments } = calcDay(d.orders)
+      Object.entries(payments).forEach(([k, v]) => { allPayments[k] = (allPayments[k] || 0) + v })
+    })
+
+    const summaryRows = [
+      ['Métrica', 'Valor'],
+      ['Organización', orgName],
+      ['Período', title],
+      ['Ventas Totales', totalRev],
+      ['Órdenes', totalOrd],
+      ['Ticket Promedio', totalAvg],
+      ['Delivery Fees', totalFees],
+      ...Object.entries(paymentMeta)
+        .filter(([key]) => allPayments[key])
+        .map(([key, m]) => [m.label, allPayments[key]]),
+    ]
+
+    const dayRows = buildDayRows(data)
+    const dayCols = ['Día', 'Ventas', 'Órdenes', 'Ticket Prom.', 'Efectivo', 'Tarjeta', 'Transferencia', 'Online', 'Delivery Fees', 'Canales']
+    const csvRows = [
+      ...summaryRows,
+      [],
+      dayCols,
+      ...dayRows.map(r => dayCols.map(c => r[c])),
+    ]
+
+    const escape = (v) => {
+      if (v === null || v === undefined) return ''
+      const s = String(v)
+      return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+    }
+    const csv = csvRows.map(row => row.map(escape).join(',')).join('\n')
+
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `reporte-${label.toLowerCase()}-${MONTHS[cm].toLowerCase()}-${cy}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="bg-gray-50 p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -387,13 +287,13 @@ const ReportsView = () => {
                 </button>
                 {openDropdown === 'weekly' && (
                   <div className="absolute right-0 top-full mt-1.5 w-36 bg-white rounded-xl shadow-lg border border-gray-200/80 py-1 z-50 overflow-hidden">
-                    <button onClick={() => { exportPDF(days.slice(0, 7), 'Semanal'); setOpenDropdown(null) }}
-                      className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                      <FileText className="h-4 w-4 text-red-500" /> PDF
-                    </button>
                     <button onClick={() => { exportExcel(days.slice(0, 7), 'Semanal'); setOpenDropdown(null) }}
                       className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                      <FileSpreadsheet className="h-4 w-4 text-emerald-600" /> Excel
+                      <FileSpreadsheet className="h-4 w-4 text-emerald-600" /> XLS
+                    </button>
+                    <button onClick={() => { exportCSV(days.slice(0, 7), 'Semanal'); setOpenDropdown(null) }}
+                      className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                      <FileText className="h-4 w-4 text-blue-500" /> CSV
                     </button>
                   </div>
                 )}
@@ -407,13 +307,13 @@ const ReportsView = () => {
                 </button>
                 {openDropdown === 'monthly' && (
                   <div className="absolute right-0 top-full mt-1.5 w-36 bg-white rounded-xl shadow-lg border border-gray-200/80 py-1 z-50 overflow-hidden">
-                    <button onClick={() => { exportPDF(days, 'Mensual'); setOpenDropdown(null) }}
-                      className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                      <FileText className="h-4 w-4 text-red-500" /> PDF
-                    </button>
                     <button onClick={() => { exportExcel(days, 'Mensual'); setOpenDropdown(null) }}
                       className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                      <FileSpreadsheet className="h-4 w-4 text-emerald-600" /> Excel
+                      <FileSpreadsheet className="h-4 w-4 text-emerald-600" /> XLS
+                    </button>
+                    <button onClick={() => { exportCSV(days, 'Mensual'); setOpenDropdown(null) }}
+                      className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                      <FileText className="h-4 w-4 text-blue-500" /> CSV
                     </button>
                   </div>
                 )}
