@@ -324,17 +324,23 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                 <div className="space-y-2.5">
                   {extraIngredients.map(ing => {
                     const selected = !!selectedExtras.find(i => i.id === ing.id);
+                    const isUnavailable = !ing.price || Number(ing.price) <= 0 || Number(ing.stock_quantity) <= 0;
                     return (
                       <button
                         key={ing.id}
-                        onClick={() => toggleExtra(ing)}
+                        onClick={() => !isUnavailable && toggleExtra(ing)}
+                        disabled={isUnavailable}
                         className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all text-left ${
-                          selected ? 'border-black bg-gray-50/50' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                          isUnavailable
+                            ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                            : selected ? 'border-black bg-gray-50/50' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
-                            selected ? 'border-black bg-black' : 'border-gray-300 bg-white'
+                            isUnavailable
+                              ? 'border-gray-300 bg-gray-100'
+                              : selected ? 'border-black bg-black' : 'border-gray-300 bg-white'
                           }`}>
                             {selected && (
                               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3.5} stroke="currentColor" className="w-3 h-3 text-white">
@@ -345,9 +351,13 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                           <IngredientIcon name={ing.name} icon={ing.icon} className="h-5 w-5 text-gray-900 shrink-0" />
                           <span className="font-bold text-sm text-gray-900">{ing.name}</span>
                         </div>
-                        <span className="font-bold text-sm text-gray-900">
-                          {ing.price ? `+$${Math.round(ing.price).toLocaleString('es-CL')}` : 'Gratis'}
-                        </span>
+                        {isUnavailable ? (
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">No disponible</span>
+                        ) : (
+                          <span className="font-bold text-sm text-gray-900">
+                            {ing.price ? `+$${Math.round(ing.price).toLocaleString('es-CL')}` : 'Gratis'}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -458,22 +468,30 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                             {selectedOptionObj.ingredients.filter(i => i.isExtra).map(ing => {
                               const isIngSelected = currentSelection?.selectedIngredients?.some(i => i.id === ing.id);
                               const ingPrice = Math.round(ing.price);
+                              const isUnavailable = !ing.price || Number(ing.price) <= 0 || Number(ing.stock_quantity) <= 0;
                               return (
                                 <button
                                   key={ing.id}
                                   type="button"
                                   onClick={() => handleToggleIngredient(slot.id, ing)}
+                                  disabled={isUnavailable}
                                   className={`flex items-center justify-between px-3 py-2 border rounded-xl text-xs transition-all text-left ${
-                                    isIngSelected 
-                                      ? 'border-orange-600 bg-orange-50/50 text-orange-700 font-bold' 
-                                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                    isUnavailable
+                                      ? 'border-gray-200 bg-gray-50 text-gray-400 opacity-60 cursor-not-allowed'
+                                      : isIngSelected 
+                                        ? 'border-orange-600 bg-orange-50/50 text-orange-700 font-bold' 
+                                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                                   }`}
                                 >
                                   <span className="flex items-center gap-1.5 truncate min-w-0">
                                     <IngredientIcon name={ing.name} icon={ing.icon} size={14} className="text-gray-500 shrink-0" />
                                     <span className="truncate">{ing.name}</span>
                                   </span>
-                                  <span className="font-semibold shrink-0 text-orange-600 ml-1">+${ingPrice.toLocaleString('es-CL')}</span>
+                                  {isUnavailable ? (
+                                    <span className="text-[9px] font-bold uppercase tracking-wide text-gray-500 shrink-0 ml-1">No disponible</span>
+                                  ) : (
+                                    <span className="font-semibold shrink-0 text-orange-600 ml-1">+${ingPrice.toLocaleString('es-CL')}</span>
+                                  )}
                                 </button>
                               );
                             })}

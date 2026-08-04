@@ -56,7 +56,7 @@ export const getPublicCatalog = async (organizationId) => {
         ),
         product_ingredients (
           is_base, is_extra,
-          ingredients ( id, name, price, is_active )
+          ingredients ( id, name, price, is_active, stock_quantity )
         ),
         bundle_slots (
           id,
@@ -83,7 +83,7 @@ export const getPublicCatalog = async (organizationId) => {
               ),
               product_ingredients (
                 is_base, is_extra,
-                ingredients ( id, name, price, is_active )
+                ingredients ( id, name, price, is_active, stock_quantity )
               )
             )
           )

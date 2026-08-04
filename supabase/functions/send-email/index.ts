@@ -76,6 +76,20 @@ serve(async (req) => {
       }
       const paymentLabel = paymentMethodMap[data.payment_method] || data.payment_method || 'En local'
 
+      const isKlapPayment = data.payment_method === 'online_gateway' && data.payment_reference
+      const klapBlock = isKlapPayment ? `
+          <tr>
+            <td style="padding: 0 16px 24px 16px; text-align: center;">
+              <p style="margin: 0 0 8px 0; font-size: 11px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                Pago procesado a través de
+              </p>
+              <img src="https://www.alcaplus.cl/media/2024/08/logotipo-klap.webp" alt="Klap" width="48" style="width: 48px; max-width: 56px; display: inline-block; margin: 0 auto 6px auto; opacity: 0.7;" />
+              <p style="margin: 0; font-size: 11px; color: #999999; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                N° de transacción: <span style="color: #666666; font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">${data.payment_reference}</span>
+              </p>
+            </td>
+          </tr>` : ''
+
       const totalFormatted = data.total
         ? `$${Number(data.total).toLocaleString('es-CL')}`
         : ''
@@ -97,7 +111,7 @@ serve(async (req) => {
                 <tr>
                   <td style="padding: 14px 18px;">
                     <p style="margin: 0; font-size: 14px; font-weight: 700; color: #581c87; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                      📅 Programado: ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)} a las ${timeStr} hrs
+                      Programado: ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)} a las ${timeStr} hrs
                     </p>
                     <p style="margin: 4px 0 0 0; font-size: 13px; color: #6d28d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                       Tu pedido se preparará para esa fecha y hora.
@@ -153,7 +167,7 @@ serve(async (req) => {
       <td align="center" style="padding: 0;">
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; background-color: #ffffff; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.10);">
 
-          <!-- ██ BRAND HEADER ██ -->
+          <!-- BRAND HEADER -->
           <tr>
             <td style="background-color: #0a0a0a; padding: 36px 16px 28px 16px; text-align: center;">
               ${orgLogo
@@ -162,12 +176,12 @@ serve(async (req) => {
               }
               <br/>
               <span style="display: inline-block; background-color: ${isDelivery ? '#f97316' : '#22c55e'}; color: #ffffff; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 6px 18px; border-radius: 100px;">
-                ${isDelivery ? '🛵 &nbsp;A reparto' : '✓ &nbsp;¡Listo para retirar!'}
+                ${isDelivery ? '&nbsp;A reparto' : '&nbsp;¡Listo para retirar!'}
               </span>
             </td>
           </tr>
 
-          <!-- ██ ORDER HEADLINE ██ -->
+          <!-- ORDER HEADLINE -->
           <tr>
             <td style="padding: 16px 16px 0 16px; text-align: center; border-bottom: 1px solid #f0f0f0;">
               <p style="margin: 0 0 6px 0; font-size: 13px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: #aaaaaa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
@@ -184,14 +198,14 @@ serve(async (req) => {
 
           ${scheduledBlock}
 
-          <!-- ██ PICKUP/DELIVERY LOCATION ██ -->
+          <!-- PICKUP/DELIVERY LOCATION -->
           <tr>
             <td style="padding: 24px 16px;">
               <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f7f7f8; border-radius: 12px; overflow: hidden;">
                 <tr>
                   <td style="padding: 20px 20px 4px 20px;">
                     <p style="margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #999999; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                      ${isDelivery ? '🛵 Dirección de Despacho' : '📍 Punto de Retiro'}
+                      ${isDelivery ? 'Dirección de Despacho' : 'Punto de Retiro'}
                     </p>
                   </td>
                 </tr>
@@ -212,7 +226,7 @@ serve(async (req) => {
                 ${data.uber_tracking_url ? `<tr>
                   <td style="padding: 0 20px 20px 20px;">
                     <a href="${data.uber_tracking_url}" target="_blank" style="display: inline-block; background-color: #16a34a; color: #ffffff; font-size: 13px; font-weight: 700; padding: 10px 24px; border-radius: 8px; text-decoration: none;">
-                      🔗 Seguir delivery en vivo
+                      Seguir delivery en vivo
                     </a>
                   </td>
                 </tr>` : ''}
@@ -220,7 +234,7 @@ serve(async (req) => {
             </td>
           </tr>
 
-          <!-- ██ ORDER SUMMARY ██ -->
+          <!-- ORDER SUMMARY -->
           <tr>
             <td style="padding: 0 16px 24px 16px;">
               <p style="margin: 0 0 16px 0; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #0a0a0a; border-bottom: 2px solid #0a0a0a; padding-bottom: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
@@ -248,15 +262,15 @@ serve(async (req) => {
             </td>
           </tr>
 
+          ${klapBlock}
 
-
-          <!-- ██ FOOTER ██ -->
+          <!-- FOOTER -->
           <tr>
             <td style="background-color: #f7f7f8; padding: 24px 16px; text-align: center; border-top: 1px solid #eeeeee;">
-              <p style="margin: 0 0 4px 0; font-size: 12px; color: #cccccc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                Impulsado por <strong style="color: #aaaaaa;">FoodHub</strong>
+              <p style="margin: 0 0 4px 0; font-size: 12px; color: #666666; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                Impulsado por <strong style="color: #444444;">FoodHub</strong>
               </p>
-              <p style="margin: 0; font-size: 11px; color: #dddddd; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+              <p style="margin: 0; font-size: 11px; color: #777777; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 Este correo fue enviado automáticamente, por favor no respondas.
               </p>
             </td>
@@ -297,6 +311,20 @@ serve(async (req) => {
       }
       const paymentLabel2 = paymentMethodMap[data.payment_method] || data.payment_method || 'En local'
 
+      const isKlapPayment2 = data.payment_method === 'online_gateway' && data.payment_reference
+      const klapBlock2 = isKlapPayment2 ? `
+          <tr>
+            <td style="padding: 0 16px 24px 16px; text-align: center;">
+              <p style="margin: 0 0 8px 0; font-size: 11px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                Pago procesado a través de
+              </p>
+              <img src="https://www.alcaplus.cl/media/2024/08/logotipo-klap.webp" alt="Klap" width="48" style="width: 48px; max-width: 56px; display: inline-block; margin: 0 auto 6px auto; opacity: 0.7;" />
+              <p style="margin: 0; font-size: 11px; color: #999999; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                N° de transacción: <span style="color: #666666; font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">${data.payment_reference}</span>
+              </p>
+            </td>
+          </tr>` : ''
+
       const pickupMethod2 = data.order_type === 'table' ? 'Servicio a la mesa'
         : data.order_type === 'takeaway' ? 'Llevar'
         : isDelivery2 ? 'Despacho a Domicilio'
@@ -313,7 +341,7 @@ serve(async (req) => {
                 <tr>
                   <td style="padding: 14px 18px;">
                     <p style="margin: 0; font-size: 14px; font-weight: 700; color: #581c87; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                      📅 Programado: ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)} a las ${timeStr} hrs
+                      Programado: ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)} a las ${timeStr} hrs
                     </p>
                     <p style="margin: 4px 0 0 0; font-size: 13px; color: #6d28d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                       Tu pedido se preparará para esa fecha y hora.
@@ -379,7 +407,7 @@ serve(async (req) => {
               }
               <br/>
               <span style="display: inline-block; background-color: #3b82f6; color: #ffffff; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 6px 18px; border-radius: 100px;">
-                ✔ &nbsp;Pedido Confirmado
+                &nbsp;Pedido Confirmado
               </span>
             </td>
           </tr>
@@ -411,7 +439,7 @@ serve(async (req) => {
                 <tr>
                   <td style="padding: 20px 20px 4px 20px;">
                     <p style="margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #999999; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                      ${isDelivery2 ? '🛵 Dirección de Despacho' : '📍 Punto de Retiro'}
+                      ${isDelivery2 ? 'Dirección de Despacho' : 'Punto de Retiro'}
                     </p>
                   </td>
                 </tr>
@@ -468,15 +496,15 @@ serve(async (req) => {
             </td>
           </tr>
 
+          ${klapBlock2}
 
-
-          <!-- ██ FOOTER ██ -->
+          <!-- FOOTER -->
           <tr>
             <td style="background-color: #f7f7f8; padding: 24px 16px; text-align: center; border-top: 1px solid #eeeeee;">
-              <p style="margin: 0 0 4px 0; font-size: 12px; color: #cccccc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                Impulsado por <strong style="color: #aaaaaa;">FoodHub</strong>
+              <p style="margin: 0 0 4px 0; font-size: 12px; color: #666666; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                Impulsado por <strong style="color: #444444;">FoodHub</strong>
               </p>
-              <p style="margin: 0; font-size: 11px; color: #dddddd; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+              <p style="margin: 0; font-size: 11px; color: #777777; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 Este correo fue enviado automáticamente, por favor no respondas.
               </p>
             </td>

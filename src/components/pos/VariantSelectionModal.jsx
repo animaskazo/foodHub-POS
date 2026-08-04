@@ -138,17 +138,22 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
             <div className="grid grid-cols-1 gap-2">
               {extraIngredients.map((ing) => {
                 const isSelected = selectedIngredients.some(i => i.id === ing.id);
+                const isUnavailable = !ing.price || Number(ing.price) <= 0 || Number(ing.stock_quantity) <= 0;
                 return (
                   <div
                     key={ing.id}
-                    onClick={() => toggleIngredient(ing)}
-                    className={`flex items-center justify-between p-4 border-2 rounded-xl transition-all cursor-pointer select-none ${
-                      isSelected ? 'border-blue-600 bg-blue-50/30' : 'border-gray-200 hover:border-gray-300 bg-white'
+                    onClick={() => !isUnavailable && toggleIngredient(ing)}
+                    className={`flex items-center justify-between p-4 border-2 rounded-xl transition-all select-none ${
+                      isUnavailable
+                        ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                        : isSelected ? 'border-blue-600 bg-blue-50/30 cursor-pointer' : 'border-gray-200 hover:border-gray-300 bg-white cursor-pointer'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0 ${
-                        isSelected ? 'border-blue-600 bg-blue-600' : 'border-gray-300 bg-white'
+                        isUnavailable
+                          ? 'border-gray-300 bg-gray-100'
+                          : isSelected ? 'border-blue-600 bg-blue-600' : 'border-gray-300 bg-white'
                       }`}>
                         {isSelected && (
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3.5} stroke="currentColor" className="w-3 h-3 text-white">
@@ -159,9 +164,13 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
                       <IngredientIcon icon={ing.icon} className="h-5 w-5 text-gray-900 shrink-0" />
                       <span className="font-bold text-[15px] sm:text-sm text-gray-900 leading-snug">{ing.name}</span>
                     </div>
-                    <span className="font-bold text-[15px] sm:text-sm text-gray-900 shrink-0 ml-2">
-                      +${Math.round(ing.price).toLocaleString('es-CL')}
-                    </span>
+                    {isUnavailable ? (
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full shrink-0 ml-2">No disponible</span>
+                    ) : (
+                      <span className="font-bold text-[15px] sm:text-sm text-gray-900 shrink-0 ml-2">
+                        +${Math.round(ing.price).toLocaleString('es-CL')}
+                      </span>
+                    )}
                   </div>
                 );
               })}

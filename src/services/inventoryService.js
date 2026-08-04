@@ -535,6 +535,7 @@ export const getOutOfStockProductIds = async (organizationId) => {
     .from('product_ingredients')
     .select(`
       product_id,
+      is_base,
       portion_multiplier,
       variant_option_id,
       ingredients!inner(id, stock_quantity, portion_quantity)
@@ -547,6 +548,10 @@ export const getOutOfStockProductIds = async (organizationId) => {
 
   const productConsumption = {};
   for (const pi of productIngredients || []) {
+    // Solo los ingredientes base determinan si el producto está sin stock.
+    // Los ingredientes extra (opcionales) no deben bloquear la compra del producto.
+    if (pi.is_base !== true) continue;
+
     const pid = pi.product_id;
     if (!productConsumption[pid]) productConsumption[pid] = {};
     const ingId = pi.ingredients.id;

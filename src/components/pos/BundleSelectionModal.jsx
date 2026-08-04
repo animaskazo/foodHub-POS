@@ -287,18 +287,26 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
                         {selectedOptionObj.ingredients.filter(i => i.isExtra).map(ing => {
                           const isIngSelected = currentSelection?.selectedIngredients?.some(i => i.id === ing.id);
                           const ingPrice = Math.round(ing.price);
+                          const isUnavailable = !ing.price || Number(ing.price) <= 0 || Number(ing.stock_quantity) <= 0;
                           return (
                             <button
                               key={ing.id}
                               onClick={() => handleToggleIngredient(slot.id, ing)}
+                              disabled={isUnavailable}
                               className={`flex items-center justify-between px-3 py-2.5 sm:py-2 border rounded-lg text-[13px] sm:text-xs transition-all text-left ${
-                                isIngSelected 
-                                  ? 'border-orange-500 bg-orange-50/50 text-orange-700 font-bold' 
-                                  : 'border-gray-250 bg-white text-gray-600 hover:border-gray-300'
+                                isUnavailable
+                                  ? 'border-gray-200 bg-gray-50 text-gray-400 opacity-60 cursor-not-allowed'
+                                  : isIngSelected 
+                                    ? 'border-orange-500 bg-orange-50/50 text-orange-700 font-bold' 
+                                    : 'border-gray-250 bg-white text-gray-600 hover:border-gray-300'
                               }`}
                             >
                               <span className="truncate pr-2">{ing.name}</span>
-                              <span className="font-semibold shrink-0 text-gray-400">+${ingPrice}</span>
+                              {isUnavailable ? (
+                                <span className="font-bold uppercase tracking-wide text-[9px] text-gray-500 shrink-0">No disponible</span>
+                              ) : (
+                                <span className="font-semibold shrink-0 text-gray-400">+${ingPrice}</span>
+                              )}
                             </button>
                           );
                         })}

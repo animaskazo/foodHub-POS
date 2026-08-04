@@ -374,7 +374,7 @@ export const updateOrderStatus = async (orderId, status) => {
           uber_tracking_url,
           branch_id,
           customer_id,
-          payments ( method, status ),
+          payments ( method, status, reference_code ),
           order_items (
             product_name,
             quantity,
@@ -440,6 +440,7 @@ export const updateOrderStatus = async (orderId, status) => {
             subtotal: order.total - (order.delivery_fee || 0),
             delivery_fee: order.delivery_fee,
             payment_method: paymentMethod,
+            payment_reference: order.payments?.[0]?.reference_code || null,
             uber_tracking_url: order.uber_tracking_url,
             items: order.order_items || [],
             branch: {
