@@ -203,11 +203,22 @@ const DashboardView = () => {
           
           if (localStorage.getItem('pos_auto_print_enabled') === 'true') {
             setAutoPrintOrder(arrived[0]);
-            // Allow React to render the new PrintableReceipt in DOM, then print
+            import('sonner').then(({ toast }) => toast.info('Impresión automática iniciada...'));
+            
+            // Usar un hack para saltar la protección de Chrome
             setTimeout(() => {
               const originalTitle = document.title;
               document.title = `Orden_#${arrived[0].order_number}`;
-              window.print();
+              
+              // Simular click de usuario en un botón oculto
+              const btn = document.getElementById('hidden-print-trigger');
+              if (btn) {
+                btn.click();
+              } else {
+                window.focus();
+                window.print();
+              }
+              
               document.title = originalTitle;
             }, 500);
           }
@@ -517,6 +528,17 @@ const DashboardView = () => {
       )}
       {/* Printable Receipt for Auto-Printing New Orders */}
       <PrintableReceipt order={autoPrintOrder} organization={organization} />
+      
+      {/* Hidden button to trigger print programmically bypassing gesture restrictions in some browsers */}
+      <button 
+        id="hidden-print-trigger" 
+        className="hidden" 
+        onClick={() => {
+          window.focus();
+          window.print();
+        }}
+        aria-hidden="true"
+      />
 
       <ShiftModal 
         isOpen={isShiftModalOpen} 

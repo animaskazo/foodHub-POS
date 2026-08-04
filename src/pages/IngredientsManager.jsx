@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Loader2, ListFilter, ChevronDown, Trash2, Package, History, Shapes, Wand2 } from 'lucide-react';
+import { Search, Plus, Loader2, ListFilter, ChevronDown, Trash2, Package, History, Shapes, Wand2, FileSpreadsheet } from 'lucide-react';
 import { getFirstOrganizationId, getIngredients, createIngredient, updateIngredient, deleteIngredient, bulkDeleteIngredients, duplicateIngredient } from '../services/catalogService';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,6 +16,7 @@ import Tooltip from '../components/ui/tooltip';
 import IngredientIcon from '../components/ui/IngredientIcon';
 import { getIngredientUsage, getIngredientMovements, adjustIngredientStock } from '../services/inventoryService';
 import { searchFoodIcons, recommendIngredientIcon } from '../utils/ingredientIcons';
+import ExcelImportIngredientsModal from '../components/ingredients/ExcelImportIngredientsModal';
 
 const UNITS = [
   { value: 'unit', label: 'Unid', short: 'unid', full: 'Unidad' },
@@ -32,6 +33,7 @@ const IngredientsManager = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, mode: 'single', targetId: null, isDeleting: false });
@@ -339,8 +341,8 @@ const IngredientsManager = () => {
             </Button>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="">
-              Acciones <ChevronDown className="ml-2 h-4 w-4" />
+            <Button variant="outline" className="" onClick={() => setIsExcelModalOpen(true)}>
+              <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" /> Importar Excel
             </Button>
             <Button className="" onClick={() => openModal()}>
               <Plus className="h-4 w-4 mr-2" /> Crear ingrediente
@@ -795,6 +797,12 @@ const IngredientsManager = () => {
           ? "¿Estás seguro de que deseas eliminar este ingrediente? Podría afectar los artículos que lo usan."
           : `¿Estás seguro de que deseas eliminar los ${selectedIds.length} ingredientes seleccionados? Podría afectar los artículos que los usan.`
         }
+      />
+
+      <ExcelImportIngredientsModal
+        isOpen={isExcelModalOpen}
+        onClose={() => setIsExcelModalOpen(false)}
+        onSuccess={() => loadIngredients(false)}
       />
       </div>
     </div>
