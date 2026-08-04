@@ -5,7 +5,7 @@ const PublicHeader = ({ org, cartCount, step, onBack, isOpen = true }) => {
   const canGoBack = step > 1 && step < 4;
 
   return (
-    <header className="sticky top-0 z-30 bg-white shadow-sm flex flex-col">
+    <header className="sticky top-0 z-40 bg-white shadow-sm flex flex-col">
       {!isOpen && (
         <div className="bg-red-500 text-white text-[13px] font-bold text-center py-1.5 px-4 w-full tracking-wide">
           En este momento el local se encuentra cerrado
