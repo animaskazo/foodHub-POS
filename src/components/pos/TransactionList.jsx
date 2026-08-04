@@ -641,14 +641,14 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                 </div>
 
                 <PrintableReceipt order={selectedOrder} organization={organization} />
+              </div>
 
-                {/* Fecha del pedido */}
-                <div className="flex items-center justify-center gap-2 pt-4 border-t border-gray-100 text-gray-500">
-                  <Clock className="h-3.5 w-3.5 text-gray-400" />
-                  <p className="text-xs">
-                    Pedido realizado el {new Date(selectedOrder.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })} a las {new Date(selectedOrder.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
+              {/* Fecha del pedido */}
+              <div className="flex items-center justify-center gap-2 pt-4 border-t border-gray-100 text-gray-500">
+                <Clock className="h-3.5 w-3.5 text-gray-400" />
+                <p className="text-xs">
+                  Pedido realizado el {new Date(selectedOrder.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })} a las {new Date(selectedOrder.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+                </p>
               </div>
             </div>
           </div>
