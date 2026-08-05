@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, ChevronDown, ListFilter, Plus, MoreHorizontal, Sparkles, Trash2, FolderInput, CheckCircle, XCircle, Tag } from 'lucide-react';
+import { Search, ChevronDown, ListFilter, Plus, MoreHorizontal, Sparkles, Trash2, FolderInput, CheckCircle, XCircle, Tag, GripVertical } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getFirstOrganizationId, getProducts, getCategories, quickUpdateProductStatus, quickUpdateProductCategory, deleteProduct, bulkDeleteProducts, duplicateProduct, bulkUpdateProductCategory, bulkUpdateProductStatus } from '../services/catalogService';
+import { getFirstOrganizationId, getProducts, getCategories, quickUpdateProductStatus, quickUpdateProductCategory, deleteProduct, bulkDeleteProducts, duplicateProduct, bulkUpdateProductCategory, bulkUpdateProductStatus, reorderProducts } from '../services/catalogService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import ActionMenu from '../components/ui/ActionMenu';
@@ -27,7 +27,50 @@ const CatalogManager = () => {
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, mode: 'single', targetId: null, isDeleting: false });
   const [assignCategoryModal, setAssignCategoryModal] = useState({ isOpen: false, selectedCategory: 'none', isUpdating: false });
   const [isTypeSelectionModalOpen, setIsTypeSelectionModalOpen] = useState(false);
+  const [dragId, setDragId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
+  const orderBeforeDragRef = useRef(null);
+  const didDropRef = useRef(false);
   const navigate = useNavigate();
+
+  const reorderLive = (draggedId, targetId) => {
+    setProducts(prev => {
+      if (!draggedId || draggedId === targetId) return prev;
+      const drag = prev.find(p => p.id === draggedId);
+      const target = prev.find(p => p.id === targetId);
+      if (!drag || !target || drag.category !== target.category) return prev;
+      const di = prev.findIndex(p => p.id === draggedId);
+      const ti = prev.findIndex(p => p.id === targetId);
+      if (di === -1 || ti === -1 || di === ti) return prev;
+      const order = [...prev];
+      order.splice(di, 1);
+      order.splice(ti, 0, drag);
+      return order;
+    });
+  };
+
+  const handleDropOn = async () => {
+    const finalOrder = [...products];
+    setDragId(null);
+    setDragOverId(null);
+    try {
+      await reorderProducts(finalOrder.map((p, i) => ({ id: p.id, sort_order: i })));
+      toast.success('Orden de artículos actualizado');
+    } catch (err) {
+      toast.error('Error al guardar el orden');
+      loadData(false);
+    }
+  };
+
+  const handleDragEnd = () => {
+    if (!didDropRef.current && orderBeforeDragRef.current) {
+      setProducts(orderBeforeDragRef.current);
+    }
+    didDropRef.current = false;
+    orderBeforeDragRef.current = null;
+    setDragId(null);
+    setDragOverId(null);
+  };
 
   const toggleCategory = (catName) => {
     setCollapsedCategories(prev => ({
@@ -300,7 +343,28 @@ const CatalogManager = () => {
                     {!isCollapsed && prods.map((product) => (
                       <tr 
                         key={product.id}
-                        className="hover:bg-gray-50 group transition-colors"
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                          if (!dragId || dragId === product.id) return;
+                          const drag = products.find(p => p.id === dragId);
+                          if (!drag || drag.category !== product.category) {
+                            if (dragOverId) setDragOverId(null);
+                            return;
+                          }
+                          if (dragOverId !== product.id) {
+                            reorderLive(dragId, product.id);
+                            setDragOverId(product.id);
+                          }
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          didDropRef.current = true;
+                          handleDropOn();
+                        }}
+                        className={`hover:bg-gray-50 group transition-colors ${
+                          dragOverId === product.id ? 'bg-blue-50/70 ring-2 ring-inset ring-blue-300' : ''
+                        } ${dragId === product.id ? 'opacity-40 bg-gray-50' : ''}`}
                       >
                         <td className="px-6 py-4">
                           <input 
@@ -312,6 +376,25 @@ const CatalogManager = () => {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
+                            <span
+                              draggable
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData('text/plain', product.id);
+                                e.dataTransfer.effectAllowed = 'move';
+                                orderBeforeDragRef.current = [...products];
+                                didDropRef.current = false;
+                                setDragId(product.id);
+                              }}
+                              onDragEnd={handleDragEnd}
+                              className={`flex items-center justify-center w-7 h-7 rounded-lg cursor-grab active:cursor-grabbing transition-colors shrink-0 select-none ${
+                                dragId === product.id
+                                  ? 'bg-blue-100 text-blue-600 shadow-sm'
+                                  : 'text-gray-300 hover:text-gray-600 hover:bg-gray-100 group-hover:text-gray-500'
+                              }`}
+                              title="Arrastrar para reordenar"
+                            >
+                              <GripVertical className="h-4 w-4" />
+                            </span>
                             <div 
                               className="w-10 h-10 rounded overflow-hidden bg-gray-100 bg-cover bg-center shrink-0 border flex items-center justify-center text-gray-400"
                               style={product.image ? { backgroundImage: `url(${product.image})` } : {}}

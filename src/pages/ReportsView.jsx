@@ -3,7 +3,8 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/AuthContext'
 import PageHeader from '../components/ui/PageHeader'
-import { ChevronLeft, ChevronRight, Loader2, FileDown, CalendarDays, FileText, FileSpreadsheet, Store, ShoppingBag, Globe, MessageCircle, Van } from 'lucide-react'
+import SalesAreaChart from '../components/charts/SalesAreaChart'
+import { ChevronLeft, ChevronRight, Loader2, FileDown, CalendarDays, FileText, FileSpreadsheet, Store, ShoppingBag, Globe, MessageCircle, Van, LineChart, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DAYS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado']
@@ -39,6 +40,8 @@ const ReportsView = () => {
   const [orders, setOrders] = useState([])
   const [selected, setSelected] = useState('resumen')
   const [openDropdown, setOpenDropdown] = useState(null)
+  const [annualYear, setAnnualYear] = useState(() => today.getFullYear())
+  const [annual, setAnnual] = useState(null)
   const dropdownRef = useRef(null)
   const printRef = useRef()
 
@@ -53,7 +56,7 @@ const ReportsView = () => {
   useDocumentTitle('Reportes')
 
   useEffect(() => {
-    if (authLoading || !organization?.id) return
+    if (authLoading || !organization?.id || selected === 'anual') return
     setLoading(true); setError(null)
     const s = new Date(cy, cm, 1)
     const e = new Date(cy, cm + 1, 0, 23, 59, 59, 999)
@@ -71,7 +74,40 @@ const ReportsView = () => {
       } catch (err) { console.error(err); setError('Error al cargar los datos.') }
       finally { setLoading(false) }
     })()
-  }, [organization?.id, authLoading, cm, cy])
+  }, [organization?.id, authLoading, cm, cy, selected])
+
+  useEffect(() => {
+    if (authLoading || !organization?.id || selected !== 'anual') return
+    setLoading(true); setError(null)
+    const start = new Date(annualYear, 0, 1)
+    const end = new Date(annualYear + 1, 0, 0, 23, 59, 59, 999)
+    const pStart = new Date(annualYear - 1, 0, 1)
+    const pEnd = new Date(annualYear - 1, 11, 31, 23, 59, 59, 999)
+    const sel = 'id, total, status, created_at'
+    ;(async () => {
+      try {
+        const [cr, pr] = await Promise.all([
+          supabase.from('orders').select(sel).eq('organization_id', organization.id).gte('created_at', start.toISOString()).lte('created_at', end.toISOString()),
+          supabase.from('orders').select(sel).eq('organization_id', organization.id).gte('created_at', pStart.toISOString()).lte('created_at', pEnd.toISOString()),
+        ])
+        if (cr.error) throw cr.error
+        if (pr.error) throw pr.error
+        const hide = organization?.hide_cancelled_orders === true
+        const clean = (rows) => (hide ? (rows || []).filter(o => o.status !== 'cancelled') : (rows || []))
+        const bucket = (rows) => {
+          const m = Array.from({ length: 12 }, () => ({ sales: 0, orders: 0 }))
+          ;(rows || []).forEach(o => {
+            const i = new Date(o.created_at).getMonth()
+            m[i].sales += Number(o.total || 0)
+            m[i].orders += 1
+          })
+          return m
+        }
+        setAnnual({ year: annualYear, current: bucket(clean(cr.data)), previous: bucket(clean(pr.data)) })
+      } catch (err) { console.error(err); setError('Error al cargar los datos anuales.') }
+      finally { setLoading(false) }
+    })()
+  }, [organization?.id, authLoading, annualYear, selected])
 
   const prev = () => { if (cm === 0) { setCm(11); setCy(y => y - 1) } else setCm(m => m - 1) }
   const next = () => { if (cm === 11) { setCm(0); setCy(y => y + 1) } else setCm(m => m + 1) }
@@ -92,6 +128,45 @@ const ReportsView = () => {
   const mRev = orders.reduce((s, o) => s + Number(o.total || 0), 0)
   const mOrd = orders.length
   const mFees = orders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0)
+
+  const annualStats = useMemo(() => {
+    if (!annual) return null
+    const cur = annual.current
+    const prev = annual.previous
+    const total = cur.reduce((s, m) => s + m.sales, 0)
+    const ordersCount = cur.reduce((s, m) => s + m.orders, 0)
+    const prevTotal = prev.reduce((s, m) => s + m.sales, 0)
+    const active = cur.filter(m => m.orders > 0).length
+    const avg = active > 0 ? Math.round(total / active) : 0
+    let best = -1, worst = -1
+    cur.forEach((m, i) => {
+      if (m.sales > 0 && (best === -1 || m.sales > cur[best].sales)) best = i
+      if (m.orders > 0 && (worst === -1 || m.sales < cur[worst].sales)) worst = i
+    })
+    const pct = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : null
+    return { total, ordersCount, avg, best, worst, pct, prevTotal }
+  }, [annual])
+
+  const annualChange = (i) => {
+    if (!annual || i === 0) return null
+    const prevS = annual.current[i - 1].sales
+    const curS = annual.current[i].sales
+    if (prevS === 0) return null
+    return ((curS - prevS) / prevS) * 100
+  }
+
+  const pctBadge = (value, inverse = false) => {
+    if (value === null || value === undefined) return <span className="text-xs text-gray-400">—</span>
+    if (value === 0) return <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500"><Minus className="h-3 w-3" />0%</span>
+    const up = value > 0
+    const good = inverse ? !up : up
+    return (
+      <span className={`inline-flex items-center gap-1 text-xs font-semibold ${good ? 'text-emerald-600' : 'text-red-500'}`}>
+        {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+        {Math.abs(value).toFixed(1)}%
+      </span>
+    )
+  }
 
   const calcDay = (orders) => {
     const rev = orders.reduce((s, o) => s + Number(o.total || 0), 0)
@@ -332,6 +407,114 @@ const ReportsView = () => {
 
         {loading ? (
           <div className="flex justify-center py-32"><Loader2 className="h-6 w-6 animate-spin text-gray-300" /></div>
+        ) : selected === 'anual' ? (
+          <div className="space-y-4">
+            {/* Annual hero */}
+            <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 mb-0.5">Ventas anuales</h2>
+                  <p className="text-sm text-gray-500">Compara las ventas mes a mes y con el año anterior.</p>
+                </div>
+                <div className="flex items-center gap-2 bg-white rounded-xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 px-2 py-1.5 w-fit">
+                  <button onClick={() => setAnnualYear(y => y - 1)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><ChevronLeft className="h-4 w-4 text-gray-500" /></button>
+                  <span className="text-sm font-semibold text-gray-900 min-w-[60px] text-center select-none">{annualYear}</span>
+                  <button onClick={() => setAnnualYear(y => y + 1)} disabled={annualYear >= today.getFullYear()} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"><ChevronRight className="h-4 w-4 text-gray-500" /></button>
+                </div>
+              </div>
+              {annualStats && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                  <div>
+                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{fmt(annualStats.total)}</div>
+                    <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Ventas totales {annualYear}</div>
+                    {annualStats.prevTotal > 0 && (
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        <span className="text-[11px] text-gray-400">vs {annualYear - 1}:</span>
+                        {pctBadge(annualStats.pct)}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{annualStats.ordersCount}</div>
+                    <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Órdenes</div>
+                    <div className="text-[11px] text-gray-400 mt-1.5">{annualStats.active} {annualStats.active === 1 ? 'mes' : 'meses'} con actividad</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{fmt(annualStats.avg)}</div>
+                    <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Promedio mensual</div>
+                    <div className="text-[11px] text-gray-400 mt-1.5">por mes con actividad</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{annualStats.best !== -1 ? MONTHS[annualStats.best] : '—'}</div>
+                    <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Mejor mes</div>
+                    {annualStats.best !== -1 && (
+                      <div className="text-[11px] text-gray-400 mt-1.5">{fmt(annual.current[annualStats.best].sales)} · {annual.current[annualStats.best].orders} órdenes</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Chart */}
+            <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-gray-900">Ventas mensuales {annualYear}</h3>
+                <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-emerald-500" />{annualYear}</span>
+                  <span className="flex items-center gap-1.5"><span className="w-4 border-t-2 border-dashed border-gray-300" />Año {annualYear - 1}</span>
+                </div>
+              </div>
+              {annual ? (
+                <SalesAreaChart
+                  labels={MONTHS.map(m => m.slice(0, 3))}
+                  current={annual.current.map(m => m.sales)}
+                  previous={annual.previous.map(m => m.sales)}
+                />
+              ) : (
+                <div className="text-center py-16"><p className="text-gray-400 font-medium">Sin datos disponibles.</p></div>
+              )}
+            </div>
+
+            {/* Monthly table */}
+            <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h3 className="text-sm font-semibold text-gray-900">Detalle mensual</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Mes</th>
+                      <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Ventas</th>
+                      <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Órdenes</th>
+                      <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Ticket</th>
+                      <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">vs mes anterior</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {annual && annual.current.map((m, i) => {
+                      const change = annualChange(i)
+                      const best = annualStats?.best === i
+                      const worst = annualStats?.worst === i
+                      return (
+                        <tr key={i} className={`hover:bg-gray-50/50 transition-colors ${best ? 'bg-emerald-50/40' : worst ? 'bg-red-50/30' : ''}`}>
+                          <td className="px-5 py-3 font-medium text-gray-900 flex items-center gap-2">
+                            {MONTHS[i]}
+                            {best && <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md leading-none">MEJOR</span>}
+                            {worst && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-md leading-none">MÁS BAJO</span>}
+                          </td>
+                          <td className="px-5 py-3 text-right font-semibold text-gray-900">{fmt(m.sales)}</td>
+                          <td className="px-5 py-3 text-right text-gray-600">{m.orders}</td>
+                          <td className="px-5 py-3 text-right text-gray-600">{m.orders > 0 ? fmt(Math.round(m.sales / m.orders)) : '—'}</td>
+                          <td className="px-5 py-3 text-right">{pctBadge(change)}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         ) : days.length === 0 ? (
           <div className="text-center py-32"><p className="text-gray-400 font-medium">No hay ventas en este período.</p></div>
         ) : (
@@ -340,6 +523,35 @@ const ReportsView = () => {
             <div className="lg:w-[280px] shrink-0">
               <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 overflow-hidden">
                 <div className="max-h-[calc(100vh-220px)] overflow-y-auto hide-scrollbar">
+                  {/* Ventas anuales */}
+                  <button onClick={() => setSelected('anual')}
+                    className={`relative w-full text-left px-5 py-4 transition-all duration-150 hover:bg-neutral-50/80 ${
+                      selected === 'anual' 
+                        ? 'bg-neutral-50/50 after:absolute after:left-0 after:top-1/2 after:-translate-y-1/2 after:w-[3px] after:h-6 after:bg-black after:rounded-r-full' 
+                        : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
+                        selected === 'anual' ? 'bg-black text-white' : 'bg-neutral-100 text-neutral-500'
+                      }`}>
+                        <LineChart className="h-[18px] w-[18px]" />
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-sm font-semibold ${selected === 'anual' ? 'text-black' : 'text-neutral-900'}`}>Ventas anuales</div>
+                        <div className="text-xs text-neutral-400">Mes a mes</div>
+                      </div>
+                    </div>
+                    {annual && (
+                      <div className="flex items-center justify-between mt-2.5 pl-12">
+                        <span className="text-[11px] text-neutral-400 font-medium">{annualYear}</span>
+                        <span className={`text-sm font-bold ${selected === 'anual' ? 'text-black' : 'text-neutral-900'}`}>{fmt(annual.current.reduce((s, m) => s + m.sales, 0))}</span>
+                      </div>
+                    )}
+                  </button>
+
+                  <div className="mx-5 h-px bg-neutral-100" />
+
                   {/* Resumen del mes */}
                   <button onClick={() => setSelected('resumen')}
                     className={`relative w-full text-left px-5 py-4 transition-all duration-150 hover:bg-neutral-50/80 ${

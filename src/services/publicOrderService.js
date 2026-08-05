@@ -46,6 +46,7 @@ export const getPublicCatalog = async (organizationId) => {
         description,
         status,
         type,
+        sort_order,
         product_categories (
           categories ( id, name )
         ),
@@ -141,6 +142,7 @@ export const getPublicCatalog = async (organizationId) => {
       price: p.base_price,
       description: p.description,
       type: p.type || 'physical',
+      sortOrder: p.sort_order ?? Number.MAX_SAFE_INTEGER,
       category: catInfo?.name || 'General',
       categoryId: catInfo?.id || 'none',
       image: p.product_images?.[0]?.url || null,
@@ -152,7 +154,11 @@ export const getPublicCatalog = async (organizationId) => {
       bundleSlots
     };
   }).filter(p => p.categoryId === 'none' || categories.some(c => c.id === p.categoryId))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => {
+      const so = (a.sortOrder ?? Number.MAX_SAFE_INTEGER) - (b.sortOrder ?? Number.MAX_SAFE_INTEGER)
+      if (so !== 0) return so
+      return a.name.localeCompare(b.name)
+    });
 
   return { categories, products };
 };

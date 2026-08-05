@@ -101,6 +101,7 @@ export const getProducts = async (organizationId, filters = {}) => {
       description,
       type,
       status,
+      sort_order,
       product_categories (
         categories (
           id,
@@ -214,6 +215,7 @@ export const getProducts = async (organizationId, filters = {}) => {
       price: product.base_price,
       description: product.description,
       type: product.type || 'physical',
+      sortOrder: product.sort_order ?? Number.MAX_SAFE_INTEGER,
       category: categoryInfo?.name || 'General',
       categoryId: categoryInfo?.id || 'none',
       image: product.product_images?.[0]?.url || null,
@@ -263,7 +265,11 @@ export const getProducts = async (organizationId, filters = {}) => {
     };
   });
 
-  return formattedData.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  return formattedData.sort((a, b) => {
+    const so = (a.sortOrder ?? Number.MAX_SAFE_INTEGER) - (b.sortOrder ?? Number.MAX_SAFE_INTEGER)
+    if (so !== 0) return so
+    return (a.name || '').localeCompare(b.name || '')
+  });
 };
 
 export const createCategory = async (organizationId, categoryData) => {
@@ -310,6 +316,16 @@ export const createCategory = async (organizationId, categoryData) => {
 export const createProduct = async (organizationId, productData) => {
   if (!organizationId) throw new Error("No organization ID");
 
+  // Los productos nuevos se agregan al final del orden
+  const { data: lastRow } = await supabase
+    .from('products')
+    .select('sort_order')
+    .eq('organization_id', organizationId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextSortOrder = (lastRow?.sort_order ?? -1) + 1;
+
   // First insert product
   const { data: product, error: prodError } = await supabase
     .from('products')
@@ -322,7 +338,8 @@ export const createProduct = async (organizationId, productData) => {
         sku: productData.sku || null,
         gtin: productData.gtin || null,
         type: productData.type === 'Servicio' ? 'service' : (productData.type === 'Combo / Promoción' || productData.type === 'bundle' ? 'bundle' : 'physical'),
-        status: productData.status || 'available'
+        status: productData.status || 'available',
+        sort_order: nextSortOrder
       }
     ])
     .select()
@@ -736,6 +753,16 @@ export const updateProduct = async (id, productData) => {
   }
 
   return data;
+};
+
+export const reorderProducts = async (orderedProducts) => {
+  if (!orderedProducts || orderedProducts.length === 0) return;
+  const updates = orderedProducts.map(p => (
+    supabase.from('products').update({ sort_order: p.sort_order }).eq('id', p.id)
+  ));
+  const results = await Promise.all(updates);
+  const err = results.find(r => r.error);
+  if (err) throw err.error;
 };
 
 export const quickUpdateProductStatus = async (id, status) => {
