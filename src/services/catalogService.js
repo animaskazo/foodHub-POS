@@ -74,8 +74,9 @@ export const getFirstOrganizationId = async () => {
 export const getCategories = async (organizationId) => {
   const { data, error } = await supabase
     .from('categories')
-    .select('id, name, is_active, image_url, show_in_pos, show_online, show_in_whatsapp, product_categories(product_id)')
+    .select('id, name, is_active, image_url, sort_order, show_in_pos, show_online, show_in_whatsapp, product_categories(product_id)')
     .eq('organization_id', organizationId)
+    .order('sort_order')
     .order('name');
     
   if (error) {
@@ -274,7 +275,17 @@ export const getProducts = async (organizationId, filters = {}) => {
 
 export const createCategory = async (organizationId, categoryData) => {
   if (!organizationId) throw new Error("No organization ID");
-  
+
+  // Las categorías nuevas se agregan al final del orden
+  const { data: lastRow } = await supabase
+    .from('categories')
+    .select('sort_order')
+    .eq('organization_id', organizationId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextSortOrder = (lastRow?.sort_order ?? -1) + 1;
+
   const { data, error } = await supabase
     .from('categories')
     .insert([
@@ -285,7 +296,8 @@ export const createCategory = async (organizationId, categoryData) => {
         show_in_pos: categoryData.show_in_pos !== false,
         show_online: categoryData.show_online !== false,
         show_in_whatsapp: categoryData.show_in_whatsapp !== false,
-        image_url: categoryData.imageUrl || null
+        image_url: categoryData.imageUrl || null,
+        sort_order: nextSortOrder
       }
     ])
     .select();
@@ -759,6 +771,16 @@ export const reorderProducts = async (orderedProducts) => {
   if (!orderedProducts || orderedProducts.length === 0) return;
   const updates = orderedProducts.map(p => (
     supabase.from('products').update({ sort_order: p.sort_order }).eq('id', p.id)
+  ));
+  const results = await Promise.all(updates);
+  const err = results.find(r => r.error);
+  if (err) throw err.error;
+};
+
+export const reorderCategories = async (orderedCategories) => {
+  if (!orderedCategories || orderedCategories.length === 0) return;
+  const updates = orderedCategories.map(c => (
+    supabase.from('categories').update({ sort_order: c.sort_order }).eq('id', c.id)
   ));
   const results = await Promise.all(updates);
   const err = results.find(r => r.error);

@@ -300,11 +300,12 @@ const CatalogManager = () => {
                 return acc;
               }, {});
 
-              // Sort categories alphabetically, maybe keep 'General' at the end
+              // Sort categories by sort_order, keep 'General' at the end
+              const catOrderMap = new Map(categories.map(c => [c.name, c.sort_order ?? Number.MAX_SAFE_INTEGER]));
               const sortedCategories = Object.keys(groupedProducts).sort((a, b) => {
                 if (a === 'General') return 1;
                 if (b === 'General') return -1;
-                return a.localeCompare(b);
+                return (catOrderMap.get(a) ?? Number.MAX_SAFE_INTEGER) - (catOrderMap.get(b) ?? Number.MAX_SAFE_INTEGER);
               });
 
               return sortedCategories.map(catName => {
@@ -343,6 +344,15 @@ const CatalogManager = () => {
                     {!isCollapsed && prods.map((product) => (
                       <tr 
                         key={product.id}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('text/plain', product.id);
+                          e.dataTransfer.effectAllowed = 'move';
+                          orderBeforeDragRef.current = [...products];
+                          didDropRef.current = false;
+                          setDragId(product.id);
+                        }}
+                        onDragEnter={(e) => e.preventDefault()}
                         onDragOver={(e) => {
                           e.preventDefault();
                           e.dataTransfer.dropEffect = 'move';
@@ -362,41 +372,30 @@ const CatalogManager = () => {
                           didDropRef.current = true;
                           handleDropOn();
                         }}
-                        className={`hover:bg-gray-50 group transition-colors ${
-                          dragOverId === product.id ? 'bg-blue-50/70 ring-2 ring-inset ring-blue-300' : ''
-                        } ${dragId === product.id ? 'opacity-40 bg-gray-50' : ''}`}
+                        onDragEnd={handleDragEnd}
+                        className={`group transition-colors ${
+                          dragId === product.id
+                            ? 'opacity-50'
+                            : dragOverId === product.id
+                            ? 'bg-blue-50/50'
+                            : 'hover:bg-gray-50'
+                        }`}
                       >
-                        <td className="px-6 py-4">
-                          <input 
-                            type="checkbox" 
-                            className="h-5 w-5 rounded border-gray-300 cursor-pointer"
-                            checked={selectedIds.includes(product.id)}
-                            onChange={() => handleToggleSelect(product.id)}
-                          />
-                        </td>
-                        <td className="px-6 py-4">
+                        <td className="pl-6 pr-0 py-4">
                           <div className="flex items-center gap-3">
-                            <span
-                              draggable
-                              onDragStart={(e) => {
-                                e.dataTransfer.setData('text/plain', product.id);
-                                e.dataTransfer.effectAllowed = 'move';
-                                orderBeforeDragRef.current = [...products];
-                                didDropRef.current = false;
-                                setDragId(product.id);
-                              }}
-                              onDragEnd={handleDragEnd}
-                              className={`flex items-center justify-center w-7 h-7 rounded-lg cursor-grab active:cursor-grabbing transition-colors shrink-0 select-none ${
-                                dragId === product.id
-                                  ? 'bg-blue-100 text-blue-600 shadow-sm'
-                                  : 'text-gray-300 hover:text-gray-600 hover:bg-gray-100 group-hover:text-gray-500'
-                              }`}
-                              title="Arrastrar para reordenar"
-                            >
-                              <GripVertical className="h-4 w-4" />
-                            </span>
+                            <input 
+                              type="checkbox" 
+                              className="h-5 w-5 rounded border-gray-300 cursor-pointer"
+                              checked={selectedIds.includes(product.id)}
+                              onChange={() => handleToggleSelect(product.id)}
+                            />
+                            <GripVertical className="h-4 w-4 text-gray-300 group-hover:text-gray-500 cursor-grab transition-colors" />
+                          </div>
+                        </td>
+                        <td className="pl-4 pr-6 py-4">
+                          <div className="flex items-center gap-3">
                             <div 
-                              className="w-10 h-10 rounded overflow-hidden bg-gray-100 bg-cover bg-center shrink-0 border flex items-center justify-center text-gray-400"
+                              className="w-12 h-12 rounded overflow-hidden bg-gray-100 bg-cover bg-center shrink-0 border flex items-center justify-center text-gray-400"
                               style={product.image ? { backgroundImage: `url(${product.image})` } : {}}
                             >
                               {!product.image && <span className="text-xs">Sin foto</span>}

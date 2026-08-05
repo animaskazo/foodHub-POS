@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronDown, ListFilter, Plus, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Search, ChevronDown, ListFilter, Plus, MoreHorizontal, Trash2, GripVertical } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getFirstOrganizationId, getCategories, quickUpdateCategoryStatus, deleteCategory, bulkDeleteCategories, duplicateCategory } from '../services/catalogService';
+import { getFirstOrganizationId, getCategories, quickUpdateCategoryStatus, deleteCategory, bulkDeleteCategories, duplicateCategory, reorderCategories } from '../services/catalogService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,49 @@ const CategoriesList = () => {
   const [statusFilter, setStatusFilter] = useState('all'); // all, active, inactive
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, mode: 'single', targetId: null, isDeleting: false });
+  const [dragId, setDragId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
+  const orderBeforeDragRef = useRef(null);
+  const didDropRef = useRef(false);
   const navigate = useNavigate();
+
+  const reorderLive = (draggedId, targetId) => {
+    setCategories(prev => {
+      if (!draggedId || draggedId === targetId) return prev;
+      const drag = prev.find(c => c.id === draggedId);
+      if (!drag) return prev;
+      const di = prev.findIndex(c => c.id === draggedId);
+      const ti = prev.findIndex(c => c.id === targetId);
+      if (di === -1 || ti === -1 || di === ti) return prev;
+      const order = [...prev];
+      order.splice(di, 1);
+      order.splice(ti, 0, drag);
+      return order;
+    });
+  };
+
+  const handleDropOn = async () => {
+    const finalOrder = [...categories];
+    setDragId(null);
+    setDragOverId(null);
+    try {
+      await reorderCategories(finalOrder.map((c, i) => ({ id: c.id, sort_order: i })));
+      toast.success('Orden de categorías actualizado');
+    } catch (err) {
+      toast.error('Error al guardar el orden');
+      loadCategories(false);
+    }
+  };
+
+  const handleDragEnd = () => {
+    if (!didDropRef.current && orderBeforeDragRef.current) {
+      setCategories(orderBeforeDragRef.current);
+    }
+    didDropRef.current = false;
+    orderBeforeDragRef.current = null;
+    setDragId(null);
+    setDragOverId(null);
+  };
 
   const loadCategories = async (showLoading = true) => {
     if (showLoading) setLoading(true);
@@ -192,17 +234,54 @@ const CategoriesList = () => {
               categories.filter(c => statusFilter === 'all' || (statusFilter === 'active' ? c.is_active : !c.is_active)).map((category) => (
                 <tr 
                   key={category.id}
-                  className="hover:bg-gray-50 group transition-colors"
+                  draggable={statusFilter === 'all'}
+                  onDragStart={(e) => {
+                    if (statusFilter !== 'all') return;
+                    orderBeforeDragRef.current = [...categories];
+                    didDropRef.current = false;
+                    e.dataTransfer.effectAllowed = 'move';
+                    setDragId(category.id);
+                  }}
+                  onDragEnter={(e) => e.preventDefault()}
+                  onDragOver={(e) => {
+                    if (statusFilter !== 'all') return;
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (!dragId || dragId === category.id) return;
+                    if (dragOverId !== category.id) {
+                      reorderLive(dragId, category.id);
+                      setDragOverId(category.id);
+                    }
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (statusFilter !== 'all') return;
+                    didDropRef.current = true;
+                    handleDropOn();
+                  }}
+                  onDragEnd={handleDragEnd}
+                  className={`group transition-colors ${
+                    dragId === category.id
+                      ? 'opacity-50'
+                      : dragOverId === category.id
+                      ? 'bg-blue-50/50'
+                      : 'hover:bg-gray-50'
+                  }`}
                 >
-                  <td className="px-6 py-4">
-                    <input 
-                      type="checkbox" 
-                      className="h-5 w-5 rounded border-gray-300 cursor-pointer"
-                      checked={selectedIds.includes(category.id)}
-                      onChange={() => handleToggleSelect(category.id)}
-                    />
+                  <td className="pl-6 pr-0 py-4">
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="checkbox" 
+                        className="h-5 w-5 rounded border-gray-300 cursor-pointer"
+                        checked={selectedIds.includes(category.id)}
+                        onChange={() => handleToggleSelect(category.id)}
+                      />
+                      {statusFilter === 'all' && (
+                        <GripVertical className="h-4 w-4 text-gray-300 group-hover:text-gray-500 cursor-grab transition-colors" />
+                      )}
+                    </div>
                   </td>
-                  <td className="px-6 py-4 font-medium text-gray-900">
+                  <td className="pl-1 pr-6 py-4 font-medium text-gray-900">
                     {category.name}
                   </td>
                   <td className="px-6 py-4 text-gray-600">
