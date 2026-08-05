@@ -13,9 +13,11 @@ import { getAccessToken, createQuote, createDelivery } from '../services/uberDir
 import { geocodeAddress } from '../utils/geo';
 import { sendEmail } from '../services/emailService';
 import { supabase } from '../lib/supabase';
+import { getTenantSlug } from '../utils/tenant';
 
 const OrderView = () => {
-  const { slug } = useParams();
+  const { slug: pathSlug } = useParams();
+  const slug = pathSlug || getTenantSlug();
   const searchParams = new URLSearchParams(window.location.search);
   
   let initialStep = 1;

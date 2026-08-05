@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useMemo } from 'react';
 import Layout from './components/Layout';
 import CatalogManager from './pages/CatalogManager';
 import IngredientsManager from './pages/IngredientsManager';
@@ -25,8 +26,27 @@ import UpdatePasswordView from './pages/UpdatePasswordView';
 import ForgotPasswordView from './pages/ForgotPasswordView';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Toaster } from 'sonner';
+import { getTenantSlug } from './utils/tenant';
 
 function App() {
+  const tenantSlug = useMemo(() => getTenantSlug(), []);
+
+  if (tenantSlug) {
+    // Subdominio de tienda (ej. sushiwok.foodhub.work): solo el storefront.
+    return (
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<OrderView />} />
+            <Route path="/order/:slug" element={<OrderView />} />
+            <Route path="*" element={<OrderView />} />
+          </Routes>
+          <Toaster position="bottom-right" richColors expand={false} offset="80px" />
+        </BrowserRouter>
+      </AuthProvider>
+    );
+  }
+
   return (
     <AuthProvider>
       <BrowserRouter>

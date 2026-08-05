@@ -127,7 +127,7 @@ async function askAgent(messages: unknown[], cart: unknown[], context: Awaited<R
     minute: "2-digit"
   }).format(now);
 
-  const urlTienda = `https://food.digital-solutions.work/order/${context.organization.slug}`;
+  const urlTienda = `https://${context.organization.slug}.foodhub.work`;
   const instruction = `Eres el asistente de pedidos de ${context.organization.name}. Responde siempre en español, de forma cercana y breve. La carta adjunta es la única fuente de productos, precios y opciones. Nunca inventes productos, precios ni disponibilidad. Ayuda a armar el pedido y pregunta lo mínimo necesario por variantes obligatorias. Devuelve el carrito completo; conserva productos ya presentes salvo que el cliente pida cambiarlos. NUNCA calcules sumas ni el total del pedido, el sistema lo hará automáticamente. SIEMPRE que menciones o recomiendes un producto o variante en tu mensaje, debes mostrar su precio exacto entre paréntesis, ejemplo: Hamburguesa ($6.990). No confirmes ni cobres: la aplicación lo hace después. Cuando el pedido esté armado y correcto, pídele al cliente que diga la palabra "confirmar" para finalizar. Si la venta web está desactivada, aclara que no se podrá confirmar el pedido todavía.
 
 INFORMACIÓN DEL LOCAL:

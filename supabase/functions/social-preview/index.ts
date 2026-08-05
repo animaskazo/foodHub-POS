@@ -32,10 +32,11 @@ serve(async (req) => {
     const org = orgs?.[0]
 
     const appOrigin = url.searchParams.get('origin') || 'https://food.digital-solutions.work'
+    const atRoot = url.searchParams.get('root') === '1'
     const name = org?.name || slug
     const description = org?.description || `Pide online en ${name}`
     const image = org?.logo_url || org?.cover_url || `${appOrigin}/favicon.svg`
-    const appUrl = `${appOrigin}/order/${slug}`
+    const appUrl = atRoot ? appOrigin : `${appOrigin}/order/${slug}`
 
     const html = `<!DOCTYPE html>
 <html lang="es">
