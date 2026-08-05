@@ -407,116 +407,6 @@ const ReportsView = () => {
 
         {loading ? (
           <div className="flex justify-center py-32"><Loader2 className="h-6 w-6 animate-spin text-gray-300" /></div>
-        ) : selected === 'anual' ? (
-          <div className="space-y-4">
-            {/* Annual hero */}
-            <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900 mb-0.5">Ventas anuales</h2>
-                  <p className="text-sm text-gray-500">Compara las ventas mes a mes y con el año anterior.</p>
-                </div>
-                <div className="flex items-center gap-2 bg-white rounded-xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 px-2 py-1.5 w-fit">
-                  <button onClick={() => setAnnualYear(y => y - 1)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><ChevronLeft className="h-4 w-4 text-gray-500" /></button>
-                  <span className="text-sm font-semibold text-gray-900 min-w-[60px] text-center select-none">{annualYear}</span>
-                  <button onClick={() => setAnnualYear(y => y + 1)} disabled={annualYear >= today.getFullYear()} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"><ChevronRight className="h-4 w-4 text-gray-500" /></button>
-                </div>
-              </div>
-              {annualStats && (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                  <div>
-                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{fmt(annualStats.total)}</div>
-                    <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Ventas totales {annualYear}</div>
-                    {annualStats.prevTotal > 0 && (
-                      <div className="mt-1.5 flex items-center gap-1.5">
-                        <span className="text-[11px] text-gray-400">vs {annualYear - 1}:</span>
-                        {pctBadge(annualStats.pct)}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{annualStats.ordersCount}</div>
-                    <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Órdenes</div>
-                    <div className="text-[11px] text-gray-400 mt-1.5">{annualStats.active} {annualStats.active === 1 ? 'mes' : 'meses'} con actividad</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{fmt(annualStats.avg)}</div>
-                    <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Promedio mensual</div>
-                    <div className="text-[11px] text-gray-400 mt-1.5">por mes con actividad</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{annualStats.best !== -1 ? MONTHS[annualStats.best] : '—'}</div>
-                    <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Mejor mes</div>
-                    {annualStats.best !== -1 && (
-                      <div className="text-[11px] text-gray-400 mt-1.5">{fmt(annual.current[annualStats.best].sales)} · {annual.current[annualStats.best].orders} órdenes</div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Chart */}
-            <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-900">Ventas mensuales {annualYear}</h3>
-                <div className="flex items-center gap-4 text-xs text-gray-500">
-                  <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-emerald-500" />{annualYear}</span>
-                  <span className="flex items-center gap-1.5"><span className="w-4 border-t-2 border-dashed border-gray-300" />Año {annualYear - 1}</span>
-                </div>
-              </div>
-              {annual ? (
-                <SalesAreaChart
-                  labels={MONTHS.map(m => m.slice(0, 3))}
-                  current={annual.current.map(m => m.sales)}
-                  previous={annual.previous.map(m => m.sales)}
-                />
-              ) : (
-                <div className="text-center py-16"><p className="text-gray-400 font-medium">Sin datos disponibles.</p></div>
-              )}
-            </div>
-
-            {/* Monthly table */}
-            <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100">
-                <h3 className="text-sm font-semibold text-gray-900">Detalle mensual</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="text-left px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Mes</th>
-                      <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Ventas</th>
-                      <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Órdenes</th>
-                      <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Ticket</th>
-                      <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">vs mes anterior</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {annual && annual.current.map((m, i) => {
-                      const change = annualChange(i)
-                      const best = annualStats?.best === i
-                      const worst = annualStats?.worst === i
-                      return (
-                        <tr key={i} className={`hover:bg-gray-50/50 transition-colors ${best ? 'bg-emerald-50/40' : worst ? 'bg-red-50/30' : ''}`}>
-                          <td className="px-5 py-3 font-medium text-gray-900 flex items-center gap-2">
-                            {MONTHS[i]}
-                            {best && <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md leading-none">MEJOR</span>}
-                            {worst && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-md leading-none">MÁS BAJO</span>}
-                          </td>
-                          <td className="px-5 py-3 text-right font-semibold text-gray-900">{fmt(m.sales)}</td>
-                          <td className="px-5 py-3 text-right text-gray-600">{m.orders}</td>
-                          <td className="px-5 py-3 text-right text-gray-600">{m.orders > 0 ? fmt(Math.round(m.sales / m.orders)) : '—'}</td>
-                          <td className="px-5 py-3 text-right">{pctBadge(change)}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        ) : days.length === 0 ? (
-          <div className="text-center py-32"><p className="text-gray-400 font-medium">No hay ventas en este período.</p></div>
         ) : (
           <div className="flex flex-col lg:flex-row gap-6">
             {/* ── Left: day list ── */}
@@ -625,7 +515,117 @@ const ReportsView = () => {
 
             {/* ── Right panel ── */}
             <div className="flex-1 space-y-4" ref={printRef}>
-              {selected === 'resumen' ? (
+              {selected === 'anual' ? (
+                <div className="space-y-4">
+                  {/* Annual hero */}
+                  <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+                      <div>
+                        <h2 className="text-lg font-bold text-gray-900 mb-0.5">Ventas anuales</h2>
+                        <p className="text-sm text-gray-500">Compara las ventas mes a mes y con el año anterior.</p>
+                      </div>
+                      <div className="flex items-center gap-2 bg-white rounded-xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 px-2 py-1.5 w-fit">
+                        <button onClick={() => setAnnualYear(y => y - 1)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><ChevronLeft className="h-4 w-4 text-gray-500" /></button>
+                        <span className="text-sm font-semibold text-gray-900 min-w-[60px] text-center select-none">{annualYear}</span>
+                        <button onClick={() => setAnnualYear(y => y + 1)} disabled={annualYear >= today.getFullYear()} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"><ChevronRight className="h-4 w-4 text-gray-500" /></button>
+                      </div>
+                    </div>
+                    {annualStats && (
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                        <div>
+                          <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{fmt(annualStats.total)}</div>
+                          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Ventas totales {annualYear}</div>
+                          {annualStats.prevTotal > 0 && (
+                            <div className="mt-1.5 flex items-center gap-1.5">
+                              <span className="text-[11px] text-gray-400">vs {annualYear - 1}:</span>
+                              {pctBadge(annualStats.pct)}
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{annualStats.ordersCount}</div>
+                          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Órdenes</div>
+                          <div className="text-[11px] text-gray-400 mt-1.5">{annualStats.active} {annualStats.active === 1 ? 'mes' : 'meses'} con actividad</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{fmt(annualStats.avg)}</div>
+                          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Promedio mensual</div>
+                          <div className="text-[11px] text-gray-400 mt-1.5">por mes con actividad</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{annualStats.best !== -1 ? MONTHS[annualStats.best] : '—'}</div>
+                          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Mejor mes</div>
+                          {annualStats.best !== -1 && (
+                            <div className="text-[11px] text-gray-400 mt-1.5">{fmt(annual.current[annualStats.best].sales)} · {annual.current[annualStats.best].orders} órdenes</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Chart */}
+                  <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-semibold text-gray-900">Ventas mensuales {annualYear}</h3>
+                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded-full bg-emerald-500" />{annualYear}</span>
+                        <span className="flex items-center gap-1.5"><span className="w-4 border-t-2 border-dashed border-gray-300" />Año {annualYear - 1}</span>
+                      </div>
+                    </div>
+                    {annual ? (
+                      <SalesAreaChart
+                        labels={MONTHS.map(m => m.slice(0, 3))}
+                        current={annual.current.map(m => m.sales)}
+                        previous={annual.previous.map(m => m.sales)}
+                      />
+                    ) : (
+                      <div className="text-center py-16"><p className="text-gray-400 font-medium">Sin datos disponibles.</p></div>
+                    )}
+                  </div>
+
+                  {/* Monthly table */}
+                  <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 overflow-hidden">
+                    <div className="px-5 py-4 border-b border-gray-100">
+                      <h3 className="text-sm font-semibold text-gray-900">Detalle mensual</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-100">
+                            <th className="text-left px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Mes</th>
+                            <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Ventas</th>
+                            <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Órdenes</th>
+                            <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Ticket</th>
+                            <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">vs mes anterior</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {annual && annual.current.map((m, i) => {
+                            const change = annualChange(i)
+                            const best = annualStats?.best === i
+                            const worst = annualStats?.worst === i
+                            return (
+                              <tr key={i} className={`hover:bg-gray-50/50 transition-colors ${best ? 'bg-emerald-50/40' : worst ? 'bg-red-50/30' : ''}`}>
+                                <td className="px-5 py-3 font-medium text-gray-900 flex items-center gap-2">
+                                  {MONTHS[i]}
+                                  {best && <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md leading-none">MEJOR</span>}
+                                  {worst && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-md leading-none">MÁS BAJO</span>}
+                                </td>
+                                <td className="px-5 py-3 text-right font-semibold text-gray-900">{fmt(m.sales)}</td>
+                                <td className="px-5 py-3 text-right text-gray-600">{m.orders}</td>
+                                <td className="px-5 py-3 text-right text-gray-600">{m.orders > 0 ? fmt(Math.round(m.sales / m.orders)) : '—'}</td>
+                                <td className="px-5 py-3 text-right">{pctBadge(change)}</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              ) : days.length === 0 ? (
+                <div className="text-center py-32"><p className="text-gray-400 font-medium">No hay ventas en este período.</p></div>
+              ) : selected === 'resumen' ? (
                 <>
                   {/* Month hero */}
                   <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
