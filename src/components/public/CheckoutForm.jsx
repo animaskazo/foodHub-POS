@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard, Truck, Info, CalendarClock, Clock, ChefHat } from 'lucide-react';
+import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard, PaperBag, Info, CalendarClock, Clock, ChefHat } from 'lucide-react';
 import { getCustomerByPhone } from '../../services/publicOrderService';
 import { geocodeAddress, calculateDistance, isPointInPolygon } from '../../utils/geo';
 import { getAccessToken, createQuote } from '../../services/uberDirectService';
@@ -185,6 +185,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       scheduledAt: '',
     };
   });
+  const isUberDelivery = form.deliveryType === 'delivery' && deliveryMode === 'uber_direct';
   const [scheduleDate, setScheduleDate] = useState(() => dateInput(new Date()));
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const scheduleSlots = getSlots(org, scheduleDate);
@@ -207,14 +208,14 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
 
   useEffect(() => {
     const onlineEnabled = acceptsOnlinePayments === true;
-    const localEnabled = acceptsLocalPayments !== false;
+    const localEnabled = acceptsLocalPayments !== false && !isUberDelivery;
     if (!onlineEnabled && !localEnabled) return;
     if (!localEnabled && form.paymentMethod === 'local') {
       setForm(f => ({ ...f, paymentMethod: 'online' }));
     } else if (!onlineEnabled && form.paymentMethod === 'online') {
       setForm(f => ({ ...f, paymentMethod: 'local' }));
     }
-  }, [acceptsOnlinePayments, acceptsLocalPayments, form.paymentMethod]);
+  }, [acceptsOnlinePayments, acceptsLocalPayments, form.paymentMethod, isUberDelivery]);
 
   useEffect(() => {
     if (!organizationId) return;
@@ -607,7 +608,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                       }`}
                   >
                     {deliveryMode === 'uber_direct' ? (
-                      <Truck className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'delivery' ? 'text-black' : 'text-gray-400'}`} />
+                      <PaperBag className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'delivery' ? 'text-black' : 'text-gray-400'}`} />
                     ) : (
                       <MapPin className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'delivery' ? 'text-black' : 'text-gray-400'}`} />
                     )}
@@ -615,7 +616,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                       <span className="text-sm font-bold">Delivery</span>
                       {deliveryMode === 'uber_direct' && (
                         <span className="text-[10px] bg-green-600 text-white font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">
-                          Uber
+                          Uber Direct
                         </span>
                       )}
                     </div>
@@ -765,16 +766,19 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             </div>
           )}
 
-          {/* Divider */}
-          <div className="h-px bg-gray-100" />
-
           {/* Section: Pago */}
           <div className="space-y-3">
             <h2 className="text-base font-bold text-gray-900">Método de pago</h2>
 
+            {isUberDelivery && (
+              <p className="text-xs text-gray-400 font-medium leading-relaxed">
+                Al usar Uber Direct debes realizar el pago online
+              </p>
+            )}
+
             {/* Payment Methods as radio rows */}
             <div className="space-y-2">
-              {acceptsLocalPayments !== false && (
+              {acceptsLocalPayments !== false && !isUberDelivery && (
                 <label
                   onClick={() => update('paymentMethod', 'local')}
                   className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${form.paymentMethod === 'local'
