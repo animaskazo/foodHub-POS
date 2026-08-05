@@ -57,6 +57,8 @@ const SettingsView = () => {
     accepts_local_payments: true,
     hide_cancelled_orders: false
   });
+
+  const storeUrl = formData.slug ? `https://${formData.slug}.foodhub.work` : null;
   
   const [businessHours, setBusinessHours] = useState(defaultHours);
   const [pickupHours, setPickupHours] = useState(defaultHours);
@@ -557,19 +559,19 @@ const SettingsView = () => {
                     <p className="text-xs text-gray-500 mb-3">Comparte este enlace con tus clientes para que puedan hacer pedidos en línea.</p>
                     <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5 mb-4">
                       <span className="text-sm text-gray-600 flex-1 truncate">
-                        {window.location.origin}/order/{formData.slug}
+                        {storeUrl}
                       </span>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => navigator.clipboard.writeText(`${window.location.origin}/order/${formData.slug}`)}
+                        onClick={() => navigator.clipboard.writeText(storeUrl)}
                         className="h-8 w-8 text-gray-500 hover:text-gray-900 shrink-0 cursor-pointer"
                         title="Copiar enlace"
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
                       <a
-                        href={`/order/${formData.slug}`}
+                        href={storeUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0 cursor-pointer"
@@ -588,7 +590,7 @@ const SettingsView = () => {
                     <div className="border-t border-gray-200 pt-4 flex flex-col sm:flex-row items-center gap-4">
                       <div className="p-3 bg-white border border-gray-200 rounded-2xl shrink-0">
                         <img 
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${window.location.origin}/order/${formData.slug}`)}`}
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(storeUrl)}`}
                           alt="Código QR de la tienda"
                           className="w-28 h-28 md:w-32 md:h-32 object-contain"
                         />
@@ -600,7 +602,7 @@ const SettingsView = () => {
                         </p>
                         <Button
                           onClick={async () => {
-                            const url = `${window.location.origin}/order/${formData.slug}`;
+                            const url = storeUrl;
                             const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(url)}`;
                             try {
                               const response = await fetch(qrApiUrl);

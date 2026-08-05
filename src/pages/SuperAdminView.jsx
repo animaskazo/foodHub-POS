@@ -315,7 +315,7 @@ const SuperAdminView = () => {
                     </p>
                     
                     <a 
-                      href={`/order/${selectedOrganization.slug || encodeURIComponent(selectedOrganization.name)}`}
+                      href={selectedOrganization.slug ? `https://${selectedOrganization.slug}.foodhub.work` : `/order/${encodeURIComponent(selectedOrganization.name)}`}
                       target="_blank"
                       rel="noreferrer"
                       className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 transition-colors w-fit rounded-md"
