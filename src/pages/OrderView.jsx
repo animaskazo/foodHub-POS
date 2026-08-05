@@ -17,7 +17,9 @@ import { getTenantSlug } from '../utils/tenant';
 
 const OrderView = () => {
   const { slug: pathSlug } = useParams();
-  const slug = pathSlug || getTenantSlug();
+  const tenantSlug = getTenantSlug();
+  const slug = pathSlug || tenantSlug;
+  const isTenantStore = !!tenantSlug;
   const searchParams = new URLSearchParams(window.location.search);
   
   let initialStep = 1;
@@ -700,7 +702,7 @@ const OrderView = () => {
             <meta property="og:title" content={org.name} />
             <meta property="og:description" content={org.description || `Pide online en ${org.name}`} />
             <meta property="og:image" content={org.logo_url || org.cover_url} />
-            <meta property="og:url" content={`${window.location.origin}/order/${slug}`} />
+            <meta property="og:url" content={isTenantStore ? window.location.origin : `${window.location.origin}/order/${slug}`} />
             <meta property="og:type" content="website" />
             <meta name="twitter:card" content="summary_large_image" />
             <meta name="twitter:title" content={org.name} />
