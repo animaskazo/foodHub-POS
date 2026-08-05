@@ -3,6 +3,7 @@ import { X, Plus, Check, MapPin, ExternalLink, Clock, ChefHat } from 'lucide-rea
 import ProductDetailView from './ProductDetailView';
 import Modal from '../ui/Modal';
 import { getOutOfStockProductIds } from '../../services/inventoryService';
+import { defaultSelectionsForSlot, bundleHasChoices } from '../../utils/bundleSelections';
 
 const fmt = (n) => Math.round(n).toLocaleString('es-CL');
 
@@ -232,22 +233,27 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
 
   const handleAddDirect = (p) => {
     if (p.type === 'bundle') {
-      const defaultOptionsList = p.bundleSlots?.map(slot => {
-        const opt = slot.options?.find(o => o.isDefault) || slot.options?.[0];
-        if (!opt) return null;
-        return {
+      // Los combos con opciones reales (multi-selección, varias opciones o
+      // personalización) deben configurarse en el modal sin preselección.
+      if (bundleHasChoices(p.bundleSlots)) {
+        handleProductTap(p);
+        return;
+      }
+
+      const defaultOptionsList = p.bundleSlots?.flatMap(slot =>
+        defaultSelectionsForSlot(slot).map(sel => ({
           slotId: slot.id,
           slotName: slot.name,
-          optionId: opt.id,
-          productId: opt.productId,
-          name: opt.name,
-          originalName: opt.name,
-          price: opt.priceModifier || 0,
+          optionId: sel.optionId,
+          productId: sel.productId,
+          name: sel.name,
+          originalName: sel.name,
+          price: sel.priceModifier || 0,
           quantity: 1,
-          variant: null,
+          variant: sel.variant,
           selectedIngredients: []
-        };
-      }).filter(Boolean) || [];
+        }))
+      ) || [];
 
       onAddItem({
         ...p,

@@ -20,7 +20,7 @@ function text(value: unknown) { return typeof value === "string" ? value : ""; }
 function toNumber(value: unknown) { const number = Number(value); return Number.isFinite(number) ? number : 0; }
 
 async function getContext(slug: string) {
-  const organizations = await db(`organizations?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=id,name,currency,primary_color,default_tax_rate,delivery_enabled,store_lat,store_lng,delivery_radius_km,delivery_fee,delivery_min_order,address,logo_url,business_hours,phone`);
+  const organizations = await db(`organizations?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=id,name,slug,currency,primary_color,default_tax_rate,delivery_enabled,store_lat,store_lng,delivery_radius_km,delivery_fee,delivery_min_order,address,logo_url,business_hours,phone`);
   const organization = organizations[0];
   if (!organization) throw new Error("No existe un negocio activo para ese enlace.");
   const branches = await db(`branches?organization_id=eq.${organization.id}&is_active=eq.true&select=id,name,accepts_online`);
@@ -127,7 +127,7 @@ async function askAgent(messages: unknown[], cart: unknown[], context: Awaited<R
     minute: "2-digit"
   }).format(now);
 
-  const urlTienda = `https://food.digital-solutions.work/order/${slug}`;
+  const urlTienda = `https://food.digital-solutions.work/order/${context.organization.slug}`;
   const instruction = `Eres el asistente de pedidos de ${context.organization.name}. Responde siempre en español, de forma cercana y breve. La carta adjunta es la única fuente de productos, precios y opciones. Nunca inventes productos, precios ni disponibilidad. Ayuda a armar el pedido y pregunta lo mínimo necesario por variantes obligatorias. Devuelve el carrito completo; conserva productos ya presentes salvo que el cliente pida cambiarlos. NUNCA calcules sumas ni el total del pedido, el sistema lo hará automáticamente. SIEMPRE que menciones o recomiendes un producto o variante en tu mensaje, debes mostrar su precio exacto entre paréntesis, ejemplo: Hamburguesa ($6.990). No confirmes ni cobres: la aplicación lo hace después. Cuando el pedido esté armado y correcto, pídele al cliente que diga la palabra "confirmar" para finalizar. Si la venta web está desactivada, aclara que no se podrá confirmar el pedido todavía.
 
 INFORMACIÓN DEL LOCAL:

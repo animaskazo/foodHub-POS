@@ -16,6 +16,7 @@ import { createOrder, updateOrderCustomer } from '../services/orderService';
 import { useAuth } from '../components/AuthContext';
 import { getShiftSettings, getCurrentShift } from '../services/shiftService';
 import { PosSkeleton } from '../components/ui/Skeleton';
+import { defaultSelectionsForSlot, bundleHasChoices } from '../utils/bundleSelections';
 
 const PosView = () => {
   const { organization } = useAuth();
@@ -97,56 +98,42 @@ const PosView = () => {
 
   const handleProductClick = (product) => {
     if (product.type === 'bundle') {
-      const hasChoices = product.bundleSlots?.some(slot => 
-        (slot.options?.length > 1) || 
-        slot.options?.some(opt => 
-          (opt.variants && opt.variants.length > 0 && !opt.variantId) || 
-          (opt.ingredients && opt.ingredients.some(i => i.isExtra))
-        )
-      );
+      const hasChoices = bundleHasChoices(product.bundleSlots);
 
       if (!hasChoices) {
         // Generar selecciones por defecto y agregar directamente calculando precios y variantes correctas
         const baseNet = product.price || 0;
         let totalGross = Math.round(baseNet);
 
-        const defaultOptionsList = product.bundleSlots?.map(slot => {
-          const opt = slot.options?.find(o => o.isDefault) || slot.options?.[0];
-          if (!opt) return null;
+        const defaultOptionsList = product.bundleSlots?.flatMap(slot => {
+          return defaultSelectionsForSlot(slot).map(sel => {
+            // Sumar modificadores al precio bruto
+            totalGross += Math.round(sel.priceModifier || 0);
+            if (sel.variant) {
+              totalGross += Math.round(sel.variant.price_modifier || 0);
+            }
 
-          const activeVariants = opt.variants?.filter(v => v.is_active) || [];
-          const lockedVariant = opt.variantId ? activeVariants.find(v => v.id === opt.variantId) : null;
-          const chosenVariant = lockedVariant || activeVariants.reduce((min, v) => {
-            if (!min) return v;
-            return (v.price_modifier || 0) < (min.price_modifier || 0) ? v : min;
-          }, null);
+            let fullName = sel.name;
+            if (sel.variant) {
+              fullName += ` (${sel.variant.name})`;
+            }
 
-          // Sumar modificadores al precio bruto
-          totalGross += Math.round(opt.priceModifier || 0);
-          if (chosenVariant) {
-            totalGross += Math.round(chosenVariant.price_modifier || 0);
-          }
+            const optPriceNet = (sel.priceModifier || 0) + (sel.variant?.price_modifier || 0);
 
-          let fullName = opt.name;
-          if (chosenVariant) {
-            fullName += ` (${chosenVariant.name})`;
-          }
-
-          const optPriceNet = (opt.priceModifier || 0) + (chosenVariant?.price_modifier || 0);
-
-          return {
-            slotId: slot.id,
-            slotName: slot.name,
-            optionId: opt.id,
-            productId: opt.productId,
-            name: fullName,
-            originalName: opt.name,
-            price: optPriceNet,
-            quantity: 1,
-            variant: chosenVariant,
-            selectedIngredients: []
-          };
-        }).filter(Boolean) || [];
+            return {
+              slotId: slot.id,
+              slotName: slot.name,
+              optionId: sel.optionId,
+              productId: sel.productId,
+              name: fullName,
+              originalName: sel.name,
+              price: optPriceNet,
+              quantity: 1,
+              variant: sel.variant,
+              selectedIngredients: []
+            };
+          });
+        }) || [];
 
         const comboTotalNet = totalGross;
 

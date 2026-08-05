@@ -785,6 +785,7 @@ const OrderView = () => {
                     price: updatedFields.price, 
                     variant: updatedFields.variant, 
                     selectedIngredients: updatedFields.selectedIngredients, 
+                    selectedOptions: updatedFields.selectedOptions || item.selectedOptions,
                     quantity: updatedFields.quantity 
                   }
                 : item

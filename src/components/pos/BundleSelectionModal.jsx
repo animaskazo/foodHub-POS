@@ -1,48 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/button';
+import { buildSelection, selectionFromCartOption, defaultSelectionsForSlot } from '../../utils/bundleSelections';
 
 const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem, onDelete }) => {
   const [selections, setSelections] = useState({});
 
   useEffect(() => {
     if (isOpen && product) {
+      const initialSelections = {};
       if (editingItem) {
         // Cargar selección existente desde el carrito
-        const initialSelections = {};
         editingItem.selectedOptions?.forEach(opt => {
-          initialSelections[opt.slotId] = {
-            optionId: opt.optionId,
-            productId: opt.productId,
-            name: opt.originalName || opt.name,
-            priceModifier: opt.priceModifier || 0,
-            variant: opt.variant || null,
-            selectedIngredients: opt.selectedIngredients || []
-          };
+          if (!initialSelections[opt.slotId]) initialSelections[opt.slotId] = [];
+          initialSelections[opt.slotId].push(selectionFromCartOption(opt));
         });
         setSelections(initialSelections);
       } else {
-        // Cargar selecciones por defecto
-        const initialSelections = {};
+        // Sin preselección por defecto: solo se auto-incluyen los slots con
+        // una única opción ("Incluido"); el resto inicia vacío para que el
+        // usuario elija la cantidad mínima.
         product.bundleSlots?.forEach(slot => {
-          const defaultOpt = slot.options?.find(o => o.isDefault) || slot.options?.[0];
-          if (defaultOpt) {
-            // Pre-seleccionar variante más económica o variante fija del combo
-            const activeVariants = defaultOpt.variants?.filter(v => v.is_active) || [];
-            const lockedVariant = defaultOpt.variantId ? activeVariants.find(v => v.id === defaultOpt.variantId) : null;
-            const chosenVariant = lockedVariant || activeVariants.reduce((min, v) => {
-              if (!min) return v;
-              return (v.price_modifier || 0) < (min.price_modifier || 0) ? v : min;
-            }, null);
-
-            initialSelections[slot.id] = {
-              optionId: defaultOpt.id,
-              productId: defaultOpt.productId,
-              name: defaultOpt.name,
-              priceModifier: defaultOpt.priceModifier || 0,
-              variant: chosenVariant,
-              selectedIngredients: []
-            };
+          if ((slot.options?.length || 0) === 1) {
+            initialSelections[slot.id] = defaultSelectionsForSlot(slot);
           }
         });
         setSelections(initialSelections);
@@ -53,51 +33,51 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
   if (!product) return null;
 
   const handleSelectOption = (slotId, option) => {
-    const activeVariants = option.variants?.filter(v => v.is_active) || [];
-    const lockedVariant = option.variantId ? activeVariants.find(v => v.id === option.variantId) : null;
-    const chosenVariant = lockedVariant || activeVariants.reduce((min, v) => {
-      if (!min) return v;
-      return (v.price_modifier || 0) < (min.price_modifier || 0) ? v : min;
-    }, null);
-
-    setSelections(prev => ({
-      ...prev,
-      [slotId]: {
-        optionId: option.id,
-        productId: option.productId,
-        name: option.name,
-        priceModifier: option.priceModifier || 0,
-        variant: chosenVariant,
-        selectedIngredients: []
-      }
-    }));
-  };
-
-  const handleSelectVariant = (slotId, variant) => {
-    setSelections(prev => ({
-      ...prev,
-      [slotId]: {
-        ...prev[slotId],
-        variant: variant
-      }
-    }));
-  };
-
-  const handleToggleIngredient = (slotId, ingredient) => {
     setSelections(prev => {
-      const current = prev[slotId];
-      if (!current) return prev;
-      const isSelected = current.selectedIngredients?.some(i => i.id === ingredient.id);
-      const newIngredients = isSelected
-        ? current.selectedIngredients.filter(i => i.id !== ingredient.id)
-        : [...(current.selectedIngredients || []), ingredient];
+      const current = prev[slotId] || [];
+      const existingIndex = current.findIndex(s => s.optionId === option.id);
+      if (existingIndex >= 0) {
+        return { ...prev, [slotId]: current.filter((_, i) => i !== existingIndex) };
+      }
 
+      const slot = product.bundleSlots?.find(s => s.id === slotId);
+      const max = slot?.maxSelections > 0 ? slot.maxSelections : 1;
+      if (current.length >= max) {
+        // Comportamiento radio para max = 1: reemplazar en vez de ignorar
+        if (max === 1 && current.length === 1) {
+          return { ...prev, [slotId]: [buildSelection(option)] };
+        }
+        return prev;
+      }
+      return { ...prev, [slotId]: [...current, buildSelection(option)] };
+    });
+  };
+
+  const handleSelectVariant = (slotId, optionId, variant) => {
+    setSelections(prev => {
+      const current = prev[slotId] || [];
       return {
         ...prev,
-        [slotId]: {
-          ...current,
-          selectedIngredients: newIngredients
-        }
+        [slotId]: current.map(s => s.optionId === optionId ? { ...s, variant } : s)
+      };
+    });
+  };
+
+  const handleToggleIngredient = (slotId, optionId, ingredient) => {
+    setSelections(prev => {
+      const current = prev[slotId] || [];
+      return {
+        ...prev,
+        [slotId]: current.map(s => {
+          if (s.optionId !== optionId) return s;
+          const isSelected = s.selectedIngredients?.some(i => i.id === ingredient.id);
+          return {
+            ...s,
+            selectedIngredients: isSelected
+              ? s.selectedIngredients.filter(i => i.id !== ingredient.id)
+              : [...(s.selectedIngredients || []), ingredient]
+          };
+        })
       };
     });
   };
@@ -107,17 +87,11 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
     let totalGross = Math.round(baseNet);
 
     Object.keys(selections).forEach(slotId => {
-      const sel = selections[slotId];
-      if (sel) {
-        // Sumar modificador de la opción en combo (bruto)
+      (selections[slotId] || []).forEach(sel => {
         totalGross += Math.round(sel.priceModifier || 0);
-
-        // Sumar modificador de variante si corresponde (bruto)
         if (sel.variant) {
           totalGross += Math.round(sel.variant.price_modifier || 0);
         }
-
-        // Sumar modificador de ingredientes extras (bruto)
         if (sel.selectedIngredients) {
           sel.selectedIngredients.forEach(ing => {
             if (ing.isExtra) {
@@ -125,47 +99,56 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
             }
           });
         }
-      }
+      });
     });
 
     return totalGross;
   };
 
+  const slotsComplete = !product.bundleSlots?.some(slot => {
+    const count = (selections[slot.id] || []).length;
+    return slot.minSelections > 0 && count < slot.minSelections;
+  });
+
   const handleConfirmClick = () => {
-    // Validar que todos los slots obligatorios tengan selección
-    const missing = product.bundleSlots?.some(slot => slot.minSelections > 0 && !selections[slot.id]);
-    if (missing) {
-      alert("Por favor completa todas las selecciones obligatorias del combo.");
+    // Validar que todos los slots obligatorios cumplan el mínimo de selecciones
+    const missingSlot = product.bundleSlots?.find(slot => {
+      const count = (selections[slot.id] || []).length;
+      return slot.minSelections > 0 && count < slot.minSelections;
+    });
+    if (missingSlot) {
+      const count = (selections[missingSlot.id] || []).length;
+      alert(`"${missingSlot.name}" requiere al menos ${missingSlot.minSelections} selección${missingSlot.minSelections > 1 ? 'es' : ''}. Has elegido ${count}.`);
       return;
     }
 
     // Mapear al formato esperado del carrito
-    const selectedOptionsList = product.bundleSlots?.map(slot => {
-      const sel = selections[slot.id];
-      if (!sel) return null;
+    const selectedOptionsList = (product.bundleSlots || []).flatMap(slot => {
+      const sels = selections[slot.id] || [];
+      return sels.map(sel => {
+        // Generar nombre completo para el carrito
+        let fullName = sel.name;
+        if (sel.variant) {
+          fullName += ` (${sel.variant.name})`;
+        }
 
-      // Generar nombre completo para el carrito
-      let fullName = sel.name;
-      if (sel.variant) {
-        fullName += ` (${sel.variant.name})`;
-      }
+        // Calcular precio unitario neto para esta opción (modificador de combo + modificador de variante)
+        const optPriceNet = (sel.priceModifier || 0) + (sel.variant?.price_modifier || 0);
 
-      // Calcular precio unitario neto para esta opción (modificador de combo + modificador de variante)
-      const optPriceNet = (sel.priceModifier || 0) + (sel.variant?.price_modifier || 0);
-
-      return {
-        slotId: slot.id,
-        slotName: slot.name,
-        optionId: sel.optionId,
-        productId: sel.productId,
-        name: fullName,
-        originalName: sel.name,
-        price: optPriceNet, // precio neto
-        quantity: 1, // cantidad por combo
-        variant: sel.variant,
-        selectedIngredients: sel.selectedIngredients
-      };
-    }).filter(Boolean) || [];
+        return {
+          slotId: slot.id,
+          slotName: slot.name,
+          optionId: sel.optionId,
+          productId: sel.productId,
+          name: fullName,
+          originalName: sel.name,
+          price: optPriceNet, // precio neto
+          quantity: 1, // cantidad por combo
+          variant: sel.variant,
+          selectedIngredients: sel.selectedIngredients
+        };
+      });
+    });
 
     const comboTotalNet = calculateTotal();
 
@@ -185,8 +168,10 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         
         {product.bundleSlots?.map(slot => {
-          const currentSelection = selections[slot.id];
-          const selectedOptionObj = slot.options?.find(o => o.id === currentSelection?.optionId);
+          const currentSelection = selections[slot.id] || [];
+          const max = slot.maxSelections > 0 ? slot.maxSelections : 1;
+          const count = currentSelection.length;
+          const atMax = count >= max;
 
           return (
             <div key={slot.id} className="mb-6 last:mb-0">
@@ -194,17 +179,24 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
                 <span className="font-bold text-sm text-gray-500 uppercase tracking-wider">
                   {slot.name} {slot.minSelections > 0 && <span className="text-red-500">*</span>}
                 </span>
-                {slot.minSelections === 0 && (
+                {max > 1 ? (
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                    count >= (slot.minSelections || 0) ? 'bg-blue-50 text-blue-600' : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    {count}/{max}
+                  </span>
+                ) : slot.minSelections === 0 ? (
                   <span className="text-xs text-gray-400 font-medium">(Opcional)</span>
-                )}
+                ) : null}
               </div>
 
               {/* Listado de opciones hacia abajo con checkbox */}
               <div className="space-y-2 mb-4">
                 {slot.options?.map(opt => {
-                  const isSelected = currentSelection?.optionId === opt.id;
+                  const isSelected = currentSelection.some(s => s.optionId === opt.id);
                   const extraPrice = Math.round(opt.priceModifier);
                   const isSingleOption = slot.options.length === 1;
+                  const isLocked = max > 1 && atMax && !isSelected && !isSingleOption;
 
                   return (
                     <div
@@ -217,7 +209,9 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
                       className={`flex items-center justify-between p-3.5 border rounded-2xl transition-all cursor-pointer select-none ${
                         isSelected 
                           ? 'border-blue-600 bg-blue-50/20' 
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                          : isLocked
+                            ? 'border-gray-200 bg-gray-50 opacity-60'
+                            : 'border-gray-200 hover:border-gray-300 bg-white'
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -246,75 +240,91 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
                 })}
               </div>
 
-              {/* Personalización anidada del producto seleccionado (Variantes e Ingredientes) */}
-              {selectedOptionObj && (
-                (selectedOptionObj.variants?.length > 0 && !selectedOptionObj.variantId) || 
-                selectedOptionObj.ingredients?.some(i => i.isExtra)
-              ) && (
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-150 space-y-4 mt-4">
-                  
-                  {/* Variantes del producto seleccionado */}
-                  {selectedOptionObj.variants && selectedOptionObj.variants.length > 0 && !selectedOptionObj.variantId && (
-                    <div>
-                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Tamaño / Opción</p>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedOptionObj.variants.filter(v => v.is_active).map(v => {
-                          const isVarSelected = currentSelection?.variant?.id === v.id;
-                          const varPrice = Math.round(v.price_modifier);
-                          return (
-                            <button
-                              key={v.id}
-                              onClick={() => handleSelectVariant(slot.id, v)}
-                              className={`px-3 py-2 rounded-lg text-[13px] sm:text-xs font-semibold border transition-all ${
-                                isVarSelected 
-                                  ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold' 
-                                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                              }`}
-                            >
-                              {v.name} {v.price_modifier > 0 && `(+$${varPrice})`}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Ingredientes Extras del producto seleccionado */}
-                  {selectedOptionObj.ingredients && selectedOptionObj.ingredients.some(i => i.isExtra) && (
-                    <div>
-                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Ingredientes Extra</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {selectedOptionObj.ingredients.filter(i => i.isExtra).map(ing => {
-                          const isIngSelected = currentSelection?.selectedIngredients?.some(i => i.id === ing.id);
-                          const ingPrice = Math.round(ing.price);
-                          const isUnavailable = !ing.price || Number(ing.price) <= 0 || Number(ing.stock_quantity) <= 0;
-                          return (
-                            <button
-                              key={ing.id}
-                              onClick={() => handleToggleIngredient(slot.id, ing)}
-                              disabled={isUnavailable}
-                              className={`flex items-center justify-between px-3 py-2.5 sm:py-2 border rounded-lg text-[13px] sm:text-xs transition-all text-left ${
-                                isUnavailable
-                                  ? 'border-gray-200 bg-gray-50 text-gray-400 opacity-60 cursor-not-allowed'
-                                  : isIngSelected 
-                                    ? 'border-orange-500 bg-orange-50/50 text-orange-700 font-bold' 
-                                    : 'border-gray-250 bg-white text-gray-600 hover:border-gray-300'
-                              }`}
-                            >
-                              <span className="truncate pr-2">{ing.name}</span>
-                              {isUnavailable ? (
-                                <span className="font-bold uppercase tracking-wide text-[9px] text-gray-500 shrink-0">No disponible</span>
-                              ) : (
-                                <span className="font-semibold shrink-0 text-gray-400">+${ingPrice}</span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
+              {atMax && max > 1 && (
+                <p className="text-xs text-gray-400 font-medium mb-4 -mt-2">
+                  Máximo alcanzado ({max}). Deselecciona una opción para elegir otra.
+                </p>
               )}
+
+              {/* Personalización anidada de CADA producto seleccionado (Variantes e Ingredientes) */}
+              {currentSelection.map(sel => {
+                const selectedOptionObj = slot.options?.find(o => o.id === sel.optionId);
+                if (!selectedOptionObj) return null;
+                const hasCustomization = (
+                  (selectedOptionObj.variants?.length > 0 && !selectedOptionObj.variantId) ||
+                  selectedOptionObj.ingredients?.some(i => i.isExtra)
+                );
+                if (!hasCustomization) return null;
+
+                return (
+                  <div key={sel.optionId} className="bg-gray-50 p-4 rounded-xl border border-gray-150 space-y-4 mt-4">
+                    {currentSelection.length > 1 && (
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{sel.name}</p>
+                    )}
+
+                    {/* Variantes del producto seleccionado */}
+                    {selectedOptionObj.variants && selectedOptionObj.variants.length > 0 && !selectedOptionObj.variantId && (
+                      <div>
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Tamaño / Opción</p>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedOptionObj.variants.filter(v => v.is_active).map(v => {
+                            const isVarSelected = sel.variant?.id === v.id;
+                            const varPrice = Math.round(v.price_modifier);
+                            return (
+                              <button
+                                key={v.id}
+                                onClick={() => handleSelectVariant(slot.id, sel.optionId, v)}
+                                className={`px-3 py-2 rounded-lg text-[13px] sm:text-xs font-semibold border transition-all ${
+                                  isVarSelected 
+                                    ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold' 
+                                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                }`}
+                              >
+                                {v.name} {v.price_modifier > 0 && `(+$${varPrice})`}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Ingredientes Extras del producto seleccionado */}
+                    {selectedOptionObj.ingredients && selectedOptionObj.ingredients.some(i => i.isExtra) && (
+                      <div>
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Ingredientes Extra</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {selectedOptionObj.ingredients.filter(i => i.isExtra).map(ing => {
+                            const isIngSelected = sel.selectedIngredients?.some(i => i.id === ing.id);
+                            const ingPrice = Math.round(ing.price);
+                            const isUnavailable = !ing.price || Number(ing.price) <= 0 || Number(ing.stock_quantity) <= 0;
+                            return (
+                              <button
+                                key={ing.id}
+                                onClick={() => handleToggleIngredient(slot.id, sel.optionId, ing)}
+                                disabled={isUnavailable}
+                                className={`flex items-center justify-between px-3 py-2.5 sm:py-2 border rounded-lg text-[13px] sm:text-xs transition-all text-left ${
+                                  isUnavailable
+                                    ? 'border-gray-200 bg-gray-50 text-gray-400 opacity-60 cursor-not-allowed'
+                                    : isIngSelected 
+                                      ? 'border-orange-500 bg-orange-50/50 text-orange-700 font-bold' 
+                                      : 'border-gray-250 bg-white text-gray-600 hover:border-gray-300'
+                                }`}
+                              >
+                                <span className="truncate pr-2">{ing.name}</span>
+                                {isUnavailable ? (
+                                  <span className="font-bold uppercase tracking-wide text-[9px] text-gray-500 shrink-0">No disponible</span>
+                                ) : (
+                                  <span className="font-semibold shrink-0 text-gray-400">+${ingPrice}</span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           );
         })}
@@ -337,11 +347,17 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
         <Button
           size="lg"
           onClick={handleConfirmClick}
+          disabled={!slotsComplete}
           className="w-full flex items-center justify-between text-base"
         >
           <span>{editingItem ? 'Actualizar combo' : 'Agregar combo al carrito'}</span>
           <span className="font-bold">${(calculateTotal() * quantity).toLocaleString('es-CL')}</span>
         </Button>
+        {!slotsComplete && (
+          <p className="text-xs text-red-500 font-semibold text-center">
+            Completa las selecciones obligatorias del combo para continuar.
+          </p>
+        )}
       </div>
     </Modal>
   );

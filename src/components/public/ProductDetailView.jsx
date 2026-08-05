@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import IngredientIcon from '../ui/IngredientIcon';
+import { buildSelection, selectionFromCartOption, defaultSelectionsForSlot } from '../../utils/bundleSelections';
 
 const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, initialExtras = [], initialQuantity = 1, isOutOfStock = false }) => {
   const isBundle = product.type === 'bundle';
@@ -27,35 +28,16 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
       const initial = {};
       if (product.selectedOptions) {
         product.selectedOptions.forEach(opt => {
-          initial[opt.slotId] = {
-            optionId: opt.optionId,
-            productId: opt.productId,
-            name: opt.originalName || opt.name,
-            priceModifier: opt.priceModifier || 0,
-            variant: opt.variant || null,
-            selectedIngredients: opt.selectedIngredients || []
-          };
+          if (!initial[opt.slotId]) initial[opt.slotId] = [];
+          initial[opt.slotId].push(selectionFromCartOption(opt));
         });
       } else {
-        // Pre-select defaults y variante fija si está configurada
+        // Sin preselección por defecto: solo se auto-incluyen los slots con
+        // una única opción ("Incluido"); el resto inicia vacío para que el
+        // usuario elija la cantidad mínima.
         product.bundleSlots?.forEach(slot => {
-          const defaultOpt = slot.options?.find(o => o.isDefault) || slot.options?.[0];
-          if (defaultOpt) {
-            const activeVariants = defaultOpt.variants?.filter(v => v.is_active) || [];
-            const lockedVariant = defaultOpt.variantId ? activeVariants.find(v => v.id === defaultOpt.variantId) : null;
-            const chosenVariant = lockedVariant || activeVariants.reduce((min, v) => {
-              if (!min) return v;
-              return (v.price_modifier || 0) < (min.price_modifier || 0) ? v : min;
-            }, null);
-
-            initial[slot.id] = {
-              optionId: defaultOpt.id,
-              productId: defaultOpt.productId,
-              name: defaultOpt.name,
-              priceModifier: defaultOpt.priceModifier || 0,
-              variant: chosenVariant,
-              selectedIngredients: []
-            };
+          if ((slot.options?.length || 0) === 1) {
+            initial[slot.id] = defaultSelectionsForSlot(slot);
           }
         });
       }
@@ -75,54 +57,51 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
 
   // Bundle actions
   const handleSelectOption = (slotId, opt) => {
-    const activeVariants = opt.variants?.filter(v => v.is_active) || [];
-    const lockedVariant = opt.variantId ? activeVariants.find(v => v.id === opt.variantId) : null;
-    const chosenVariant = lockedVariant || activeVariants.reduce((min, v) => {
-      if (!min) return v;
-      return (v.price_modifier || 0) < (min.price_modifier || 0) ? v : min;
-    }, null);
-
-    setSelections(prev => ({
-      ...prev,
-      [slotId]: {
-        optionId: opt.id,
-        productId: opt.productId,
-        name: opt.name,
-        priceModifier: opt.priceModifier || 0,
-        variant: chosenVariant,
-        selectedIngredients: []
+    setSelections(prev => {
+      const current = prev[slotId] || [];
+      const existingIndex = current.findIndex(s => s.optionId === opt.id);
+      if (existingIndex >= 0) {
+        return { ...prev, [slotId]: current.filter((_, i) => i !== existingIndex) };
       }
-    }));
+
+      const slot = product.bundleSlots?.find(s => s.id === slotId);
+      const max = slot?.maxSelections > 0 ? slot.maxSelections : 1;
+      if (current.length >= max) {
+        // Comportamiento radio para max = 1: reemplazar en vez de ignorar
+        if (max === 1 && current.length === 1) {
+          return { ...prev, [slotId]: [buildSelection(opt)] };
+        }
+        return prev;
+      }
+      return { ...prev, [slotId]: [...current, buildSelection(opt)] };
+    });
   };
 
-  const handleSelectVariant = (slotId, variant) => {
+  const handleSelectVariant = (slotId, optionId, variant) => {
     setSelections(prev => {
-      const current = prev[slotId];
-      if (!current) return prev;
+      const current = prev[slotId] || [];
       return {
         ...prev,
-        [slotId]: {
-          ...current,
-          variant
-        }
+        [slotId]: current.map(s => s.optionId === optionId ? { ...s, variant } : s)
       };
     });
   };
 
-  const handleToggleIngredient = (slotId, ing) => {
+  const handleToggleIngredient = (slotId, optionId, ing) => {
     setSelections(prev => {
-      const current = prev[slotId];
-      if (!current) return prev;
-      const alreadySelected = current.selectedIngredients?.some(i => i.id === ing.id);
-      const nextIngredients = alreadySelected
-        ? current.selectedIngredients.filter(i => i.id !== ing.id)
-        : [...(current.selectedIngredients || []), ing];
+      const current = prev[slotId] || [];
       return {
         ...prev,
-        [slotId]: {
-          ...current,
-          selectedIngredients: nextIngredients
-        }
+        [slotId]: current.map(s => {
+          if (s.optionId !== optionId) return s;
+          const alreadySelected = s.selectedIngredients?.some(i => i.id === ing.id);
+          return {
+            ...s,
+            selectedIngredients: alreadySelected
+              ? s.selectedIngredients.filter(i => i.id !== ing.id)
+              : [...(s.selectedIngredients || []), ing]
+          };
+        })
       };
     });
   };
@@ -132,8 +111,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
     let totalGross = Math.round(baseNet);
 
     Object.keys(selections).forEach(slotId => {
-      const sel = selections[slotId];
-      if (sel) {
+      (selections[slotId] || []).forEach(sel => {
         totalGross += Math.round(sel.priceModifier || 0);
         if (sel.variant) {
           totalGross += Math.round(sel.variant.price_modifier || 0);
@@ -145,7 +123,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
             }
           });
         }
-      }
+      });
     });
 
     return totalGross;
@@ -169,38 +147,49 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
     );
   };
 
+  const slotsComplete = isBundle
+    ? !product.bundleSlots?.some(slot => {
+        const count = (selections[slot.id] || []).length;
+        return slot.minSelections > 0 && count < slot.minSelections;
+      })
+    : true;
+
   const handleConfirm = () => {
     if (isBundle) {
-      const missing = product.bundleSlots?.some(slot => slot.minSelections > 0 && !selections[slot.id]);
-      if (missing) {
-        alert("Por favor completa todas las selecciones obligatorias del combo.");
+      const missingSlot = product.bundleSlots?.find(slot => {
+        const count = (selections[slot.id] || []).length;
+        return slot.minSelections > 0 && count < slot.minSelections;
+      });
+      if (missingSlot) {
+        const count = (selections[missingSlot.id] || []).length;
+        alert(`"${missingSlot.name}" requiere al menos ${missingSlot.minSelections} selección${missingSlot.minSelections > 1 ? 'es' : ''}. Has elegido ${count}.`);
         return;
       }
 
-      const selectedOptionsList = product.bundleSlots?.map(slot => {
-        const sel = selections[slot.id];
-        if (!sel) return null;
+      const selectedOptionsList = (product.bundleSlots || []).flatMap(slot => {
+        const sels = selections[slot.id] || [];
+        return sels.map(sel => {
+          let fullName = sel.name;
+          if (sel.variant) {
+            fullName += ` (${sel.variant.name})`;
+          }
 
-        let fullName = sel.name;
-        if (sel.variant) {
-          fullName += ` (${sel.variant.name})`;
-        }
+          const optPriceNet = (sel.priceModifier || 0) + (sel.variant?.price_modifier || 0);
 
-        const optPriceNet = (sel.priceModifier || 0) + (sel.variant?.price_modifier || 0);
-
-        return {
-          slotId: slot.id,
-          slotName: slot.name,
-          optionId: sel.optionId,
-          productId: sel.productId,
-          name: fullName,
-          originalName: sel.name,
-          price: optPriceNet,
-          quantity: 1,
-          variant: sel.variant,
-          selectedIngredients: sel.selectedIngredients
-        };
-      }).filter(Boolean) || [];
+          return {
+            slotId: slot.id,
+            slotName: slot.name,
+            optionId: sel.optionId,
+            productId: sel.productId,
+            name: fullName,
+            originalName: sel.name,
+            price: optPriceNet,
+            quantity: 1,
+            variant: sel.variant,
+            selectedIngredients: sel.selectedIngredients
+          };
+        });
+      });
 
       const comboTotalNet = calculateBundleTotalGross();
 
@@ -367,8 +356,10 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
 
             {/* Combo/Bundle Slots Selection */}
             {isBundle && product.bundleSlots?.map(slot => {
-              const currentSelection = selections[slot.id];
-              const selectedOptionObj = slot.options?.find(o => o.id === currentSelection?.optionId);
+              const currentSelection = selections[slot.id] || [];
+              const max = slot.maxSelections > 0 ? slot.maxSelections : 1;
+              const count = currentSelection.length;
+              const atMax = count >= max;
 
               return (
                 <div key={slot.id} className="border-t border-gray-100 pt-6 first:border-t-0 first:pt-0">
@@ -379,16 +370,23 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                         <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded uppercase tracking-wider">Obligatorio</span>
                       )}
                     </p>
-                    {slot.minSelections === 0 && (
+                    {max > 1 ? (
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        count >= (slot.minSelections || 0) ? 'bg-gray-100 text-gray-600' : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {count}/{max}
+                      </span>
+                    ) : slot.minSelections === 0 ? (
                       <span className="text-xs text-gray-400 font-medium">(Opcional)</span>
-                    )}
+                    ) : null}
                   </div>
 
                   <div className="space-y-2.5 mb-4">
                     {slot.options?.map(opt => {
-                      const isSelected = currentSelection?.optionId === opt.id;
+                      const isSelected = currentSelection.some(s => s.optionId === opt.id);
                       const extraPrice = Math.round(opt.priceModifier);
                       const isSingleOption = slot.options.length === 1;
+                      const isLocked = max > 1 && atMax && !isSelected && !isSingleOption;
 
                       return (
                         <div
@@ -401,7 +399,9 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                           className={`flex items-center justify-between p-4 border rounded-2xl transition-all cursor-pointer select-none ${
                             isSelected 
                               ? 'border-black bg-gray-50/50' 
-                              : 'border-gray-200 hover:border-gray-300 bg-white'
+                              : isLocked
+                                ? 'border-gray-200 bg-gray-50 opacity-60'
+                                : 'border-gray-200 hover:border-gray-300 bg-white'
                           }`}
                         >
                           <div className="flex items-center gap-3">
@@ -430,76 +430,96 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                     })}
                   </div>
 
-                  {/* Nested option personalization */}
-                  {selectedOptionObj && (
-                    <div className="bg-gray-100/70 p-4 rounded-2xl border border-gray-200 space-y-4">
-                      {/* Nested Variants */}
-                      {selectedOptionObj.variants && selectedOptionObj.variants.length > 0 && !selectedOptionObj.variantId && (
-                        <div>
-                          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Tamaño / Opción</p>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedOptionObj.variants.map(v => {
-                              const isVarSelected = currentSelection?.variant?.id === v.id;
-                              const varPrice = Math.round(v.price_modifier);
-                              return (
-                                <button
-                                  key={v.id}
-                                  type="button"
-                                  onClick={() => handleSelectVariant(slot.id, v)}
-                                  className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
-                                    isVarSelected 
-                                      ? 'border-black bg-black text-white font-bold' 
-                                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                                  }`}
-                                >
-                                  {v.name} {v.price_modifier > 0 && `(+$${varPrice.toLocaleString('es-CL')})`}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Nested Ingredients Extras */}
-                      {selectedOptionObj.ingredients && selectedOptionObj.ingredients.some(i => i.isExtra) && (
-                        <div>
-                          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Ingredientes Extra</p>
-                          <div className="grid grid-cols-2 gap-2">
-                            {selectedOptionObj.ingredients.filter(i => i.isExtra).map(ing => {
-                              const isIngSelected = currentSelection?.selectedIngredients?.some(i => i.id === ing.id);
-                              const ingPrice = Math.round(ing.price);
-                              const isUnavailable = !ing.price || Number(ing.price) <= 0 || Number(ing.stock_quantity) <= 0;
-                              return (
-                                <button
-                                  key={ing.id}
-                                  type="button"
-                                  onClick={() => handleToggleIngredient(slot.id, ing)}
-                                  disabled={isUnavailable}
-                                  className={`flex items-center justify-between px-3 py-2 border rounded-xl text-xs transition-all text-left ${
-                                    isUnavailable
-                                      ? 'border-gray-200 bg-gray-50 text-gray-400 opacity-60 cursor-not-allowed'
-                                      : isIngSelected 
-                                        ? 'border-orange-600 bg-orange-50/50 text-orange-700 font-bold' 
-                                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                                  }`}
-                                >
-                                  <span className="flex items-center gap-1.5 truncate min-w-0">
-                                    <IngredientIcon name={ing.name} icon={ing.icon} size={14} className="text-gray-500 shrink-0" />
-                                    <span className="truncate">{ing.name}</span>
-                                  </span>
-                                  {isUnavailable ? (
-                                    <span className="text-[9px] font-bold uppercase tracking-wide text-gray-500 shrink-0 ml-1">No disponible</span>
-                                  ) : (
-                                    <span className="font-semibold shrink-0 text-orange-600 ml-1">+${ingPrice.toLocaleString('es-CL')}</span>
-                                  )}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                  {atMax && max > 1 && (
+                    <p className="text-xs text-gray-400 font-medium mb-4 -mt-1">
+                      Máximo alcanzado ({max}). Deselecciona una opción para elegir otra.
+                    </p>
                   )}
+
+                  {/* Nested personalization por cada opción seleccionada */}
+                  {currentSelection.map(sel => {
+                    const selectedOptionObj = slot.options?.find(o => o.id === sel.optionId);
+                    if (!selectedOptionObj) return null;
+                    const hasCustomization = (
+                      (selectedOptionObj.variants?.length > 0 && !selectedOptionObj.variantId) ||
+                      selectedOptionObj.ingredients?.some(i => i.isExtra)
+                    );
+                    if (!hasCustomization) return null;
+
+                    return (
+                      <div key={sel.optionId} className="bg-gray-100/70 p-4 rounded-2xl border border-gray-200 space-y-4">
+                        {currentSelection.length > 1 && (
+                          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{sel.name}</p>
+                        )}
+
+                        {/* Nested Variants */}
+                        {selectedOptionObj.variants && selectedOptionObj.variants.length > 0 && !selectedOptionObj.variantId && (
+                          <div>
+                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Tamaño / Opción</p>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedOptionObj.variants.map(v => {
+                                const isVarSelected = sel.variant?.id === v.id;
+                                const varPrice = Math.round(v.price_modifier);
+                                return (
+                                  <button
+                                    key={v.id}
+                                    type="button"
+                                    onClick={() => handleSelectVariant(slot.id, sel.optionId, v)}
+                                    className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                                      isVarSelected 
+                                        ? 'border-black bg-black text-white font-bold' 
+                                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                    }`}
+                                  >
+                                    {v.name} {v.price_modifier > 0 && `(+$${varPrice.toLocaleString('es-CL')})`}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Nested Ingredients Extras */}
+                        {selectedOptionObj.ingredients && selectedOptionObj.ingredients.some(i => i.isExtra) && (
+                          <div>
+                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">Ingredientes Extra</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {selectedOptionObj.ingredients.filter(i => i.isExtra).map(ing => {
+                                const isIngSelected = sel.selectedIngredients?.some(i => i.id === ing.id);
+                                const ingPrice = Math.round(ing.price);
+                                const isUnavailable = !ing.price || Number(ing.price) <= 0 || Number(ing.stock_quantity) <= 0;
+                                return (
+                                  <button
+                                    key={ing.id}
+                                    type="button"
+                                    onClick={() => handleToggleIngredient(slot.id, sel.optionId, ing)}
+                                    disabled={isUnavailable}
+                                    className={`flex items-center justify-between px-3 py-2 border rounded-xl text-xs transition-all text-left ${
+                                      isUnavailable
+                                        ? 'border-gray-200 bg-gray-50 text-gray-400 opacity-60 cursor-not-allowed'
+                                        : isIngSelected 
+                                          ? 'border-orange-600 bg-orange-50/50 text-orange-700 font-bold' 
+                                          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                    }`}
+                                  >
+                                    <span className="flex items-center gap-1.5 truncate min-w-0">
+                                      <IngredientIcon name={ing.name} icon={ing.icon} size={14} className="text-gray-500 shrink-0" />
+                                      <span className="truncate">{ing.name}</span>
+                                    </span>
+                                    {isUnavailable ? (
+                                      <span className="text-[9px] font-bold uppercase tracking-wide text-gray-500 shrink-0 ml-1">No disponible</span>
+                                    ) : (
+                                      <span className="font-semibold shrink-0 text-orange-600 ml-1">+${ingPrice.toLocaleString('es-CL')}</span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
@@ -523,11 +543,11 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
             
             <button
               onClick={handleConfirm}
-              disabled={isOutOfStock || (!isBundle && hasVariants && !selectedVariant)}
-              className={`flex-1 h-14 font-bold rounded-full flex items-center justify-center px-6 transition-colors active:scale-[0.98] disabled:opacity-100 disabled:active:scale-100 ${
-                isOutOfStock
+              disabled={isOutOfStock || !slotsComplete || (!isBundle && hasVariants && !selectedVariant)}
+              className={`flex-1 h-14 font-bold rounded-full flex items-center justify-center px-6 transition-colors active:scale-[0.98] disabled:active:scale-100 ${
+                isOutOfStock || !slotsComplete || (!isBundle && hasVariants && !selectedVariant)
                   ? 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none'
-                  : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/20 disabled:opacity-50'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/20'
               }`}
             >
               <span className="font-bold">{isOutOfStock ? 'Sin stock' : 'Agregar'}</span>
