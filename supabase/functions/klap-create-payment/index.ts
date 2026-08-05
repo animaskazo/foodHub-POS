@@ -28,16 +28,21 @@ serve(async (req) => {
     // El cliente envía el returnUrl como referencia para extraer el slug y el orderId.
     const rawReturnUrl = (returnUrl || "").trim();
     
-    // Extraer el slug del returnUrl del cliente (ej: "pizza-nostra" de "/order/pizza-nostra")
+    // Extraer el slug y el origin del returnUrl del cliente (ej: "pizza-nostra" de "/order/pizza-nostra")
     let slug = "";
+    let returnOrigin = "";
     try {
       const urlObj = new URL(rawReturnUrl);
       const match = urlObj.pathname.match(/\/order\/([^/?]+)/);
       if (match) slug = match[1];
+      // Solo reutilizar el origin si es https y no localhost/vercel.app (desarrollo)
+      if (urlObj.protocol === "https:" && !/localhost|127\.0\.0\.1|\.vercel\.app$/i.test(urlObj.hostname)) {
+        returnOrigin = urlObj.origin;
+      }
     } catch { /* ignore */ }
 
-    // Usar APP_URL del entorno, o la URL de producción por defecto
-    const appBaseUrl = (Deno.env.get("APP_URL") || "https://food-admin.digital-solutions.work").replace(/\/$/, "");
+    // Usar el origin real de la tienda, o APP_URL del entorno, o la URL de producción por defecto
+    const appBaseUrl = (returnOrigin || Deno.env.get("APP_URL") || "https://food-admin.digital-solutions.work").replace(/\/$/, "");
     
     const validReturnUrl = slug
       ? `${appBaseUrl}/order/${slug}?orderId=${orderId}&status=success`
