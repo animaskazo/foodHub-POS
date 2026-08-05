@@ -17,12 +17,20 @@ import {
   Store,
   Globe,
   MessageCircle,
-  MapPin
+  MapPin,
+  Pencil,
+  Trash2
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Button } from "@/components/ui/button";
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import Modal from '../components/ui/Modal';
+import ConfirmDeleteModal from '../components/ui/ConfirmDeleteModal';
 import PageHeader from '../components/ui/PageHeader';
+import { updateCustomer, deleteCustomer, bulkDeleteCustomers } from '../services/customerService';
 
 const CustomersView = () => {
   const { organization, loading: authLoading } = useAuth();
@@ -36,6 +44,15 @@ const CustomersView = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [customerOrders, setCustomerOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+
+  // Edit State
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState({ full_name: '', phone: '', email: '', address: '', notes: '' });
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Delete State
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, mode: 'single', isDeleting: false });
 
   useDocumentTitle('Clientes');
 
@@ -140,6 +157,76 @@ const CustomersView = () => {
     }, 300);
   };
 
+  const handleOpenEdit = () => {
+    if (!selectedCustomer) return;
+    setEditForm({
+      full_name: selectedCustomer.full_name || '',
+      phone: selectedCustomer.phone || '',
+      email: selectedCustomer.email || '',
+      address: selectedCustomer.address || '',
+      notes: selectedCustomer.notes || '',
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedCustomer) return;
+    if (!editForm.full_name.trim() && !editForm.phone.trim()) {
+      toast.error('Debes indicar al menos un nombre o un teléfono');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await updateCustomer(selectedCustomer.id, editForm);
+      toast.success('Cliente actualizado');
+      setIsEditOpen(false);
+      const updated = { ...selectedCustomer, ...editForm };
+      setSelectedCustomer(updated);
+      setCustomers(prev => prev.map(c => (c.id === updated.id ? updated : c)));
+    } catch (err) {
+      console.error('Error updating customer:', err);
+      toast.error('No se pudo actualizar el cliente');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    setDeleteModal(prev => ({ ...prev, isDeleting: true }));
+    try {
+      if (deleteModal.mode === 'single') {
+        if (!selectedCustomer) return;
+        await deleteCustomer(selectedCustomer.id);
+        toast.success('Cliente eliminado');
+        setCustomers(prev => prev.filter(c => c.id !== selectedCustomer.id));
+        handleCloseModal();
+      } else {
+        await bulkDeleteCustomers(selectedIds);
+        toast.success(`${selectedIds.length} clientes eliminados`);
+        setCustomers(prev => prev.filter(c => !selectedIds.includes(c.id)));
+        setSelectedIds([]);
+      }
+    } catch (err) {
+      console.error('Error deleting customers:', err);
+      toast.error('No se pudo eliminar el cliente');
+    } finally {
+      setDeleteModal({ isOpen: false, mode: 'single', isDeleting: false });
+    }
+  };
+
+  const handleToggleSelect = (id, e) => {
+    e.stopPropagation();
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const handleToggleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedIds(filteredCustomers.map(c => c.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
   const filteredCustomers = useMemo(() => {
     if (!searchQuery.trim()) return customers;
     const query = searchQuery.toLowerCase();
@@ -218,6 +305,22 @@ const CustomersView = () => {
             />
           </div>
 
+          {/* Bulk Selection Bar */}
+          {selectedIds.length > 0 && (
+            <div className="bg-blue-50/50 border border-blue-100 rounded-2xl px-5 py-3 flex items-center justify-between gap-3">
+              <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-none font-medium text-sm px-3 py-1">
+                {selectedIds.length} seleccionados
+              </Badge>
+              <Button
+                variant="destructive"
+                className="rounded-xl bg-red-600 text-white hover:bg-red-700"
+                onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', isDeleting: false })}
+              >
+                <Trash2 className="h-4 w-4 mr-2" /> Eliminar seleccionados
+              </Button>
+            </div>
+          )}
+
           {error && (
             <div className="p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 text-sm font-medium">
               {error}
@@ -238,6 +341,14 @@ const CustomersView = () => {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider border-b border-gray-150">
+                        <th className="px-6 py-4 w-10">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                            checked={filteredCustomers.length > 0 && selectedIds.length === filteredCustomers.length}
+                            onChange={handleToggleSelectAll}
+                          />
+                        </th>
                         <th className="px-6 py-4">Nombre</th>
                         <th className="px-6 py-4">Teléfono</th>
                         <th className="px-6 py-4">Email</th>
@@ -254,6 +365,15 @@ const CustomersView = () => {
                           onClick={() => handleOpenCustomerDetails(customer)}
                           className="hover:bg-gray-50 transition-colors cursor-pointer group"
                         >
+                          <td className="px-6 py-4">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                              checked={selectedIds.includes(customer.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => handleToggleSelect(customer.id, e)}
+                            />
+                          </td>
                           <td className="px-6 py-4 font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                             {customer.full_name || <span className="text-gray-400 font-normal">—</span>}
                           </td>
@@ -290,6 +410,13 @@ const CustomersView = () => {
                     onClick={() => handleOpenCustomerDetails(customer)}
                     className="bg-white p-4 rounded-xl border border-gray-200 active:bg-gray-50 flex items-center justify-between transition-all"
                   >
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-gray-300 cursor-pointer mr-3 shrink-0"
+                      checked={selectedIds.includes(customer.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => handleToggleSelect(customer.id, e)}
+                    />
                     <div className="flex-1 min-w-0 pr-3 space-y-1">
                       <h3 className="font-bold text-gray-900 truncate">
                         {customer.full_name || <span className="text-gray-400 font-normal">—</span>}
@@ -341,6 +468,23 @@ const CustomersView = () => {
             {/* Modal Body Scroll */}
             <div className="p-6 space-y-6">
               
+              {/* Actions */}
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={handleOpenEdit} className="rounded-xl">
+                  <Pencil className="h-4 w-4 mr-1.5" />
+                  Editar
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setDeleteModal({ isOpen: true, mode: 'single', isDeleting: false })}
+                  className="rounded-xl text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4 mr-1.5" />
+                  Eliminar
+                </Button>
+              </div>
+
               {/* Customer Stats Cards */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex flex-col">
@@ -461,6 +605,84 @@ const CustomersView = () => {
           </div>
         )}
       </Modal>
+
+      {/* Edit Customer Modal */}
+      <Modal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        maxWidth="max-w-md"
+        title="Editar cliente"
+      >
+        <div className="p-6 space-y-4">
+          <div className="space-y-1.5">
+            <Label>Nombre completo</Label>
+            <Input
+              value={editForm.full_name}
+              onChange={e => setEditForm(f => ({ ...f, full_name: e.target.value }))}
+              placeholder="Nombre del cliente"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Teléfono</Label>
+            <Input
+              value={editForm.phone}
+              onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+              placeholder="+56 9 1234 5678"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Email</Label>
+            <Input
+              type="email"
+              value={editForm.email}
+              onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+              placeholder="cliente@correo.com"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Dirección</Label>
+            <Input
+              value={editForm.address}
+              onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))}
+              placeholder="Dirección de despacho"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Notas</Label>
+            <Textarea
+              value={editForm.notes}
+              onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+              placeholder="Notas internas sobre el cliente"
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" className="rounded-xl" onClick={() => setIsEditOpen(false)} disabled={isSaving}>
+              Cancelar
+            </Button>
+            <Button className="rounded-xl" onClick={handleSaveEdit} disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                'Guardar cambios'
+              )}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <ConfirmDeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={handleDeleteConfirm}
+        isDeleting={deleteModal.isDeleting}
+        title={deleteModal.mode === 'single' ? 'Eliminar cliente' : 'Eliminar clientes'}
+        description={deleteModal.mode === 'single'
+          ? 'El cliente se eliminará del registro, pero sus pedidos se conservarán sin asociación a este cliente.'
+          : `Se eliminarán los ${selectedIds.length} clientes seleccionados. Sus pedidos se conservarán sin asociación.`}
+      />
     </div>
   );
 };

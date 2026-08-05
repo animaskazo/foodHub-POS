@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { checkInventoryStock, deductInventoryForOrder } from './inventoryService';
+import { findCustomerByPhone, upsertCustomerForOrder } from './customerService';
 
 // ── Get organization by its name (used as public identifier) ──
 export const getOrganizationByName = async (orgName) => {
@@ -366,27 +367,13 @@ export const createPublicOrder = async ({
 
   // Save/update customer record
   if (customer.phone) {
-    const { data: existingCustomer } = await supabase
-      .from('customers')
-      .select('id')
-      .eq('organization_id', organizationId)
-      .eq('phone', customer.phone)
-      .maybeSingle();
-
-    if (existingCustomer) {
-      if (customer.name) {
-        await supabase.from('customers').update({ full_name: customer.name, email: customer.email || null })
-          .eq('id', existingCustomer.id);
-      }
-      await supabase.from('orders').update({ customer_id: existingCustomer.id }).eq('id', order.id);
-    } else {
-      const { data: newCustomer } = await supabase
-        .from('customers')
-        .insert([{ organization_id: organizationId, phone: customer.phone, full_name: customer.name, email: customer.email || null }])
-        .select().single();
-      if (newCustomer) {
-        await supabase.from('orders').update({ customer_id: newCustomer.id }).eq('id', order.id);
-      }
+    const customerId = await upsertCustomerForOrder(organizationId, {
+      phone: customer.phone,
+      name: customer.name,
+      email: customer.email,
+    });
+    if (customerId) {
+      await supabase.from('orders').update({ customer_id: customerId }).eq('id', order.id);
     }
   }
 
@@ -439,24 +426,7 @@ export const getPublicOrderById = async (orderId) => {
 
 // ── Search public customer profile by organization and phone number ──
 export const getCustomerByPhone = async (organizationId, phone) => {
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length < 9) return null;
-
-  const suffix = digits.slice(-9);
-  const spacedPattern = `%${suffix[0]}%${suffix.slice(1, 5)}%${suffix.slice(5)}`;
-
-  const { data, error } = await supabase
-    .from('customers')
-    .select('full_name, email')
-    .eq('organization_id', organizationId)
-    .or(`phone.eq.${suffix},phone.eq.+56${suffix},phone.eq.56${suffix},phone.ilike.${spacedPattern}`)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Error fetching customer by phone:', error);
-    return null;
-  }
-  return data;
+  const customer = await findCustomerByPhone(organizationId, phone);
+  if (!customer) return null;
+  return { full_name: customer.full_name, email: customer.email };
 };

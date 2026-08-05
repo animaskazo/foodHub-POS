@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { checkInventoryStock, deductInventoryForOrder } from './inventoryService';
+import { upsertCustomerForOrder } from './customerService';
 
 export const createOrder = async (cartItems, paymentMethod, orderType, total, subtotal, tax, deliveryInfo = null, orderNotes = '', deliveryFee = 0) => {
   try {
@@ -192,31 +193,12 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
     // 7. Save/update customer record and associate with order
     if (deliveryInfo?.customerPhone) {
       try {
-        const { data: existingCustomer } = await supabase
-          .from('customers')
-          .select('id')
-          .eq('organization_id', organizationId)
-          .eq('phone', deliveryInfo.customerPhone)
-          .maybeSingle();
-
-        if (existingCustomer) {
-          if (deliveryInfo.customerName) {
-            await supabase.from('customers').update({ full_name: deliveryInfo.customerName })
-              .eq('id', existingCustomer.id);
-          }
-          await supabase.from('orders').update({ customer_id: existingCustomer.id }).eq('id', order.id);
-        } else {
-          const { data: newCustomer } = await supabase
-            .from('customers')
-            .insert([{
-              organization_id: organizationId,
-              phone: deliveryInfo.customerPhone,
-              full_name: deliveryInfo.customerName || 'Cliente POS',
-            }])
-            .select().single();
-          if (newCustomer) {
-            await supabase.from('orders').update({ customer_id: newCustomer.id }).eq('id', order.id);
-          }
+        const customerId = await upsertCustomerForOrder(organizationId, {
+          phone: deliveryInfo.customerPhone,
+          name: deliveryInfo.customerName,
+        });
+        if (customerId) {
+          await supabase.from('orders').update({ customer_id: customerId }).eq('id', order.id);
         }
       } catch (custError) {
         console.error("Error saving customer record:", custError);
@@ -497,28 +479,7 @@ export const updateOrderCustomer = async (orderId, name, phone) => {
     let customerId = null;
 
     if (phone) {
-      const { data: existingCustomer } = await supabase
-        .from('customers')
-        .select('id, full_name')
-        .eq('organization_id', organizationId)
-        .eq('phone', phone)
-        .maybeSingle();
-      
-      if (existingCustomer) {
-        customerId = existingCustomer.id;
-        if (name && existingCustomer.full_name !== name) {
-          await supabase.from('customers').update({ full_name: name }).eq('id', customerId);
-        }
-      } else {
-        const { data: newCustomer, error: insertError } = await supabase
-          .from('customers')
-          .insert([{ organization_id: organizationId, phone, full_name: name || null }])
-          .select()
-          .single();
-          
-        if (insertError) throw insertError;
-        customerId = newCustomer.id;
-      }
+      customerId = await upsertCustomerForOrder(organizationId, { phone, name });
     } else if (name) {
       const { data: newCustomer, error: insertError } = await supabase
         .from('customers')

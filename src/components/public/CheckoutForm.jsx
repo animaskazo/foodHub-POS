@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard, Truck, Info, CalendarClock, Clock, ChefHat } from 'lucide-react';
 import { getCustomerByPhone } from '../../services/publicOrderService';
 import { geocodeAddress, calculateDistance, isPointInPolygon } from '../../utils/geo';
@@ -198,6 +198,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     };
   });
   const [errors, setErrors] = useState({});
+  const touchedRef = useRef({ name: false, email: false });
   const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [isQuoting, setIsQuoting] = useState(false);
@@ -226,11 +227,12 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       try {
         const customer = await getCustomerByPhone(organizationId, form.phone);
         if (customer) {
-          setForm(f => ({
-            ...f,
-            name: customer.full_name || f.name,
-            email: customer.email || f.email
-          }));
+          setForm(f => {
+            const next = { ...f };
+            if (!touchedRef.current.name) next.name = customer.full_name || f.name;
+            if (!touchedRef.current.email) next.email = customer.email || f.email;
+            return next;
+          });
         }
       } catch (e) {
         console.error('Error fetching customer by phone:', e);
@@ -243,6 +245,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   }, [form.phone, organizationId]);
 
   const update = (field, value) => {
+    if (field === 'name' || field === 'email') touchedRef.current[field] = true;
     setForm(f => ({ ...f, [field]: value }));
     if (errors[field]) setErrors(e => ({ ...e, [field]: null }));
     if (field === 'deliveryAddress') {
