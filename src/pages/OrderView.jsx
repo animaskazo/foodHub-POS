@@ -20,6 +20,7 @@ const OrderView = () => {
   const tenantSlug = getTenantSlug();
   const slug = pathSlug || tenantSlug;
   const isTenantStore = !!tenantSlug;
+  const storeRootUrl = isTenantStore ? window.location.origin : `${window.location.origin}/order/${slug}`;
   const searchParams = new URLSearchParams(window.location.search);
   
   let initialStep = 1;
@@ -71,7 +72,7 @@ const OrderView = () => {
       if (status === 'error') {
         // Just clean URL for error, state is already step 5
         localStorage.removeItem(`pending_order_${slug}`);
-        window.history.replaceState({}, '', `/order/${slug}`);
+        window.history.replaceState({}, '', storeRootUrl);
         return;
       }
     };
@@ -187,7 +188,7 @@ const OrderView = () => {
               setSubmittedOrder(order);
               setCartItems([]);
               setStep(4);
-              window.history.replaceState({}, '', `/order/${slug}?orderId=${order.id}&orderNumber=${order.order_number}&status=success`);
+              window.history.replaceState({}, '', `${storeRootUrl}?orderId=${order.id}&orderNumber=${order.order_number}&status=success`);
             } catch (e) {
               console.error(e);
               setError('No se pudo crear el pedido después del pago. Contacta al local.');
@@ -238,7 +239,7 @@ const OrderView = () => {
                 })
               }
 
-              window.history.replaceState({}, '', `/order/${slug}`);
+              window.history.replaceState({}, '', storeRootUrl);
             } else {
               setError('No se pudo cargar la información del pedido.');
             }
@@ -507,7 +508,7 @@ const OrderView = () => {
         };
         localStorage.setItem(pendingKey, JSON.stringify(pendingData));
 
-        const returnUrl = window.location.origin + `/order/${slug}?orderId=${sessionId}&status=success`;
+        const returnUrl = `${storeRootUrl}?orderId=${sessionId}&status=success`;
 
         const { data, error } = await supabase.functions.invoke('klap-create-payment', {
           body: { orderId: sessionId, amount: pendingData.totalAmount, returnUrl }
@@ -768,7 +769,7 @@ const OrderView = () => {
         {step === 5 && (
           <OrderError 
             onRetry={() => {
-              window.history.replaceState({}, '', `/order/${slug}`);
+              window.history.replaceState({}, '', storeRootUrl);
               setStep(2);
             }} 
           />

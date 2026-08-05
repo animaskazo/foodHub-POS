@@ -50,7 +50,7 @@ serve(async (req) => {
 
     const cancelUrl = slug
       ? `${appBaseUrl}/order/${slug}?orderId=${orderId}&status=error`
-      : `${appBaseUrl}?status=error`;
+      : `${appBaseUrl}?orderId=${orderId}&status=error`;
 
     console.log("return_url →", validReturnUrl);
     console.log("cancel_url →", cancelUrl);
