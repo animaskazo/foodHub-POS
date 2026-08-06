@@ -71,7 +71,8 @@ const isWithinDay = (availability, date) => {
 // ¿Se puede pedir "ahora"?
 const canOrderNow = (org) => {
   const availability = getAvailability(org);
-  if (!availability || org?.instant_enabled === false) return false;
+  if (org?.instant_enabled === false) return false;
+  if (!availability) return true; // Sin horarios configurados: siempre disponible
   return isWithinDay(availability, new Date());
 };
 
@@ -864,7 +865,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               <MessageSquare className="absolute left-4 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
               <textarea
                 rows={3}
-                placeholder="Ej: Sin cebolla, pedir bien cocido…"
+                placeholder="Agrega alguna petición especial"
                 value={form.notes}
                 onChange={e => update('notes', e.target.value)}
                 className="w-full pl-11 pr-4 py-3.5 bg-white border-2 border-gray-200 rounded-2xl text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-black transition-colors resize-none"
@@ -915,11 +916,12 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               nowBlocked ||
               scheduledBlocked ||
               uberOnlineBlocked ||
+              totalAmount <= 0 ||
               (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim())) ||
               (form.deliveryType === 'delivery' && (totalAmount < (org?.delivery_min_order || 0))) ||
               (form.deliveryType === 'delivery' && deliveryMode === 'uber_direct' && !form.quoteId)
             }
-            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-all px-8 text-[17px] tracking-wide ${(isSubmitting || nowBlocked || scheduledBlocked || uberOnlineBlocked || (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim() || totalAmount < (org?.delivery_min_order || 0) || (deliveryMode === 'uber_direct' && !form.quoteId)))) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900 active:scale-[0.98]'}`}
+            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-all px-8 text-[17px] tracking-wide ${(isSubmitting || nowBlocked || scheduledBlocked || uberOnlineBlocked || totalAmount <= 0 || (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim() || totalAmount < (org?.delivery_min_order || 0) || (deliveryMode === 'uber_direct' && !form.quoteId)))) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900 active:scale-[0.98]'}`}
           >
             {isSubmitting ? (
               <><Loader2 className="h-5 w-5 animate-spin" /> Enviando pedido…</>
@@ -927,9 +929,13 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               <span>Elige una hora para agendar</span>
             ) : form.scheduleType === 'now' && isClosed ? (
               <span>El local está cerrado</span>
+            ) : nowBlocked ? (
+              <span>No estamos aceptando pedidos en este momento</span>
+            ) : totalAmount <= 0 ? (
+              <span>Agrega productos a tu pedido</span>
             ) : (
               <div className="flex items-center justify-center w-full">
-                <span>Confirmar Pedido</span>
+                <span>Confirmar y pagar</span>
                 {totalAmount != null && (
                   <>
                     <div className="w-1.5 h-1.5 rounded-full bg-white/40 mx-3"></div>

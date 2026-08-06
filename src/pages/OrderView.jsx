@@ -455,6 +455,11 @@ const OrderView = () => {
       setIsSubmitting(false);
       return;
     }
+    if (computeSubtotal(cartItems) <= 0) {
+      alert('No puedes hacer una compra de $0. Agrega productos a tu pedido.');
+      setIsSubmitting(false);
+      return;
+    }
     try {
       // ── Online payment: DO NOT create the order yet ──
       // Save the pending order to localStorage, then redirect to Klap.
