@@ -176,19 +176,31 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
   const catRefs = useRef({});
   const catBarRef = useRef(null);
   const stickyBarRef = useRef(null);
+  const heroRef = useRef(null);
+  const coverRef = useRef(null);
+  const infoRef = useRef(null);
+  const titleRef = useRef(null);
+  const logoRef = useRef(null);
   const observerRef = useRef(null);
   const isClickScrolling = useRef(false);
-  const [showStickyName, setShowStickyName] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState({ t: 0, stuck: false });
 
   useEffect(() => {
     const onScroll = () => {
-      if (!stickyBarRef.current) return;
-      setShowStickyName(stickyBarRef.current.getBoundingClientRect().top <= 40);
+      const titleEl = titleRef.current;
+      const bar = stickyBarRef.current;
+      if (!titleEl || !bar) return;
+      const titleTop = titleEl.getBoundingClientRect().top;
+      const start = 48;
+      const end = start - 150;
+      const t = Math.min(1, Math.max(0, (start - titleTop) / (start - end)));
+      const stuck = bar.getBoundingClientRect().top <= 40;
+      setScrollProgress({ t, stuck });
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!window.IntersectionObserver) return;
@@ -286,13 +298,15 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
 
   const categoriesToRender = categories;
   const renderFallback = groupedProducts['other']?.length > 0;
+  const { t, stuck } = scrollProgress;
 
   return (
     <div className="flex flex-col min-h-0">
       {/* Header del Negocio (Cover, Logo y Info) */}
       {org && (
-        <div className="max-w-3xl mx-auto w-full shrink-0">
+        <div ref={heroRef} className="max-w-3xl mx-auto w-full shrink-0">
           <div
+            ref={coverRef}
             className="w-full h-[178px] md:h-[240px] bg-gray-100 bg-cover bg-center relative border-gray-200/50"
             style={(!org.cover_is_video && org.cover_url) ? { backgroundImage: `url(${org.cover_url})` } : { backgroundImage: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)' }}
           >
@@ -308,6 +322,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
             )}
             {/* Logo - coin flip with two faces */}
             <div
+              ref={logoRef}
               className={`absolute -bottom-8 left-5 w-20 h-20 md:w-24 md:h-24 cursor-pointer select-none z-30 ${logoFlipping ? 'logo-coin-flip' : ''}`}
               style={{ transformStyle: 'preserve-3d', perspective: '600px' }}
               onClick={() => {
@@ -340,8 +355,11 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
             {/* Address button on cover removed as it will be next to hours */}
           </div>
 
-          <div className="pt-10 pb-4 px-4">
-            <h1 className="font-black text-3xl md:text-4xl text-gray-900 tracking-tight mb-2">
+          <div ref={infoRef} className="pt-10 pb-4 px-4">
+            <h1
+              ref={titleRef}
+              className="font-black text-3xl md:text-4xl text-gray-900 tracking-tight mb-2"
+            >
               {org.name}
             </h1>
 
@@ -381,10 +399,14 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
         </div>
       )}
 
-      <div ref={stickyBarRef} className={`sticky z-20 bg-white transition-all duration-200 ${isOpen ? 'top-0' : 'top-8'}`}>
+      <div
+        ref={stickyBarRef}
+        className={`sticky z-20 bg-white transition-all duration-300 ease-out ${stuck ? 'shadow-sm' : ''} ${isOpen ? 'top-0' : 'top-8'}`}
+      >
         {/* Store name */}
         <div
-          className={`max-w-3xl mx-auto px-4 pt-2 pb-1 flex items-center gap-2.5 overflow-hidden transition-all duration-300 ${showStickyName ? 'max-h-14 opacity-100 translate-y-0' : 'max-h-0 opacity-0 translate-y-2'}`}
+          className={`max-w-3xl mx-auto px-4 pt-2 pb-1 flex items-center gap-2.5 overflow-hidden transition-[max-height,transform] duration-300 ease-out ${t > 0.05 ? 'max-h-14' : 'max-h-0'}`}
+          style={{ opacity: t, transform: `translateY(${(1 - t) * 6}px)` }}
         >
           {org?.logo_url && (
             <div
