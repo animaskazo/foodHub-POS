@@ -195,19 +195,12 @@ export const createPublicOrder = async ({
   // Database trigger `set_order_number_trigger` will automatically generate the order_number
 
   // Calculate totals (all prices already include IVA for display)
+  // Nota: para combos, item.price YA incluye las opciones seleccionadas
+  // (calculateBundleTotalGross en ProductDetailView), por lo que no se suman selectedOptions.
   const total = cartItems.reduce((acc, item) => {
     let unitPrice = Math.round(item.price);
     if (item.selectedIngredients) {
       unitPrice += item.selectedIngredients.reduce((s, i) => s + (i.price || 0), 0);
-    }
-    if (item.selectedOptions) {
-      unitPrice += item.selectedOptions.reduce((s, o) => {
-        let optTotal = o.price || 0;
-        if (o.selectedIngredients) {
-          optTotal += o.selectedIngredients.reduce((s2, i2) => s2 + (i2.price || 0), 0);
-        }
-        return s + optTotal;
-      }, 0);
     }
     return acc + unitPrice * item.quantity;
   }, 0) + (deliveryFee || 0);
@@ -248,6 +241,9 @@ export const createPublicOrder = async ({
 
   // Insert items, variants, ingredients, and bundle child options
   for (const item of cartItems) {
+    // Full line unit price (base + variant ya en item.price, más ingredientes extra).
+    const lineUnitPrice = Math.round(item.price) + (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
+
     // Insert parent item
     const { data: insertedItem, error: itemError } = await supabase
       .from('order_items')
@@ -256,8 +252,8 @@ export const createPublicOrder = async ({
         product_id: item.id,
         product_name: item.name,
         quantity: item.quantity,
-        unit_price: item.price,
-        total_price: item.price * item.quantity,
+        unit_price: lineUnitPrice,
+        total_price: lineUnitPrice * item.quantity,
       })
       .select()
       .single();

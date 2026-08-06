@@ -144,8 +144,6 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   const kitchenPrepMinutes = (org?.prep_time && org.prep_time > 0) ? org.prep_time : 10;
 
   const isClosed = !isOpen;
-  const nowBlocked = form.scheduleType === 'now' && (isClosed || !instantAvailable);
-  const scheduledBlocked = showScheduleSection && form.scheduleType === 'scheduled' && !form.scheduledAt;
 
   const [form, setForm] = useState(() => {
     try {
@@ -189,7 +187,10 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       scheduledAt: '',
     };
   });
+  const nowBlocked = form.scheduleType === 'now' && (isClosed || !instantAvailable);
+  const scheduledBlocked = showScheduleSection && form.scheduleType === 'scheduled' && !form.scheduledAt;
   const isUberDelivery = form.deliveryType === 'delivery' && deliveryMode === 'uber_direct';
+  const uberOnlineBlocked = isUberDelivery && acceptsOnlinePayments !== true;
   const [scheduleDate, setScheduleDate] = useState(() => dateInput(new Date()));
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const scheduleSlots = getSlots(org, scheduleDate);
@@ -202,6 +203,10 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       day: d.getDate(),
     };
   });
+  const scheduleDayLabel = scheduleDays.find(x => x.iso === scheduleDate)?.label || '';
+  const scheduleEmptyText = scheduleSlots.length === 0
+    ? (scheduleDayLabel ? `No hay horarios disponibles para ${scheduleDayLabel.toLowerCase()}.` : 'No hay horarios disponibles.')
+    : '';
   const [errors, setErrors] = useState({});
   const touchedRef = useRef({ name: false, email: false });
   const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
@@ -261,7 +266,15 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   const validate = () => {
     const errs = {};
     if (!form.name.trim()) errs.name = 'El nombre es requerido';
-    if (!form.phone.trim()) errs.phone = 'El teléfono es requerido';
+    if (!form.phone.trim()) {
+      errs.phone = 'El teléfono es requerido';
+    } else {
+      const phoneDigits = form.phone.replace(/\D/g, '');
+      const isValidPhone = phoneDigits.length === 9
+        ? /^9\d{8}$/.test(phoneDigits)
+        : /^569\d{8}$/.test(phoneDigits);
+      if (!isValidPhone) errs.phone = 'Ingresa un teléfono válido (ej: +56 9 1234 5678)';
+    }
     if (form.deliveryType === 'delivery') {
       if (!form.deliveryAddress?.trim()) {
         errs.deliveryAddress = 'La dirección de entrega es requerida';
@@ -781,6 +794,15 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               </p>
             )}
 
+            {uberOnlineBlocked && (
+              <div className="flex items-start gap-2 bg-red-50 text-red-600 p-3 rounded-xl border border-red-100">
+                <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                <p className="text-xs font-semibold leading-relaxed">
+                  Uber Direct requiere pago online, pero no hay pagos online habilitados. Contacta al local para completar tu pedido.
+                </p>
+              </div>
+            )}
+
             {/* Payment Methods as radio rows */}
             <div className="space-y-2">
               {acceptsLocalPayments !== false && !isUberDelivery && (
@@ -892,11 +914,12 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               isSubmitting ||
               nowBlocked ||
               scheduledBlocked ||
+              uberOnlineBlocked ||
               (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim())) ||
               (form.deliveryType === 'delivery' && (totalAmount < (org?.delivery_min_order || 0))) ||
               (form.deliveryType === 'delivery' && deliveryMode === 'uber_direct' && !form.quoteId)
             }
-            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-all px-8 text-[17px] tracking-wide ${(isSubmitting || nowBlocked || scheduledBlocked || (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim() || totalAmount < (org?.delivery_min_order || 0) || (deliveryMode === 'uber_direct' && !form.quoteId)))) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900 active:scale-[0.98]'}`}
+            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-all px-8 text-[17px] tracking-wide ${(isSubmitting || nowBlocked || scheduledBlocked || uberOnlineBlocked || (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim() || totalAmount < (org?.delivery_min_order || 0) || (deliveryMode === 'uber_direct' && !form.quoteId)))) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900 active:scale-[0.98]'}`}
           >
             {isSubmitting ? (
               <><Loader2 className="h-5 w-5 animate-spin" /> Enviando pedido…</>
@@ -951,6 +974,25 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             </div>
           </div>
 
+          {/* Date strip */}
+          <div className="flex gap-2 px-5 py-3 border-b border-gray-100 bg-gray-50/60 overflow-x-auto shrink-0">
+            {scheduleDays.map(day => (
+              <button
+                key={day.iso}
+                type="button"
+                onClick={() => {
+                  setScheduleDate(day.iso);
+                  setForm(prev => ({ ...prev, scheduledAt: '' }));
+                  setErrors(e => ({ ...e, scheduledAt: null }));
+                }}
+                className={`flex flex-col items-center gap-0.5 px-3.5 py-2 rounded-xl border transition-all shrink-0 cursor-pointer ${scheduleDate === day.iso ? 'border-black bg-white shadow-sm' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+              >
+                <span className={`text-[10px] uppercase tracking-wider font-bold ${scheduleDate === day.iso ? 'text-black' : 'text-gray-400'}`}>{day.label}</span>
+                <span className={`text-sm font-extrabold leading-none ${scheduleDate === day.iso ? 'text-black' : 'text-gray-700'}`}>{day.day}</span>
+              </button>
+            ))}
+          </div>
+
           {/* Slot list with radios */}
           <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
             {scheduleSlots.length === 0 ? (
@@ -959,7 +1001,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                   <CalendarClock className="h-7 w-7 text-gray-300" />
                 </div>
                 <p className="text-base font-bold text-gray-700">No hay horarios disponibles</p>
-                <p className="text-sm text-gray-400 mt-1.5">No hay horarios disponibles para hoy.</p>
+                <p className="text-sm text-gray-400 mt-1.5">{scheduleEmptyText}</p>
               </div>
             ) : (
               (() => {

@@ -11,15 +11,6 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
     if (item.selectedIngredients) {
       unitPrice += item.selectedIngredients.reduce((s, i) => s + (i.price || 0), 0);
     }
-    if (item.selectedOptions) {
-      unitPrice += item.selectedOptions.reduce((s, o) => {
-        let optTotal = o.price || 0;
-        if (o.selectedIngredients) {
-          optTotal += o.selectedIngredients.reduce((s2, i2) => s2 + (i2.price || 0), 0);
-        }
-        return s + optTotal;
-      }, 0);
-    }
     return acc + unitPrice * item.quantity;
   }, 0);
 
@@ -33,15 +24,6 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
             let unitPrice = Math.round(item.price);
             if (item.selectedIngredients) {
               unitPrice += item.selectedIngredients.reduce((s, i) => s + (i.price || 0), 0);
-            }
-            if (item.selectedOptions) {
-              unitPrice += item.selectedOptions.reduce((s, o) => {
-                let optTotal = o.price || 0;
-                if (o.selectedIngredients) {
-                  optTotal += o.selectedIngredients.reduce((s2, i2) => s2 + (i2.price || 0), 0);
-                }
-                return s + optTotal;
-              }, 0);
             }
             const lineTotal = unitPrice * item.quantity;
 

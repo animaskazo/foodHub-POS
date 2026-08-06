@@ -202,42 +202,8 @@ const OrderView = () => {
               localStorage.removeItem(`cart_${slug}`);
               setStep(4);
 
-              // Send confirmation email after Klap payment
-              const { data: customerData } = await supabase
-                .from('customers')
-                .select('email')
-                .eq('organization_id', orgData.id)
-                .eq('phone', orderData.customer_phone)
-                .maybeSingle()
-              if (customerData?.email) {
-                const items = (orderData.order_items || [])
-                  .filter(item => !item.parent_item_id)
-                  .map(item => ({
-                    product_name: item.product_name,
-                    quantity: item.quantity,
-                    total_price: item.total_price,
-                  }))
-                sendEmail({
-                  type: 'order_confirmed',
-                  email: customerData.email,
-                  data: {
-                    order_number: orderData.order_number,
-                    delivery_type: orderData.delivery_type,
-                    delivery_address: orderData.delivery_address,
-                    customer_name: orderData.customer_name || 'Cliente',
-                    total: orderData.total,
-                    subtotal: orderData.total - (orderData.delivery_fee || 0),
-                    delivery_fee: orderData.delivery_fee || 0,
-                    uber_tracking_url: orderData.uber_tracking_url,
-                    payment_method: 'online_gateway',
-                    payment_reference: orderData.payments?.[0]?.reference_code || null,
-                    scheduled_at: orderData.scheduled_at,
-                    items,
-                    branch: { name: orgData.name, address: orgData.address || '' },
-                    organization: { name: orgData.name, logo_url: orgData.logo_url || null },
-                  },
-                })
-              }
+              // No se reenvía el email de confirmación aquí: ya fue enviado al crear el pedido.
+              // Esta rama solo reconstruye la vista al recargar/compartir la URL de éxito.
 
               window.history.replaceState({}, '', storeRootUrl);
             } else {
@@ -338,19 +304,12 @@ const OrderView = () => {
   }, []);
 
   // ── Subtotal computation (same formula as createPublicOrder) ──
+  // Nota: para combos, item.price YA incluye las opciones seleccionadas (calculateBundleTotalGross),
+  // por lo que no se suman selectedOptions de nuevo.
   const computeSubtotal = (items) => items.reduce((acc, item) => {
     let unitPrice = Math.round(item.price);
     if (item.selectedIngredients) {
       unitPrice += item.selectedIngredients.reduce((s, i) => s + (i.price || 0), 0);
-    }
-    if (item.selectedOptions) {
-      unitPrice += item.selectedOptions.reduce((s, o) => {
-        let optTotal = o.price || 0;
-        if (o.selectedIngredients) {
-          optTotal += o.selectedIngredients.reduce((s2, i2) => s2 + (i2.price || 0), 0);
-        }
-        return s + optTotal;
-      }, 0);
     }
     return acc + unitPrice * item.quantity;
   }, 0);
@@ -473,7 +432,7 @@ const OrderView = () => {
         ...(deliveryWindow || {}),
       })
 
-      const deliveryFee = delivery.fee ? ((delivery.currency || '').toUpperCase() === 'CLP' ? Math.round(delivery.fee / 100) : delivery.fee / 100) : customerForm.deliveryFee
+      const deliveryFee = delivery.fee ? (((delivery.currency_type || delivery.currency) || '').toUpperCase() === 'CLP' ? Math.round(delivery.fee / 100) : delivery.fee / 100) : customerForm.deliveryFee
 
       return {
         deliveryId: delivery.id,
@@ -586,6 +545,17 @@ const OrderView = () => {
         }
       }
 
+      // Sync the recorded payment amount with the final total (Uber fee may differ from the estimate)
+      if (order.id) {
+        const { error: payUpdateError } = await supabase
+          .from('payments')
+          .update({ amount: order.total })
+          .eq('order_id', order.id)
+        if (payUpdateError) {
+          console.error('[Payments] Failed to update amount to final total:', payUpdateError)
+        }
+      }
+
       const finalDeliveryFee = order.delivery_fee || customerForm.deliveryFee || 0
 
       // Send confirmation email (offline flow only)
@@ -682,15 +652,6 @@ const OrderView = () => {
     let unitPrice = Math.round(item.price);
     if (item.selectedIngredients) {
       unitPrice += item.selectedIngredients.reduce((s, i) => s + (i.price || 0), 0);
-    }
-    if (item.selectedOptions) {
-      unitPrice += item.selectedOptions.reduce((s, o) => {
-        let optTotal = o.price || 0;
-        if (o.selectedIngredients) {
-          optTotal += o.selectedIngredients.reduce((s2, i2) => s2 + (i2.price || 0), 0);
-        }
-        return s + optTotal;
-      }, 0);
     }
     return acc + unitPrice * item.quantity;
   }, 0);
