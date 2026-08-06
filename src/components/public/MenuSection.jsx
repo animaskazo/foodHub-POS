@@ -355,7 +355,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
             {/* Address button on cover removed as it will be next to hours */}
           </div>
 
-          <div ref={infoRef} className="pt-10 pb-4 px-4">
+          <div ref={infoRef} className="pt-10 pb-2 px-4">
             <h1
               ref={titleRef}
               className="font-black text-3xl md:text-4xl text-gray-900 tracking-tight mb-2"
