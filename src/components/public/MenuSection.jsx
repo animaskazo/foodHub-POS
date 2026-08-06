@@ -384,7 +384,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
       <div ref={stickyBarRef} className={`sticky z-20 bg-white transition-all duration-200 ${isOpen ? 'top-0' : 'top-8'}`}>
         {/* Store name */}
         <div
-          className={`max-w-3xl mx-auto px-4 pt-2 pb-1 flex items-center gap-2.5 overflow-hidden transition-all duration-300 ${showStickyName ? 'max-h-14 opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-1'}`}
+          className={`max-w-3xl mx-auto px-4 pt-2 pb-1 flex items-center gap-2.5 overflow-hidden transition-all duration-300 ${showStickyName ? 'max-h-14 opacity-100 translate-y-0' : 'max-h-0 opacity-0 translate-y-2'}`}
         >
           {org?.logo_url && (
             <div
