@@ -723,7 +723,7 @@ const OrderView = () => {
           <div className="w-full max-w-3xl mx-auto px-4 pt-3 pb-0">
             <button
               onClick={() => setStep(s => Math.max(1, s - 1))}
-              className="inline-flex items-center gap-1 text-gray-700 font-semibold text-sm -ml-2 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors"
+              className="inline-flex items-center gap-1 text-gray-700 font-semibold text-sm -ml-2 px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors"
             >
               <ArrowLeft className="h-5 w-5" />
               Volver
