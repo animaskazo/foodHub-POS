@@ -134,7 +134,7 @@ export const formatChileanPhone = (value) => {
   }
 };
 
-const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePayments = true, acceptsLocalPayments = true, organizationId, org, cartItems = [] }) => {
+const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePayments = true, acceptsLocalPayments = true, organizationId, org, cartItems = [], isOpen = true }) => {
   const uberEnabled = org?.uber_enabled !== false;
   const deliveryMode = !uberEnabled && org?.delivery_mode === 'uber_direct' ? 'own' : org?.delivery_mode;
   const instantAvailable = canOrderNow(org);
@@ -142,6 +142,10 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   const showScheduleSection = schedulingEnabled;
   const initScheduleType = instantAvailable ? 'now' : (schedulingEnabled ? 'scheduled' : 'now');
   const kitchenPrepMinutes = (org?.prep_time && org.prep_time > 0) ? org.prep_time : 10;
+
+  const isClosed = !isOpen;
+  const nowBlocked = form.scheduleType === 'now' && (isClosed || !instantAvailable);
+  const scheduledBlocked = showScheduleSection && form.scheduleType === 'scheduled' && !form.scheduledAt;
 
   const [form, setForm] = useState(() => {
     try {
@@ -511,7 +515,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           <div className="space-y-5">
 
           {/* Banner: Tiempo estimado de preparación (cocina) */}
-          {org?.prep_time > 0 && (
+          {org?.prep_time > 0 && !isClosed && (
             <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200">
               <ChefHat className="h-4 w-4 shrink-0 text-amber-600" />
               <p className="text-xs font-semibold text-amber-800">
@@ -886,17 +890,20 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             onClick={handleSubmit}
             disabled={
               isSubmitting ||
-              (showScheduleSection && (form.scheduleType === 'now' ? !instantAvailable : !form.scheduledAt)) ||
+              nowBlocked ||
+              scheduledBlocked ||
               (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim())) ||
               (form.deliveryType === 'delivery' && (totalAmount < (org?.delivery_min_order || 0))) ||
               (form.deliveryType === 'delivery' && deliveryMode === 'uber_direct' && !form.quoteId)
             }
-            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-all px-8 text-[17px] tracking-wide ${(isSubmitting || (showScheduleSection && (form.scheduleType === 'now' ? !instantAvailable : !form.scheduledAt)) || (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim() || totalAmount < (org?.delivery_min_order || 0) || (deliveryMode === 'uber_direct' && !form.quoteId)))) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900 active:scale-[0.98]'}`}
+            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-all px-8 text-[17px] tracking-wide ${(isSubmitting || nowBlocked || scheduledBlocked || (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim() || totalAmount < (org?.delivery_min_order || 0) || (deliveryMode === 'uber_direct' && !form.quoteId)))) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900 active:scale-[0.98]'}`}
           >
             {isSubmitting ? (
               <><Loader2 className="h-5 w-5 animate-spin" /> Enviando pedido…</>
-            ) : showScheduleSection && form.scheduleType === 'scheduled' && !form.scheduledAt ? (
+            ) : scheduledBlocked ? (
               <span>Elige una hora para agendar</span>
+            ) : form.scheduleType === 'now' && isClosed ? (
+              <span>El local está cerrado</span>
             ) : (
               <div className="flex items-center justify-center w-full">
                 <span>Confirmar Pedido</span>

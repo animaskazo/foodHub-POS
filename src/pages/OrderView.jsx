@@ -491,6 +491,11 @@ const OrderView = () => {
   const handleCheckout = async (customerForm) => {
     setIsSubmitting(true);
     const scheduledAt = customerForm.scheduleType === 'scheduled' && customerForm.scheduledAt ? customerForm.scheduledAt : null;
+    if (!isOpen && !scheduledAt) {
+      alert('El local se encuentra cerrado en este momento. Puedes agendar tu pedido para un horario disponible.');
+      setIsSubmitting(false);
+      return;
+    }
     try {
       // ── Online payment: DO NOT create the order yet ──
       // Save the pending order to localStorage, then redirect to Klap.
