@@ -507,7 +507,8 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   return (
     <div className="flex flex-col min-h-0">
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
+        <div className="max-w-3xl mx-auto px-4 py-4">
+          <div className="space-y-5">
 
           {/* Banner: Tiempo estimado de preparación (cocina) */}
           {org?.prep_time > 0 && (
@@ -846,6 +847,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           </div>
 
           <div className="h-40" />
+          </div>
         </div>
       </div>
 

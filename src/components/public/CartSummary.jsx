@@ -1,10 +1,11 @@
-import React from 'react';
-import { Trash2, Plus, Minus, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Trash2, Plus, Minus, ChevronRight, X } from 'lucide-react';
 import IngredientIcon from '../ui/IngredientIcon';
 
 const fmt = (n) => n.toLocaleString('es-CL');
 
 const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout, isOpen }) => {
+  const [previewImage, setPreviewImage] = useState(null);
   const total = cartItems.reduce((acc, item) => {
     let unitPrice = Math.round(item.price);
     if (item.selectedIngredients) {
@@ -25,8 +26,9 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
   return (
     <div className="flex flex-col min-h-0">
       {/* Items list */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-4 py-4 space-y-3">
+      <div>
+        <div className="max-w-3xl mx-auto px-4 py-4">
+          <div className="space-y-3">
           {cartItems.map((item) => {
             let unitPrice = Math.round(item.price);
             if (item.selectedIngredients) {
@@ -47,8 +49,14 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
               <div key={item.cartItemId} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-4">
                 {/* Image */}
                 <div
-                  className="w-16 h-16 rounded-xl shrink-0 bg-gray-100 bg-cover bg-center"
+                  className="w-16 h-16 rounded-xl shrink-0 bg-gray-100 bg-cover bg-center cursor-pointer"
                   style={{ backgroundImage: item.image ? `url(${item.image})` : undefined }}
+                  onClick={(e) => {
+                    if (item.image) {
+                      e.stopPropagation();
+                      setPreviewImage(item.image);
+                    }
+                  }}
                 />
 
                 {/* Info */}
@@ -57,6 +65,10 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
 
                   {item.variant && (
                     <p className="text-xs text-gray-500 mt-0.5">{item.variant.name}</p>
+                  )}
+
+                  {item.description && (
+                    <p className="text-[10px] text-gray-400 leading-relaxed mt-1 line-clamp-2">{item.description}</p>
                   )}
 
                   {item.selectedIngredients?.length > 0 && (
@@ -129,7 +141,7 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
           })}
 
           {/* Total summary */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div className="sticky bottom-24 bg-white rounded-2xl border border-gray-100 p-4">
             <div className="flex justify-between items-center">
               <span className="font-bold text-gray-900 text-base">Total a pagar</span>
               <span className="font-black text-gray-900 text-xl">${fmt(total)}</span>
@@ -138,6 +150,7 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
           </div>
 
           <div className="h-24" />
+          </div>
         </div>
       </div>
 
@@ -153,6 +166,28 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
           </button>
         </div>
       </div>
+
+      {/* Image lightbox */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <button
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white hover:bg-white/25 transition-colors z-10"
+            aria-label="Cerrar imagen"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          <img
+            src={previewImage}
+            alt="Producto"
+            className="max-w-full max-h-full object-contain rounded-xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 };
