@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { User, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { getStoreUrl } from '../utils/tenant';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
@@ -315,7 +316,7 @@ const SuperAdminView = () => {
                     </p>
                     
                     <a 
-                      href={selectedOrganization.slug ? `https://${selectedOrganization.slug}.foodhub.work` : `/order/${encodeURIComponent(selectedOrganization.name)}`}
+                      href={getStoreUrl(selectedOrganization.slug) || `/order/${encodeURIComponent(selectedOrganization.name)}`}
                       target="_blank"
                       rel="noreferrer"
                       className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 transition-colors w-fit rounded-md"

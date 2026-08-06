@@ -164,7 +164,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
     if (org?.id) {
       getOutOfStockProductIds(org.id)
         .then(ids => { if (!cancelled) setOutOfStockIds(ids); })
-        .catch(() => {});
+        .catch(() => { });
     } else {
       setOutOfStockIds([]);
     }
@@ -175,8 +175,20 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
   const totalPrice = cartItems.reduce((s, i) => s + (Math.round(i.price) * i.quantity), 0);
   const catRefs = useRef({});
   const catBarRef = useRef(null);
+  const stickyBarRef = useRef(null);
   const observerRef = useRef(null);
   const isClickScrolling = useRef(false);
+  const [showStickyName, setShowStickyName] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      if (!stickyBarRef.current) return;
+      setShowStickyName(stickyBarRef.current.getBoundingClientRect().top <= 40);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     if (!window.IntersectionObserver) return;
@@ -192,7 +204,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
     }, { rootMargin: '-100px 0px -40% 0px', threshold: 0.1 });
 
     observerRef.current = observer;
-    
+
     // Slight delay to ensure elements are rendered
     setTimeout(() => {
       const elements = document.querySelectorAll('[id^="category-"]');
@@ -281,7 +293,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
       {org && (
         <div className="max-w-3xl mx-auto w-full shrink-0">
           <div
-            className="w-full h-32 md:h-40 bg-gray-100 bg-cover bg-center relative border-b border-gray-200/50 shadow-sm"
+            className="w-full h-[178px] md:h-[240px] bg-gray-100 bg-cover bg-center relative border-gray-200/50"
             style={(!org.cover_is_video && org.cover_url) ? { backgroundImage: `url(${org.cover_url})` } : { backgroundImage: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)' }}
           >
             {org.cover_is_video && org.cover_url && (
@@ -324,11 +336,11 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                   transform: 'rotateY(180deg)'
                 }}
               />
-              </div>
-              {/* Address button on cover removed as it will be next to hours */}
             </div>
+            {/* Address button on cover removed as it will be next to hours */}
+          </div>
 
-            <div className="pt-10 pb-4 px-4">
+          <div className="pt-10 pb-4 px-4">
             <h1 className="font-black text-3xl md:text-4xl text-gray-900 tracking-tight mb-2">
               {org.name}
             </h1>
@@ -369,9 +381,21 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
         </div>
       )}
 
-      <div className={`sticky z-20 bg-white pt-3 transition-all duration-200 ${isOpen ? 'top-14' : 'top-[88px]'}`}>
+      <div ref={stickyBarRef} className={`sticky z-20 bg-white transition-all duration-200 ${isOpen ? 'top-0' : 'top-8'}`}>
+        {/* Store name */}
+        <div
+          className={`max-w-3xl mx-auto px-4 pt-2 pb-1 flex items-center gap-2.5 overflow-hidden transition-all duration-300 ${showStickyName ? 'max-h-14 opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-1'}`}
+        >
+          {org?.logo_url && (
+            <div
+              className="w-8 h-8 rounded-full bg-cover bg-center border border-gray-100 shrink-0"
+              style={{ backgroundImage: `url(${org.logo_url})` }}
+            />
+          )}
+          <h2 className="font-black text-gray-900 text-lg tracking-tight truncate">{org?.name}</h2>
+        </div>
         {/* Category pills */}
-        <div ref={catBarRef} className="flex gap-2 px-4 pb-3 overflow-x-auto hide-scrollbar">
+        <div ref={catBarRef} className="flex gap-2 px-4 pt-2 pb-3 overflow-x-auto hide-scrollbar">
           {[{ id: 'all', name: 'Todos' }, ...categories].map(cat => (
             <button
               key={cat.id}

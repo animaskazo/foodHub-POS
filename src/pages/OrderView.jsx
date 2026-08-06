@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import PublicHeader from '../components/public/PublicHeader';
 import MenuSection from '../components/public/MenuSection';
 import CartSummary from '../components/public/CartSummary';
 import CheckoutForm from '../components/public/CheckoutForm';
 import OrderConfirmation from '../components/public/OrderConfirmation';
 import OrderError from '../components/public/OrderError';
 import ProductDetailView from '../components/public/ProductDetailView';
+import { ArrowLeft } from 'lucide-react';
 import { getOrganizationByName, getPublicCatalog, createPublicOrder } from '../services/publicOrderService';
 import { getAccessToken, createQuote, createDelivery } from '../services/uberDirectService';
 import { geocodeAddress } from '../utils/geo';
@@ -648,9 +648,6 @@ const OrderView = () => {
   };
 
   // ── Navigation ────────────────────────────────────────────
-  const handleBack = () => setStep(s => Math.max(1, s - 1));
-
-  const totalCartQty = cartItems.reduce((s, i) => s + i.quantity, 0);
 
   // ── Render ────────────────────────────────────────────────
   if (loading) {
@@ -715,15 +712,24 @@ const OrderView = () => {
 
       {/* Centered Mobile App Frame for Desktop */}
       <div className="w-full max-w-3xl mx-auto flex-1 flex flex-col bg-white md:shadow-[0_0_60px_rgba(0,0,0,0.05)] md:min-h-[100dvh] relative">
-        <PublicHeader
-          org={org}
-          cartCount={totalCartQty}
-          step={step}
-          onBack={handleBack}
-          isOpen={isOpen}
-        />
 
       <div className="flex-1 flex flex-col min-h-0">
+        {!isOpen && (
+          <div className="sticky top-0 z-40 bg-red-500 text-white text-[13px] font-bold text-center py-1.5 px-4 w-full tracking-wide">
+            En este momento el local se encuentra cerrado
+          </div>
+        )}
+        {(step === 2 || step === 3) && (
+          <div className="w-full max-w-3xl mx-auto px-4 pt-3 pb-0">
+            <button
+              onClick={() => setStep(s => Math.max(1, s - 1))}
+              className="inline-flex items-center gap-1 text-gray-700 font-semibold text-sm -ml-2 px-3 py-1.5 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              Volver
+            </button>
+          </div>
+        )}
         {step === 1 && (
           <MenuSection
             org={org}
