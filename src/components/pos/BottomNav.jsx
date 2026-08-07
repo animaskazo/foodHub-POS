@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, ArrowLeftRight, Home, ChefHat, LogOut } from 'lucide-react';
+import { ShoppingCart, ArrowLeftRight, Home, ChefHat, LogOut, LayoutGrid } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useKitchenOrders } from '../../hooks/useKitchenOrders';
 
 export const NAV_ITEMS = [
   { id: 'pago', label: 'Punto de Venta', icon: ShoppingCart },
+  { id: 'mesas', label: 'Salón', icon: LayoutGrid },
   { id: 'transacciones', label: 'Transacciones', icon: ArrowLeftRight },
   { id: 'cocina', label: 'Cocina', icon: ChefHat },
   { id: 'dashboard', label: 'Dashboard', icon: Home },

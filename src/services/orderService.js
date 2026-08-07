@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { checkInventoryStock, deductInventoryForOrder } from './inventoryService';
 import { upsertCustomerForOrder } from './customerService';
 
-export const createOrder = async (cartItems, paymentMethod, orderType, total, subtotal, tax, deliveryInfo = null, orderNotes = '', deliveryFee = 0) => {
+export const createOrder = async (cartItems, paymentMethod, orderType, total, subtotal, tax, deliveryInfo = null, orderNotes = '', deliveryFee = 0, tableId = null) => {
   try {
     // 1. Get the current logged-in user's organization and branch
     const { data: { session } } = await supabase.auth.getSession();
@@ -44,7 +44,8 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
       tax_amount: tax,
       total: total,
       notes: orderNotes,
-      delivery_fee: deliveryFee
+      delivery_fee: deliveryFee,
+      table_id: tableId
     };
     
     if (deliveryInfo) {

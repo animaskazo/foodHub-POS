@@ -3,7 +3,7 @@ import { Trash2, Plus, Minus, ChevronDown, Monitor, X, Edit2 } from 'lucide-reac
 import { Separator } from "@/components/ui/separator";
 import { Button } from "../ui/button";
 
-const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onItemClick, taxRate = 0.19 }) => {
+const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onItemClick, taxRate = 0.19 }) => {
   const items = cartItems;
 
   const totalQty = items.reduce((acc, i) => acc + i.quantity, 0);
@@ -47,8 +47,23 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
             <Monitor className="h-6 w-6 text-gray-900 hidden sm:block" />
             <div>
               <div className="flex items-center gap-1">
-                <span className="font-bold text-[17px] leading-tight">Point of Sale 1</span>
-                <ChevronDown className="h-4 w-4 text-gray-400 mt-0.5" />
+                {activeTable ? (
+                  <>
+                    <span className="font-bold text-[17px] leading-tight text-blue-700">Mesa: {activeTable.name}</span>
+                    <button 
+                      onClick={onClearTable}
+                      className="ml-1 p-0.5 text-gray-400 hover:text-red-500 rounded-full bg-gray-100 hover:bg-red-50 transition"
+                      title="Quitar mesa"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-bold text-[17px] leading-tight">Venta Directa</span>
+                    <ChevronDown className="h-4 w-4 text-gray-400 mt-0.5" />
+                  </>
+                )}
               </div>
               <p className="text-xs text-gray-400 mt-0.5">{totalQty} {totalQty === 1 ? 'artículo' : 'artículos'}</p>
             </div>

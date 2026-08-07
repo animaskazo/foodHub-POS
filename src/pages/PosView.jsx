@@ -6,6 +6,7 @@ import CartPanel from '../components/pos/CartPanel';
 import BottomNav from '../components/pos/BottomNav';
 import PaymentModal from '../components/pos/PaymentModal';
 import TransactionsView from '../components/pos/TransactionsView';
+import PosFloorMap from '../components/pos/PosFloorMap';
 import VariantSelectionModal from '../components/pos/VariantSelectionModal';
 import BundleSelectionModal from '../components/pos/BundleSelectionModal';
 import Modal from '../components/ui/Modal';
@@ -26,6 +27,7 @@ const PosView = () => {
   const [cartItems, setCartItems] = useState([]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('pago');
+  const [activeTable, setActiveTable] = useState(null);
   const [selectedProductForVariant, setSelectedProductForVariant] = useState(null);
   const [editingCartItem, setEditingCartItem] = useState(null);
   const [selectedProductForBundle, setSelectedProductForBundle] = useState(null);
@@ -298,10 +300,11 @@ const PosView = () => {
       const subtotal = Math.round(cartTotal / (1 + taxRate));
       const tax = cartTotal - subtotal;
       
-      const order = await createOrder(cartItems, method, orderType, total, subtotal, tax, deliveryInfo, orderNotes, deliveryFee);
+      const order = await createOrder(cartItems, method, orderType, total, subtotal, tax, deliveryInfo, orderNotes, deliveryFee, activeTable?.id);
       
       setCartItems([]);
       setIsMobileCartOpen(false);
+      setActiveTable(null);
       return order;
     } catch (error) {
       console.error('Error creating order:', error);
@@ -376,6 +379,8 @@ const PosView = () => {
             `}>
               <CartPanel
                 cartItems={cartItems}
+                activeTable={activeTable}
+                onClearTable={() => setActiveTable(null)}
                 onRemove={handleRemove}
                 onUpdateQty={handleUpdateQty}
                 onCharge={handleCharge}
@@ -408,8 +413,26 @@ const PosView = () => {
           </div>
         )}
 
+        {activeTab === 'mesas' && (
+          <div className="flex-1 w-full h-full flex flex-col relative">
+            {/* Mobile menu trigger */}
+            <div className="md:hidden absolute top-4 left-4 z-20">
+              <Button 
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="p-2 bg-white shadow-md rounded-full text-gray-700"
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+            </div>
+            <PosFloorMap onTableSelect={(table) => {
+              setActiveTable(table);
+              setActiveTab('pago');
+            }} />
+          </div>
+        )}
+
         {/* Placeholders for other tabs */}
-        {activeTab !== 'pago' && activeTab !== 'transacciones' && (
+        {activeTab !== 'pago' && activeTab !== 'transacciones' && activeTab !== 'mesas' && (
           <div className="flex flex-col items-center justify-center h-full bg-gray-50 text-gray-400">
             <p className="text-xl font-medium">Vista de {activeTab} en desarrollo</p>
           </div>
