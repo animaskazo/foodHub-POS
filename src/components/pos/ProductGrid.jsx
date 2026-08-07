@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, ScanLine, X, Menu, ChefHat } from 'lucide-react';
+import { Search, ScanLine, X, Menu, ChefHat, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useKitchenOrders } from '../../hooks/useKitchenOrders';
 import Keyboard from 'react-simple-keyboard';
@@ -47,6 +47,50 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
   const searchBarRef = useRef(null);
   const navigate = useNavigate();
   const { pendingCount, newOrderFlag } = useKitchenOrders();
+
+  const categoryScrollRef = useRef(null);
+  const [isDraggingCats, setIsDraggingCats] = useState(false);
+  const [hasDraggedCats, setHasDraggedCats] = useState(false);
+  const [catDragStart, setCatDragStart] = useState({ x: 0, scrollLeft: 0 });
+
+  const scrollCats = (direction) => {
+    if (categoryScrollRef.current) {
+      categoryScrollRef.current.scrollBy({ left: direction === 'left' ? -200 : 200, behavior: 'smooth' });
+    }
+  };
+
+  const handleCatPointerDown = (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (!categoryScrollRef.current) return;
+    setIsDraggingCats(true);
+    setHasDraggedCats(false);
+    setCatDragStart({
+      x: e.pageX,
+      scrollLeft: categoryScrollRef.current.scrollLeft
+    });
+  };
+
+  const handleCatPointerMove = (e) => {
+    if (!isDraggingCats || !categoryScrollRef.current) return;
+    const dx = e.pageX - catDragStart.x;
+    if (Math.abs(dx) > 5) {
+      setHasDraggedCats(true);
+    }
+    categoryScrollRef.current.scrollLeft = catDragStart.scrollLeft - dx;
+  };
+
+  const handleCatPointerUp = () => {
+    setIsDraggingCats(false);
+  };
+
+  const handleCatWheel = (e) => {
+    if (!categoryScrollRef.current) return;
+    if (e.deltaY !== 0) {
+      e.preventDefault();
+      categoryScrollRef.current.scrollLeft += e.deltaY;
+    }
+  };
+
 
   useEffect(() => {
     if (!organizationId) return;
@@ -277,6 +321,7 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
           </div>
         </div>
 
+
         {/* Category Tabs */}
         {loading ? (
           <div className="flex ml-4 px-5 gap-3 opacity-50 overflow-hidden">
@@ -285,22 +330,59 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
             <div className="h-10 w-20 bg-gray-200 rounded-full animate-pulse shrink-0"></div>
           </div>
         ) : (
-          <div className="flex ml-4 px-5 gap-3 overflow-x-auto no-scrollbar snap-x relative">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={`
-                  snap-start shrink-0 px-6 py-2.5 rounded-full font-bold text-[14px] whitespace-nowrap transition-colors select-none
-                  ${activeCategory === cat.id 
-                    ? 'bg-black text-white shadow-md' 
-                    : 'bg-white text-gray-700 border border-gray-200 active:bg-gray-100'}
-                `}
-                style={{ WebkitTapHighlightColor: 'transparent' }}
-              >
-                {cat.name}
-              </button>
-            ))}
+          <div className="relative flex items-center group w-full overflow-hidden">
+            {/* Left Button */}
+            <button 
+              onClick={() => scrollCats('left')}
+              className="hidden md:flex absolute left-0 z-10 bg-gradient-to-r from-white via-white/80 to-transparent h-full w-14 items-center justify-start pl-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto"
+            >
+              <div className="bg-white rounded-full shadow-sm border border-gray-200 p-1 text-gray-500 hover:text-black hover:shadow cursor-pointer pointer-events-auto">
+                <ChevronLeft className="h-5 w-5" />
+              </div>
+            </button>
+
+            <div 
+              ref={categoryScrollRef}
+              className={`flex px-5 gap-3 overflow-x-auto no-scrollbar snap-x relative select-none ${isDraggingCats ? 'cursor-grabbing' : 'cursor-grab'} w-full`}
+              onPointerDown={handleCatPointerDown}
+              onPointerMove={handleCatPointerMove}
+              onPointerUp={handleCatPointerUp}
+              onPointerLeave={handleCatPointerUp}
+              onWheel={handleCatWheel}
+            >
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={(e) => {
+                    if (hasDraggedCats) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      return;
+                    }
+                    setActiveCategory(cat.id);
+                  }}
+                  className={`
+                    snap-start shrink-0 px-6 py-2.5 rounded-full font-bold text-[14px] whitespace-nowrap transition-colors select-none
+                    ${activeCategory === cat.id 
+                      ? 'bg-black text-white shadow-md' 
+                      : 'bg-white text-gray-700 border border-gray-200 active:bg-gray-100'}
+                  `}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Right Button */}
+            <button 
+              onClick={() => scrollCats('right')}
+              className="hidden md:flex absolute right-0 z-10 bg-gradient-to-l from-white via-white/80 to-transparent h-full w-14 items-center justify-end pr-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto"
+            >
+              <div className="bg-white rounded-full shadow-sm border border-gray-200 p-1 text-gray-500 hover:text-black hover:shadow cursor-pointer pointer-events-auto">
+                <ChevronRight className="h-5 w-5" />
+              </div>
+            </button>
           </div>
         )}
       </div>
