@@ -12,6 +12,7 @@ import Modal from '../components/ui/Modal';
 import { NAV_ITEMS } from '../components/pos/BottomNav';
 import { X, LogOut, Menu, Home, ChefHat } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import NewOrderAlert from '../components/ui/NewOrderAlert';
 import { createOrder, updateOrderCustomer } from '../services/orderService';
 import { useAuth } from '../components/AuthContext';
 import { getShiftSettings, getCurrentShift } from '../services/shiftService';
@@ -339,6 +340,7 @@ const PosView = () => {
 
   return (
     <div className="h-[100dvh] w-full flex flex-col overflow-hidden">
+      <NewOrderAlert />
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden relative min-h-0">
         {activeTab === 'pago' && (

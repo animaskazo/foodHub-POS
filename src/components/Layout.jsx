@@ -32,6 +32,7 @@ import { supabase } from '../lib/supabase';
 import FeedbackBubble from './FeedbackBubble';
 import StockNotifications from './StockNotifications';
 import PrepTimeSelector from './ui/PrepTimeSelector';
+import NewOrderAlert from './ui/NewOrderAlert';
 
 const Layout = () => {
   const location = useLocation();
@@ -82,6 +83,7 @@ const Layout = () => {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <NewOrderAlert />
       
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
