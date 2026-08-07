@@ -83,6 +83,15 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
         });
         if (error) throw error;
       }
+      
+      // Free table if applicable
+      if (pendingPaymentOrder.table_id) {
+        await supabase
+          .from('restaurant_tables')
+          .update({ status: 'free' })
+          .eq('id', pendingPaymentOrder.table_id);
+      }
+
       setIsPaymentConfirmOpen(false);
       setPendingPaymentOrder(null);
       if (onOrderUpdated) {

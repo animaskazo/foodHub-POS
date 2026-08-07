@@ -138,17 +138,19 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
                     <p className="text-xs text-gray-400 mt-1">${fmt(Math.round(item.price))} c/u</p>
 
                     {/* Qty Controls */}
-                    <div className="inline-flex items-center bg-gray-100/80 rounded-full mt-2.5">
+                    <div className={`inline-flex items-center bg-gray-100/80 rounded-full mt-2.5 ${item.isSaved ? 'opacity-50 pointer-events-none' : ''}`}>
                       <button
-                        onClick={() => onUpdateQty && onUpdateQty(item.cartItemId, item.quantity - 1)}
+                        onClick={() => !item.isSaved && onUpdateQty && onUpdateQty(item.cartItemId, item.quantity - 1)}
                         className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-black hover:bg-gray-200 rounded-full transition-colors active:scale-95"
+                        disabled={item.isSaved}
                       >
                         <Minus className="h-4 w-4" />
                       </button>
                       <span className="font-bold text-[15px] w-7 text-center text-gray-900">{item.quantity}</span>
                       <button
-                        onClick={() => onUpdateQty && onUpdateQty(item.cartItemId, item.quantity + 1)}
+                        onClick={() => !item.isSaved && onUpdateQty && onUpdateQty(item.cartItemId, item.quantity + 1)}
                         className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-black hover:bg-gray-200 rounded-full transition-colors active:scale-95"
+                        disabled={item.isSaved}
                       >
                         <Plus className="h-4 w-4" />
                       </button>
@@ -175,7 +177,7 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
                   })())}</span>
                     
                     <div className="flex items-center gap-1">
-                      {hasOptions && (
+                      {hasOptions && !item.isSaved && (
                         <button
                           onClick={() => onItemClick && onItemClick(item)}
                           className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors active:scale-95"
@@ -183,12 +185,18 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
                           <Edit2 className="h-[18px] w-[18px]" />
                         </button>
                       )}
-                      <button
-                        onClick={() => onRemove && onRemove(item.cartItemId)}
-                        className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors active:scale-95"
-                      >
-                        <Trash2 className="h-[18px] w-[18px]" />
-                      </button>
+                      {!item.isSaved ? (
+                        <button
+                          onClick={() => onRemove && onRemove(item.cartItemId)}
+                          className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors active:scale-95"
+                        >
+                          <Trash2 className="h-[18px] w-[18px]" />
+                        </button>
+                      ) : (
+                        <div className="w-9 h-9 flex items-center justify-center text-gray-300" title="Enviado a cocina">
+                          <ChefHat className="h-[18px] w-[18px]" />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -220,18 +228,27 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
           </div>
         )}
 
-        {/* Charge Button */}
-        <div className="p-4">
+        {/* Action Buttons */}
+        <div className="p-4 flex gap-2">
+          {items.some(i => !i.isSaved) && activeTable && (
+            <Button
+              onClick={onSaveOrder}
+              disabled={items.length === 0}
+              variant="outline"
+              className="flex-1 flex items-center justify-center h-14 bg-white border-gray-200 hover:bg-gray-50 text-gray-900 rounded-full shadow-sm transition-transform active:scale-[0.98]"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              <ChefHat className="h-5 w-5 mr-2" />
+              <span className="font-bold tracking-wide">A Cocina</span>
+            </Button>
+          )}
           <Button
             onClick={onCharge}
             disabled={items.length === 0}
-            className="relative w-full flex items-center justify-center h-14 px-5 bg-black hover:bg-black text-white rounded-full shadow-2xl transition-transform active:scale-[0.98]"
+            className="flex-1 flex items-center justify-center h-14 bg-black hover:bg-black text-white rounded-full shadow-2xl transition-transform active:scale-[0.98]"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            <div className="absolute left-3 bg-white text-black flex items-center justify-center h-8 w-8 rounded-full text-sm font-bold shadow-sm">
-              {totalQty}
-            </div>
-            <span className="font-bold text-[17px] tracking-wide">Cobrar ${fmt(total)}</span>
+            <span className="font-bold tracking-wide">Cobrar ${fmt(total)}</span>
           </Button>
         </div>
       </div>

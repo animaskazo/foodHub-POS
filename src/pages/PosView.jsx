@@ -13,7 +13,7 @@ import Modal from '../components/ui/Modal';
 import { NAV_ITEMS } from '../components/pos/BottomNav';
 import { X, LogOut, Menu, Home, ChefHat } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { createOrder, updateOrderCustomer } from '../services/orderService';
+import { createOrder, updateOrderCustomer, getOpenOrderForTable, appendItemsToOrder } from '../services/orderService';
 import { useAuth } from '../components/AuthContext';
 import { getShiftSettings, getCurrentShift } from '../services/shiftService';
 import { PosSkeleton } from '../components/ui/Skeleton';
@@ -28,6 +28,7 @@ const PosView = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('pago');
   const [activeTable, setActiveTable] = useState(null);
+  const [activeOrder, setActiveOrder] = useState(null);
   const [selectedProductForVariant, setSelectedProductForVariant] = useState(null);
   const [editingCartItem, setEditingCartItem] = useState(null);
   const [selectedProductForBundle, setSelectedProductForBundle] = useState(null);
@@ -283,6 +284,71 @@ const PosView = () => {
     }
   };
 
+  const handleTableSelect = async (table) => {
+    setActiveTable(table);
+    setActiveTab('pago');
+    
+    if (table.status === 'occupied') {
+      try {
+        const order = await getOpenOrderForTable(table.id);
+        if (order) {
+          setActiveOrder(order);
+          // Map order_items to cartItems format
+          // Filter out child items (parent_item_id is not null) as they are handled inside bundles
+          const parents = order.order_items.filter(i => !i.parent_item_id);
+          const mappedItems = parents.map(item => {
+            const variantInfo = item.order_item_variants?.[0];
+            const variant = variantInfo ? { id: variantInfo.variant_option_id, name: variantInfo.variant_option_name, price_modifier: variantInfo.price_modifier } : null;
+            
+            const selectedIngredients = (item.order_item_ingredients || []).map(ing => ({
+              id: ing.ingredient_id,
+              name: ing.ingredient_name,
+              price: ing.price
+            }));
+            
+            // Reconstruct bundle options if any
+            const children = order.order_items.filter(i => i.parent_item_id === item.id);
+            const isBundle = children.length > 0;
+            const selectedOptions = isBundle ? children.map(child => {
+              const childVariant = child.order_item_variants?.[0];
+              const childIngs = (child.order_item_ingredients || []).map(ing => ({ name: ing.ingredient_name, price: ing.price }));
+              let optName = child.product_name;
+              if (childVariant) optName += ` (${childVariant.variant_option_name})`;
+              return {
+                name: optName,
+                price: child.unit_price,
+                selectedIngredients: childIngs
+              };
+            }) : [];
+            
+            return {
+              cartItemId: `saved-${item.id}`,
+              productId: item.product_id,
+              name: item.product_name + (variant ? ` (${variant.name})` : ''),
+              price: item.unit_price - (variant?.price_modifier || 0), // Base price
+              quantity: item.quantity,
+              variant,
+              selectedIngredients,
+              type: isBundle ? 'bundle' : 'standard',
+              selectedOptions,
+              isSaved: true
+            };
+          });
+          
+          setCartItems(mappedItems);
+        } else {
+          setActiveOrder(null);
+          setCartItems([]);
+        }
+      } catch (err) {
+        console.error("Error loading open order", err);
+      }
+    } else {
+      setActiveOrder(null);
+      setCartItems([]);
+    }
+  };
+
   const handleNewOrder = () => {
     setCartItems([]);
     setIsMobileCartOpen(false);
@@ -309,6 +375,31 @@ const PosView = () => {
     } catch (error) {
       console.error('Error creating order:', error);
       alert(`Hubo un error al procesar el pago: ${error.message || JSON.stringify(error)}`);
+    }
+  };
+
+  const handleSaveOrder = async () => {
+    try {
+      const newItems = cartItems.filter(i => !i.isSaved);
+      if (newItems.length === 0) return;
+
+      const newTotal = newItems.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
+      const newSubtotal = Math.round(newTotal / (1 + taxRate));
+      const newTax = newTotal - newSubtotal;
+
+      if (activeOrder) {
+        await appendItemsToOrder(activeOrder.id, newItems, newTotal, newSubtotal, newTax);
+      } else {
+        await createOrder(newItems, 'pending', 'table', newTotal, newSubtotal, newTax, null, '', 0, activeTable?.id);
+      }
+      
+      setCartItems([]);
+      setIsMobileCartOpen(false);
+      setActiveTable(null);
+      setActiveOrder(null);
+    } catch (error) {
+      console.error('Error saving order:', error);
+      alert(`Hubo un error al guardar el pedido: ${error.message || JSON.stringify(error)}`);
     }
   };
 
@@ -380,7 +471,12 @@ const PosView = () => {
               <CartPanel
                 cartItems={cartItems}
                 activeTable={activeTable}
-                onClearTable={() => setActiveTable(null)}
+                onClearTable={() => {
+                  setActiveTable(null);
+                  setActiveOrder(null);
+                  setCartItems([]);
+                }}
+                onSaveOrder={handleSaveOrder}
                 onRemove={handleRemove}
                 onUpdateQty={handleUpdateQty}
                 onCharge={handleCharge}
@@ -424,10 +520,7 @@ const PosView = () => {
                 <Menu className="w-5 h-5" />
               </Button>
             </div>
-            <PosFloorMap onTableSelect={(table) => {
-              setActiveTable(table);
-              setActiveTab('pago');
-            }} />
+            <PosFloorMap onTableSelect={handleTableSelect} />
           </div>
         )}
 
