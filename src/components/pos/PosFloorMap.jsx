@@ -157,7 +157,7 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
             <Menu className="h-7 w-7" />
           </button>
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Salón</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Sectores</h1>
           </div>
         </div>
       </div>

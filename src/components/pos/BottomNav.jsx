@@ -5,7 +5,7 @@ import { useKitchenOrders } from '../../hooks/useKitchenOrders';
 
 export const NAV_ITEMS = [
   { id: 'pago', label: 'Punto de Venta', icon: ShoppingCart },
-  { id: 'mesas', label: 'Salón', icon: LayoutGrid },
+  { id: 'mesas', label: 'Sectores', icon: LayoutGrid },
   { id: 'transacciones', label: 'Transacciones', icon: ArrowLeftRight },
   { id: 'cocina', label: 'Cocina', icon: ChefHat },
   { id: 'dashboard', label: 'Dashboard', icon: Home },
