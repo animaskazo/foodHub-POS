@@ -10,6 +10,12 @@ const PosFloorMap = ({ onTableSelect }) => {
   const [tables, setTables] = useState([]);
   const [activeZoneId, setActiveZoneId] = useState(null);
 
+  // Drag to scroll state
+  const mapRef = React.useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
+  const [hasDragged, setHasDragged] = useState(false); // To prevent click on table if dragged
+
   useEffect(() => {
     loadData();
     
@@ -65,6 +71,40 @@ const PosFloorMap = ({ onTableSelect }) => {
   };
 
   const activeTables = tables.filter(t => t.zone_id === activeZoneId);
+
+  const handlePointerDown = (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return; // Only left click
+    if (!mapRef.current) return;
+    setIsDragging(true);
+    setHasDragged(false);
+    setDragStart({
+      x: e.pageX,
+      y: e.pageY,
+      scrollLeft: mapRef.current.scrollLeft,
+      scrollTop: mapRef.current.scrollTop
+    });
+    // Set cursor to grabbing
+    document.body.style.cursor = 'grabbing';
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging || !mapRef.current) return;
+    
+    const dx = e.pageX - dragStart.x;
+    const dy = e.pageY - dragStart.y;
+    
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+      setHasDragged(true);
+    }
+    
+    mapRef.current.scrollLeft = dragStart.scrollLeft - dx;
+    mapRef.current.scrollTop = dragStart.scrollTop - dy;
+  };
+
+  const handlePointerUp = () => {
+    setIsDragging(false);
+    document.body.style.cursor = '';
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -125,7 +165,12 @@ const PosFloorMap = ({ onTableSelect }) => {
 
       {/* Map Canvas */}
       <div 
-        className="flex-1 relative overflow-auto bg-[#fafafa]"
+        ref={mapRef}
+        className={`flex-1 relative overflow-auto bg-[#fafafa] select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
       >
         <div className="absolute top-0 left-0 w-[1600px] h-[1200px] origin-top-left p-8">
           {activeTables.map(t => {
@@ -135,7 +180,9 @@ const PosFloorMap = ({ onTableSelect }) => {
             return (
             <button
               key={t.id}
-              onClick={() => onTableSelect(t)}
+              onClick={() => {
+                if (!hasDragged) onTableSelect(t);
+              }}
               className={`absolute flex flex-col items-center justify-center border transition-all duration-300 ease-out active:scale-[0.98] ${getStatusColor(t.status)} ${t.shape === 'round' ? 'rounded-full' : t.shape === 'rectangle' ? 'rounded-2xl' : 'rounded-3xl'}`}
               style={{
                 left: t.pos_x,
