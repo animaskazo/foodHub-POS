@@ -26,7 +26,8 @@ import {
   MessageCircle,
   BarChart3,
   ShoppingBag,
-  ClipboardList
+  ClipboardList,
+  LayoutGrid
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import FeedbackBubble from './FeedbackBubble';
@@ -371,6 +372,20 @@ const Layout = () => {
                     >
                       <DollarSign className="h-[18px] w-[18px]" />
                       Caja y Turnos
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink 
+                      to="/tables" 
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={({ isActive }) => 
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
+                          isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        }`
+                      }
+                    >
+                      <LayoutGrid className="h-[18px] w-[18px]" />
+                      Zonas y Mesas
                     </NavLink>
                   </li>
                 </ul>
