@@ -301,24 +301,7 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
       {/* Footer Area (Sticky at bottom) */}
       <div className="shrink-0 flex flex-col bg-white border-t border-gray-100 pb-24 md:pb-safe shadow-[0_-20px_40px_rgba(0,0,0,0.04)] md:shadow-none z-20">
         
-        {/* Totals */}
-        {items.length > 0 && (
-          <div className="px-5 py-4 space-y-2 bg-gray-50/80 border-b border-gray-100">
-            <div className="flex justify-between items-center text-sm text-gray-500">
-              <span>Subtotal</span>
-              <span>${fmt(subtotal)}</span>
-            </div>
-            <div className="flex justify-between items-center text-sm text-gray-500">
-              <span>IVA (19%)</span>
-              <span>${fmt(tax)}</span>
-            </div>
-            <Separator className="my-2" />
-            <div className="flex justify-between items-center">
-              <span className="font-bold text-base text-gray-900">Total</span>
-              <span className="font-black text-xl text-gray-900">${fmt(total)}</span>
-            </div>
-          </div>
-        )}
+
 
         {/* Action Buttons */}
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-30 flex gap-2 md:static md:w-auto md:transform-none md:p-4 md:z-auto">
