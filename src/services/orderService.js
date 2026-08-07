@@ -291,6 +291,7 @@ export const getKitchenOrders = async () => {
       .from('orders')
       .select(`
         *,
+        restaurant_tables(name, table_zones(name)),
         order_items(*, products(description, product_images(url)), order_item_variants(variant_option_name), order_item_ingredients(ingredient_name))
       `)
       .eq('branch_id', branchData.id)
@@ -530,7 +531,7 @@ export const getOpenOrderForTable = async (tableId) => {
       .select(`
         *,
         payments(*),
-        order_items(*, order_item_variants(*), order_item_ingredients(*))
+        order_items(*, order_item_variants(*), order_item_ingredients(*), products(product_images(url)))
       `)
       .eq('table_id', tableId)
       .in('status', ['pending', 'confirmed', 'preparing', 'ready'])

@@ -304,9 +304,19 @@ const KitchenView = () => {
 
                   {/* Row 1: order number */}
                   <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-3xl font-black text-white tracking-tight leading-none truncate">
-                      {order.order_number}
-                    </h2>
+                    <div className="flex items-center gap-3 truncate">
+                      <h2 className="text-3xl font-black text-white tracking-tight leading-none truncate">
+                        {order.order_number}
+                      </h2>
+                      {order.restaurant_tables && (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/10 border border-blue-500/20 shrink-0">
+                          <Store className="h-4 w-4 text-blue-400" />
+                          <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">
+                            {order.restaurant_tables.table_zones?.name ? `${order.restaurant_tables.table_zones.name} - ` : ''}{order.restaurant_tables.name}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                     {order.delivery_type === 'delivery' ? (
                       <span className="text-[10px] px-2 py-1 rounded bg-amber-500 text-black font-black uppercase tracking-wider shrink-0 flex items-center gap-1">
                         <Van className="h-3.5 w-3.5" /> Delivery

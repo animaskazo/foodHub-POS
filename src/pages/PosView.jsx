@@ -325,6 +325,7 @@ const PosView = () => {
               cartItemId: `saved-${item.id}`,
               productId: item.product_id,
               name: item.product_name + (variant ? ` (${variant.name})` : ''),
+              image: item.products?.product_images?.[0]?.url || null,
               price: item.unit_price - (variant?.price_modifier || 0), // Base price
               quantity: item.quantity,
               variant,

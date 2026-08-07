@@ -268,8 +268,9 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
                           <Trash2 className="h-[18px] w-[18px]" />
                         </button>
                       ) : (
-                        <div className="w-9 h-9 flex items-center justify-center text-gray-300" title="Enviado a cocina">
-                          <ChefHat className="h-[18px] w-[18px]" />
+                        <div className="flex items-center gap-1.5 bg-orange-50 text-orange-600 px-2 py-1 rounded-full border border-orange-200 shadow-sm" title="En preparación en cocina">
+                          <ChefHat className="h-3.5 w-3.5" />
+                          <span className="text-[9px] font-bold uppercase tracking-wider whitespace-nowrap">En Prep</span>
                         </div>
                       )}
                     </div>
