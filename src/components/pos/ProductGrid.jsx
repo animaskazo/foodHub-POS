@@ -264,7 +264,7 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
           {['waiter', 'owner', 'admin', 'manager'].includes(role) && (
             <button 
               onClick={onChangeTable}
-              className="md:hidden w-[28%] flex items-center justify-between bg-white border border-gray-200 rounded-lg px-2 h-10 shadow-sm text-[11px] leading-none font-bold text-gray-800 active:bg-gray-50 active:scale-[0.98] transition-all select-none truncate shrink-0"
+              className="md:hidden w-[28%] flex items-center justify-between bg-white border border-gray-200 rounded-lg px-2 h-10 shadow-sm text-[13px] leading-tight font-bold text-gray-800 active:bg-gray-50 active:scale-[0.98] transition-all select-none truncate shrink-0"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               <span className="truncate flex-1 text-center">{activeTable ? activeTable.name : "V. Directa"}</span>
