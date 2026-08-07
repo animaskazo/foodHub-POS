@@ -93,9 +93,10 @@
     outline-color: color-mix(in srgb, var(--ring) 50%, transparent);
   }
 
-  body {
+  html, body {
     background-color: var(--background);
     color: var(--foreground);
+    overscroll-behavior-y: none; /* Disable pull-to-refresh on mobile */
   }
 
   button,
