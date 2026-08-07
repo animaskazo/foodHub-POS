@@ -33,7 +33,7 @@ const keyboardDisplay = {
   '{clear}': '✕ Limpiar',
 };
 
-const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMobileMenu, activeTable, onChangeTable }) => {
+const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMobileMenu, activeTable, onChangeTable, role }) => {
   const [categories, setCategories] = useState([{ id: 'all', name: 'Todos' }]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -216,14 +216,16 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
           </button>
           
           {/* Mobile Table Selector */}
-          <button 
-            onClick={onChangeTable}
-            className="md:hidden flex items-center justify-between flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm text-sm font-bold text-gray-800 active:bg-gray-50 active:scale-[0.98] transition-all select-none truncate"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            <span className="truncate">{activeTable ? `Mesa: ${activeTable.name}` : "Venta Directa"}</span>
-            <ChevronDown className="w-4 h-4 text-gray-400 shrink-0 ml-1" />
-          </button>
+          {['waiter', 'owner', 'admin', 'manager'].includes(role) && (
+            <button 
+              onClick={onChangeTable}
+              className="md:hidden flex items-center justify-between flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm text-sm font-bold text-gray-800 active:bg-gray-50 active:scale-[0.98] transition-all select-none truncate"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              <span className="truncate">{activeTable ? `Mesa: ${activeTable.name}` : "Venta Directa"}</span>
+              <ChevronDown className="w-4 h-4 text-gray-400 shrink-0 ml-1" />
+            </button>
+          )}
 
           {/* Prep Time Quick Selector */}
           <div className="hidden md:block">

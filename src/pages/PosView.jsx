@@ -10,7 +10,7 @@ import PosFloorMap from '../components/pos/PosFloorMap';
 import VariantSelectionModal from '../components/pos/VariantSelectionModal';
 import BundleSelectionModal from '../components/pos/BundleSelectionModal';
 import Modal from '../components/ui/Modal';
-import { NAV_ITEMS } from '../components/pos/BottomNav';
+import { NAV_ITEMS, getNavItems } from '../components/pos/BottomNav';
 import PrepTimeSelector from '../components/ui/PrepTimeSelector';
 import { X, LogOut, Menu, Home, ChefHat, Clock } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -21,7 +21,7 @@ import { PosSkeleton } from '../components/ui/Skeleton';
 import { defaultSelectionsForSlot, bundleHasChoices } from '../utils/bundleSelections';
 
 const PosView = () => {
-  const { organization } = useAuth();
+  const { organization, role } = useAuth();
   const taxRate = organization?.default_tax_rate ? Number(organization.default_tax_rate) / 100 : 0.19;
 
   const navigate = useNavigate();
@@ -475,6 +475,7 @@ const PosView = () => {
                 onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
                 activeTable={activeTable}
                 onChangeTable={() => setActiveTab('mesas')}
+                role={role}
               />
               
               {/* Floating Cart Button for Mobile */}
@@ -584,7 +585,7 @@ const PosView = () => {
               </Button>
             </div>
             <div className="flex-1 overflow-y-auto py-4">
-              {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+              {getNavItems(role).map(({ id, label, icon: Icon }) => (
                 <Button
                   key={id}
                   variant="ghost"
@@ -626,7 +627,7 @@ const PosView = () => {
       )}
 
       {/* Bottom Navigation (Hidden on mobile) */}
-      <BottomNav active={activeTab} onChange={setActiveTab} />
+      <BottomNav active={activeTab} onChange={setActiveTab} role={role} />
 
       <PaymentModal
         isOpen={isPaymentModalOpen}
