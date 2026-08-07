@@ -134,6 +134,7 @@ const TablesSettingsView = () => {
       setNewTable({ name: '', capacity: 2, shape: 'square' });
       setEditingTable(null);
     } catch (error) {
+      console.error("Error saving table:", error);
       toast.error('Error al guardar mesa');
     }
   };

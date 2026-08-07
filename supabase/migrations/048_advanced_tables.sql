@@ -16,6 +16,9 @@ ALTER TABLE table_zones ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Enable all operations for all users table_zones" ON table_zones FOR ALL USING (true) WITH CHECK (true);
 
+-- Add missing policy for restaurant_tables
+CREATE POLICY "Enable all operations for all users restaurant_tables" ON restaurant_tables FOR ALL USING (true) WITH CHECK (true);
+
 -- 2. Modify restaurant_tables
 ALTER TABLE restaurant_tables 
   ADD COLUMN IF NOT EXISTS zone_id UUID REFERENCES table_zones(id) ON DELETE SET NULL,
