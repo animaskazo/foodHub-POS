@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { getKitchenOrders } from '../services/orderService';
 
 export const useKitchenOrders = () => {
@@ -38,5 +38,9 @@ export const useKitchenOrders = () => {
     return () => clearInterval(interval);
   }, []);
 
-  return { pendingCount, newOrderFlag, latestNewOrder, clearLatestNewOrder: () => setLatestNewOrder(null) };
+  const clearLatestNewOrder = useCallback(() => {
+    setLatestNewOrder(null);
+  }, []);
+
+  return { pendingCount, newOrderFlag, latestNewOrder, clearLatestNewOrder };
 };

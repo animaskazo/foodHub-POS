@@ -279,6 +279,7 @@ export const getKitchenOrders = async () => {
       .from('orders')
       .select(`
         *,
+        payments(*),
         order_items(*, products(description, product_images(url)), order_item_variants(variant_option_name), order_item_ingredients(ingredient_name))
       `)
       .eq('branch_id', branchData.id)

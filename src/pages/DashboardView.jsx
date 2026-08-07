@@ -37,67 +37,12 @@ const DashboardView = () => {
   const [kitchenStatusFilter, setKitchenStatusFilter] = useState('all'); // all, pending, preparing, ready, delivered, cancelled
   const [dateRange, setDateRange] = useState('today'); // today, 7days, 30days
   const [showMetricsMobile, setShowMetricsMobile] = useState(false);
-  const [newOrderAlert, setNewOrderAlert] = useState(null);
-  const [autoPrintOrder, setAutoPrintOrder] = useState(null);
   
   // Shifts State
   const [shiftSettings, setShiftSettings] = useState(null);
   const [currentShift, setCurrentShift] = useState(null);
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [shiftModalType, setShiftModalType] = useState('open'); // 'open' or 'close'
-
-  const audioCtxRef = useRef(null);
-  const prevOrdersRef = useRef([]);
-
-  const playBellSound = () => {
-    try {
-      const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
-      if (!audioCtxRef.current) audioCtxRef.current = ctx;
-      if (ctx.state === 'suspended') ctx.resume();
-
-      const playNote = (freq, startTime, duration) => {
-        const osc = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, startTime);
-        gainNode.gain.setValueAtTime(0.5, startTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-        osc.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        osc.start(startTime);
-        osc.stop(startTime + duration);
-      };
-      playNote(880, ctx.currentTime, 1);
-      playNote(1108.73, ctx.currentTime + 0.15, 1); // C#6
-    } catch (e) {
-      console.error("Audio error", e);
-    }
-  };
-
-  useEffect(() => {
-    const unlockAudio = () => {
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      } else if (audioCtxRef.current.state === 'suspended') {
-        audioCtxRef.current.resume();
-      }
-      if (audioCtxRef.current?.state === 'running') {
-        window.removeEventListener('click', unlockAudio);
-        window.removeEventListener('touchstart', unlockAudio);
-        window.removeEventListener('keydown', unlockAudio);
-      }
-    };
-
-    window.addEventListener('click', unlockAudio);
-    window.addEventListener('touchstart', unlockAudio);
-    window.addEventListener('keydown', unlockAudio);
-
-    return () => {
-      window.removeEventListener('click', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
-      window.removeEventListener('keydown', unlockAudio);
-    };
-  }, []);
 
 
   useEffect(() => {
@@ -187,45 +132,6 @@ const DashboardView = () => {
       if (fetchError) throw fetchError;
 
       const newOrders = data || [];
-      if (isBackground && prevOrdersRef.current.length > 0) {
-        const prevStatusMap = new Map(prevOrdersRef.current.map(o => [o.id, o.status]));
-        const now = Date.now();
-        const isActive = (o) => !o.scheduled_at || new Date(o.scheduled_at).getTime() <= now;
-        // Pedidos nuevos inmediatos (no programados futuros)
-        const isNewImmediate = (o) => !prevStatusMap.has(o.id) && isActive(o) && (o.status === 'confirmed' || o.status === 'pending');
-        // Pedidos programados que recién se activaron (scheduled/pending -> confirmed)
-        const isActivated = (o) => ['scheduled', 'pending'].includes(prevStatusMap.get(o.id)) && o.status === 'confirmed' && !!o.scheduled_at;
-        const arrived = newOrders.filter(o => isNewImmediate(o) || isActivated(o));
-        if (arrived.length > 0) {
-          playBellSound();
-          setNewOrderAlert(arrived[0]);
-          setTimeout(() => setNewOrderAlert(null), 6000);
-          
-          if (localStorage.getItem('pos_auto_print_enabled') === 'true') {
-            setAutoPrintOrder(arrived[0]);
-            import('sonner').then(({ toast }) => toast.info('Impresión automática iniciada...'));
-            
-            // Usar un hack para saltar la protección de Chrome
-            setTimeout(() => {
-              const originalTitle = document.title;
-              document.title = `Orden_#${arrived[0].order_number}`;
-              
-              // Simular click de usuario en un botón oculto
-              const btn = document.getElementById('hidden-print-trigger');
-              if (btn) {
-                btn.click();
-              } else {
-                window.focus();
-                window.print();
-              }
-              
-              document.title = originalTitle;
-            }, 500);
-          }
-        }
-      }
-
-      prevOrdersRef.current = newOrders;
       setOrders(newOrders);
     } catch (err) {
       if (!isBackground) setError('Error al cargar órdenes.');
@@ -489,56 +395,6 @@ const DashboardView = () => {
         </div>
       </div>
 
-      {/* New Order Toast Notification */}
-      {newOrderAlert && (
-        <div className="fixed bottom-24 right-6 w-80 bg-gray-900 text-white border border-gray-800 shadow-2xl rounded-2xl p-5 flex flex-col gap-3 z-50 animate-in slide-in-from-bottom-5">
-          <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-            <div className="flex items-center gap-3">
-              <div>
-                <h4 className="font-bold text-sm text-green-400">¡Nuevo Pedido!</h4>
-                <p className="text-xs text-gray-400 capitalize">{newOrderAlert.order_type === 'table' ? 'Local' : newOrderAlert.order_type}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <span className="text-xs text-gray-400">Orden</span>
-              <p className="text-2xl font-black leading-none">{newOrderAlert.order_number}</p>
-            </div>
-          </div>
-
-          <div className="flex-1 space-y-2 max-h-32 overflow-hidden">
-            {newOrderAlert.order_items?.slice(0, 3).map((item, idx) => (
-              <div key={idx} className="flex justify-between text-sm">
-                <span className="text-gray-300 truncate pr-2">
-                  <span className="font-bold text-gray-400 mr-1">{item.quantity}x</span>
-                  {item.product_name}
-                </span>
-                <span className="font-medium whitespace-nowrap">${(item.unit_price * item.quantity).toLocaleString('es-CL')}</span>
-              </div>
-            ))}
-            {newOrderAlert.order_items?.length > 3 && (
-              <p className="text-xs text-gray-500 italic">... y {newOrderAlert.order_items.length - 3} más</p>
-            )}
-          </div>
-
-          <div className="flex justify-between items-center pt-3 border-t border-gray-800 mt-1">
-            <span className="font-medium text-gray-400 text-sm">Total</span>
-            <span className="font-bold text-lg">${newOrderAlert.total?.toLocaleString('es-CL')}</span>
-          </div>
-        </div>
-      )}
-      {/* Printable Receipt for Auto-Printing New Orders */}
-      <PrintableReceipt order={autoPrintOrder} organization={organization} />
-      
-      {/* Hidden button to trigger print programmically bypassing gesture restrictions in some browsers */}
-      <button 
-        id="hidden-print-trigger" 
-        className="hidden" 
-        onClick={() => {
-          window.focus();
-          window.print();
-        }}
-        aria-hidden="true"
-      />
 
       <ShiftModal 
         isOpen={isShiftModalOpen} 
