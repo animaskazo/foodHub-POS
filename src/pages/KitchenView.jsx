@@ -308,14 +308,6 @@ const KitchenView = () => {
                       <h2 className="text-3xl font-black text-white tracking-tight leading-none truncate">
                         {order.order_number}
                       </h2>
-                      {order.restaurant_tables && (
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/10 border border-blue-500/20 shrink-0">
-                          <Store className="h-4 w-4 text-blue-400" />
-                          <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">
-                            {order.restaurant_tables.table_zones?.name ? `${order.restaurant_tables.table_zones.name} - ` : ''}{order.restaurant_tables.name}
-                          </span>
-                        </div>
-                      )}
                     </div>
                     {order.delivery_type === 'delivery' ? (
                       <span className="text-[10px] px-2 py-1 rounded bg-amber-500 text-black font-black uppercase tracking-wider shrink-0 flex items-center gap-1">
@@ -370,6 +362,21 @@ const KitchenView = () => {
                 </div>
 
                 <div className="py-3 px-3 space-y-2.5 bg-zinc-950 md:flex-1 md:overflow-y-auto custom-scrollbar">
+                  {order.restaurant_tables && (
+                    <div className="w-full bg-indigo-500/10 border border-indigo-500/20 px-3.5 py-2.5 rounded-xl mb-1 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Store className="h-4 w-4 text-indigo-400" />
+                        <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                          {order.restaurant_tables.name}
+                        </span>
+                      </div>
+                      {order.restaurant_tables.table_zones?.name && (
+                        <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-md font-bold uppercase">
+                          {order.restaurant_tables.table_zones.name}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {(() => {
                     const parents = order.order_items?.filter(item => !item.parent_item_id).sort((a,b) => new Date(a.created_at) - new Date(b.created_at)) || [];
                     const rounds = [];

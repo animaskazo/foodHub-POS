@@ -117,7 +117,10 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
                       {tables.length === 0 ? (
                         <div className="px-4 py-2 text-xs text-gray-500">No hay mesas configuradas</div>
                       ) : (
-                        tables.map(table => (
+                        tables.map(table => {
+                          const activeOrder = table.orders?.find(o => ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status));
+                          const currentTotal = activeOrder ? activeOrder.total : 0;
+                          return (
                           <div 
                             key={table.id}
                             className={`px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm flex items-center justify-between ${activeTable?.id === table.id ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 font-medium'}`}
@@ -126,7 +129,14 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
                               setIsDropdownOpen(false);
                             }}
                           >
-                            <span>{table.name}</span>
+                            <span className="flex items-center gap-2">
+                              {table.name}
+                              {table.status === 'occupied' && currentTotal > 0 && (
+                                <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-md font-bold">
+                                  ${fmt(currentTotal)}
+                                </span>
+                              )}
+                            </span>
                             {table.status === 'occupied' && (
                               <span className="w-2 h-2 rounded-full bg-red-500"></span>
                             )}
@@ -134,7 +144,7 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
                               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                             )}
                           </div>
-                        ))
+                        )})
                       )}
                     </div>
                   </>
