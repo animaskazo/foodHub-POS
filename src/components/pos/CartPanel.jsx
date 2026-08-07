@@ -181,14 +181,24 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {items.map((item) => {
+            {items.map((item, index) => {
               const hasVariants = item.variants && item.variants.length > 0 && item.variants.some(v => v.is_active);
               const hasExtras = item.ingredients && item.ingredients.length > 0 && item.ingredients.some(i => i.isExtra);
               const hasOptions = item.type === 'bundle' || hasVariants || hasExtras;
               const baseIngredients = item.ingredients?.filter(i => i.isBase) || [];
               
+              const isFirstNewItem = items.some(i => i.isSaved) && !item.isSaved && (index === 0 || items[index - 1].isSaved);
+              
               return (
-                <div key={item.cartItemId} className="flex items-center gap-3 px-5 py-4">
+                <React.Fragment key={item.cartItemId}>
+                  {isFirstNewItem && (
+                    <div className="flex items-center px-5 py-3 bg-gray-50/80">
+                      <div className="flex-1 border-t border-dashed border-gray-300"></div>
+                      <span className="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Nuevos Añadidos</span>
+                      <div className="flex-1 border-t border-dashed border-gray-300"></div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3 px-5 py-4 bg-white">
                   {/* Thumbnail */}
                   <div
                     className="w-14 h-14 rounded-xl shrink-0 bg-gray-100 bg-cover bg-center"
@@ -292,6 +302,7 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
                     </div>
                   </div>
                 </div>
+                </React.Fragment>
               );
             })}
           </div>
