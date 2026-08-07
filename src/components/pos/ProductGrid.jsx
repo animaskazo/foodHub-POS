@@ -204,50 +204,20 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
     <div className="flex flex-col h-full bg-gray-50 relative">
       {/* Header: Search & Categories */}
       <div ref={searchBarRef} className="bg-white pt-5 pb-4 shadow-sm z-10 sticky top-0">
-        {/* Search Bar */}
-        <div className="px-5 mb-5 flex gap-3 items-center">
-          {/* Mobile Burger Menu Trigger */}
+        <div className="px-3 md:px-5 mb-4 md:mb-5 flex items-center justify-between gap-2 md:gap-3 w-full">
+          {/* Mobile Burger Menu Trigger (20%) */}
           <button
             onClick={onOpenMobileMenu}
-            className="md:hidden p-2 -ml-2 rounded-lg text-gray-700 active:bg-gray-100 shrink-0 select-none"
+            className="md:hidden w-[20%] flex items-center justify-center p-2 rounded-lg text-gray-700 active:bg-gray-100 shrink-0 select-none"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             <Menu className="h-7 w-7" />
           </button>
           
-          {/* Mobile Table Selector */}
-          {['waiter', 'owner', 'admin', 'manager'].includes(role) && (
-            <button 
-              onClick={onChangeTable}
-              className="md:hidden flex items-center justify-between flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm text-sm font-bold text-gray-800 active:bg-gray-50 active:scale-[0.98] transition-all select-none truncate"
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-            >
-              <span className="truncate">{activeTable ? `Mesa: ${activeTable.name}` : "Venta Directa"}</span>
-              <ChevronDown className="w-4 h-4 text-gray-400 shrink-0 ml-1" />
-            </button>
-          )}
-
-          {/* Prep Time Quick Selector */}
-          <div className="hidden md:block">
-            <PrepTimeSelector compact />
-          </div>
-
-          {/* Mobile Kitchen Badge Trigger */}
-          <button
-            onClick={() => navigate('/kitchen')}
-            className={`md:hidden relative p-2 rounded-lg shrink-0 select-none transition-colors ${newOrderFlag ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-700 active:bg-gray-200'}`}
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            <ChefHat className="h-6 w-6" />
-            {pendingCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white animate-pulse">
-                {pendingCount}
-              </span>
-            )}
-          </button>
-
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+          {/* Search Input (50% on mobile, flex-1 on desktop) */}
+          <div className="relative w-[50%] md:w-auto md:flex-1">
+            <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-gray-400 pointer-events-none" />
+            
             {/* Desktop Virtual Keyboard Trigger */}
             <div
               onClick={() => setShowKeyboard(true)}
@@ -269,26 +239,59 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
                 setSearch(e.target.value);
                 keyboardRef.current?.setInput(e.target.value);
               }}
-              placeholder="Buscar artículo..."
-              className="md:hidden flex w-full h-12 pl-12 pr-12 bg-gray-100 rounded-xl text-base items-center transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+              placeholder="Buscar..."
+              className="md:hidden flex w-full h-10 pl-9 pr-9 bg-gray-100 rounded-lg text-sm items-center transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
             />
             {search ? (
               <button
                 onClick={handleClearSearch}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-gray-300 active:bg-gray-400 select-none"
+                className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 p-1 md:p-1.5 rounded-full bg-gray-300 active:bg-gray-400 select-none"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
-                <X className="h-3.5 w-3.5 text-gray-600" />
+                <X className="h-3 w-3 md:h-3.5 md:w-3.5 text-gray-600" />
               </button>
             ) : (
               <button
                 onClick={() => setShowKeyboard(true)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 p-1"
+                className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 p-1"
               >
                 <ScanLine className="h-5 w-5" />
               </button>
             )}
           </div>
+
+          {/* Mobile Table Selector (30%) */}
+          {['waiter', 'owner', 'admin', 'manager'].includes(role) ? (
+            <button 
+              onClick={onChangeTable}
+              className="md:hidden w-[30%] flex items-center justify-between bg-white border border-gray-200 rounded-lg px-2 py-2 shadow-sm text-[11px] leading-none font-bold text-gray-800 active:bg-gray-50 active:scale-[0.98] transition-all select-none truncate"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              <span className="truncate flex-1 text-center">{activeTable ? activeTable.name : "V. Directa"}</span>
+              <ChevronDown className="w-3 h-3 text-gray-400 shrink-0 ml-1" />
+            </button>
+          ) : (
+            <div className="md:hidden w-[30%]"></div>
+          )}
+
+          {/* Prep Time Quick Selector (Desktop only) */}
+          <div className="hidden md:block shrink-0">
+            <PrepTimeSelector compact />
+          </div>
+
+          {/* Mobile Kitchen Badge Trigger (Desktop only now) */}
+          <button
+            onClick={() => navigate('/kitchen')}
+            className={`hidden md:flex relative p-2 rounded-lg shrink-0 select-none transition-colors ${newOrderFlag ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-700 active:bg-gray-200'}`}
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+          >
+            <ChefHat className="h-6 w-6" />
+            {pendingCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white animate-pulse">
+                {pendingCount}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Category Tabs */}
