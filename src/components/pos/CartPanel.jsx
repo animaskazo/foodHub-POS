@@ -310,26 +310,26 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
       </div>
 
       {/* Footer Area (Sticky at bottom) */}
-      <div className="shrink-0 flex flex-col bg-white border-t border-gray-100 p-4 pb-8 md:pb-4 z-20">
+      <div className="shrink-0 flex flex-col bg-white border-t border-gray-100 pb-24 md:p-4 md:pb-4 z-20">
         
         {/* Action Buttons */}
-        <div className="flex flex-col md:flex-row gap-3">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-30 flex gap-2 md:static md:w-auto md:transform-none md:z-auto md:flex-row">
           {items.some(i => !i.isSaved) && activeTable && (
             <Button
               onClick={onSaveOrder}
               disabled={items.length === 0}
-              variant="outline"
-              className="w-full md:flex-1 flex items-center justify-center h-14 bg-white border-gray-200 hover:bg-gray-50 text-gray-900 rounded-full shadow-sm transition-transform active:scale-[0.98] text-lg font-bold"
+              className="flex-1 flex items-center justify-center h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] text-sm sm:text-base md:text-lg font-bold"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              <ChefHat className="h-5 w-5 mr-2" />
+              <ChefHat className="h-5 w-5 mr-1.5 hidden sm:block" />
               Agregar a la orden
             </Button>
           )}
           <Button
             onClick={onCharge}
             disabled={items.length === 0}
-            className="w-full md:flex-1 flex items-center justify-center h-14 bg-black hover:bg-black text-white rounded-full shadow-lg transition-transform active:scale-[0.98] text-lg font-bold"
+            variant="outline"
+            className="flex-1 flex items-center justify-center h-14 bg-white border-gray-200 hover:bg-gray-50 text-gray-900 rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] text-sm sm:text-base md:text-lg font-bold"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             Cobrar ${fmt(total)}
