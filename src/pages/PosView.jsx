@@ -12,6 +12,7 @@ import BundleSelectionModal from '../components/pos/BundleSelectionModal';
 import Modal from '../components/ui/Modal';
 import { NAV_ITEMS, getNavItems } from '../components/pos/BottomNav';
 import PrepTimeSelector from '../components/ui/PrepTimeSelector';
+import TableSelectionListModal from '../components/pos/TableSelectionListModal';
 import { X, LogOut, Menu, Home, ChefHat, Clock } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { createOrder, updateOrderCustomer, getOpenOrderForTable, appendItemsToOrder } from '../services/orderService';
@@ -701,14 +702,13 @@ const PosView = () => {
       </Modal>
 
       {/* Table Selector Modal for Mobile */}
-      <Modal isOpen={isTableModalOpen} onClose={() => setIsTableModalOpen(false)} title="Seleccionar Mesa">
-        <div className="h-[75vh] w-full -mx-5 -mb-5 flex flex-col overflow-hidden">
-          <PosFloorMap onTableSelect={(table) => {
-            handleTableSelect(table);
-            setIsTableModalOpen(false);
-          }} />
-        </div>
-      </Modal>
+      <TableSelectionListModal
+        isOpen={isTableModalOpen}
+        onClose={() => setIsTableModalOpen(false)}
+        onTableSelect={handleTableSelect}
+        onClearTable={() => setActiveTable(null)}
+        activeTable={activeTable}
+      />
 
     </div>
   );
