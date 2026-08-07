@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trash2, Plus, Minus, ChevronRight, X } from 'lucide-react';
+import { Trash2, Plus, Minus, ChevronRight, X, ShoppingBag } from 'lucide-react';
 import IngredientIcon from '../ui/IngredientIcon';
 
 const fmt = (n) => n.toLocaleString('es-CL');
@@ -13,6 +13,20 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
     }
     return acc + unitPrice * item.quantity;
   }, 0);
+
+  if (cartItems.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-8 mt-12 text-center">
+        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+          <ShoppingBag className="h-10 w-10 text-gray-400" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Tu pedido está vacío</h2>
+        <p className="text-sm text-gray-500 max-w-xs mx-auto">
+          Aún no has agregado productos. Vuelve al menú para elegir qué pedir.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-0">
