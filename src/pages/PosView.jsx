@@ -559,16 +559,10 @@ const PosView = () => {
 
         {activeTab === 'mesas' && (
           <div className="flex-1 w-full h-full flex flex-col relative">
-            {/* Mobile menu trigger */}
-            <div className="md:hidden absolute top-4 left-4 z-20">
-              <Button 
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="p-2 bg-white shadow-md rounded-full text-gray-700"
-              >
-                <Menu className="w-5 h-5" />
-              </Button>
-            </div>
-            <PosFloorMap onTableSelect={handleTableSelect} />
+            <PosFloorMap 
+              onTableSelect={handleTableSelect} 
+              onOpenMobileMenu={() => setIsMobileMenuOpen(true)} 
+            />
           </div>
         )}
 
