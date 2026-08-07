@@ -424,10 +424,16 @@ const PosView = () => {
         await createOrder(newItems, 'pending', 'table', newTotal, newSubtotal, newTax, null, '', 0, activeTable?.id);
       }
       
-      setCartItems([]);
-      setIsMobileCartOpen(false);
-      setActiveTable(null);
-      setActiveOrder(null);
+      // Update cart to mark items as saved locally
+      setCartItems(prev => prev.map(item => ({ ...item, isSaved: true })));
+      
+      // Update active order if it was just created
+      if (!activeOrder && activeTable) {
+        const order = await getOpenOrderForTable(activeTable.id);
+        if (order) setActiveOrder(order);
+      }
+
+      alert("¡Productos enviados a cocina exitosamente!");
     } catch (error) {
       console.error('Error saving order:', error);
       alert(`Hubo un error al guardar el pedido: ${error.message || JSON.stringify(error)}`);
@@ -518,6 +524,7 @@ const PosView = () => {
                 onNewOrder={handleNewOrder}
                 isMobile={true}
                 onCloseMobile={() => setIsMobileCartOpen(false)}
+                onChangeTableMobile={() => setIsTableModalOpen(true)}
                 taxRate={taxRate}
                 onItemClick={(item) => {
                   if (item.type === 'bundle') {
