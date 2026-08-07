@@ -10,10 +10,8 @@ const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable,
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isOpen) return;
-    
     const loadTables = async () => {
-      setLoading(true);
+      if (tables.length === 0) setLoading(true);
       try {
         const orgId = await getFirstOrganizationId();
         if (!orgId) return;
@@ -28,8 +26,28 @@ const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable,
         setLoading(false);
       }
     };
-    loadTables();
+    
+    // Always load when opened to ensure fresh data
+    if (isOpen) {
+      loadTables();
+    }
   }, [isOpen]);
+  
+  // Also do an initial load in the background so it's ready before the first open
+  useEffect(() => {
+    const initLoad = async () => {
+      try {
+        const orgId = await getFirstOrganizationId();
+        if (!orgId) return;
+        const { data: branchData } = await supabase.from('branches').select('id').eq('organization_id', orgId).limit(1).single();
+        if (branchData) {
+          const loaded = await getRestaurantTables(branchData.id);
+          setTables(loaded);
+        }
+      } catch (err) {}
+    };
+    initLoad();
+  }, []);
 
   const fmt = (n) => n.toLocaleString('es-CL');
 
