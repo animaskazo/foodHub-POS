@@ -313,7 +313,7 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
       <div className="shrink-0 flex flex-col bg-white border-t border-gray-100 pb-24 md:p-4 md:pb-4 z-20">
         
         {/* Action Buttons */}
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-30 flex gap-2 md:static md:w-auto md:transform-none md:z-auto md:flex-row">
+        <div className="fixed bottom-6 left-4 right-4 z-30 flex flex-col gap-3 md:static md:w-full md:transform-none md:z-auto md:flex-row pb-safe">
           {(() => {
             const hasNewItems = items.some(i => !i.isSaved) && activeTable;
             
@@ -323,10 +323,10 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
                   <Button
                     onClick={onSaveOrder}
                     disabled={items.length === 0}
-                    className="flex-1 flex items-center justify-center h-14 bg-black hover:bg-gray-900 text-white rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] text-sm sm:text-base md:text-lg font-bold"
+                    className="w-full md:flex-1 flex items-center justify-center h-14 bg-black hover:bg-gray-900 text-white rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] font-bold text-[17px] tracking-wide px-5"
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
-                    <ChefHat className="h-5 w-5 mr-1.5 hidden sm:block" />
+                    <ChefHat className="h-5 w-5 mr-2" />
                     Agregar a la orden
                   </Button>
                 )}
@@ -334,7 +334,7 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
                   onClick={onCharge}
                   disabled={items.length === 0}
                   variant={hasNewItems ? "outline" : "default"}
-                  className={`flex-1 flex items-center justify-center h-14 rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] text-sm sm:text-base md:text-lg font-bold ${
+                  className={`w-full md:flex-1 flex items-center justify-center h-14 rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] font-bold text-[17px] tracking-wide px-5 ${
                     hasNewItems 
                       ? "bg-white border-gray-200 hover:bg-gray-50 text-gray-900" 
                       : "bg-black hover:bg-gray-900 text-white"
