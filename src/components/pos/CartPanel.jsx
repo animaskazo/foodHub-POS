@@ -6,7 +6,7 @@ import { getFirstOrganizationId } from '../../services/organizationService';
 import { supabase } from '../../lib/supabase';
 import { getRestaurantTables } from '../../services/tableService';
 
-const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onItemClick, onSaveOrder, onTableSelect, taxRate = 0.19 }) => {
+const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onChangeTableMobile, onItemClick, onSaveOrder, onTableSelect, taxRate = 0.19 }) => {
   const items = cartItems;
   const [tables, setTables] = React.useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
@@ -70,8 +70,14 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
             <div>
               <div className="relative">
                 <div 
-                  className="flex items-center gap-1 cursor-pointer select-none"
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center gap-1 md:cursor-pointer select-none"
+                  onClick={() => {
+                    if (window.innerWidth >= 768) {
+                      setIsDropdownOpen(!isDropdownOpen);
+                    } else if (onChangeTableMobile) {
+                      onChangeTableMobile();
+                    }
+                  }}
                 >
                   {activeTable ? (
                     <>
@@ -81,7 +87,7 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
                           e.stopPropagation();
                           onClearTable();
                         }}
-                        className="ml-1 p-0.5 text-gray-400 hover:text-red-500 rounded-full bg-gray-100 hover:bg-red-50 transition"
+                        className="hidden md:inline-flex ml-1 p-0.5 text-gray-400 hover:text-red-500 rounded-full bg-gray-100 hover:bg-red-50 transition"
                         title="Quitar mesa"
                       >
                         <X className="h-3.5 w-3.5" />
@@ -90,7 +96,7 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
                   ) : (
                     <>
                       <span className="font-bold text-[17px] leading-tight">Venta Directa</span>
-                      <ChevronDown className={`h-4 w-4 text-gray-400 mt-0.5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`hidden md:block h-4 w-4 text-gray-400 mt-0.5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                     </>
                   )}
                 </div>
@@ -293,7 +299,7 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
       </div>
 
       {/* Footer Area (Sticky at bottom) */}
-      <div className="shrink-0 flex flex-col bg-white border-t border-gray-100 pb-safe shadow-[0_-20px_40px_rgba(0,0,0,0.04)] md:shadow-none z-20">
+      <div className="shrink-0 flex flex-col bg-white border-t border-gray-100 pb-24 md:pb-safe shadow-[0_-20px_40px_rgba(0,0,0,0.04)] md:shadow-none z-20">
         
         {/* Totals */}
         {items.length > 0 && (
@@ -315,13 +321,13 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
         )}
 
         {/* Action Buttons */}
-        <div className="p-4 flex gap-2">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-30 flex gap-2 md:static md:w-auto md:transform-none md:p-4 md:z-auto">
           {items.some(i => !i.isSaved) && activeTable && (
             <Button
               onClick={onSaveOrder}
               disabled={items.length === 0}
               variant="outline"
-              className="flex-1 flex items-center justify-center h-14 bg-white border-gray-200 hover:bg-gray-50 text-gray-900 rounded-full shadow-sm transition-transform active:scale-[0.98]"
+              className="flex-1 flex items-center justify-center h-14 bg-white border-gray-200 hover:bg-gray-50 text-gray-900 rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] text-lg"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               <ChefHat className="h-5 w-5 mr-2" />
@@ -331,7 +337,7 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
           <Button
             onClick={onCharge}
             disabled={items.length === 0}
-            className="flex-1 flex items-center justify-center h-14 bg-black hover:bg-black text-white rounded-full shadow-2xl transition-transform active:scale-[0.98]"
+            className="flex-1 flex items-center justify-center h-14 bg-black hover:bg-black text-white rounded-full shadow-2xl transition-transform active:scale-[0.98] text-lg"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             <span className="font-bold tracking-wide">Cobrar ${fmt(total)}</span>
