@@ -360,92 +360,130 @@ const KitchenView = () => {
                 </div>
 
                 <div className="py-3 px-3 space-y-2.5 bg-zinc-950 md:flex-1 md:overflow-y-auto custom-scrollbar">
-                  {order.order_items?.filter(item => !item.parent_item_id).map((item) => {
-                    const childItems = order.order_items?.filter(child => child.parent_item_id === item.id) || [];
-                    const variants = item.order_item_variants?.map(v => v.variant_option_name).join(', ');
-                    const extras = item.order_item_ingredients?.map(i => i.ingredient_name);
-                    const hasModifiers = variants || (extras && extras.length > 0) || item.notes || childItems.length > 0;
-                    return (
-                      <div key={item.id} className="rounded-xl bg-zinc-900/60 border border-zinc-900 overflow-hidden">
-                        {/* qty + image + name */}
-                        <div className="flex items-start gap-3 px-3.5 pt-3 pb-2.5">
-                          <div className="w-8 h-8   bg-zinc-800 text-white flex items-center justify-center font-extrabold text-base shrink-0">
-                            {item.quantity}
-                          </div>
-                          {item.products?.product_images?.[0]?.url ? (
-                            <img
-                              src={item.products.product_images[0].url}
-                              alt={item.product_name}
-                              className="w-10 h-10   object-cover shrink-0 border border-zinc-800"
-                            />
-                          ) : (
-                            <div className="w-10 h-10   bg-zinc-850 flex items-center justify-center shrink-0 border border-zinc-800/40">
-                              <ChefHat className="h-5 w-5 text-zinc-600" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0 pt-0.5">
-                            <p className="text-[15px] font-bold text-white leading-tight break-words">{item.product_name}</p>
-                          </div>
-                        </div>
+                  {(() => {
+                    const parents = order.order_items?.filter(item => !item.parent_item_id).sort((a,b) => new Date(a.created_at) - new Date(b.created_at)) || [];
+                    const rounds = [];
+                    let currentRound = [];
+                    parents.forEach(item => {
+                      if (currentRound.length === 0) {
+                        currentRound.push(item);
+                      } else {
+                        const prevItem = currentRound[currentRound.length - 1];
+                        const diffMs = new Date(item.created_at) - new Date(prevItem.created_at);
+                        if (diffMs > 60000) { // 1 minute gap separates rounds
+                          rounds.push(currentRound);
+                          currentRound = [item];
+                        } else {
+                          currentRound.push(item);
+                        }
+                      }
+                    });
+                    if (currentRound.length > 0) rounds.push(currentRound);
 
-                        {/* modifiers block */}
-                        {hasModifiers && (
-                          <div className="px-3.5 pb-3 pt-0.5 border-t border-zinc-900/40 space-y-2.5 text-[13px]">
-                            {/* Render combo child options first, clean and structured */}
-                            {childItems.length > 0 && (
-                              <div className="space-y-1.5 bg-black/30 p-2.5   border border-zinc-800/50">
-                                <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-extrabold select-none block mb-1">Componentes:</span>
-                                {childItems.map((child, cIdx) => {
-                                  const childVars = child.order_item_variants?.map(v => v.variant_option_name).join(', ');
-                                  const childExtras = child.order_item_ingredients?.map(i => i.ingredient_name);
-                                  return (
-                                    <div key={cIdx} className="text-zinc-300 font-medium text-xs leading-normal">
-                                      <span className="text-emerald-400 font-bold">• {child.quantity / item.quantity}x</span> {child.product_name}
-                                      {childVars && (
-                                        <span className="text-zinc-500"> ({childVars})</span>
-                                      )}
-                                      {childExtras && childExtras.length > 0 && (
-                                        <span className="text-amber-500 ml-1 font-semibold">
-                                          (+ {childExtras.join(', ')})
-                                        </span>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-
-                            {variants && (
-                              <div className="flex items-baseline gap-1 text-zinc-400 font-medium">
-                                <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-extrabold select-none shrink-0">Opción:</span>
-                                <span className="break-words leading-tight flex-1">{variants}</span>
-                              </div>
-                            )}
-                            {extras && extras.length > 0 && (
-                              <div className="space-y-1">
-                                <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-extrabold select-none block">Agregados:</span>
-                                <div className="flex flex-wrap gap-1">
-                                  {extras.map((extra, idx) => (
-                                    <span key={idx} className="inline-block bg-zinc-900 border border-zinc-800 text-zinc-300 px-2 py-0.5   text-[12px] font-semibold">
-                                      + {extra}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {item.notes && (
-                              <div className="p-2 bg-[#ffc107]/[0.03] border border-[#ffc107]/10  ">
-                                <p className="text-[12px] text-amber-200/90 font-medium leading-relaxed break-words">
-                                  <span className="font-bold text-[#ffc107] block select-none mb-0.5 text-[10px] uppercase tracking-wider">Nota ítem:</span>
-                                  {item.notes}
-                                </p>
-                              </div>
-                            )}
+                    return rounds.map((round, rIdx) => (
+                      <div key={rIdx} className="space-y-2.5">
+                        {rounds.length > 1 && (
+                          <div className={`flex items-center gap-2 px-1 ${rIdx === 0 ? '' : 'mt-4'}`}>
+                            <div className="h-px bg-zinc-800 flex-1"></div>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                              Ronda {rIdx + 1}
+                            </span>
+                            <div className="h-px bg-zinc-800 flex-1"></div>
                           </div>
                         )}
+                        {round.map((item) => {
+                          const childItems = order.order_items?.filter(child => child.parent_item_id === item.id) || [];
+                          const variants = item.order_item_variants?.map(v => v.variant_option_name).join(', ');
+                          const extras = item.order_item_ingredients?.map(i => i.ingredient_name);
+                          const hasModifiers = variants || (extras && extras.length > 0) || item.notes || childItems.length > 0;
+                          
+                          // If this is a new round, we can highlight the item slightly
+                          const isRecentRound = rounds.length > 1 && rIdx === rounds.length - 1;
+                          
+                          return (
+                            <div key={item.id} className={`rounded-xl bg-zinc-900/60 border ${isRecentRound ? 'border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.1)]' : 'border-zinc-900'} overflow-hidden`}>
+                              {/* qty + image + name */}
+                              <div className="flex items-start gap-3 px-3.5 pt-3 pb-2.5">
+                                <div className="w-8 h-8 rounded-lg bg-zinc-800 text-white flex items-center justify-center font-extrabold text-base shrink-0">
+                                  {item.quantity}
+                                </div>
+                                {item.products?.product_images?.[0]?.url ? (
+                                  <img
+                                    src={item.products.product_images[0].url}
+                                    alt={item.product_name}
+                                    className="w-10 h-10 rounded-lg object-cover shrink-0 border border-zinc-800"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-lg bg-zinc-850 flex items-center justify-center shrink-0 border border-zinc-800/40">
+                                    <ChefHat className="h-5 w-5 text-zinc-600" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0 pt-0.5">
+                                  <p className="text-[15px] font-bold text-white leading-tight break-words">{item.product_name}</p>
+                                </div>
+                              </div>
+
+                              {/* modifiers block */}
+                              {hasModifiers && (
+                                <div className="px-3.5 pb-3 pt-0.5 border-t border-zinc-900/40 space-y-2.5 text-[13px]">
+                                  {/* Render combo child options first, clean and structured */}
+                                  {childItems.length > 0 && (
+                                    <div className="space-y-1.5 bg-black/30 p-2.5 rounded-lg border border-zinc-800/50">
+                                      <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-extrabold select-none block mb-1">Componentes:</span>
+                                      {childItems.map((child, cIdx) => {
+                                        const childVars = child.order_item_variants?.map(v => v.variant_option_name).join(', ');
+                                        const childExtras = child.order_item_ingredients?.map(i => i.ingredient_name);
+                                        return (
+                                          <div key={cIdx} className="text-zinc-300 font-medium text-xs leading-normal">
+                                            <span className="text-emerald-400 font-bold">• {child.quantity / item.quantity}x</span> {child.product_name}
+                                            {childVars && (
+                                              <span className="text-zinc-500"> ({childVars})</span>
+                                            )}
+                                            {childExtras && childExtras.length > 0 && (
+                                              <span className="text-amber-500 ml-1 font-semibold">
+                                                (+ {childExtras.join(', ')})
+                                              </span>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+
+                                  {variants && (
+                                    <div className="flex items-baseline gap-1 text-zinc-400 font-medium">
+                                      <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-extrabold select-none shrink-0">Opción:</span>
+                                      <span className="break-words leading-tight flex-1">{variants}</span>
+                                    </div>
+                                  )}
+                                  {extras && extras.length > 0 && (
+                                    <div className="space-y-1">
+                                      <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-extrabold select-none block">Agregados:</span>
+                                      <div className="flex flex-wrap gap-1">
+                                        {extras.map((extra, idx) => (
+                                          <span key={idx} className="inline-block bg-zinc-900 border border-zinc-800 text-zinc-300 px-2 py-0.5 rounded-md text-[12px] font-semibold">
+                                            + {extra}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {item.notes && (
+                                    <div className="p-2 bg-[#ffc107]/[0.03] border border-[#ffc107]/10 rounded-lg">
+                                      <p className="text-[12px] text-amber-200/90 font-medium leading-relaxed break-words">
+                                        <span className="font-bold text-[#ffc107] block select-none mb-0.5 text-[10px] uppercase tracking-wider">Nota ítem:</span>
+                                        {item.notes}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    ));
+                  })()}
                 </div>
 
                 {/* ── Timer & Action button ── */}
