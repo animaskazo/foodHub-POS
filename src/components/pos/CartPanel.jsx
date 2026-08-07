@@ -314,26 +314,38 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
         
         {/* Action Buttons */}
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-30 flex gap-2 md:static md:w-auto md:transform-none md:z-auto md:flex-row">
-          {items.some(i => !i.isSaved) && activeTable && (
-            <Button
-              onClick={onSaveOrder}
-              disabled={items.length === 0}
-              className="flex-1 flex items-center justify-center h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] text-sm sm:text-base md:text-lg font-bold"
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-            >
-              <ChefHat className="h-5 w-5 mr-1.5 hidden sm:block" />
-              Agregar a la orden
-            </Button>
-          )}
-          <Button
-            onClick={onCharge}
-            disabled={items.length === 0}
-            variant="outline"
-            className="flex-1 flex items-center justify-center h-14 bg-white border-gray-200 hover:bg-gray-50 text-gray-900 rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] text-sm sm:text-base md:text-lg font-bold"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            Cobrar ${fmt(total)}
-          </Button>
+          {(() => {
+            const hasNewItems = items.some(i => !i.isSaved) && activeTable;
+            
+            return (
+              <>
+                {hasNewItems && (
+                  <Button
+                    onClick={onSaveOrder}
+                    disabled={items.length === 0}
+                    className="flex-1 flex items-center justify-center h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] text-sm sm:text-base md:text-lg font-bold"
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                  >
+                    <ChefHat className="h-5 w-5 mr-1.5 hidden sm:block" />
+                    Agregar a la orden
+                  </Button>
+                )}
+                <Button
+                  onClick={onCharge}
+                  disabled={items.length === 0}
+                  variant={hasNewItems ? "outline" : "default"}
+                  className={`flex-1 flex items-center justify-center h-14 rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] text-sm sm:text-base md:text-lg font-bold ${
+                    hasNewItems 
+                      ? "bg-white border-gray-200 hover:bg-gray-50 text-gray-900" 
+                      : "bg-blue-600 hover:bg-blue-700 text-white"
+                  }`}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  Cobrar ${fmt(total)}
+                </Button>
+              </>
+            );
+          })()}
         </div>
       </div>
     </div>
