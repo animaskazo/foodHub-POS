@@ -323,7 +323,7 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
                   <Button
                     onClick={onSaveOrder}
                     disabled={items.length === 0}
-                    className="flex-1 flex items-center justify-center h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] text-sm sm:text-base md:text-lg font-bold"
+                    className="flex-1 flex items-center justify-center h-14 bg-black hover:bg-gray-900 text-white rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] text-sm sm:text-base md:text-lg font-bold"
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
                     <ChefHat className="h-5 w-5 mr-1.5 hidden sm:block" />
@@ -337,7 +337,7 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
                   className={`flex-1 flex items-center justify-center h-14 rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] text-sm sm:text-base md:text-lg font-bold ${
                     hasNewItems 
                       ? "bg-white border-gray-200 hover:bg-gray-50 text-gray-900" 
-                      : "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "bg-black hover:bg-gray-900 text-white"
                   }`}
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
