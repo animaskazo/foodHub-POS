@@ -276,6 +276,11 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
         : /^569\d{8}$/.test(phoneDigits);
       if (!isValidPhone) errs.phone = 'Ingresa un teléfono válido (ej: +56 9 1234 5678)';
     }
+    if (!form.email.trim()) {
+      errs.email = 'El email es requerido';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      errs.email = 'Ingresa un email válido';
+    }
     if (form.deliveryType === 'delivery') {
       if (!form.deliveryAddress?.trim()) {
         errs.deliveryAddress = 'La dirección de entrega es requerida';
@@ -576,14 +581,17 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               {errors.name && <p className="text-xs text-red-500 mt-1 ml-1">{errors.name}</p>}
             </div>
 
-            <InputField
-              icon={Mail}
-              label="Email (opcional)"
-              type="email"
-              placeholder="tu@email.com"
-              value={form.email}
-              onChange={e => update('email', e.target.value)}
-            />
+            <div>
+              <InputField
+                icon={Mail}
+                label="Email *"
+                type="email"
+                placeholder="tu@email.com"
+                value={form.email}
+                onChange={e => update('email', e.target.value)}
+              />
+              {errors.email && <p className="text-xs text-red-500 mt-1 ml-1">{errors.email}</p>}
+            </div>
           </div>
 
           {/* Divider */}
