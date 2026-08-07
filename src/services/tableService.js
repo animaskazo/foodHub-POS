@@ -49,7 +49,10 @@ export const getRestaurantTables = async (branchId) => {
   if (!branchId) throw new Error('Branch ID is required');
   const { data, error } = await supabase
     .from('restaurant_tables')
-    .select('*')
+    .select(`
+      *,
+      orders(id, total, status)
+    `)
     .eq('branch_id', branchId);
   if (error) throw error;
   return data || [];

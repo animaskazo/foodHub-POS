@@ -132,7 +132,11 @@ const PosFloorMap = ({ onTableSelect }) => {
         }}
       >
         <div className="absolute top-0 left-0 w-[1200px] h-[800px] origin-top-left">
-          {activeTables.map(t => (
+          {activeTables.map(t => {
+            const activeOrder = t.orders?.find(o => ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status));
+            const currentTotal = activeOrder ? activeOrder.total : 0;
+            
+            return (
             <button
               key={t.id}
               onClick={() => onTableSelect(t)}
@@ -148,11 +152,19 @@ const PosFloorMap = ({ onTableSelect }) => {
                 <span className={`w-2.5 h-2.5 rounded-full ${getStatusDot(t.status)} shadow-sm`}></span>
               </div>
               <span className="font-bold text-center px-1 leading-tight">{t.name}</span>
-              <span className="text-[11px] font-medium opacity-70 flex items-center gap-1 mt-1">
-                <span className="text-[10px]">👤</span> {t.capacity}
-              </span>
+              <div className="flex flex-col items-center mt-1">
+                <span className="text-[11px] font-medium opacity-70 flex items-center gap-1">
+                  <span className="text-[10px]">👤</span> {t.capacity}
+                </span>
+                {t.status === 'occupied' && currentTotal > 0 && (
+                  <span className="text-[12px] font-black mt-0.5 bg-black/10 px-1.5 rounded-md">
+                    ${new Intl.NumberFormat('es-CL').format(currentTotal)}
+                  </span>
+                )}
+              </div>
             </button>
-          ))}
+            );
+          })}
           {activeTables.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center text-gray-400 font-medium text-lg">
               No hay mesas en este sector.
