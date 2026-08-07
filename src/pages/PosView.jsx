@@ -366,12 +366,39 @@ const PosView = () => {
       const subtotal = Math.round(cartTotal / (1 + taxRate));
       const tax = cartTotal - subtotal;
       
-      const order = await createOrder(cartItems, method, orderType, total, subtotal, tax, deliveryInfo, orderNotes, deliveryFee, activeTable?.id);
+      let finalOrder;
+      
+      if (activeOrder) {
+        const newItems = cartItems.filter(i => !i.isSaved);
+        if (newItems.length > 0) {
+          const newTotal = newItems.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
+          const newSubtotal = Math.round(newTotal / (1 + taxRate));
+          const newTax = newTotal - newSubtotal;
+          await appendItemsToOrder(activeOrder.id, newItems, newTotal, newSubtotal, newTax);
+        }
+        
+        const { supabase } = await import('../lib/supabase');
+        
+        const { data: existingPayments } = await supabase.from('payments').select('id').eq('order_id', activeOrder.id).eq('status', 'pending');
+        if (existingPayments && existingPayments.length > 0) {
+           await supabase.from('payments').update({ method, status: 'paid', amount: total, paid_at: new Date().toISOString() }).eq('id', existingPayments[0].id);
+        } else {
+           await supabase.from('payments').insert({ order_id: activeOrder.id, method, amount: total, status: 'paid', paid_at: new Date().toISOString() });
+        }
+        
+        if (activeOrder.table_id || activeTable?.id) {
+          await supabase.from('restaurant_tables').update({ status: 'free' }).eq('id', activeOrder.table_id || activeTable?.id);
+        }
+        finalOrder = activeOrder;
+      } else {
+        finalOrder = await createOrder(cartItems, method, orderType, total, subtotal, tax, deliveryInfo, orderNotes, deliveryFee, activeTable?.id);
+      }
       
       setCartItems([]);
       setIsMobileCartOpen(false);
       setActiveTable(null);
-      return order;
+      setActiveOrder(null);
+      return finalOrder;
     } catch (error) {
       console.error('Error creating order:', error);
       alert(`Hubo un error al procesar el pago: ${error.message || JSON.stringify(error)}`);

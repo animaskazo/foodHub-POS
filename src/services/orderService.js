@@ -191,7 +191,7 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
     if (tableId) {
       await supabase
         .from('restaurant_tables')
-        .update({ status: 'occupied' })
+        .update({ status: paymentStatus === 'paid' ? 'free' : 'occupied' })
         .eq('id', tableId);
     }
 
