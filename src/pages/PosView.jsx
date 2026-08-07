@@ -473,6 +473,8 @@ const PosView = () => {
                 onProductClick={handleProductClick}
                 cartItems={cartItems}
                 onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
+                activeTable={activeTable}
+                onChangeTable={() => setActiveTab('mesas')}
               />
               
               {/* Floating Cart Button for Mobile */}
