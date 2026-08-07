@@ -310,31 +310,29 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
       </div>
 
       {/* Footer Area (Sticky at bottom) */}
-      <div className="shrink-0 flex flex-col bg-white border-t border-gray-100 pb-24 md:pb-safe shadow-[0_-20px_40px_rgba(0,0,0,0.04)] md:shadow-none z-20">
+      <div className="shrink-0 flex flex-col bg-white border-t border-gray-100 p-4 pb-8 md:pb-4 z-20">
         
-
-
         {/* Action Buttons */}
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm z-30 flex gap-2 md:static md:w-auto md:transform-none md:p-4 md:z-auto">
+        <div className="flex flex-col md:flex-row gap-3">
           {items.some(i => !i.isSaved) && activeTable && (
             <Button
               onClick={onSaveOrder}
               disabled={items.length === 0}
               variant="outline"
-              className="flex-1 flex items-center justify-center h-14 bg-white border-gray-200 hover:bg-gray-50 text-gray-900 rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] text-lg"
+              className="w-full md:flex-1 flex items-center justify-center h-14 bg-white border-gray-200 hover:bg-gray-50 text-gray-900 rounded-full shadow-sm transition-transform active:scale-[0.98] text-lg font-bold"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               <ChefHat className="h-5 w-5 mr-2" />
-              <span className="font-bold tracking-wide">A Cocina</span>
+              Agregar a la orden
             </Button>
           )}
           <Button
             onClick={onCharge}
             disabled={items.length === 0}
-            className="flex-1 flex items-center justify-center h-14 bg-black hover:bg-black text-white rounded-full shadow-2xl transition-transform active:scale-[0.98] text-lg"
+            className="w-full md:flex-1 flex items-center justify-center h-14 bg-black hover:bg-black text-white rounded-full shadow-lg transition-transform active:scale-[0.98] text-lg font-bold"
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
-            <span className="font-bold tracking-wide">Cobrar ${fmt(total)}</span>
+            Cobrar ${fmt(total)}
           </Button>
         </div>
       </div>
