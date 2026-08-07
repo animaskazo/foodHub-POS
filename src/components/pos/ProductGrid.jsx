@@ -414,11 +414,18 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
                   acc[cat].push(p);
                   return acc;
                 }, {});
-                const sortedCats = Object.keys(grouped).sort((a, b) => {
-                  if (a === 'General') return 1;
-                  if (b === 'General') return -1;
-                  return a.localeCompare(b);
-                });
+                
+                // Get category names in the order they appear in the categories state (which is sorted by DB sort_order)
+                const sortedCats = categories
+                  .filter(c => c.id !== 'all')
+                  .map(c => c.name)
+                  .filter(name => grouped[name]);
+                
+                // Append 'General' at the end if it exists
+                if (grouped['General'] && !sortedCats.includes('General')) {
+                  sortedCats.push('General');
+                }
+
                 return sortedCats.map(catName => (
                   <div key={catName} className="mb-8">
                     <h3 className="font-bold text-[17px] text-gray-900 mb-4 px-1">{catName}</h3>
