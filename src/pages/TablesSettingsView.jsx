@@ -295,21 +295,28 @@ const TablesSettingsView = () => {
                     onChange={e => setNewTable({...newTable, name: e.target.value})}
                   />
                   <div className="flex gap-3">
-                    <input 
-                      type="number" 
-                      placeholder="Cap."
-                      className="w-20 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-                      value={newTable.capacity}
-                      onChange={e => setNewTable({...newTable, capacity: Number(e.target.value)})}
-                    />
+                    <div className="relative w-32">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-gray-400 text-xs font-bold">👤</span>
+                      </div>
+                      <input 
+                        type="number" 
+                        min="1"
+                        placeholder="Personas"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                        value={newTable.capacity}
+                        onChange={e => setNewTable({...newTable, capacity: Number(e.target.value)})}
+                        title="Capacidad de personas en la mesa"
+                      />
+                    </div>
                     <select 
                       className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                       value={newTable.shape}
                       onChange={e => setNewTable({...newTable, shape: e.target.value})}
                     >
-                      <option value="square">Cuadrada</option>
-                      <option value="rectangle">Rectangular</option>
-                      <option value="round">Redonda</option>
+                      <option value="square">Forma: Cuadrada</option>
+                      <option value="rectangle">Forma: Rectangular</option>
+                      <option value="round">Forma: Redonda</option>
                     </select>
                   </div>
                   <div className="flex gap-2">
@@ -335,7 +342,7 @@ const TablesSettingsView = () => {
                     <div key={t.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-gray-50">
                       <div>
                         <span className="font-semibold text-sm text-gray-800 block">{t.name}</span>
-                        <span className="text-xs text-gray-500">{t.capacity} px · {t.shape}</span>
+                        <span className="text-xs text-gray-500">{t.capacity} personas · {t.shape === 'round' ? 'Redonda' : t.shape === 'rectangle' ? 'Rectangular' : 'Cuadrada'}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <button 
@@ -405,8 +412,10 @@ const TablesSettingsView = () => {
                       height: t.height
                     }}
                   >
-                    <span className="font-bold text-gray-800 pointer-events-none select-none">{t.name}</span>
-                    <span className="text-[10px] text-gray-400 pointer-events-none select-none">{t.capacity} px</span>
+                    <span className="font-bold text-gray-800 pointer-events-none select-none text-center px-1">{t.name}</span>
+                    <span className="text-[10px] text-gray-500 font-medium pointer-events-none select-none flex items-center gap-1 mt-0.5">
+                      <span className="text-[10px]">👤</span> {t.capacity}
+                    </span>
                   </div>
                 ))}
               </div>
