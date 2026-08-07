@@ -1,9 +1,9 @@
 import React from 'react';
-import { Trash2, Plus, Minus, ChevronDown, Monitor, X, Edit2 } from 'lucide-react';
+import { Trash2, Plus, Minus, ChevronDown, Monitor, X, Edit2, ChefHat } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { Button } from "../ui/button";
 
-const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onItemClick, taxRate = 0.19 }) => {
+const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onItemClick, onSaveOrder, taxRate = 0.19 }) => {
   const items = cartItems;
 
   const totalQty = items.reduce((acc, i) => acc + i.quantity, 0);
