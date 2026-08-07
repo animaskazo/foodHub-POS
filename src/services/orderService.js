@@ -631,3 +631,35 @@ export const appendItemsToOrder = async (orderId, newCartItems, additionalTotal,
     throw error;
   }
 };
+
+export const updateOrderItemsStatus = async (itemIds, newStatus, orderId) => {
+  try {
+    const { error } = await supabase
+      .from('order_items')
+      .update({ status: newStatus })
+      .in('id', itemIds);
+
+    if (error) throw error;
+
+    // Check if all items in this order are now ready
+    if (newStatus === 'ready' && orderId) {
+      const { data: items, error: fetchError } = await supabase
+        .from('order_items')
+        .select('status')
+        .eq('order_id', orderId);
+        
+      if (!fetchError && items) {
+        const allReady = items.every(i => i.status === 'ready');
+        if (allReady) {
+          await supabase
+            .from('orders')
+            .update({ status: 'ready' })
+            .eq('id', orderId);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error updating order items status:", error);
+    throw error;
+  }
+};
