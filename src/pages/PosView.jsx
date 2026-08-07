@@ -39,6 +39,12 @@ const PosView = () => {
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const showToast = (message) => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   const [shiftSettings, setShiftSettings] = useState(null);
   const [currentShift, setCurrentShift] = useState(null);
@@ -433,7 +439,7 @@ const PosView = () => {
         if (order) setActiveOrder(order);
       }
 
-      alert("¡Productos enviados a cocina exitosamente!");
+      showToast("¡Productos enviados a cocina!");
     } catch (error) {
       console.error('Error saving order:', error);
       alert(`Hubo un error al guardar el pedido: ${error.message || JSON.stringify(error)}`);
@@ -717,6 +723,17 @@ const PosView = () => {
         activeTable={activeTable}
       />
 
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-top-4 fade-in duration-300">
+          <div className="bg-emerald-500 text-white px-5 py-3.5 rounded-full shadow-2xl flex items-center gap-3 font-bold whitespace-nowrap text-sm sm:text-base border border-emerald-400">
+            <div className="bg-white/20 rounded-full p-1.5 flex items-center justify-center">
+              <ChefHat className="h-5 w-5 text-white" />
+            </div>
+            <span>{toastMessage}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
