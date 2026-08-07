@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getFirstOrganizationId } from '../../services/organizationService';
 import { supabase } from '../../lib/supabase';
 import { getTableZones, getRestaurantTables } from '../../services/tableService';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Users } from 'lucide-react';
 
 const PosFloorMap = ({ onTableSelect }) => {
   const [loading, setLoading] = useState(true);
@@ -68,21 +68,21 @@ const PosFloorMap = ({ onTableSelect }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'free': return 'bg-white border-gray-200 text-gray-800 shadow-[0_8px_30px_rgb(0,0,0,0.08)]';
-      case 'occupied': return 'bg-black border-black text-white shadow-[0_8px_30px_rgb(0,0,0,0.25)]';
-      case 'cleaning': return 'bg-amber-100 border-amber-300 text-amber-900 shadow-lg';
-      case 'reserved': return 'bg-indigo-600 border-indigo-600 text-white shadow-lg';
-      default: return 'bg-white border-gray-200 text-gray-800 shadow-sm';
+      case 'free': return 'bg-white border-gray-200 text-gray-700 shadow-sm hover:shadow-md hover:border-gray-300';
+      case 'occupied': return 'bg-zinc-900 border-zinc-800 text-white shadow-lg hover:shadow-xl hover:bg-black';
+      case 'cleaning': return 'bg-amber-50 border-amber-200 text-amber-800 shadow-sm hover:shadow-md';
+      case 'reserved': return 'bg-indigo-50 border-indigo-200 text-indigo-800 shadow-sm hover:shadow-md';
+      default: return 'bg-white border-gray-200 text-gray-700 shadow-sm';
     }
   };
 
   const getStatusDot = (status) => {
     switch (status) {
-      case 'free': return 'bg-emerald-500 ring-2 ring-white';
-      case 'occupied': return 'bg-red-500 ring-2 ring-black';
-      case 'cleaning': return 'bg-amber-500 ring-2 ring-amber-100';
-      case 'reserved': return 'bg-blue-400 ring-2 ring-indigo-600';
-      default: return 'bg-gray-500';
+      case 'free': return 'bg-emerald-400 ring-4 ring-emerald-50/50';
+      case 'occupied': return 'bg-rose-500 ring-4 ring-rose-500/20';
+      case 'cleaning': return 'bg-amber-400 ring-4 ring-amber-400/20';
+      case 'reserved': return 'bg-indigo-400 ring-4 ring-indigo-400/20';
+      default: return 'bg-gray-400';
     }
   };
 
@@ -125,11 +125,7 @@ const PosFloorMap = ({ onTableSelect }) => {
 
       {/* Map Canvas */}
       <div 
-        className="flex-1 relative overflow-auto bg-[#F2F4F7]"
-        style={{
-          backgroundImage: 'radial-gradient(#d1d5db 1px, transparent 1px)',
-          backgroundSize: '24px 24px'
-        }}
+        className="flex-1 relative overflow-auto bg-[#fafafa]"
       >
         <div className="absolute top-0 left-0 w-[1600px] h-[1200px] origin-top-left p-8">
           {activeTables.map(t => {
@@ -140,24 +136,28 @@ const PosFloorMap = ({ onTableSelect }) => {
             <button
               key={t.id}
               onClick={() => onTableSelect(t)}
-              className={`absolute flex flex-col items-center justify-center border-2 transition-all hover:scale-[1.03] active:scale-95 ${getStatusColor(t.status)} ${t.shape === 'round' ? 'rounded-full' : t.shape === 'rectangle' ? 'rounded-2xl' : 'rounded-3xl'}`}
+              className={`absolute flex flex-col items-center justify-center border transition-all duration-300 ease-out active:scale-[0.98] ${getStatusColor(t.status)} ${t.shape === 'round' ? 'rounded-full' : t.shape === 'rectangle' ? 'rounded-2xl' : 'rounded-3xl'}`}
               style={{
                 left: t.pos_x,
                 top: t.pos_y,
-                width: t.shape === 'rectangle' ? (t.width * 1.5) + 30 : t.width + 30,
-                height: t.height + 30
+                width: t.shape === 'rectangle' ? (t.width * 1.5) + 40 : t.width + 40,
+                height: t.height + 40
               }}
             >
-              <div className="absolute top-3 right-3 flex gap-1">
-                <span className={`w-3.5 h-3.5 rounded-full ${getStatusDot(t.status)} shadow-sm`}></span>
+              <div className="absolute top-4 right-4 flex gap-1">
+                <span className={`w-2.5 h-2.5 rounded-full ${getStatusDot(t.status)}`}></span>
               </div>
-              <span className="font-extrabold text-center px-2 text-xl leading-tight tracking-tight">{t.name}</span>
-              <div className="flex flex-col items-center mt-2">
-                <span className={`text-[13px] font-bold flex items-center gap-1.5 ${t.status === 'occupied' ? 'text-gray-400' : 'text-gray-500'}`}>
-                  <span className="text-[12px]">👤</span> {t.capacity}
-                </span>
+              
+              <span className="font-semibold text-center px-4 text-[17px] tracking-tight">{t.name}</span>
+              
+              <div className="flex flex-col items-center mt-1.5 gap-1.5">
+                <div className={`flex items-center gap-1.5 text-[12px] font-medium opacity-60`}>
+                  <Users className="w-3.5 h-3.5" />
+                  <span>{t.capacity}</span>
+                </div>
+                
                 {t.status === 'occupied' && currentTotal > 0 && (
-                  <span className="text-[14px] font-black mt-2 bg-white/10 px-2.5 py-1 rounded-lg tracking-wide border border-white/20">
+                  <span className="text-[13px] font-bold tracking-wide">
                     ${new Intl.NumberFormat('es-CL').format(currentTotal)}
                   </span>
                 )}
