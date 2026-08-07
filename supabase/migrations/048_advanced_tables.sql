@@ -14,9 +14,11 @@ CREATE INDEX IF NOT EXISTS idx_table_zones_branch_id ON table_zones(branch_id);
 
 ALTER TABLE table_zones ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Enable all operations for all users table_zones" ON table_zones;
 CREATE POLICY "Enable all operations for all users table_zones" ON table_zones FOR ALL USING (true) WITH CHECK (true);
 
 -- Add missing policy for restaurant_tables
+DROP POLICY IF EXISTS "Enable all operations for all users restaurant_tables" ON restaurant_tables;
 CREATE POLICY "Enable all operations for all users restaurant_tables" ON restaurant_tables FOR ALL USING (true) WITH CHECK (true);
 
 -- 2. Modify restaurant_tables
