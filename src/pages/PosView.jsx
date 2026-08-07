@@ -16,6 +16,8 @@ import TableSelectionListModal from '../components/pos/TableSelectionListModal';
 import { X, LogOut, Menu, Home, ChefHat, Clock } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { createOrder, updateOrderCustomer, getOpenOrderForTable, appendItemsToOrder } from '../services/orderService';
+import { getTableZones } from '../services/tableService';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
 import { getShiftSettings, getCurrentShift } from '../services/shiftService';
 import { PosSkeleton } from '../components/ui/Skeleton';
@@ -49,6 +51,7 @@ const PosView = () => {
   const [shiftSettings, setShiftSettings] = useState(null);
   const [currentShift, setCurrentShift] = useState(null);
   const [loadingShift, setLoadingShift] = useState(true);
+  const [hasTables, setHasTables] = useState(false);
 
   useEffect(() => {
     const loadShiftData = async () => {
@@ -60,12 +63,21 @@ const PosView = () => {
           const shift = await getCurrentShift(organization.id);
           setCurrentShift(shift);
         }
+
+        // Check if there are any tables/zones configured
+        const { data: branchData } = await supabase.from('branches').select('id').eq('organization_id', organization.id).limit(1).single();
+        if (branchData) {
+          const loadedZones = await getTableZones(branchData.id);
+          setHasTables(loadedZones && loadedZones.length > 0);
+        }
+
       } catch (err) {
-        console.error('Error loading shift info:', err);
+        console.error('Error loading shift info or zones:', err);
       } finally {
         setLoadingShift(false);
       }
     };
+    
     loadShiftData();
   }, [organization?.id]);
 
@@ -480,7 +492,6 @@ const PosView = () => {
       <div className="flex-1 flex flex-col overflow-hidden relative min-h-0">
         {activeTab === 'pago' && (
           <div className="flex-1 flex overflow-hidden w-full">
-            {/* Left Panel: Product Grid (100% on mobile, 60% on desktop) */}
             <div className="w-full md:w-[60%] overflow-hidden relative">
               <ProductGrid
                 organizationId={organization?.id}
@@ -490,6 +501,7 @@ const PosView = () => {
                 activeTable={activeTable}
                 onChangeTable={() => setIsTableModalOpen(true)}
                 role={role}
+                hasTables={hasTables}
               />
               
               {/* Floating Cart Button for Mobile */}

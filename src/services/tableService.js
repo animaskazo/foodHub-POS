@@ -35,6 +35,14 @@ export const updateTableZone = async (id, zoneData) => {
 };
 
 export const deleteTableZone = async (id) => {
+  // First, delete all tables in this zone to ensure they are removed
+  const { error: tablesError } = await supabase
+    .from('restaurant_tables')
+    .delete()
+    .eq('zone_id', id);
+  if (tablesError) throw tablesError;
+
+  // Then delete the zone itself
   const { error } = await supabase
     .from('table_zones')
     .delete()

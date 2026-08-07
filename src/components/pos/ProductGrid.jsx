@@ -33,7 +33,16 @@ const keyboardDisplay = {
   '{clear}': '✕ Limpiar',
 };
 
-const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMobileMenu, activeTable, onChangeTable, role }) => {
+const ProductGrid = ({ 
+  organizationId, 
+  onProductClick, 
+  cartItems = [], 
+  onOpenMobileMenu, 
+  activeTable, 
+  onChangeTable, 
+  role,
+  hasTables = false 
+}) => {
   const [categories, setCategories] = useState([{ id: 'all', name: 'Todos' }]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -261,7 +270,7 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
           </div>
 
           {/* Mobile Table Selector */}
-          {['waiter', 'owner', 'admin', 'manager'].includes(role) && (
+          {hasTables && ['waiter', 'owner', 'admin', 'manager'].includes(role) && (
             <button 
               onClick={onChangeTable}
               className="md:hidden w-[28%] flex items-center justify-between bg-white border border-gray-200 rounded-lg px-2 h-10 shadow-sm text-[13px] leading-tight font-bold text-gray-800 active:bg-gray-50 active:scale-[0.98] transition-all select-none truncate shrink-0"
