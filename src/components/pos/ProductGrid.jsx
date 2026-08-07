@@ -216,7 +216,9 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
           </button>
 
           {/* Prep Time Quick Selector */}
-          <PrepTimeSelector compact />
+          <div className="hidden md:block">
+            <PrepTimeSelector compact />
+          </div>
 
           {/* Mobile Kitchen Badge Trigger */}
           <button

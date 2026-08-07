@@ -11,7 +11,8 @@ import VariantSelectionModal from '../components/pos/VariantSelectionModal';
 import BundleSelectionModal from '../components/pos/BundleSelectionModal';
 import Modal from '../components/ui/Modal';
 import { NAV_ITEMS } from '../components/pos/BottomNav';
-import { X, LogOut, Menu, Home, ChefHat } from 'lucide-react';
+import PrepTimeSelector from '../components/ui/PrepTimeSelector';
+import { X, LogOut, Menu, Home, ChefHat, Clock } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { createOrder, updateOrderCustomer, getOpenOrderForTable, appendItemsToOrder } from '../services/orderService';
 import { useAuth } from '../components/AuthContext';
@@ -603,6 +604,10 @@ const PosView = () => {
                   <span className="text-lg">{label}</span>
                 </Button>
               ))}
+            </div>
+            <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
+              <span className="text-sm font-bold text-gray-700">Tiempo de cocina</span>
+              <PrepTimeSelector compact />
             </div>
             <div className="p-5 border-t border-gray-100">
               <Button
