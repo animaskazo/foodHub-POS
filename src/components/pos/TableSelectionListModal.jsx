@@ -34,7 +34,7 @@ const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable,
   const fmt = (n) => n.toLocaleString('es-CL');
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Seleccionar Mesa" alignEnd={true}>
+    <Modal isOpen={isOpen} onClose={onClose} title="Seleccionar Mesa" alignEnd={true} maxWidth="max-w-full md:max-w-md">
       <div className="flex flex-col h-full">
         <div 
           className="px-5 py-4 hover:bg-gray-50 active:bg-gray-100 cursor-pointer border-b border-gray-100 flex items-center justify-between"
