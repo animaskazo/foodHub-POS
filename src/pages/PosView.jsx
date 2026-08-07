@@ -37,6 +37,7 @@ const PosView = () => {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isTableModalOpen, setIsTableModalOpen] = useState(false);
 
   const [shiftSettings, setShiftSettings] = useState(null);
   const [currentShift, setCurrentShift] = useState(null);
@@ -474,7 +475,7 @@ const PosView = () => {
                 cartItems={cartItems}
                 onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
                 activeTable={activeTable}
-                onChangeTable={() => setActiveTab('mesas')}
+                onChangeTable={() => setIsTableModalOpen(true)}
                 role={role}
               />
               
@@ -692,12 +693,23 @@ const PosView = () => {
             </Button>
             <Button
               onClick={confirmRemove}
-              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover: 700" transition-colors variant="destructive">
+              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors" variant="destructive">
               Eliminar
             </Button>
           </div>
         </div>
       </Modal>
+
+      {/* Table Selector Modal for Mobile */}
+      <Modal isOpen={isTableModalOpen} onClose={() => setIsTableModalOpen(false)} title="Seleccionar Mesa">
+        <div className="h-[75vh] w-full -mx-5 -mb-5 flex flex-col overflow-hidden">
+          <PosFloorMap onTableSelect={(table) => {
+            handleTableSelect(table);
+            setIsTableModalOpen(false);
+          }} />
+        </div>
+      </Modal>
+
     </div>
   );
 };
