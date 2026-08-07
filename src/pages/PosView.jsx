@@ -477,6 +477,7 @@ const PosView = () => {
                   setCartItems([]);
                 }}
                 onSaveOrder={handleSaveOrder}
+                onTableSelect={handleTableSelect}
                 onRemove={handleRemove}
                 onUpdateQty={handleUpdateQty}
                 onCharge={handleCharge}

@@ -2,9 +2,31 @@ import React from 'react';
 import { Trash2, Plus, Minus, ChevronDown, Monitor, X, Edit2, ChefHat } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { Button } from "../ui/button";
+import { getFirstOrganizationId } from '../../services/organizationService';
+import { supabase } from '../../lib/supabase';
+import { getRestaurantTables } from '../../services/tableService';
 
-const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onItemClick, onSaveOrder, taxRate = 0.19 }) => {
+const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onItemClick, onSaveOrder, onTableSelect, taxRate = 0.19 }) => {
   const items = cartItems;
+  const [tables, setTables] = React.useState([]);
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const loadTables = async () => {
+      try {
+        const orgId = await getFirstOrganizationId();
+        if (!orgId) return;
+        const { data: branchData } = await supabase.from('branches').select('id').eq('organization_id', orgId).limit(1).single();
+        if (branchData) {
+          const loaded = await getRestaurantTables(branchData.id);
+          setTables(loaded);
+        }
+      } catch (err) {
+        console.error("Error loading tables in CartPanel", err);
+      }
+    };
+    loadTables();
+  }, []);
 
   const totalQty = items.reduce((acc, i) => acc + i.quantity, 0);
   const total = items.reduce((acc, i) => {
@@ -46,22 +68,75 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
             )}
             <Monitor className="h-6 w-6 text-gray-900 hidden sm:block" />
             <div>
-              <div className="flex items-center gap-1">
-                {activeTable ? (
+              <div className="relative">
+                <div 
+                  className="flex items-center gap-1 cursor-pointer select-none"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                >
+                  {activeTable ? (
+                    <>
+                      <span className="font-bold text-[17px] leading-tight text-blue-700">Mesa: {activeTable.name}</span>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onClearTable();
+                        }}
+                        className="ml-1 p-0.5 text-gray-400 hover:text-red-500 rounded-full bg-gray-100 hover:bg-red-50 transition"
+                        title="Quitar mesa"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-bold text-[17px] leading-tight">Venta Directa</span>
+                      <ChevronDown className={`h-4 w-4 text-gray-400 mt-0.5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                    </>
+                  )}
+                </div>
+                
+                {/* Dropdown Menu */}
+                {isDropdownOpen && (
                   <>
-                    <span className="font-bold text-[17px] leading-tight text-blue-700">Mesa: {activeTable.name}</span>
-                    <button 
-                      onClick={onClearTable}
-                      className="ml-1 p-0.5 text-gray-400 hover:text-red-500 rounded-full bg-gray-100 hover:bg-red-50 transition"
-                      title="Quitar mesa"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <span className="font-bold text-[17px] leading-tight">Venta Directa</span>
-                    <ChevronDown className="h-4 w-4 text-gray-400 mt-0.5" />
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setIsDropdownOpen(false)}
+                    />
+                    <div className="absolute left-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 max-h-64 overflow-y-auto">
+                      <div 
+                        className="px-4 py-2 hover:bg-gray-50 cursor-pointer font-medium text-sm flex items-center justify-between"
+                        onClick={() => {
+                          onClearTable();
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        <span>Venta Directa</span>
+                      </div>
+                      <div className="h-px bg-gray-100 my-1"></div>
+                      <div className="px-3 pb-1 pt-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mesas</div>
+                      {tables.length === 0 ? (
+                        <div className="px-4 py-2 text-xs text-gray-500">No hay mesas configuradas</div>
+                      ) : (
+                        tables.map(table => (
+                          <div 
+                            key={table.id}
+                            className={`px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm flex items-center justify-between ${activeTable?.id === table.id ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 font-medium'}`}
+                            onClick={() => {
+                              onTableSelect && onTableSelect(table);
+                              setIsDropdownOpen(false);
+                            }}
+                          >
+                            <span>{table.name}</span>
+                            {table.status === 'occupied' && (
+                              <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                            )}
+                            {table.status === 'free' && (
+                              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </>
                 )}
               </div>
