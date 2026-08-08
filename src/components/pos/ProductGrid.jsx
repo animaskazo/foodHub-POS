@@ -259,13 +259,15 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
             <Menu className="h-7 w-7" />
           </button>
 
-          {/* Prep Time Quick Selector */}
-          <PrepTimeSelector compact />
+          {/* Prep Time Quick Selector (Desktop only) */}
+          <div className="hidden md:block">
+            <PrepTimeSelector compact />
+          </div>
 
-          {/* Mobile Kitchen Badge Trigger */}
+          {/* Kitchen Badge Trigger (Desktop only) */}
           <button
             onClick={() => navigate('/kitchen')}
-            className={`md:hidden relative p-2 rounded-lg shrink-0 select-none transition-colors ${newOrderFlag ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-700 active:bg-gray-200'}`}
+            className={`hidden md:flex relative p-2 rounded-lg shrink-0 select-none transition-colors ${newOrderFlag ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-700 active:bg-gray-200'}`}
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             <ChefHat className="h-6 w-6" />
@@ -313,7 +315,7 @@ const ProductGrid = ({ organizationId, onProductClick, cartItems = [], onOpenMob
             ) : (
               <button
                 onClick={() => setShowKeyboard(true)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 p-1"
+                className="hidden md:block absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 p-1"
               >
                 <ScanLine className="h-5 w-5" />
               </button>

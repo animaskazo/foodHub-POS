@@ -18,6 +18,7 @@ import { useAuth } from '../components/AuthContext';
 import { getShiftSettings, getCurrentShift } from '../services/shiftService';
 import { PosSkeleton } from '../components/ui/Skeleton';
 import { defaultSelectionsForSlot, bundleHasChoices } from '../utils/bundleSelections';
+import PrepTimeSelector from '../components/ui/PrepTimeSelector';
 
 const PosView = () => {
   const { organization } = useAuth();
@@ -430,12 +431,12 @@ const PosView = () => {
           <div className="relative w-4/5 max-w-xs bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <h2 className="font-bold text-lg">Menú</h2>
-              <Button 
+              <button 
                 onPointerDown={() => setIsMobileMenuOpen(false)}
-                className="p-2 -mr-2 text-gray-500 bg-gray-50 active:bg-gray-100 "
+                className="p-2 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 active:bg-gray-200 transition-colors"
               >
-                <X className="h-5 w-5" />
-              </Button>
+                <X className="h-6 w-6" />
+              </button>
             </div>
             <div className="flex-1 overflow-y-auto py-4">
               {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
@@ -460,6 +461,9 @@ const PosView = () => {
                   <span className="text-lg">{label}</span>
                 </Button>
               ))}
+            </div>
+            <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+              <PrepTimeSelector menuVariant />
             </div>
             <div className="p-5 border-t border-gray-100">
               <Button

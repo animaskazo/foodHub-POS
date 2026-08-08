@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Timer, Loader2, Check } from 'lucide-react';
+import { Timer, Loader2, Check, ChevronDown } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 import { updateOrganizationDetails } from '../../services/organizationService';
 import Tooltip from './tooltip';
 
 const PREP_OPTIONS = [0, 5, 10, 15, 20, 25, 30, 40, 60];
 
-const PrepTimeSelector = ({ compact = false }) => {
+const PrepTimeSelector = ({ compact = false, menuVariant = false }) => {
   const { organization } = useAuth();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -43,6 +43,37 @@ const PrepTimeSelector = ({ compact = false }) => {
       setSaving(false);
     }
   };
+
+  if (menuVariant) {
+    return (
+      <div className="flex flex-col gap-2 w-full">
+        <label className="text-[13px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5 ml-1">
+          <Timer className="h-4 w-4" />
+          Tiempo de Cocina
+        </label>
+        <div className="relative">
+          <select
+            value={current}
+            onChange={(e) => handleChange(Number(e.target.value))}
+            className="w-full bg-white border border-gray-200 text-gray-900 rounded-xl px-4 py-3 text-base font-bold appearance-none cursor-pointer focus:border-black focus:ring-black shadow-sm"
+          >
+            {PREP_OPTIONS.map((m) => (
+              <option key={m} value={m}>{m === 0 ? 'No informar' : `${m} min`}</option>
+            ))}
+          </select>
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+            {saved ? (
+              <Check className="h-5 w-5 text-emerald-500" />
+            ) : saving ? (
+              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-gray-400" />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Tooltip text="Tiempo de preparación estimado en la cocina" enabled={isDesktop}>
