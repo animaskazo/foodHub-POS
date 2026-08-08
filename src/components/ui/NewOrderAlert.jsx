@@ -69,8 +69,22 @@ const NewOrderAlert = () => {
     if (latestNewOrder && !processedOrdersRef.current.has(latestNewOrder.id)) {
       processedOrdersRef.current.add(latestNewOrder.id);
       
-      setIsVisible(true);
-      playBellSound();
+      let isCreatedByMe = false;
+      try {
+        const lastId = localStorage.getItem('last_pos_order_id');
+        const lastTime = localStorage.getItem('last_pos_order_time');
+        // Identificar si el pedido fue creado en este mismo dispositivo recientemente (últimos 30 seg)
+        if (lastId === latestNewOrder.id || (lastTime && (Date.now() - parseInt(lastTime)) < 30000)) {
+          isCreatedByMe = true;
+          // Limpiar para no bloquear accidentalmente futuras ordenes falsas
+          localStorage.removeItem('last_pos_order_id');
+        }
+      } catch(e) {}
+
+      if (!isCreatedByMe) {
+        setIsVisible(true);
+        playBellSound();
+      }
       
       if (localStorage.getItem('pos_auto_print_enabled') === 'true') {
         setAutoPrintOrder(latestNewOrder);
@@ -92,12 +106,17 @@ const NewOrderAlert = () => {
         }, 500);
       }
 
-      // Auto dismiss after 10 seconds
-      const timer = setTimeout(() => {
-        setIsVisible(false);
-        setTimeout(clearLatestNewOrder, 300); // Wait for transition
-      }, 10000);
-      return () => clearTimeout(timer);
+      // Solo limpiamos si mostramos la alerta visual o si auto-imprimimos.
+      // Si fue creada por mi y no hay auto-print, igual limpiamos el order global para no dejar basura.
+      if (isCreatedByMe) {
+        setTimeout(clearLatestNewOrder, 1000);
+      } else {
+        const timer = setTimeout(() => {
+          setIsVisible(false);
+          setTimeout(clearLatestNewOrder, 300); // Wait for transition
+        }, 10000);
+        return () => clearTimeout(timer);
+      }
     } else {
       setIsVisible(false);
     }
@@ -108,34 +127,44 @@ const NewOrderAlert = () => {
   return (
     <>
       <div 
-        className={`fixed top-6 right-6 z-[100] max-w-sm w-full bg-[#1c1c1e] text-white p-5 rounded-2xl shadow-2xl border border-gray-700 transition-all duration-300 transform ${isVisible ? 'translate-y-0 opacity-100 scale-100' : '-translate-y-4 opacity-0 scale-95 pointer-events-none'}`}
+        className={`fixed z-[100] bg-[#1c1c1e] text-white shadow-2xl border border-gray-700 transition-all duration-300 transform 
+          ${isVisible ? 'translate-y-0 opacity-100 scale-100' : '-translate-y-4 opacity-0 scale-95 pointer-events-none'}
+          top-4 left-4 right-4 p-4 rounded-2xl
+          md:top-6 md:right-6 md:left-auto md:w-[380px] md:p-5
+        `}
       >
         <button 
           onClick={() => {
             setIsVisible(false);
             setTimeout(clearLatestNewOrder, 300);
           }}
-          className="absolute top-3 right-3 text-gray-400 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+          className="absolute top-2 right-2 md:top-3 md:right-3 text-gray-400 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4 md:h-5 md:w-5" />
         </button>
 
-        <div className="flex items-start gap-4">
-          <div className="bg-emerald-500/20 text-emerald-400 p-3 rounded-full shrink-0">
-            <ChefHat className="h-6 w-6" />
+        <div className="flex items-start gap-3 md:gap-4">
+          <div className="bg-emerald-500/20 text-emerald-400 p-2 md:p-3 rounded-full shrink-0">
+            <ChefHat className="h-5 w-5 md:h-6 md:w-6" />
           </div>
-          <div className="flex-1">
-            <h3 className="font-bold text-lg mb-1">¡Nuevo Pedido!</h3>
-            <p className="text-gray-300 text-sm mb-3">
-              Acaba de ingresar un pedido de <strong>{latestNewOrder?.source === 'table' ? 'Mesa' : 'Delivery/Retiro'}</strong>.
+          <div className="flex-1 min-w-0 pr-4 md:pr-0">
+            <div className="flex justify-between items-start mb-1">
+              <h3 className="font-bold text-base md:text-lg leading-tight">¡Nuevo Pedido!</h3>
+              {/* Solo en desktop se muestra arriba, en mobile lo ponemos más compacto */}
+              <span className="hidden md:block font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-md text-xs">
+                #{latestNewOrder?.order_number || latestNewOrder?.id?.slice(0,4)}
+              </span>
+            </div>
+            
+            <p className="text-gray-300 text-xs md:text-sm mb-3">
+              <span className="hidden md:inline">Acaba de ingresar un pedido de </span>
+              <strong>{latestNewOrder?.order_type === 'table' ? 'Mesa' : 'Delivery/Retiro'}</strong>
+              <span className="md:hidden ml-1 text-gray-400">• #{latestNewOrder?.order_number || latestNewOrder?.id?.slice(0,4)}</span>
+              <span className="md:hidden ml-1 font-bold text-white">• ${latestNewOrder?.total?.toLocaleString('es-CL')}</span>
             </p>
             
-            <div className="bg-black/40 rounded-xl p-3 mb-4 text-sm border border-white/5">
+            <div className="hidden md:block bg-black/40 rounded-xl p-3 mb-4 text-sm border border-white/5">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-gray-400">Orden:</span>
-                <span className="font-bold">#{latestNewOrder?.order_number || latestNewOrder?.id?.slice(0,4)}</span>
-              </div>
-              <div className="flex justify-between items-center mb-3">
                 <span className="text-gray-400">Total:</span>
                 <span className="font-bold">${latestNewOrder?.total?.toLocaleString('es-CL')}</span>
               </div>
@@ -144,7 +173,7 @@ const NewOrderAlert = () => {
                 <div className="border-t border-white/10 pt-2 mt-2">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Detalle</span>
-                    <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded-md font-bold">
+                    <span className="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded-md font-bold">
                       {latestNewOrder.order_items.reduce((acc, item) => acc + item.quantity, 0)} items
                     </span>
                   </div>
@@ -169,7 +198,7 @@ const NewOrderAlert = () => {
                 setTimeout(clearLatestNewOrder, 300);
                 navigate('/kitchen');
               }}
-              className="w-full bg-white text-black font-bold py-2.5 rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 text-sm"
+              className="w-full bg-white text-black font-bold py-2 md:py-2.5 rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 text-sm"
             >
               <Receipt className="h-4 w-4" />
               Ver en Cocina

@@ -365,7 +365,9 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
           <div className="grid grid-cols-1 gap-3">
             {paymentMethods.map((method) => {
               const isDeliveryFormIncomplete = orderType === 'delivery' && (!customerName || !customerPhone || !deliveryAddress || !isAddressValid);
+              // Button is disabled if we are processing ANY method, or if the delivery form is incomplete (only applies if we are not processing)
               const isDisabled = processingMethod !== null || isDeliveryFormIncomplete;
+              const isProcessingThis = processingMethod === method.id;
 
               return (
               <button
@@ -373,21 +375,23 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
                 onClick={() => handlePayment(method.id)}
                 disabled={isDisabled}
                 className={`flex items-center p-4 border-2 rounded-2xl md:rounded-full transition-all text-left ${
-                  isDisabled
+                  isProcessingThis
+                    ? 'border-black bg-black shadow-md opacity-100 cursor-wait'
+                    : isDisabled
                     ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed grayscale'
-                    : processingMethod === method.id
-                    ? 'border-black bg-black shadow-md'
                     : 'border-gray-200 bg-white hover:border-black hover:bg-gray-50 active:scale-[0.98] group'
                 }`}
               >
-                {processingMethod === method.id ? (
-                  <Loader2 className="h-6 w-6 text-white mr-4 animate-spin" />
-                ) : (
-                  <method.icon className={`h-6 w-6 mr-4 ${processingMethod ? 'text-gray-400' : 'text-gray-700 group-hover:text-black'}`} />
-                )}
-                <div className="flex-1">
-                  <span className={`font-bold text-lg ${
-                    processingMethod === method.id 
+                <method.icon className={`h-6 w-6 mr-4 shrink-0 transition-colors ${
+                  isProcessingThis 
+                    ? 'text-white' 
+                    : processingMethod 
+                      ? 'text-gray-400' 
+                      : 'text-gray-700 group-hover:text-black'
+                }`} />
+                <div className="flex-1 min-w-0">
+                  <span className={`font-bold text-lg truncate block transition-colors ${
+                    isProcessingThis 
                       ? 'text-white' 
                       : processingMethod 
                         ? 'text-gray-400' 
@@ -396,6 +400,9 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
                     {method.name}
                   </span>
                 </div>
+                {isProcessingThis && (
+                  <Loader2 className="h-5 w-5 text-white ml-3 shrink-0 animate-spin" />
+                )}
               </button>
             )})}
           </div>

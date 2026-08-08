@@ -60,6 +60,12 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
       .single();
 
     if (orderError) throw orderError;
+    
+    // Set a flag in localStorage to identify that this device just created this order
+    try {
+      localStorage.setItem('last_pos_order_id', order.id);
+      localStorage.setItem('last_pos_order_time', Date.now().toString());
+    } catch(e) {}
 
     // 4. Insert order items & their variants/ingredients
     for (const item of cartItems) {
