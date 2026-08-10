@@ -127,8 +127,9 @@ serve(async (req) => {
         const itemTotal = item.total_price
           ? `$${Number(item.total_price).toLocaleString('es-CL')}`
           : ''
-        // Build sub-options string
+        const desc = item.description || item.product_description || item.products?.description || null
         const subParts: string[] = []
+        if (desc) subParts.push(desc)
         if (item.variant_name) subParts.push(item.variant_name)
         if (Array.isArray(item.selectedOptions)) {
           item.selectedOptions.forEach((opt: any) => { if (opt.name) subParts.push(opt.name) })
@@ -366,7 +367,9 @@ serve(async (req) => {
         const itemTotal = item.total_price
           ? `$${Number(item.total_price).toLocaleString('es-CL')}`
           : ''
+        const desc2 = item.description || item.product_description || item.products?.description || null
         const subParts2: string[] = []
+        if (desc2) subParts2.push(desc2)
         if (item.variant_name) subParts2.push(item.variant_name)
         if (Array.isArray(item.selectedOptions)) {
           item.selectedOptions.forEach((opt: any) => { if (opt.name) subParts2.push(opt.name) })

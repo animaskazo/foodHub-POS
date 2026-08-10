@@ -568,6 +568,7 @@ const OrderView = () => {
       if (customerForm.email) {
         const items = cartItems.map(item => ({
           product_name: item.name + (item.variant ? ` (${item.variant.name})` : ''),
+          description: item.description || item.product?.description || null,
           quantity: item.quantity,
           total_price: item.price * item.quantity,
           image_url: item.image || item.image_url || item.imageUrl || null,
