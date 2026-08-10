@@ -124,31 +124,34 @@ serve(async (req) => {
       })() : ''
 
       const itemsHtml = (data.items || []).map((item: any) => {
-        // Support both direct image URL (from publicOrderService) and nested Supabase structure
-        const imageUrl = item.image_url
-          || item.products?.product_images?.[0]?.url
-          || (Array.isArray(item.product_images) ? item.product_images[0]?.url : null)
-          || null
         const itemTotal = item.total_price
           ? `$${Number(item.total_price).toLocaleString('es-CL')}`
           : ''
+        // Build sub-options string
+        const subParts: string[] = []
+        if (item.variant_name) subParts.push(item.variant_name)
+        if (Array.isArray(item.selectedOptions)) {
+          item.selectedOptions.forEach((opt: any) => { if (opt.name) subParts.push(opt.name) })
+        }
+        if (Array.isArray(item.selectedIngredients)) {
+          item.selectedIngredients.forEach((ing: any) => { if (ing.name) subParts.push(ing.name) })
+        }
+        if (Array.isArray(item.order_item_variants)) {
+          item.order_item_variants.forEach((v: any) => { if (v.variant_option_name) subParts.push(v.variant_option_name) })
+        }
+        if (Array.isArray(item.order_item_ingredients)) {
+          item.order_item_ingredients.forEach((i: any) => { if (i.ingredient_name) subParts.push(i.ingredient_name) })
+        }
+        const subText = subParts.join(' · ')
         return `
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 0;">
             <tr>
-              ${imageUrl ? `
-              <td width="64" valign="top" style="padding: 14px 0; padding-right: 14px;">
-                <img src="${imageUrl}" alt="${item.product_name}"
-                  style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover; display: block; background-color: #f0f0f0;" />
-              </td>` : `
-              <td width="40" valign="top" style="padding: 14px 0; padding-right: 14px;">
-                <div style="width: 36px; height: 36px; border-radius: 6px; background-color: #f0f0f0;"></div>
-              </td>`}
-              <td valign="middle" style="padding: 14px 0; border-bottom: 1px solid #eeeeee;">
-                <span style="font-size: 14px; color: #888888; font-weight: 600;">${item.quantity}×</span>
-                <span style="font-size: 15px; color: #111111; font-weight: 500; margin-left: 4px;">${item.product_name || item.name}</span>
+              <td valign="top" style="padding: 14px 0; border-bottom: 1px solid #f0f0f0;">
+                <p style="margin: 0 0 3px 0; font-size: 15px; color: #111111; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${item.quantity} x ${item.product_name || item.name}</p>
+                ${subText ? `<p style="margin: 0; font-size: 13px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${subText}</p>` : ''}
               </td>
-              <td width="90" valign="middle" align="right" style="padding: 14px 0; border-bottom: 1px solid #eeeeee; white-space: nowrap;">
-                <span style="font-size: 15px; color: #111111; font-weight: 600;">${itemTotal}</span>
+              <td width="90" valign="top" align="right" style="padding: 14px 0; border-bottom: 1px solid #f0f0f0; white-space: nowrap;">
+                <span style="font-size: 15px; color: #111111; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${itemTotal}</span>
               </td>
             </tr>
           </table>`
@@ -161,11 +164,11 @@ serve(async (req) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tu pedido saldrá a reparto</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f0f0f0; -webkit-font-smoothing: antialiased;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f0f0; padding: 0;">
+<body style="margin: 0; padding: 0; background-color: #ffffff; -webkit-font-smoothing: antialiased;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; padding: 0;">
     <tr>
       <td align="center" style="padding: 0;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; background-color: #ffffff; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.10);">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; overflow: hidden;">
 
           <!-- BRAND HEADER -->
           <tr>
@@ -178,15 +181,9 @@ serve(async (req) => {
               <h1 style="margin: 0 0 6px 0; font-size: 26px; font-weight: 800; color: #0a0a0a; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 ¡Gracias ${customerName}!
               </h1>
-              <p style="margin: 0 0 16px 0; font-size: 18px; font-weight: 700; color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+              <p style="margin: 0; font-size: 18px; font-weight: 700; color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 Tu pedido fue confirmado
               </p>
-              <p style="margin: 0 0 20px 0; font-size: 14px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                ${isDelivery ? 'Delivery' : 'Pickup'} (ID: <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #555555;">${data.order_id || data.order_number || ''}</span>)
-              </p>
-              <span style="display: inline-block; background-color: ${isDelivery ? '#f97316' : '#22c55e'}; color: #ffffff; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 6px 18px; border-radius: 100px;">
-                ${isDelivery ? '&nbsp;A reparto' : '&nbsp;¡Listo para retirar!'}
-              </span>
             </td>
           </tr>
 
@@ -196,9 +193,12 @@ serve(async (req) => {
               <p style="margin: 0 0 6px 0; font-size: 13px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: #aaaaaa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 Número de Pedido
               </p>
-              <h2 style="margin: 0 0 28px 0; font-size: 36px; font-weight: 800; color: #0a0a0a; letter-spacing: -1px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+              <h2 style="margin: 0 0 8px 0; font-size: 36px; font-weight: 800; color: #0a0a0a; letter-spacing: -1px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 ${data.order_number || ''}
               </h2>
+              <p style="margin: 0 0 24px 0; font-size: 12px; color: #aaaaaa; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
+                ID: ${data.order_id || ''}
+              </p>
             </td>
           </tr>
 
@@ -242,27 +242,30 @@ serve(async (req) => {
 
           <!-- ORDER SUMMARY -->
           <tr>
-            <td style="padding: 0 16px 24px 16px;">
-              <p style="margin: 0 0 16px 0; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #0a0a0a; border-bottom: 2px solid #0a0a0a; padding-bottom: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                Resumen del Pedido
-              </p>
+            <td style="padding: 24px 24px 8px 24px;">
+              <p style="margin: 0 0 20px 0; font-size: 22px; font-weight: 800; color: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Detalle del pedido</p>
               ${itemsHtml}
 
-              <!-- Divisor y desglose de montos -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 24px; border-top: 1px solid #eeeeee; padding-top: 16px;">
-                ${isDelivery ? `
+              <!-- Totals -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 28px;">
                 <tr>
-                  <td style="font-size: 14px; color: #666666; padding: 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Subtotal</td>
-                  <td align="right" style="font-size: 14px; color: #111111; font-weight: 600; padding: 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${subtotalFormatted}</td>
+                  <td style="font-size: 15px; color: #333333; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Subtotal</td>
+                  <td align="right" style="font-size: 15px; color: #333333; font-weight: 500; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${subtotalFormatted}</td>
                 </tr>
                 <tr>
-                  <td style="font-size: 14px; color: #666666; padding: 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Costo de envío</td>
-                  <td align="right" style="font-size: 14px; color: #111111; font-weight: 600; padding: 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${deliveryFeeFormatted}</td>
+                  <td style="font-size: 15px; color: #333333; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Envío</td>
+                  <td align="right" style="font-size: 15px; color: #333333; font-weight: 500; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${isDelivery && data.delivery_fee ? deliveryFeeFormatted : '$0'}</td>
                 </tr>
-                ` : ''}
+
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 16px 24px 28px 24px; border-bottom: 1px solid #e8e8e8;">
+              <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="font-size: 15px; color: #0a0a0a; font-weight: 700; padding: 12px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Total</td>
-                  <td align="right" style="font-size: 18px; color: #0a0a0a; font-weight: 800; padding: 12px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${totalFormatted}</td>
+                  <td style="font-size: 28px; font-weight: 800; color: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Total</td>
+                  <td align="right" style="font-size: 28px; font-weight: 800; color: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${totalFormatted}</td>
                 </tr>
               </table>
             </td>
@@ -272,12 +275,12 @@ serve(async (req) => {
 
           <!-- FOOTER -->
           <tr>
-            <td style="background-color: #f7f7f8; padding: 24px 16px; text-align: center; border-top: 1px solid #eeeeee;">
-              <p style="margin: 0 0 4px 0; font-size: 12px; color: #666666; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                Impulsado por <strong style="color: #444444;">FoodHub</strong>
+            <td style="background-color: #f7f7f8; padding: 20px 24px; border-top: 1px solid #eeeeee;">
+              <p style="margin: 0 0 6px 0; font-size: 13px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                ID: <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">${data.order_id || data.order_number || ''}</span> se ha empezado el ${new Date().toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Santiago' })} ${new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Santiago' })}
               </p>
-              <p style="margin: 0; font-size: 11px; color: #777777; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                Este correo fue enviado automáticamente, por favor no respondas.
+              <p style="margin: 0; font-size: 12px; color: #aaaaaa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                Impulsado por <strong style="color: #888888;">FoodHub</strong>
               </p>
             </td>
           </tr>
@@ -360,32 +363,33 @@ serve(async (req) => {
       })() : ''
 
       const itemsHtml2 = (data.items || []).map((item: any) => {
-        const imageUrl = item.image_url
-          || item.image
-          || item.imageUrl
-          || item.products?.product_images?.[0]?.url
-          || (Array.isArray(item.product_images) ? item.product_images[0]?.url : null)
-          || null
         const itemTotal = item.total_price
           ? `$${Number(item.total_price).toLocaleString('es-CL')}`
           : ''
+        const subParts2: string[] = []
+        if (item.variant_name) subParts2.push(item.variant_name)
+        if (Array.isArray(item.selectedOptions)) {
+          item.selectedOptions.forEach((opt: any) => { if (opt.name) subParts2.push(opt.name) })
+        }
+        if (Array.isArray(item.selectedIngredients)) {
+          item.selectedIngredients.forEach((ing: any) => { if (ing.name) subParts2.push(ing.name) })
+        }
+        if (Array.isArray(item.order_item_variants)) {
+          item.order_item_variants.forEach((v: any) => { if (v.variant_option_name) subParts2.push(v.variant_option_name) })
+        }
+        if (Array.isArray(item.order_item_ingredients)) {
+          item.order_item_ingredients.forEach((i: any) => { if (i.ingredient_name) subParts2.push(i.ingredient_name) })
+        }
+        const subText2 = subParts2.join(' · ')
         return `
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
-              ${imageUrl ? `
-              <td width="64" valign="top" style="padding: 12px 0; padding-right: 14px;">
-                <img src="${imageUrl}" alt="${item.product_name || item.name}"
-                  style="width: 56px; height: 56px; border-radius: 8px; object-fit: cover; display: block; background-color: #f0f0f0;" />
-              </td>` : `
-              <td width="40" valign="top" style="padding: 12px 0; padding-right: 14px;">
-                <div style="width: 36px; height: 36px; border-radius: 6px; background-color: #f0f0f0;"></div>
-              </td>`}
-              <td valign="middle" style="padding: 12px 0; border-bottom: 1px solid #eeeeee;">
-                <span style="font-size: 14px; color: #888888; font-weight: 600;">${item.quantity}×</span>
-                <span style="font-size: 15px; color: #111111; font-weight: 500; margin-left: 4px;">${item.product_name || item.name}</span>
+              <td valign="top" style="padding: 14px 0; border-bottom: 1px solid #f0f0f0;">
+                <p style="margin: 0 0 3px 0; font-size: 15px; color: #111111; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${item.quantity} x ${item.product_name || item.name}</p>
+                ${subText2 ? `<p style="margin: 0; font-size: 13px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${subText2}</p>` : ''}
               </td>
-              <td width="90" valign="middle" align="right" style="padding: 12px 0; border-bottom: 1px solid #eeeeee; white-space: nowrap;">
-                <span style="font-size: 15px; color: #111111; font-weight: 600;">${itemTotal}</span>
+              <td width="90" valign="top" align="right" style="padding: 14px 0; border-bottom: 1px solid #f0f0f0; white-space: nowrap;">
+                <span style="font-size: 15px; color: #111111; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${itemTotal}</span>
               </td>
             </tr>
           </table>`
@@ -398,11 +402,11 @@ serve(async (req) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Pedido confirmado</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f0f0f0; -webkit-font-smoothing: antialiased;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f0f0; padding: 0;">
+<body style="margin: 0; padding: 0; background-color: #ffffff; -webkit-font-smoothing: antialiased;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; padding: 0;">
     <tr>
       <td align="center" style="padding: 0;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 520px; background-color: #ffffff; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.10);">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; overflow: hidden;">
 
           <!-- HEADER -->
           <tr>
@@ -415,15 +419,9 @@ serve(async (req) => {
               <h1 style="margin: 0 0 6px 0; font-size: 26px; font-weight: 800; color: #0a0a0a; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 ¡Gracias ${data.customer_name || 'Cliente'}!
               </h1>
-              <p style="margin: 0 0 16px 0; font-size: 18px; font-weight: 700; color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+              <p style="margin: 0; font-size: 18px; font-weight: 700; color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 Tu pedido fue confirmado
               </p>
-              <p style="margin: 0 0 20px 0; font-size: 14px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                ${isDelivery2 ? 'Delivery' : 'Pickup'} (ID: <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #555555;">${data.order_id || data.order_number || ''}</span>)
-              </p>
-              <span style="display: inline-block; background-color: #3b82f6; color: #ffffff; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 6px 18px; border-radius: 100px;">
-                &nbsp;Pedido Confirmado
-              </span>
             </td>
           </tr>
 
@@ -433,9 +431,12 @@ serve(async (req) => {
               <p style="margin: 0 0 6px 0; font-size: 13px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: #aaaaaa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 Número de Pedido
               </p>
-              <h2 style="margin: 0 0 28px 0; font-size: 36px; font-weight: 800; color: #0a0a0a; letter-spacing: -1px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+              <h2 style="margin: 0 0 8px 0; font-size: 36px; font-weight: 800; color: #0a0a0a; letter-spacing: -1px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 ${data.order_number || ''}
               </h2>
+              <p style="margin: 0 0 24px 0; font-size: 12px; color: #aaaaaa; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
+                ID: ${data.order_id || ''}
+              </p>
             </td>
           </tr>
 
@@ -479,27 +480,30 @@ serve(async (req) => {
 
           <!-- ORDER ITEMS -->
           <tr>
-            <td style="padding: 0 16px 24px 16px;">
-              <p style="margin: 0 0 16px 0; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #0a0a0a; border-bottom: 2px solid #0a0a0a; padding-bottom: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                Tu Pedido
-              </p>
+            <td style="padding: 24px 24px 8px 24px;">
+              <p style="margin: 0 0 20px 0; font-size: 22px; font-weight: 800; color: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Detalle del pedido</p>
               ${itemsHtml2}
 
-              <!-- Divisor y desglose de montos -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 24px; border-top: 1px solid #eeeeee; padding-top: 16px;">
-                ${isDelivery2 ? `
+              <!-- Totals -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 28px;">
                 <tr>
-                  <td style="font-size: 14px; color: #666666; padding: 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Subtotal</td>
-                  <td align="right" style="font-size: 14px; color: #111111; font-weight: 600; padding: 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${subtotalFormatted2}</td>
+                  <td style="font-size: 15px; color: #333333; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Subtotal</td>
+                  <td align="right" style="font-size: 15px; color: #333333; font-weight: 500; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${subtotalFormatted2}</td>
                 </tr>
                 <tr>
-                  <td style="font-size: 14px; color: #666666; padding: 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Costo de envío</td>
-                  <td align="right" style="font-size: 14px; color: #111111; font-weight: 600; padding: 4px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${deliveryFeeFormatted2}</td>
+                  <td style="font-size: 15px; color: #333333; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Envío</td>
+                  <td align="right" style="font-size: 15px; color: #333333; font-weight: 500; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${isDelivery2 && data.delivery_fee ? deliveryFeeFormatted2 : '$0'}</td>
                 </tr>
-                ` : ''}
+
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 16px 24px 28px 24px; border-bottom: 1px solid #e8e8e8;">
+              <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="font-size: 15px; color: #0a0a0a; font-weight: 700; padding: 12px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Total</td>
-                  <td align="right" style="font-size: 18px; color: #0a0a0a; font-weight: 800; padding: 12px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${totalFormatted2}</td>
+                  <td style="font-size: 28px; font-weight: 800; color: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Total</td>
+                  <td align="right" style="font-size: 28px; font-weight: 800; color: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${totalFormatted2}</td>
                 </tr>
               </table>
             </td>
@@ -509,12 +513,12 @@ serve(async (req) => {
 
           <!-- FOOTER -->
           <tr>
-            <td style="background-color: #f7f7f8; padding: 24px 16px; text-align: center; border-top: 1px solid #eeeeee;">
-              <p style="margin: 0 0 4px 0; font-size: 12px; color: #666666; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                Impulsado por <strong style="color: #444444;">FoodHub</strong>
+            <td style="background-color: #f7f7f8; padding: 20px 24px; border-top: 1px solid #eeeeee;">
+              <p style="margin: 0 0 6px 0; font-size: 13px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                ID: <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">${data.order_id || data.order_number || ''}</span> se ha empezado el ${new Date().toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Santiago' })} ${new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Santiago' })}
               </p>
-              <p style="margin: 0; font-size: 11px; color: #777777; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                Este correo fue enviado automáticamente, por favor no respondas.
+              <p style="margin: 0; font-size: 12px; color: #aaaaaa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                Impulsado por <strong style="color: #888888;">FoodHub</strong>
               </p>
             </td>
           </tr>

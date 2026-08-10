@@ -50,11 +50,15 @@ const toMinutes = (t) => {
 const toTime = (mins) => `${pad2(Math.floor(mins / 60))}:${pad2(mins % 60)}`;
 const dateInput = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 
-// pickup_hours si está configurado, si no usa business_hours como disponibilidad
+// pickup_hours si está activo/abierto, si no usa business_hours como disponibilidad
 const getAvailability = (org) => {
   const ph = org?.pickup_hours;
-  if (ph && Object.keys(ph).length > 0) return ph;
-  return org?.business_hours || null;
+  const bh = org?.business_hours;
+  if (ph && Object.keys(ph).length > 0) {
+    const hasAnyOpen = Object.values(ph).some(d => d && !d.closed);
+    if (hasAnyOpen) return ph;
+  }
+  return bh || null;
 };
 
 // ¿Un momento dado cae dentro del horario de disponibilidad del día? (soporta cruce de medianoche)
@@ -70,10 +74,20 @@ const isWithinDay = (availability, date) => {
 
 // ¿Se puede pedir "ahora"?
 const canOrderNow = (org) => {
-  const availability = getAvailability(org);
   if (org?.instant_enabled === false) return false;
-  if (!availability) return true; // Sin horarios configurados: siempre disponible
-  return isWithinDay(availability, new Date());
+  const ph = org?.pickup_hours;
+  const bh = org?.business_hours;
+  const now = new Date();
+
+  if (ph && Object.keys(ph).length > 0 && isWithinDay(ph, now)) {
+    return true;
+  }
+  if (bh && Object.keys(bh).length > 0 && isWithinDay(bh, now)) {
+    return true;
+  }
+  if (!ph && !bh) return true;
+
+  return false;
 };
 
 // Slots de 30 min para una fecha (yyyy-mm-dd), excluyendo pasados y los próximos 10 min

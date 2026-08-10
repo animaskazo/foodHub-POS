@@ -60,4 +60,51 @@ export const PosSkeleton = () => (
   </div>
 )
 
+export const EcommerceSkeleton = () => (
+  <div className="min-h-screen bg-gray-50/50 pb-24">
+    {/* Header / Banner Skeleton */}
+    <div className="relative w-full bg-gray-200">
+      <Skeleton className="w-full h-44 sm:h-56 md:h-64 rounded-none" />
+      <div className="max-w-4xl mx-auto px-4 relative -mt-12 sm:-mt-16 flex items-end justify-between">
+        <div className="flex items-end gap-4">
+          <Skeleton className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl border-4 border-white shadow-md bg-gray-300" />
+          <div className="mb-2 space-y-2">
+            <Skeleton className="h-6 w-40 sm:w-56" />
+            <Skeleton className="h-4 w-28 sm:w-36" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Categories Bar Skeleton */}
+    <div className="max-w-4xl mx-auto px-4 mt-8">
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        <Skeleton className="h-10 w-28 rounded-full shrink-0" />
+        <Skeleton className="h-10 w-32 rounded-full shrink-0" />
+        <Skeleton className="h-10 w-24 rounded-full shrink-0" />
+        <Skeleton className="h-10 w-36 rounded-full shrink-0" />
+      </div>
+    </div>
+
+    {/* Product Grid Skeleton */}
+    <div className="max-w-4xl mx-auto px-4 mt-6">
+      <Skeleton className="h-6 w-36 mb-4" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-4 items-center">
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-2/3" />
+              <Skeleton className="h-5 w-20 pt-2" />
+            </div>
+            <Skeleton className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl shrink-0" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+)
+
 export default Skeleton
+

@@ -14,6 +14,7 @@ import { geocodeAddress } from '../utils/geo';
 import { sendEmail } from '../services/emailService';
 import { supabase } from '../lib/supabase';
 import { getTenantSlug } from '../utils/tenant';
+import { EcommerceSkeleton } from '../components/ui/Skeleton';
 
 const OrderView = () => {
   const { slug: pathSlug } = useParams();
@@ -631,14 +632,7 @@ const OrderView = () => {
 
   // ── Render ────────────────────────────────────────────────
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-gray-200 border-t-black animate-spin rounded-full" />
-          <p className="text-gray-500 font-medium">Cargando menú…</p>
-        </div>
-      </div>
-    );
+    return <EcommerceSkeleton />;
   }
 
   if (error) {
