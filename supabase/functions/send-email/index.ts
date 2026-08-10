@@ -197,7 +197,7 @@ serve(async (req) => {
                 ${data.order_number || ''}
               </h2>
               <p style="margin: 0 0 24px 0; font-size: 11px; color: #999999; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
-                ID: ${data.order_id || data.id || ''}
+                ID Order ${data.order_id || data.id || ''}
               </p>
             </td>
           </tr>
@@ -435,7 +435,7 @@ serve(async (req) => {
                 ${data.order_number || ''}
               </h2>
               <p style="margin: 0 0 24px 0; font-size: 11px; color: #999999; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
-                ID: ${data.order_id || data.id || ''}
+                ID Order ${data.order_id || data.id || ''}
               </p>
             </td>
           </tr>
