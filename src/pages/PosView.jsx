@@ -66,11 +66,16 @@ const PosView = () => {
 
         // Check if there are any tables/zones configured
         const { data: branchData } = await supabase.from('branches').select('id').eq('organization_id', organization.id).limit(1).single();
-        if (branchData) {
-          const loadedZones = await getTableZones(branchData.id);
-          setHasTables(loadedZones && loadedZones.length > 0);
+        const { data: orgData } = await supabase.from('organizations').select('dine_in_enabled').eq('id', organization.id).single();
+        
+        if (['waiter', 'owner', 'admin', 'manager'].includes(userRole)) {
+          if (branchData?.id && orgData?.dine_in_enabled === true) {
+            const loadedZones = await getTableZones(branchData.id);
+            setHasTables(loadedZones && loadedZones.length > 0);
+          } else {
+            setHasTables(false);
+          }
         }
-
       } catch (err) {
         console.error('Error loading shift info or zones:', err);
       } finally {
@@ -528,6 +533,7 @@ const PosView = () => {
             `}>
               <CartPanel
                 cartItems={cartItems}
+                dineInEnabled={organization?.dine_in_enabled === true}
                 activeTable={activeTable}
                 onClearTable={() => {
                   setActiveTable(null);
@@ -648,7 +654,7 @@ const PosView = () => {
       )}
 
       {/* Bottom Navigation (Hidden on mobile) */}
-      <BottomNav active={activeTab} onChange={setActiveTab} role={role} />
+      <BottomNav active={activeTab} onChange={setActiveTab} role={role} dineInEnabled={organization?.dine_in_enabled === true} />
 
       <PaymentModal
         isOpen={isPaymentModalOpen}

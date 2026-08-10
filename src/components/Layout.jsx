@@ -40,7 +40,7 @@ const Layout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProductsOpen, setIsProductsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const { isSuperAdmin, role } = useAuth();
+  const { isSuperAdmin, role, organization } = useAuth();
   const [inboxEnabled, setInboxEnabled] = useState(false);
 
   useEffect(() => {
@@ -374,20 +374,22 @@ const Layout = () => {
                       Caja y Turnos
                     </NavLink>
                   </li>
-                  <li>
-                    <NavLink 
-                      to="/tables" 
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className={({ isActive }) => 
-                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
-                          isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
-                        }`
-                      }
-                    >
-                      <LayoutGrid className="h-[18px] w-[18px]" />
-                      Zonas y Mesas
-                    </NavLink>
-                  </li>
+                  {organization?.dine_in_enabled === true && (
+                    <li>
+                      <NavLink 
+                        to="/tables" 
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={({ isActive }) => 
+                          `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
+                            isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                          }`
+                        }
+                      >
+                        <LayoutGrid className="h-[18px] w-[18px]" />
+                        Zonas y Mesas
+                      </NavLink>
+                    </li>
+                  )}
                 </ul>
               )}
             </li>

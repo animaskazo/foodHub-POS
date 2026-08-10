@@ -11,16 +11,16 @@ export const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: Home },
 ];
 
-export const getNavItems = (role) => {
+export const getNavItems = (role, dineInEnabled = false) => {
   return NAV_ITEMS.filter(item => {
     if (item.id === 'mesas') {
-      return ['waiter', 'owner', 'admin', 'manager'].includes(role);
+      return dineInEnabled && ['waiter', 'owner', 'admin', 'manager'].includes(role);
     }
     return true;
   });
 };
 
-const BottomNav = ({ active = 'pago', onChange, role }) => {
+const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false }) => {
   const navigate = useNavigate();
   const { pendingCount, newOrderFlag } = useKitchenOrders();
   const [triggerAnimation, setTriggerAnimation] = useState(false);
@@ -55,7 +55,7 @@ const BottomNav = ({ active = 'pago', onChange, role }) => {
 
       {/* Center: Nav items */}
       <div className="flex items-center gap-1 flex-1">
-        {getNavItems(role).map(({ id, label, icon: Icon }) => (
+        {getNavItems(role, dineInEnabled).map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onPointerDown={() => {

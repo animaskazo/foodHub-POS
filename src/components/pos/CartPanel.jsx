@@ -6,12 +6,13 @@ import { getFirstOrganizationId } from '../../services/organizationService';
 import { supabase } from '../../lib/supabase';
 import { getRestaurantTables } from '../../services/tableService';
 
-const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onChangeTableMobile, onItemClick, onSaveOrder, onTableSelect, taxRate = 0.19 }) => {
+const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onChangeTableMobile, onItemClick, onSaveOrder, onTableSelect, taxRate = 0.19 }) => {
   const items = cartItems;
   const [tables, setTables] = React.useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
 
   React.useEffect(() => {
+    if (!dineInEnabled) return;
     const loadTables = async () => {
       try {
         const orgId = await getFirstOrganizationId();
@@ -68,38 +69,44 @@ const CartPanel = ({ cartItems = [], activeTable, onClearTable, onRemove, onUpda
             )}
             <Monitor className="h-6 w-6 text-gray-900 hidden sm:block" />
             <div>
-              <div className="relative">
-                <div 
-                  className="flex items-center gap-1 md:cursor-pointer select-none"
-                  onClick={() => {
-                    if (window.innerWidth >= 768) {
-                      setIsDropdownOpen(!isDropdownOpen);
-                    } else if (onChangeTableMobile) {
-                      onChangeTableMobile();
-                    }
-                  }}
-                >
-                  {activeTable ? (
-                    <>
-                      <span className="font-bold text-[17px] leading-tight text-blue-700">Mesa: {activeTable.name}</span>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onClearTable();
-                        }}
-                        className="hidden md:inline-flex ml-1 p-0.5 text-gray-400 hover:text-red-500 rounded-full bg-gray-100 hover:bg-red-50 transition"
-                        title="Quitar mesa"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <span className="font-bold text-[17px] leading-tight">Venta Directa</span>
-                      <ChevronDown className={`hidden md:block h-4 w-4 text-gray-400 mt-0.5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                    </>
-                  )}
-                </div>
+              <div className="relative z-50">
+                {dineInEnabled ? (
+                  <div 
+                    className="flex items-center gap-1 md:cursor-pointer select-none"
+                    onClick={() => {
+                      if (window.innerWidth >= 768) {
+                        setIsDropdownOpen(!isDropdownOpen);
+                      } else if (onChangeTableMobile) {
+                        onChangeTableMobile();
+                      }
+                    }}
+                  >
+                    {activeTable ? (
+                      <>
+                        <span className="font-bold text-[17px] leading-tight text-blue-700">Mesa: {activeTable.name}</span>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onClearTable();
+                          }}
+                          className="hidden md:inline-flex ml-1 p-0.5 text-gray-400 hover:text-red-500 rounded-full bg-gray-100 hover:bg-red-50 transition"
+                          title="Quitar mesa"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-bold text-[17px] leading-tight">Venta Directa</span>
+                        <ChevronDown className={`hidden md:block h-4 w-4 text-gray-400 mt-0.5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 select-none">
+                    <span className="font-bold text-[17px] leading-tight">Venta Directa</span>
+                  </div>
+                )}
                 
                 {/* Dropdown Menu */}
                 {isDropdownOpen && (

@@ -595,8 +595,60 @@ export const appendItemsToOrder = async (orderId, newCartItems, additionalTotal,
         }));
         await supabase.from('order_item_ingredients').insert(ingredientInserts);
       }
-      
-      // Handle bundles similar to createOrder if needed (simplified for brevity)
+      // If it is a bundle/combo, insert child options
+      if (item.type === 'bundle' && item.selectedOptions && item.selectedOptions.length > 0) {
+        for (const option of item.selectedOptions) {
+          const childQty = (option.quantity || 1) * item.quantity;
+          const childPrice = option.price || 0;
+          const { data: insertedChild, error: childError } = await supabase
+            .from('order_items')
+            .insert({
+              order_id: orderId,
+              product_id: option.productId || option.id,
+              product_name: option.name,
+              quantity: childQty,
+              unit_price: childPrice,
+              total_price: childPrice * childQty,
+              parent_item_id: insertedItem.id
+            })
+            .select()
+            .single();
+
+          if (childError) {
+            console.error("Error inserting child bundle option:", childError);
+            continue;
+          }
+
+          // Insert child variant (if any)
+          if (option.variant) {
+            const { error: variantError } = await supabase
+              .from('order_item_variants')
+              .insert({
+                order_item_id: insertedChild.id,
+                variant_group_id: option.variant.variant_group_id || null,
+                variant_option_id: option.variant.id,
+                variant_group_name: 'Variantes',
+                variant_option_name: option.variant.name,
+                price_modifier: option.variant.price_modifier || 0
+              });
+            if (variantError) console.error("Error inserting child variant:", variantError);
+          }
+
+          // Insert child ingredients (if any)
+          if (option.selectedIngredients && option.selectedIngredients.length > 0) {
+            const ingredientInserts = option.selectedIngredients.map(ing => ({
+              order_item_id: insertedChild.id,
+              ingredient_id: ing.id,
+              ingredient_name: ing.name,
+              price: ing.price || 0
+            }));
+            const { error: ingError } = await supabase
+              .from('order_item_ingredients')
+              .insert(ingredientInserts);
+            if (ingError) console.error("Error inserting child ingredients:", ingError);
+          }
+        }
+      }
     }
 
     // 3. Update order totals and status
