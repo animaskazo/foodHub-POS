@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Truck, Phone, User, ExternalLink, RefreshCw, AlertCircle, Clock } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { getAccessToken, getDelivery } from '../../services/uberDirectService';
 
 export const UberDeliveryCard = ({ order, organization }) => {
@@ -9,19 +10,34 @@ export const UberDeliveryCard = ({ order, organization }) => {
 
   const fetchUberData = useCallback(async () => {
     if (!order?.uber_delivery_id) return;
-    const cid = organization?.uber_customer_id;
-    const clientId = organization?.uber_client_id;
-    const clientSecret = organization?.uber_client_secret;
-
-    if (!cid || !clientId || !clientSecret) {
-      setError('Credenciales de Uber Direct no disponibles');
-      return;
-    }
+    let cid = organization?.uber_customer_id;
+    let clientId = organization?.uber_client_id;
+    let clientSecret = organization?.uber_client_secret;
 
     setLoading(true);
     setError(null);
 
     try {
+      if ((!cid || !clientId || !clientSecret) && (order?.organization_id || organization?.id)) {
+        const orgId = order?.organization_id || organization?.id;
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('uber_customer_id, uber_client_id, uber_client_secret')
+          .eq('id', orgId)
+          .single();
+        if (orgData) {
+          cid = orgData.uber_customer_id;
+          clientId = orgData.uber_client_id;
+          clientSecret = orgData.uber_client_secret;
+        }
+      }
+
+      if (!cid || !clientId || !clientSecret) {
+        setError('Credenciales de Uber Direct no disponibles');
+        setLoading(false);
+        return;
+      }
+
       const tokenRes = await getAccessToken(clientId, clientSecret);
       const data = await getDelivery(cid, tokenRes.access_token, order.uber_delivery_id);
       setDeliveryData(data);
@@ -31,7 +47,7 @@ export const UberDeliveryCard = ({ order, organization }) => {
     } finally {
       setLoading(false);
     }
-  }, [order?.uber_delivery_id, organization]);
+  }, [order?.uber_delivery_id, order?.organization_id, organization]);
 
   useEffect(() => {
     fetchUberData();
