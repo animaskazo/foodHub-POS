@@ -6,14 +6,19 @@ import CartPanel from '../components/pos/CartPanel';
 import BottomNav from '../components/pos/BottomNav';
 import PaymentModal from '../components/pos/PaymentModal';
 import TransactionsView from '../components/pos/TransactionsView';
+import PosFloorMap from '../components/pos/PosFloorMap';
 import VariantSelectionModal from '../components/pos/VariantSelectionModal';
 import BundleSelectionModal from '../components/pos/BundleSelectionModal';
 import Modal from '../components/ui/Modal';
-import { NAV_ITEMS } from '../components/pos/BottomNav';
-import { X, LogOut, Menu, Home, ChefHat } from 'lucide-react';
+import { NAV_ITEMS, getNavItems } from '../components/pos/BottomNav';
+import PrepTimeSelector from '../components/ui/PrepTimeSelector';
+import TableSelectionListModal from '../components/pos/TableSelectionListModal';
+import { X, LogOut, Menu, Home, ChefHat, Clock } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import NewOrderAlert from '../components/ui/NewOrderAlert';
-import { createOrder, updateOrderCustomer } from '../services/orderService';
+import { createOrder, updateOrderCustomer, getOpenOrderForTable, appendItemsToOrder } from '../services/orderService';
+import { getTableZones } from '../services/tableService';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
 import { getShiftSettings, getCurrentShift } from '../services/shiftService';
 import { PosSkeleton } from '../components/ui/Skeleton';
@@ -21,13 +26,15 @@ import { defaultSelectionsForSlot, bundleHasChoices } from '../utils/bundleSelec
 import PrepTimeSelector from '../components/ui/PrepTimeSelector';
 
 const PosView = () => {
-  const { organization } = useAuth();
+  const { organization, role } = useAuth();
   const taxRate = organization?.default_tax_rate ? Number(organization.default_tax_rate) / 100 : 0.19;
 
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('pago');
+  const [activeTable, setActiveTable] = useState(null);
+  const [activeOrder, setActiveOrder] = useState(null);
   const [selectedProductForVariant, setSelectedProductForVariant] = useState(null);
   const [editingCartItem, setEditingCartItem] = useState(null);
   const [selectedProductForBundle, setSelectedProductForBundle] = useState(null);
@@ -35,10 +42,18 @@ const PosView = () => {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [isMobileCartOpen, setIsMobileCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isTableModalOpen, setIsTableModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const showToast = (message) => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   const [shiftSettings, setShiftSettings] = useState(null);
   const [currentShift, setCurrentShift] = useState(null);
   const [loadingShift, setLoadingShift] = useState(true);
+  const [hasTables, setHasTables] = useState(false);
 
   useEffect(() => {
     const loadShiftData = async () => {
@@ -50,12 +65,26 @@ const PosView = () => {
           const shift = await getCurrentShift(organization.id);
           setCurrentShift(shift);
         }
+
+        // Check if there are any tables/zones configured
+        const { data: branchData } = await supabase.from('branches').select('id').eq('organization_id', organization.id).limit(1).single();
+        const { data: orgData } = await supabase.from('organizations').select('dine_in_enabled').eq('id', organization.id).single();
+        
+        if (['waiter', 'owner', 'admin', 'manager'].includes(userRole)) {
+          if (branchData?.id && orgData?.dine_in_enabled === true) {
+            const loadedZones = await getTableZones(branchData.id);
+            setHasTables(loadedZones && loadedZones.length > 0);
+          } else {
+            setHasTables(false);
+          }
+        }
       } catch (err) {
-        console.error('Error loading shift info:', err);
+        console.error('Error loading shift info or zones:', err);
       } finally {
         setLoadingShift(false);
       }
     };
+    
     loadShiftData();
   }, [organization?.id]);
 
@@ -283,6 +312,72 @@ const PosView = () => {
     }
   };
 
+  const handleTableSelect = async (table) => {
+    setActiveTable(table);
+    setActiveTab('pago');
+    
+    if (table.status === 'occupied') {
+      try {
+        const order = await getOpenOrderForTable(table.id);
+        if (order) {
+          setActiveOrder(order);
+          // Map order_items to cartItems format
+          // Filter out child items (parent_item_id is not null) as they are handled inside bundles
+          const parents = order.order_items.filter(i => !i.parent_item_id);
+          const mappedItems = parents.map(item => {
+            const variantInfo = item.order_item_variants?.[0];
+            const variant = variantInfo ? { id: variantInfo.variant_option_id, name: variantInfo.variant_option_name, price_modifier: variantInfo.price_modifier } : null;
+            
+            const selectedIngredients = (item.order_item_ingredients || []).map(ing => ({
+              id: ing.ingredient_id,
+              name: ing.ingredient_name,
+              price: ing.price
+            }));
+            
+            // Reconstruct bundle options if any
+            const children = order.order_items.filter(i => i.parent_item_id === item.id);
+            const isBundle = children.length > 0;
+            const selectedOptions = isBundle ? children.map(child => {
+              const childVariant = child.order_item_variants?.[0];
+              const childIngs = (child.order_item_ingredients || []).map(ing => ({ name: ing.ingredient_name, price: ing.price }));
+              let optName = child.product_name;
+              if (childVariant) optName += ` (${childVariant.variant_option_name})`;
+              return {
+                name: optName,
+                price: child.unit_price,
+                selectedIngredients: childIngs
+              };
+            }) : [];
+            
+            return {
+              cartItemId: `saved-${item.id}`,
+              productId: item.product_id,
+              name: item.product_name + (variant ? ` (${variant.name})` : ''),
+              image: item.products?.product_images?.[0]?.url || null,
+              price: item.unit_price - (variant?.price_modifier || 0), // Base price
+              quantity: item.quantity,
+              variant,
+              selectedIngredients,
+              type: isBundle ? 'bundle' : 'standard',
+              selectedOptions,
+              isSaved: true
+            };
+          });
+          
+          setCartItems(mappedItems);
+        } else {
+          setActiveOrder(null);
+          setCartItems([]);
+        }
+      } catch (err) {
+        console.error("Error loading open order", err);
+      }
+    } else {
+      setActiveOrder(null);
+      setCartItems([]);
+    }
+  };
+
   const handleNewOrder = () => {
     setCartItems([]);
     setIsMobileCartOpen(false);
@@ -300,14 +395,73 @@ const PosView = () => {
       const subtotal = Math.round(cartTotal / (1 + taxRate));
       const tax = cartTotal - subtotal;
       
-      const order = await createOrder(cartItems, method, orderType, total, subtotal, tax, deliveryInfo, orderNotes, deliveryFee);
+      let finalOrder;
+      
+      if (activeOrder) {
+        const newItems = cartItems.filter(i => !i.isSaved);
+        if (newItems.length > 0) {
+          const newTotal = newItems.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
+          const newSubtotal = Math.round(newTotal / (1 + taxRate));
+          const newTax = newTotal - newSubtotal;
+          await appendItemsToOrder(activeOrder.id, newItems, newTotal, newSubtotal, newTax);
+        }
+        
+        const { supabase } = await import('../lib/supabase');
+        
+        const { data: existingPayments } = await supabase.from('payments').select('id').eq('order_id', activeOrder.id).eq('status', 'pending');
+        if (existingPayments && existingPayments.length > 0) {
+           await supabase.from('payments').update({ method, status: 'paid', amount: total, paid_at: new Date().toISOString() }).eq('id', existingPayments[0].id);
+        } else {
+           await supabase.from('payments').insert({ order_id: activeOrder.id, method, amount: total, status: 'paid', paid_at: new Date().toISOString() });
+        }
+        
+        if (activeOrder.table_id || activeTable?.id) {
+          await supabase.from('restaurant_tables').update({ status: 'free' }).eq('id', activeOrder.table_id || activeTable?.id);
+        }
+        finalOrder = activeOrder;
+      } else {
+        finalOrder = await createOrder(cartItems, method, orderType, total, subtotal, tax, deliveryInfo, orderNotes, deliveryFee, activeTable?.id);
+      }
       
       setCartItems([]);
       setIsMobileCartOpen(false);
-      return order;
+      setActiveTable(null);
+      setActiveOrder(null);
+      return finalOrder;
     } catch (error) {
       console.error('Error creating order:', error);
       alert(`Hubo un error al procesar el pago: ${error.message || JSON.stringify(error)}`);
+    }
+  };
+
+  const handleSaveOrder = async () => {
+    try {
+      const newItems = cartItems.filter(i => !i.isSaved);
+      if (newItems.length === 0) return;
+
+      const newTotal = newItems.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
+      const newSubtotal = Math.round(newTotal / (1 + taxRate));
+      const newTax = newTotal - newSubtotal;
+
+      if (activeOrder) {
+        await appendItemsToOrder(activeOrder.id, newItems, newTotal, newSubtotal, newTax);
+      } else {
+        await createOrder(newItems, 'pending', 'table', newTotal, newSubtotal, newTax, null, '', 0, activeTable?.id);
+      }
+      
+      // Update cart to mark items as saved locally
+      setCartItems(prev => prev.map(item => ({ ...item, isSaved: true })));
+      
+      // Update active order if it was just created
+      if (!activeOrder && activeTable) {
+        const order = await getOpenOrderForTable(activeTable.id);
+        if (order) setActiveOrder(order);
+      }
+
+      showToast("¡Productos enviados a cocina!");
+    } catch (error) {
+      console.error('Error saving order:', error);
+      alert(`Hubo un error al guardar el pedido: ${error.message || JSON.stringify(error)}`);
     }
   };
 
@@ -346,13 +500,16 @@ const PosView = () => {
       <div className="flex-1 flex flex-col overflow-hidden relative min-h-0">
         {activeTab === 'pago' && (
           <div className="flex-1 flex overflow-hidden w-full">
-            {/* Left Panel: Product Grid (100% on mobile, 60% on desktop) */}
             <div className="w-full md:w-[60%] overflow-hidden relative">
               <ProductGrid
                 organizationId={organization?.id}
                 onProductClick={handleProductClick}
                 cartItems={cartItems}
                 onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
+                activeTable={activeTable}
+                onChangeTable={() => setIsTableModalOpen(true)}
+                role={role}
+                hasTables={hasTables}
               />
               
               {/* Floating Cart Button for Mobile */}
@@ -379,12 +536,22 @@ const PosView = () => {
             `}>
               <CartPanel
                 cartItems={cartItems}
+                dineInEnabled={organization?.dine_in_enabled === true}
+                activeTable={activeTable}
+                onClearTable={() => {
+                  setActiveTable(null);
+                  setActiveOrder(null);
+                  setCartItems([]);
+                }}
+                onSaveOrder={handleSaveOrder}
+                onTableSelect={handleTableSelect}
                 onRemove={handleRemove}
                 onUpdateQty={handleUpdateQty}
                 onCharge={handleCharge}
                 onNewOrder={handleNewOrder}
                 isMobile={true}
                 onCloseMobile={() => setIsMobileCartOpen(false)}
+                onChangeTableMobile={() => setIsTableModalOpen(true)}
                 taxRate={taxRate}
                 onItemClick={(item) => {
                   if (item.type === 'bundle') {
@@ -411,8 +578,17 @@ const PosView = () => {
           </div>
         )}
 
+        {activeTab === 'mesas' && (
+          <div className="flex-1 w-full h-full flex flex-col relative">
+            <PosFloorMap 
+              onTableSelect={handleTableSelect} 
+              onOpenMobileMenu={() => setIsMobileMenuOpen(true)} 
+            />
+          </div>
+        )}
+
         {/* Placeholders for other tabs */}
-        {activeTab !== 'pago' && activeTab !== 'transacciones' && (
+        {activeTab !== 'pago' && activeTab !== 'transacciones' && activeTab !== 'mesas' && (
           <div className="flex flex-col items-center justify-center h-full bg-gray-50 text-gray-400">
             <p className="text-xl font-medium">Vista de {activeTab} en desarrollo</p>
           </div>
@@ -439,7 +615,7 @@ const PosView = () => {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto py-4">
-              {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+              {getNavItems(role).map(({ id, label, icon: Icon }) => (
                 <Button
                   key={id}
                   variant="ghost"
@@ -465,6 +641,7 @@ const PosView = () => {
             <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/50">
               <PrepTimeSelector menuVariant />
             </div>
+            </div>
             <div className="p-5 border-t border-gray-100">
               <Button
                 variant="ghost"
@@ -480,7 +657,7 @@ const PosView = () => {
       )}
 
       {/* Bottom Navigation (Hidden on mobile) */}
-      <BottomNav active={activeTab} onChange={setActiveTab} />
+      <BottomNav active={activeTab} onChange={setActiveTab} role={role} dineInEnabled={organization?.dine_in_enabled === true} />
 
       <PaymentModal
         isOpen={isPaymentModalOpen}
@@ -545,12 +722,33 @@ const PosView = () => {
             </Button>
             <Button
               onClick={confirmRemove}
-              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover: 700" transition-colors variant="destructive">
+              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors" variant="destructive">
               Eliminar
             </Button>
           </div>
         </div>
       </Modal>
+
+      {/* Table Selector Modal for Mobile */}
+      <TableSelectionListModal
+        isOpen={isTableModalOpen}
+        onClose={() => setIsTableModalOpen(false)}
+        onTableSelect={handleTableSelect}
+        onClearTable={() => setActiveTable(null)}
+        activeTable={activeTable}
+      />
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-top-4 fade-in duration-300">
+          <div className="bg-emerald-500 text-white px-5 py-3.5 rounded-full shadow-2xl flex items-center gap-3 font-bold whitespace-nowrap text-sm sm:text-base border border-emerald-400">
+            <div className="bg-white/20 rounded-full p-1.5 flex items-center justify-center">
+              <ChefHat className="h-5 w-5 text-white" />
+            </div>
+            <span>{toastMessage}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

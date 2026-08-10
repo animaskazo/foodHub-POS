@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 import { checkInventoryStock, deductInventoryForOrder } from './inventoryService';
 import { upsertCustomerForOrder } from './customerService';
 
-export const createOrder = async (cartItems, paymentMethod, orderType, total, subtotal, tax, deliveryInfo = null, orderNotes = '', deliveryFee = 0) => {
+export const createOrder = async (cartItems, paymentMethod, orderType, total, subtotal, tax, deliveryInfo = null, orderNotes = '', deliveryFee = 0, tableId = null) => {
   try {
     // 1. Get the current logged-in user's organization and branch
     const { data: { session } } = await supabase.auth.getSession();
@@ -44,7 +44,8 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
       tax_amount: tax,
       total: total,
       notes: orderNotes,
-      delivery_fee: deliveryFee
+      delivery_fee: deliveryFee,
+      table_id: tableId
     };
     
     if (deliveryInfo) {
@@ -175,19 +176,30 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
     let method = paymentMethod;
     if (method === 'debit' || method === 'credit') method = 'card';
 
+    const paymentStatus = method === 'pending' ? 'pending' : 'paid';
+    const paymentMethodToSave = method === 'pending' ? 'cash' : method; // cash as placeholder for pending
+
     const { error: paymentError } = await supabase
       .from('payments')
       .insert([
         {
           order_id: order.id,
-          method: method,
-          status: 'paid',
+          method: paymentMethodToSave,
+          status: paymentStatus,
           amount: total,
-          paid_at: new Date().toISOString(),
+          paid_at: paymentStatus === 'paid' ? new Date().toISOString() : null,
         }
       ]);
 
     if (paymentError) throw paymentError;
+
+    // Update table status if tableId is provided
+    if (tableId) {
+      await supabase
+        .from('restaurant_tables')
+        .update({ status: paymentStatus === 'paid' ? 'free' : 'occupied' })
+        .eq('id', tableId);
+    }
 
     // 6. Deduct inventory (non-blocking)
     try {
@@ -286,6 +298,7 @@ export const getKitchenOrders = async () => {
       .select(`
         *,
         payments(*),
+        restaurant_tables(name, table_zones(name)),
         order_items(*, products(description, product_images(url)), order_item_variants(variant_option_name), order_item_ingredients(ingredient_name))
       `)
       .eq('branch_id', branchData.id)
@@ -513,7 +526,199 @@ export const updateOrderCustomer = async (orderId, name, phone) => {
     }
     return true;
   } catch (error) {
-    console.error("Error updating order customer:", error);
+    console.error("Error updating customer info:", error);
+    throw error;
+  }
+};
+
+export const getOpenOrderForTable = async (tableId) => {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        payments(*),
+        order_items(*, order_item_variants(*), order_item_ingredients(*), products(product_images(url)))
+      `)
+      .eq('table_id', tableId)
+      .in('status', ['pending', 'confirmed', 'preparing', 'ready'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 is not found
+    return data;
+  } catch (error) {
+    console.error("Error fetching open order for table:", error);
+    return null;
+  }
+};
+
+export const appendItemsToOrder = async (orderId, newCartItems, additionalTotal, additionalSubtotal, additionalTax) => {
+  try {
+    // 1. Fetch current order to update totals
+    const { data: currentOrder, error: orderError } = await supabase
+      .from('orders')
+      .select('total, subtotal, tax_amount')
+      .eq('id', orderId)
+      .single();
+      
+    if (orderError) throw orderError;
+
+    // 2. Insert new order items
+    for (const item of newCartItems) {
+      const { data: insertedItem, error: itemError } = await supabase
+        .from('order_items')
+        .insert({
+          order_id: orderId,
+          product_id: item.productId || item.id,
+          product_name: item.name,
+          quantity: item.quantity,
+          unit_price: item.price,
+          total_price: item.price * item.quantity,
+        })
+        .select()
+        .single();
+
+      if (itemError) throw itemError;
+
+      if (item.variant) {
+        await supabase.from('order_item_variants').insert({
+          order_item_id: insertedItem.id,
+          variant_group_id: item.variant.variant_group_id || null,
+          variant_option_id: item.variant.id,
+          variant_group_name: 'Variantes',
+          variant_option_name: item.variant.name,
+          price_modifier: item.variant.price_modifier || 0
+        });
+      }
+
+      if (item.selectedIngredients && item.selectedIngredients.length > 0) {
+        const ingredientInserts = item.selectedIngredients.map(ing => ({
+          order_item_id: insertedItem.id,
+          ingredient_id: ing.id,
+          ingredient_name: ing.name,
+          price: ing.price || 0
+        }));
+        await supabase.from('order_item_ingredients').insert(ingredientInserts);
+      }
+      // If it is a bundle/combo, insert child options
+      if (item.type === 'bundle' && item.selectedOptions && item.selectedOptions.length > 0) {
+        for (const option of item.selectedOptions) {
+          const childQty = (option.quantity || 1) * item.quantity;
+          const childPrice = option.price || 0;
+          const { data: insertedChild, error: childError } = await supabase
+            .from('order_items')
+            .insert({
+              order_id: orderId,
+              product_id: option.productId || option.id,
+              product_name: option.name,
+              quantity: childQty,
+              unit_price: childPrice,
+              total_price: childPrice * childQty,
+              parent_item_id: insertedItem.id
+            })
+            .select()
+            .single();
+
+          if (childError) {
+            console.error("Error inserting child bundle option:", childError);
+            continue;
+          }
+
+          // Insert child variant (if any)
+          if (option.variant) {
+            const { error: variantError } = await supabase
+              .from('order_item_variants')
+              .insert({
+                order_item_id: insertedChild.id,
+                variant_group_id: option.variant.variant_group_id || null,
+                variant_option_id: option.variant.id,
+                variant_group_name: 'Variantes',
+                variant_option_name: option.variant.name,
+                price_modifier: option.variant.price_modifier || 0
+              });
+            if (variantError) console.error("Error inserting child variant:", variantError);
+          }
+
+          // Insert child ingredients (if any)
+          if (option.selectedIngredients && option.selectedIngredients.length > 0) {
+            const ingredientInserts = option.selectedIngredients.map(ing => ({
+              order_item_id: insertedChild.id,
+              ingredient_id: ing.id,
+              ingredient_name: ing.name,
+              price: ing.price || 0
+            }));
+            const { error: ingError } = await supabase
+              .from('order_item_ingredients')
+              .insert(ingredientInserts);
+            if (ingError) console.error("Error inserting child ingredients:", ingError);
+          }
+        }
+      }
+    }
+
+    // 3. Update order totals and status
+    const newTotal = Number(currentOrder.total) + additionalTotal;
+    const newSubtotal = Number(currentOrder.subtotal) + additionalSubtotal;
+    const newTax = Number(currentOrder.tax_amount) + additionalTax;
+    
+    await supabase.from('orders').update({
+      total: newTotal,
+      subtotal: newSubtotal,
+      tax_amount: newTax,
+      status: 'confirmed' // Ensures kitchen receives the updated state
+    }).eq('id', orderId);
+
+    // 4. Update pending payment amount if it exists
+    const { data: pendingPayment } = await supabase
+      .from('payments')
+      .select('id, amount')
+      .eq('order_id', orderId)
+      .eq('status', 'pending')
+      .single();
+      
+    if (pendingPayment) {
+      await supabase.from('payments').update({
+        amount: Number(pendingPayment.amount) + additionalTotal
+      }).eq('id', pendingPayment.id);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error appending items to order:", error);
+    throw error;
+  }
+};
+
+export const updateOrderItemsStatus = async (itemIds, newStatus, orderId) => {
+  try {
+    const { error } = await supabase
+      .from('order_items')
+      .update({ status: newStatus })
+      .in('id', itemIds);
+
+    if (error) throw error;
+
+    // Check if all items in this order are now ready
+    if (newStatus === 'ready' && orderId) {
+      const { data: items, error: fetchError } = await supabase
+        .from('order_items')
+        .select('status')
+        .eq('order_id', orderId);
+        
+      if (!fetchError && items) {
+        const allReady = items.every(i => i.status === 'ready');
+        if (allReady) {
+          await supabase
+            .from('orders')
+            .update({ status: 'ready' })
+            .eq('id', orderId);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error updating order items status:", error);
     throw error;
   }
 };

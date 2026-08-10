@@ -16,6 +16,7 @@ import DashboardView from './pages/DashboardView';
 import SettingsView from './pages/SettingsView';
 import DeliverySettingsView from './pages/DeliverySettingsView';
 import ShiftsSettingsView from './pages/ShiftsSettingsView';
+import TablesSettingsView from './pages/TablesSettingsView';
 import OrderView from './pages/OrderView';
 import CustomersView from './pages/CustomersView';
 import ConversationsView from './pages/ConversationsView';
@@ -69,6 +70,7 @@ function App() {
           <Route path="settings" element={<SettingsView />} />
           <Route path="delivery" element={<DeliverySettingsView />} />
           <Route path="shifts-settings" element={<ShiftsSettingsView />} />
+          <Route path="tables" element={<TablesSettingsView />} />
           <Route path="customers" element={<CustomersView />} />
           <Route path="conversations" element={<ConversationsView />} />
           <Route path="reports" element={<ReportsView />} />

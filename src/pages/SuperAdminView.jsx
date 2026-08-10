@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { User, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe } from 'lucide-react';
+import { User, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe, Store } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getStoreUrl } from '../utils/tenant';
 import { Button } from '@/components/ui/button';
@@ -126,7 +126,7 @@ const SuperAdminView = () => {
   const fetchOrganizations = async () => {
     const { data, error: fetchError } = await supabase
       .from('organizations')
-      .select('id, name, slug, created_at, whatsapp_phone_number_id, whatsapp_inbox_url, whatsapp_inbox_enabled, uber_enabled, delivery_mode, uber_client_id, uber_customer_id, orders(total)')
+      .select('id, name, slug, created_at, whatsapp_phone_number_id, whatsapp_inbox_url, whatsapp_inbox_enabled, uber_enabled, delivery_mode, uber_client_id, uber_customer_id, dine_in_enabled, orders(total)')
       .order('created_at', { ascending: false });
 
     if (fetchError) throw fetchError;
@@ -143,6 +143,7 @@ const SuperAdminView = () => {
         whatsappInboxUrl: org.whatsapp_inbox_url,
         whatsappInboxEnabled: org.whatsapp_inbox_enabled,
         uberEnabled: org.uber_enabled || false,
+        dineInEnabled: org.dine_in_enabled === true, // default to false
         deliveryMode: org.delivery_mode || 'own',
         uberClientId: org.uber_client_id || '',
         uberCustomerId: org.uber_customer_id || '',
@@ -780,6 +781,45 @@ const SuperAdminView = () => {
                           'Credenciales no configuradas'
                         )}
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Dine-In Mode Integration */}
+                  <div className="border rounded-xl overflow-hidden">
+                    <div className="p-4 md:p-5 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
+                          <Store className="h-5 w-5 text-orange-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">Modo Salón (Mesas)</h3>
+                          <p className="text-xs text-gray-500">Permite gestionar mesas y sectores en el POS</p>
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-3 cursor-pointer select-none">
+                        <span className={`text-sm font-semibold ${selectedOrganization.dineInEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
+                          Habilitado
+                        </span>
+                        <Switch
+                          checked={selectedOrganization.dineInEnabled}
+                          onCheckedChange={async (checked) => {
+                            const toastId = toast.loading(checked ? 'Habilitando modo mesas...' : 'Deshabilitando modo mesas...');
+                            try {
+                              const { error } = await supabase
+                                .from('organizations')
+                                .update({ dine_in_enabled: checked })
+                                .eq('id', selectedOrganization.id);
+                              if (error) throw error;
+                              setSelectedOrganization(prev => ({ ...prev, dineInEnabled: checked }));
+                              setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, dineInEnabled: checked } : o));
+                              toast.success(checked ? 'Modo mesas habilitado' : 'Modo mesas deshabilitado', { id: toastId });
+                            } catch (err) {
+                              console.error(err);
+                              toast.error('Error al actualizar', { id: toastId });
+                            }
+                          }}
+                        />
+                      </label>
                     </div>
                   </div>
                 </div>

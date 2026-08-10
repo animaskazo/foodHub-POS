@@ -1,16 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, ArrowLeftRight, Home, ChefHat, LogOut } from 'lucide-react';
+import { ShoppingCart, ArrowLeftRight, Home, ChefHat, LogOut, LayoutGrid } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useKitchenOrders } from '../../hooks/useKitchenOrders';
 
 export const NAV_ITEMS = [
   { id: 'pago', label: 'Punto de Venta', icon: ShoppingCart },
+  { id: 'mesas', label: 'Sectores', icon: LayoutGrid },
   { id: 'transacciones', label: 'Transacciones', icon: ArrowLeftRight },
   { id: 'cocina', label: 'Cocina', icon: ChefHat },
   { id: 'dashboard', label: 'Dashboard', icon: Home },
 ];
 
-const BottomNav = ({ active = 'pago', onChange }) => {
+export const getNavItems = (role, dineInEnabled = false) => {
+  return NAV_ITEMS.filter(item => {
+    if (item.id === 'mesas') {
+      return dineInEnabled && ['waiter', 'owner', 'admin', 'manager'].includes(role);
+    }
+    return true;
+  });
+};
+
+const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false }) => {
   const navigate = useNavigate();
   const { pendingCount, newOrderFlag } = useKitchenOrders();
   const [triggerAnimation, setTriggerAnimation] = useState(false);
@@ -45,7 +55,7 @@ const BottomNav = ({ active = 'pago', onChange }) => {
 
       {/* Center: Nav items */}
       <div className="flex items-center gap-1 flex-1">
-        {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+        {getNavItems(role, dineInEnabled).map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onPointerDown={() => {

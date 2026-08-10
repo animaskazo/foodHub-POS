@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Clock, ChefHat, CheckCircle2, Play, RefreshCw, Volume2, Store, ShoppingBag, ShoppingCart, Globe, MessageCircle, User, ArrowLeft, Home, Van } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getKitchenOrders, updateOrderStatus, activateDueScheduledOrders } from '../services/orderService';
+import { getKitchenOrders, updateOrderStatus, activateDueScheduledOrders, updateOrderItemsStatus } from '../services/orderService';
 import { useAuth } from '../components/AuthContext';
 import { Button } from '@/components/ui/button';
 
@@ -123,14 +123,22 @@ const KitchenView = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleUpdateStatus = async (orderId, newStatus) => {
+  const handleUpdateStatus = async (orderId, newStatus, ticket = null) => {
     if (newStatus === 'ready') {
-      setLeavingOrders(prev => new Set([...prev, orderId]));
+      const targetId = ticket ? ticket.ticketId : orderId;
+      setLeavingOrders(prev => new Set([...prev, targetId]));
       setTimeout(() => {
-        setOrders(prev => prev.filter(o => o.id !== orderId));
+        // Optimistically remove the ticket from view
+        if (ticket) {
+          // If we are updating a specific round ticket, we don't remove the whole order
+          // The next fetchOrders will handle it because the items will be marked as ready
+          fetchOrders(true);
+        } else {
+          setOrders(prev => prev.filter(o => o.id !== orderId));
+        }
         setLeavingOrders(prev => {
           const next = new Set(prev);
-          next.delete(orderId);
+          next.delete(targetId);
           return next;
         });
       }, 400);
@@ -139,7 +147,12 @@ const KitchenView = () => {
     }
 
     try {
-      await updateOrderStatus(orderId, newStatus);
+      if (ticket && newStatus === 'ready') {
+        const itemIds = ticket.roundItems.map(i => i.id);
+        await updateOrderItemsStatus(itemIds, newStatus, orderId);
+      } else {
+        await updateOrderStatus(orderId, newStatus);
+      }
     } catch (error) {
       // Revert on error by refetching
       alert("Hubo un error al actualizar el estado de la orden.");
@@ -238,246 +251,330 @@ const KitchenView = () => {
               <p className="text-sm mt-2 text-center text-gray-400">La cocina está al día.</p>
             </div>
           )}
-          {orders.map(order => {
-            const elapsed = getElapsedTime(order.scheduled_at || order.created_at);
-            const scheduledTime = formatScheduled(order.scheduled_at);
-            const elapsedMins = elapsed.includes('min') ? parseInt(elapsed.match(/\d+/)?.[0] || 0) : 0;
-            const isUrgent = elapsedMins >= 15;
-            const isWarning = elapsedMins >= 8 && elapsedMins < 15;
+          {(() => {
+            const allTickets = [];
+            orders.forEach(order => {
+              const parents = order.order_items?.filter(item => !item.parent_item_id && item.status !== 'ready').sort((a,b) => new Date(a.created_at) - new Date(b.created_at)) || [];
+              if (parents.length === 0) return;
+              
+              const rounds = [];
+              let currentRound = [];
+              parents.forEach(item => {
+                if (currentRound.length === 0) {
+                  currentRound.push(item);
+                } else {
+                  const prevItem = currentRound[currentRound.length - 1];
+                  const diffMs = new Date(item.created_at) - new Date(prevItem.created_at);
+                  if (diffMs > 60000) { // 1 minute gap separates rounds
+                    rounds.push(currentRound);
+                    currentRound = [item];
+                  } else {
+                    currentRound.push(item);
+                  }
+                }
+              });
+              if (currentRound.length > 0) rounds.push(currentRound);
+              
+              rounds.forEach((round, rIdx) => {
+                 allTickets.push({
+                   ...order,
+                   roundItems: round,
+                   roundIdx: rIdx,
+                   totalRounds: rounds.length,
+                   // Determine ticket creation time based on the first item of the round
+                   created_at: round[0]?.created_at || order.created_at,
+                   // Unique ID for the ticket
+                   ticketId: `${order.id}-round-${rIdx}`
+                 });
+              });
+            });
 
-            // Clean, low-contrast UI configs
-            const statusConfig = {
-              preparing: {
-                border: 'border-2 border-emerald-500/90',
-                glow: 'shadow-black/40',
-                headerBg: 'bg-[#22c55e]/[0.02]',
-                label: 'Preparando',
-                labelCls: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
-                btnClass: 'bg-[#10b981] hover:bg-[#059669] text-white',
-              },
-              pending: {
-                border: 'border-2 border-amber-500/20 border-dashed',
-                glow: 'shadow-black/40',
-                headerBg: 'bg-[#f59e0b]/[0.02]',
-                label: 'Pendiente',
-                labelCls: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-                btnClass: 'bg-zinc-800 hover:bg-zinc-700 text-white',
-              },
-              scheduled: {
-                border: 'border-2 border-indigo-500/40',
-                glow: 'shadow-black/40',
-                headerBg: 'bg-[#6366f1]/[0.04]',
-                label: 'Programado',
-                labelCls: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
-                btnClass: 'bg-zinc-800 hover:bg-zinc-700 text-white',
-              },
-              confirmed: {
-                border: 'border-2 border-amber-500/50',
-                glow: 'shadow-black/40',
-                headerBg: 'bg-zinc-900',
-                label: 'Nuevo',
-                labelCls: 'bg-zinc-800 text-zinc-300 border border-zinc-700',
-                btnClass: 'bg-white hover:bg-zinc-100 text-zinc-950',
-              },
-            };
-            const cfg = statusConfig[order.status] || statusConfig.confirmed;
+            // sort allTickets by created_at (oldest first)
+            allTickets.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            
+            if (allTickets.length === 0 && !loading) {
+              return (
+                <div className="flex flex-col items-center justify-center w-full h-full py-20 col-span-full">
+                  <ChefHat className="h-24 w-24 mb-6 text-gray-400" />
+                  <p className="text-xl font-medium text-center text-gray-500">No hay órdenes pendientes en este momento.</p>
+                  <p className="text-sm mt-2 text-center text-gray-400">La cocina está al día.</p>
+                </div>
+              );
+            }
 
-            const channelConfig = {
-              online: { label: 'Online', Icon: Globe },
-              whatsapp: { label: 'WhatsApp', Icon: MessageCircle },
-              table: { label: 'Local', Icon: Store },
-              takeaway: { label: 'Llevar', Icon: ShoppingBag },
-              pickup: { label: 'Retiro', Icon: ShoppingCart },
-            };
-            const channel = channelConfig[order.order_type] || { label: order.order_type, Icon: Store };
+            return allTickets.map((ticket, ticketIdx) => {
+              const elapsed = getElapsedTime(ticket.scheduled_at || ticket.created_at);
+              const scheduledTime = formatScheduled(ticket.scheduled_at);
+              const elapsedMins = elapsed.includes('min') ? parseInt(elapsed.match(/\d+/)?.[0] || 0) : 0;
+              const isUrgent = elapsedMins >= 15;
+              const isWarning = elapsedMins >= 8 && elapsedMins < 15;
 
-            const isNew = newOrderIds.has(order.id);
-            const isLeaving = leavingOrders.has(order.id);
+              // Clean, low-contrast UI configs
+              const statusConfig = {
+                preparing: {
+                  border: 'border-2 border-emerald-500/90',
+                  glow: 'shadow-black/40',
+                  headerBg: 'bg-[#22c55e]/[0.02]',
+                  label: 'Preparando',
+                  labelCls: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+                  btnClass: 'bg-[#10b981] hover:bg-[#059669] text-white',
+                },
+                pending: {
+                  border: 'border-2 border-amber-500/20 border-dashed',
+                  glow: 'shadow-black/40',
+                  headerBg: 'bg-[#f59e0b]/[0.02]',
+                  label: 'Pendiente',
+                  labelCls: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+                  btnClass: 'bg-zinc-800 hover:bg-zinc-700 text-white',
+                },
+                scheduled: {
+                  border: 'border-2 border-indigo-500/40',
+                  glow: 'shadow-black/40',
+                  headerBg: 'bg-[#6366f1]/[0.04]',
+                  label: 'Programado',
+                  labelCls: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
+                  btnClass: 'bg-zinc-800 hover:bg-zinc-700 text-white',
+                },
+                confirmed: {
+                  border: 'border-2 border-amber-500/50',
+                  glow: 'shadow-black/40',
+                  headerBg: 'bg-zinc-900',
+                  label: 'Nuevo',
+                  labelCls: 'bg-zinc-800 text-zinc-300 border border-zinc-700',
+                  btnClass: 'bg-white hover:bg-zinc-100 text-zinc-950',
+                },
+              };
+              const cfg = statusConfig[ticket.status] || statusConfig.confirmed;
 
-            return (
-              <div
-                key={order.id}
-                className={`order-card transition-all w-full md:w-80 min-w-[300px] flex-shrink-0 flex flex-col rounded-2xl border ${cfg.border} bg-zinc-950 overflow-hidden shadow-lg md:h-[calc(100vh-170px)] ${isLeaving ? 'ticket-leave' : isNew ? 'ticket-enter-new' : (order.status === 'scheduled' || order.status === 'pending' || order.status === 'confirmed') ? 'ticket-enter-pending' : 'ticket-enter'}`}
-              >
-                {/* ── Header ── */}
-                <div className={`${cfg.headerBg} px-4 pt-4 pb-3.5 border-b border-zinc-900 shrink-0 space-y-3`}>
+              const channelConfig = {
+                online: { label: 'Online', Icon: Globe },
+                whatsapp: { label: 'WhatsApp', Icon: MessageCircle },
+                table: { label: 'Local', Icon: Store },
+                takeaway: { label: 'Llevar', Icon: ShoppingBag },
+                pickup: { label: 'Retiro', Icon: ShoppingCart },
+              };
+              const channel = channelConfig[ticket.order_type] || { label: ticket.order_type, Icon: Store };
 
-                  {/* Row 1: order number */}
-                  <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-3xl font-black text-white tracking-tight leading-none truncate">
-                      {order.order_number}
-                    </h2>
-                    {order.delivery_type === 'delivery' ? (
-                      <span className="text-[10px] px-2 py-1 rounded bg-amber-500 text-black font-black uppercase tracking-wider shrink-0 flex items-center gap-1">
-                        <Van className="h-3.5 w-3.5" /> Delivery
-                      </span>
-                    ) : (
-                      <span className="text-[10px] px-2 py-1 rounded bg-zinc-800 text-zinc-300 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
-                        <ShoppingBag className="h-3.5 w-3.5" /> Retiro
-                      </span>
-                    )}
-                  </div>
+              const isNew = newOrderIds.has(ticket.id);
+              const isLeaving = leavingOrders.has(ticket.ticketId);
 
-                  {/* Row 2: badge status + channel + user */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className={`text-[11px] uppercase tracking-wider font-extrabold px-2.5 py-1 ${cfg.labelCls}`}>
-                        {cfg.label}
-                      </span>
-                      {scheduledTime && (
-                        <span className="text-[11px] font-extrabold px-2.5 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                          <Clock className="h-3 w-3 inline-block mr-1" />
-                          {scheduledTime}
+              return (
+                <div
+                  key={ticket.ticketId}
+                  className={`order-card transition-all w-full md:w-80 min-w-[300px] flex-shrink-0 flex flex-col rounded-2xl border ${cfg.border} bg-zinc-950 overflow-hidden shadow-lg md:h-[calc(100vh-170px)] ${isLeaving ? 'ticket-leave' : isNew ? 'ticket-enter-new' : (ticket.status === 'scheduled' || ticket.status === 'pending' || ticket.status === 'confirmed') ? 'ticket-enter-pending' : 'ticket-enter'}`}
+                >
+                  {/* ── Header ── */}
+                  <div className={`${cfg.headerBg} px-4 pt-4 pb-3.5 border-b border-zinc-900 shrink-0 space-y-3`}>
+
+                    {/* Row 1: order number */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-3 truncate">
+                        <h2 className="text-3xl font-black text-white tracking-tight leading-none truncate">
+                          {ticket.order_number}
+                        </h2>
+                      </div>
+                      {ticket.delivery_type === 'delivery' ? (
+                        <span className="text-[10px] px-2 py-1 rounded bg-amber-500 text-black font-black uppercase tracking-wider shrink-0 flex items-center gap-1">
+                          <Van className="h-3.5 w-3.5" /> Delivery
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-2 py-1 rounded bg-zinc-800 text-zinc-300 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
+                          <ShoppingBag className="h-3.5 w-3.5" /> Retiro
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-zinc-400 font-medium min-w-0">
-                      <div className="flex items-center gap-1 shrink-0">
-                        <channel.Icon className="h-3.5 w-3.5" />
-                        <span>{channel.label}</span>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0 min-w-0">
-                        <User className="h-3.5 w-3.5 fill-current shrink-0" />
-                        <span className="truncate max-w-[100px]">{order.customer_name || 'Sin Nombre'}</span>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Customer order notes */}
-                  {order.notes && (
-                    <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                      <p className="text-xs text-amber-300/90 font-medium leading-relaxed break-words">{order.notes}</p>
-                    </div>
-                  )}
-
-                  {/* Delivery Address */}
-                  {order.delivery_type === 'delivery' && order.delivery_address && (
-                    <div className="p-2.5 bg-zinc-900/60 border border-zinc-800/80 rounded-xl">
-                      <p className="text-[9px] text-zinc-500 font-extrabold uppercase tracking-wider mb-1">Dirección de Despacho</p>
-                      <p className="text-xs text-zinc-200 leading-relaxed font-semibold">{order.delivery_address}</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="py-3 px-3 space-y-2.5 bg-zinc-950 md:flex-1 md:overflow-y-auto custom-scrollbar">
-                  {order.order_items?.filter(item => !item.parent_item_id).map((item) => {
-                    const childItems = order.order_items?.filter(child => child.parent_item_id === item.id) || [];
-                    const variants = item.order_item_variants?.map(v => v.variant_option_name).join(', ');
-                    const extras = item.order_item_ingredients?.map(i => i.ingredient_name);
-                    const hasModifiers = variants || (extras && extras.length > 0) || item.notes || childItems.length > 0;
-                    return (
-                      <div key={item.id} className="rounded-xl bg-zinc-900/60 border border-zinc-900 overflow-hidden">
-                        {/* qty + image + name */}
-                        <div className="flex items-start gap-3 px-3.5 pt-3 pb-2.5">
-                          <div className="w-8 h-8   bg-zinc-800 text-white flex items-center justify-center font-extrabold text-base shrink-0">
-                            {item.quantity}
-                          </div>
-                          {item.products?.product_images?.[0]?.url ? (
-                            <img
-                              src={item.products.product_images[0].url}
-                              alt={item.product_name}
-                              className="w-10 h-10   object-cover shrink-0 border border-zinc-800"
-                            />
-                          ) : (
-                            <div className="w-10 h-10   bg-zinc-850 flex items-center justify-center shrink-0 border border-zinc-800/40">
-                              <ChefHat className="h-5 w-5 text-zinc-600" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0 pt-0.5">
-                            <p className="text-[15px] font-bold text-white leading-tight break-words">{item.product_name}</p>
-                          </div>
-                        </div>
-
-                        {/* modifiers block */}
-                        {hasModifiers && (
-                          <div className="px-3.5 pb-3 pt-0.5 border-t border-zinc-900/40 space-y-2.5 text-[13px]">
-                            {/* Render combo child options first, clean and structured */}
-                            {childItems.length > 0 && (
-                              <div className="space-y-1.5 bg-black/30 p-2.5   border border-zinc-800/50">
-                                <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-extrabold select-none block mb-1">Componentes:</span>
-                                {childItems.map((child, cIdx) => {
-                                  const childVars = child.order_item_variants?.map(v => v.variant_option_name).join(', ');
-                                  const childExtras = child.order_item_ingredients?.map(i => i.ingredient_name);
-                                  return (
-                                    <div key={cIdx} className="text-zinc-300 font-medium text-xs leading-normal">
-                                      <span className="text-emerald-400 font-bold">• {child.quantity / item.quantity}x</span> {child.product_name}
-                                      {childVars && (
-                                        <span className="text-zinc-500"> ({childVars})</span>
-                                      )}
-                                      {childExtras && childExtras.length > 0 && (
-                                        <span className="text-amber-500 ml-1 font-semibold">
-                                          (+ {childExtras.join(', ')})
-                                        </span>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-
-                            {variants && (
-                              <div className="flex items-baseline gap-1 text-zinc-400 font-medium">
-                                <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-extrabold select-none shrink-0">Opción:</span>
-                                <span className="break-words leading-tight flex-1">{variants}</span>
-                              </div>
-                            )}
-                            {extras && extras.length > 0 && (
-                              <div className="space-y-1">
-                                <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-extrabold select-none block">Agregados:</span>
-                                <div className="flex flex-wrap gap-1">
-                                  {extras.map((extra, idx) => (
-                                    <span key={idx} className="inline-block bg-zinc-900 border border-zinc-800 text-zinc-300 px-2 py-0.5   text-[12px] font-semibold">
-                                      + {extra}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {item.notes && (
-                              <div className="p-2 bg-[#ffc107]/[0.03] border border-[#ffc107]/10  ">
-                                <p className="text-[12px] text-amber-200/90 font-medium leading-relaxed break-words">
-                                  <span className="font-bold text-[#ffc107] block select-none mb-0.5 text-[10px] uppercase tracking-wider">Nota ítem:</span>
-                                  {item.notes}
-                                </p>
-                              </div>
-                            )}
-                          </div>
+                    {/* Row 2: badge status + channel + user */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className={`text-[11px] uppercase tracking-wider font-extrabold px-2.5 py-1 ${cfg.labelCls}`}>
+                          {cfg.label}
+                        </span>
+                        {scheduledTime && (
+                          <span className="text-[11px] font-extrabold px-2.5 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                            <Clock className="h-3 w-3 inline-block mr-1" />
+                            {scheduledTime}
+                          </span>
                         )}
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="flex items-center gap-2 text-xs text-zinc-400 font-medium min-w-0">
+                        <div className="flex items-center gap-1 shrink-0">
+                          <channel.Icon className="h-3.5 w-3.5" />
+                          <span>{channel.label}</span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0 min-w-0">
+                          <User className="h-3.5 w-3.5 fill-current shrink-0" />
+                          <span className="truncate max-w-[100px]">{ticket.customer_name || 'Sin Nombre'}</span>
+                        </div>
+                      </div>
+                    </div>
 
-                {/* ── Timer & Action button ── */}
-                <div className="px-4 pb-4 pt-2 shrink-0 flex flex-col gap-3 border-t border-zinc-900/50 bg-zinc-950">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider">Tiempo de espera</span>
-                    <div className={`flex items-center gap-1.5 font-mono text-[13px] font-bold px-2 py-1 rounded-md shrink-0 select-none ${isUrgent ? 'bg-red-500/10 text-red-400 border border-red-500/20' : isWarning ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-zinc-900 border border-zinc-800 text-zinc-300'}`}>
-                      <Clock className="h-3.5 w-3.5" />
-                      <span>{elapsed}</span>
+                    {/* Customer order notes */}
+                    {ticket.notes && (
+                      <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                        <p className="text-xs text-amber-300/90 font-medium leading-relaxed break-words">{ticket.notes}</p>
+                      </div>
+                    )}
+
+                    {/* Delivery Address */}
+                    {ticket.delivery_type === 'delivery' && ticket.delivery_address && (
+                      <div className="p-2.5 bg-zinc-900/60 border border-zinc-800/80 rounded-xl">
+                        <p className="text-[9px] text-zinc-500 font-extrabold uppercase tracking-wider mb-1">Dirección de Despacho</p>
+                        <p className="text-xs text-zinc-200 leading-relaxed font-semibold">{ticket.delivery_address}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="py-3 px-3 space-y-2.5 bg-zinc-950 md:flex-1 md:overflow-y-auto custom-scrollbar">
+                    {ticket.restaurant_tables && (
+                      <div className="w-full bg-indigo-500/10 border border-indigo-500/20 px-3.5 py-2.5 rounded-xl mb-1 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Store className="h-4 w-4 text-indigo-400" />
+                          <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                            {ticket.restaurant_tables.name}
+                          </span>
+                        </div>
+                        {ticket.restaurant_tables.table_zones?.name && (
+                          <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-md font-bold uppercase">
+                            {ticket.restaurant_tables.table_zones.name}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Render the round items */}
+                    <div className="space-y-2.5">
+                      {ticket.totalRounds > 1 && (
+                        <div className="flex items-center gap-2 px-1">
+                          <div className="h-px bg-zinc-800 flex-1"></div>
+                          <span className="text-[10px] font-black uppercase tracking-wider text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                            Ronda {ticket.roundIdx + 1} de {ticket.totalRounds}
+                          </span>
+                          <div className="h-px bg-zinc-800 flex-1"></div>
+                        </div>
+                      )}
+                      
+                      {ticket.roundItems.map((item) => {
+                        const childItems = ticket.order_items?.filter(child => child.parent_item_id === item.id) || [];
+                        const variants = item.order_item_variants?.map(v => v.variant_option_name).join(', ');
+                        const extras = item.order_item_ingredients?.map(i => i.ingredient_name);
+                        const hasModifiers = variants || (extras && extras.length > 0) || item.notes || childItems.length > 0;
+                        
+                        return (
+                          <div key={item.id} className="rounded-xl bg-zinc-900/60 border border-zinc-900 overflow-hidden">
+                            {/* qty + image + name */}
+                            <div className="flex items-start gap-3 px-3.5 pt-3 pb-2.5">
+                              <div className="w-8 h-8 rounded-lg bg-zinc-800 text-white flex items-center justify-center font-extrabold text-base shrink-0">
+                                {item.quantity}
+                              </div>
+                              {item.products?.product_images?.[0]?.url ? (
+                                <img
+                                  src={item.products.product_images[0].url}
+                                  alt={item.product_name}
+                                  className="w-10 h-10 rounded-lg object-cover shrink-0 border border-zinc-800"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-lg bg-zinc-850 flex items-center justify-center shrink-0 border border-zinc-800/40">
+                                  <ChefHat className="h-5 w-5 text-zinc-600" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0 pt-0.5">
+                                <p className="text-[15px] font-bold text-white leading-tight break-words">{item.product_name}</p>
+                              </div>
+                            </div>
+
+                            {/* modifiers block */}
+                            {hasModifiers && (
+                              <div className="px-3.5 pb-3 pt-0.5 border-t border-zinc-900/40 space-y-2.5 text-[13px]">
+                                {/* Render combo child options first, clean and structured */}
+                                {childItems.length > 0 && (
+                                  <div className="space-y-1.5 bg-black/30 p-2.5 rounded-lg border border-zinc-800/50">
+                                    <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-extrabold select-none block mb-1">Componentes:</span>
+                                    {childItems.map((child, cIdx) => {
+                                      const childVars = child.order_item_variants?.map(v => v.variant_option_name).join(', ');
+                                      const childExtras = child.order_item_ingredients?.map(i => i.ingredient_name);
+                                      return (
+                                        <div key={cIdx} className="text-zinc-300 font-medium text-xs leading-normal">
+                                          <span className="text-emerald-400 font-bold">• {child.quantity / item.quantity}x</span> {child.product_name}
+                                          {childVars && (
+                                            <span className="text-zinc-500"> ({childVars})</span>
+                                          )}
+                                          {childExtras && childExtras.length > 0 && (
+                                            <span className="text-amber-500 ml-1 font-semibold">
+                                              (+ {childExtras.join(', ')})
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+
+                                {variants && (
+                                  <div className="flex items-baseline gap-1 text-zinc-400 font-medium">
+                                    <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-extrabold select-none shrink-0">Opción:</span>
+                                    <span className="break-words leading-tight flex-1">{variants}</span>
+                                  </div>
+                                )}
+                                {extras && extras.length > 0 && (
+                                  <div className="space-y-1">
+                                    <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-extrabold select-none block">Agregados:</span>
+                                    <div className="flex flex-wrap gap-1">
+                                      {extras.map((extra, idx) => (
+                                        <span key={idx} className="inline-block bg-zinc-900 border border-zinc-800 text-zinc-300 px-2 py-0.5 rounded-md text-[12px] font-semibold">
+                                          + {extra}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                {item.notes && (
+                                  <div className="p-2 bg-[#ffc107]/[0.03] border border-[#ffc107]/10 rounded-lg">
+                                    <p className="text-[12px] text-amber-200/90 font-medium leading-relaxed break-words">
+                                      <span className="font-bold text-[#ffc107] block select-none mb-0.5 text-[10px] uppercase tracking-wider">Nota ítem:</span>
+                                      {item.notes}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                  {(order.status === 'confirmed' || order.status === 'pending' || order.status === 'scheduled') ? (
-                    <Button
-                      onClick={() => handleUpdateStatus(order.id, 'preparing')}
-                      className={`w-full py-6 ${cfg.btnClass} rounded-xl font-bold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
-                    >
-                      <Play className="h-4 w-4 fill-current" />
-                      Empezar Preparación
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => handleUpdateStatus(order.id, 'ready')}
-                      className={`w-full py-6 ${cfg.btnClass} rounded-xl font-extrabold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
-                    >
-                      <CheckCircle2 className="h-5 w-5" strokeWidth={2.5} />
-                      Marcar como Listo
-                    </Button>
-                  )}
+
+                  {/* ── Timer & Action button ── */}
+                  <div className="px-4 pb-4 pt-2 shrink-0 flex flex-col gap-3 border-t border-zinc-900/50 bg-zinc-950">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider">Tiempo de espera</span>
+                      <div className={`flex items-center gap-1.5 font-mono text-[13px] font-bold px-2 py-1 rounded-md shrink-0 select-none ${isUrgent ? 'bg-red-500/10 text-red-400 border border-red-500/20' : isWarning ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-zinc-900 border border-zinc-800 text-zinc-300'}`}>
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>{elapsed}</span>
+                      </div>
+                    </div>
+                    {(ticket.status === 'confirmed' || ticket.status === 'pending' || ticket.status === 'scheduled') ? (
+                      <Button
+                        onClick={() => handleUpdateStatus(ticket.id, 'preparing', ticket)}
+                        className={`w-full py-6 ${cfg.btnClass} rounded-xl font-bold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
+                      >
+                        <Play className="h-4 w-4 fill-current" />
+                        Empezar Preparación
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => handleUpdateStatus(ticket.id, 'ready', ticket)}
+                        className={`w-full py-6 ${cfg.btnClass} rounded-xl font-extrabold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
+                      >
+                        <CheckCircle2 className="h-5 w-5" strokeWidth={2.5} />
+                        Marcar como Listo
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
       </main>
 

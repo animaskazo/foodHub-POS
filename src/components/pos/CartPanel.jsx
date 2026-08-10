@@ -1,10 +1,33 @@
 import React from 'react';
-import { Trash2, Plus, Minus, ChevronDown, Monitor, X, Edit2 } from 'lucide-react';
+import { Trash2, Plus, Minus, ChevronDown, Monitor, X, Edit2, ChefHat } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { Button } from "../ui/button";
+import { getFirstOrganizationId } from '../../services/organizationService';
+import { supabase } from '../../lib/supabase';
+import { getRestaurantTables } from '../../services/tableService';
 
-const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onItemClick, taxRate = 0.19 }) => {
+const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onChangeTableMobile, onItemClick, onSaveOrder, onTableSelect, taxRate = 0.19 }) => {
   const items = cartItems;
+  const [tables, setTables] = React.useState([]);
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!dineInEnabled) return;
+    const loadTables = async () => {
+      try {
+        const orgId = await getFirstOrganizationId();
+        if (!orgId) return;
+        const { data: branchData } = await supabase.from('branches').select('id').eq('organization_id', orgId).limit(1).single();
+        if (branchData) {
+          const loaded = await getRestaurantTables(branchData.id);
+          setTables(loaded);
+        }
+      } catch (err) {
+        console.error("Error loading tables in CartPanel", err);
+      }
+    };
+    loadTables();
+  }, []);
 
   const totalQty = items.reduce((acc, i) => acc + i.quantity, 0);
   const total = items.reduce((acc, i) => {
@@ -46,9 +69,99 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
             )}
             <Monitor className="h-6 w-6 text-gray-900 hidden sm:block" />
             <div>
-              <div className="flex items-center gap-1">
-                <span className="font-bold text-[17px] leading-tight">Point of Sale 1</span>
-                <ChevronDown className="h-4 w-4 text-gray-400 mt-0.5" />
+              <div className="relative z-50">
+                {dineInEnabled ? (
+                  <div 
+                    className="flex items-center gap-1 md:cursor-pointer select-none"
+                    onClick={() => {
+                      if (window.innerWidth >= 768) {
+                        setIsDropdownOpen(!isDropdownOpen);
+                      } else if (onChangeTableMobile) {
+                        onChangeTableMobile();
+                      }
+                    }}
+                  >
+                    {activeTable ? (
+                      <>
+                        <span className="font-bold text-[17px] leading-tight text-blue-700">Mesa: {activeTable.name}</span>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onClearTable();
+                          }}
+                          className="hidden md:inline-flex ml-1 p-0.5 text-gray-400 hover:text-red-500 rounded-full bg-gray-100 hover:bg-red-50 transition"
+                          title="Quitar mesa"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-bold text-[17px] leading-tight">Venta Directa</span>
+                        <ChevronDown className={`hidden md:block h-4 w-4 text-gray-400 mt-0.5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 select-none">
+                    <span className="font-bold text-[17px] leading-tight">Venta Directa</span>
+                  </div>
+                )}
+                
+                {/* Dropdown Menu */}
+                {isDropdownOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setIsDropdownOpen(false)}
+                    />
+                    <div className="absolute left-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 max-h-64 overflow-y-auto">
+                      <div 
+                        className="px-4 py-2 hover:bg-gray-50 cursor-pointer font-medium text-sm flex items-center justify-between"
+                        onClick={() => {
+                          onClearTable();
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        <span>Venta Directa</span>
+                      </div>
+                      <div className="h-px bg-gray-100 my-1"></div>
+                      <div className="px-3 pb-1 pt-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mesas</div>
+                      {tables.length === 0 ? (
+                        <div className="px-4 py-2 text-xs text-gray-500">No hay mesas configuradas</div>
+                      ) : (
+                        tables.map(table => {
+                          const activeOrder = table.orders?.find(o => ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status));
+                          const currentTotal = activeOrder ? activeOrder.total : 0;
+                          return (
+                          <div 
+                            key={table.id}
+                            className={`px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm flex items-center justify-between ${activeTable?.id === table.id ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 font-medium'}`}
+                            onClick={() => {
+                              onTableSelect && onTableSelect(table);
+                              setIsDropdownOpen(false);
+                            }}
+                          >
+                            <span className="flex items-center gap-2">
+                              {table.name}
+                              {table.status === 'occupied' && currentTotal > 0 && (
+                                <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-md font-bold">
+                                  ${fmt(currentTotal)}
+                                </span>
+                              )}
+                            </span>
+                            {table.status === 'occupied' && (
+                              <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                            )}
+                            {table.status === 'free' && (
+                              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            )}
+                          </div>
+                        )})
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
               <p className="text-xs text-gray-400 mt-0.5">{totalQty} {totalQty === 1 ? 'artículo' : 'artículos'}</p>
             </div>
@@ -75,14 +188,24 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {items.map((item) => {
+            {items.map((item, index) => {
               const hasVariants = item.variants && item.variants.length > 0 && item.variants.some(v => v.is_active);
               const hasExtras = item.ingredients && item.ingredients.length > 0 && item.ingredients.some(i => i.isExtra);
               const hasOptions = item.type === 'bundle' || hasVariants || hasExtras;
               const baseIngredients = item.ingredients?.filter(i => i.isBase) || [];
               
+              const isFirstNewItem = items.some(i => i.isSaved) && !item.isSaved && (index === 0 || items[index - 1].isSaved);
+              
               return (
-                <div key={item.cartItemId} className="flex items-center gap-3 px-5 py-4">
+                <React.Fragment key={item.cartItemId}>
+                  {isFirstNewItem && (
+                    <div className="flex items-center px-5 py-3 bg-gray-50/80">
+                      <div className="flex-1 border-t border-dashed border-gray-300"></div>
+                      <span className="px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Nuevos Añadidos</span>
+                      <div className="flex-1 border-t border-dashed border-gray-300"></div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3 px-5 py-4 bg-white">
                   {/* Thumbnail */}
                   <div
                     className="w-14 h-14 rounded-xl shrink-0 bg-gray-100 bg-cover bg-center"
@@ -123,17 +246,19 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
                     <p className="text-xs text-gray-400 mt-1">${fmt(Math.round(item.price))} c/u</p>
 
                     {/* Qty Controls */}
-                    <div className="inline-flex items-center bg-gray-100/80 rounded-full mt-2.5">
+                    <div className={`inline-flex items-center bg-gray-100/80 rounded-full mt-2.5 ${item.isSaved ? 'opacity-50 pointer-events-none' : ''}`}>
                       <button
-                        onClick={() => onUpdateQty && onUpdateQty(item.cartItemId, item.quantity - 1)}
+                        onClick={() => !item.isSaved && onUpdateQty && onUpdateQty(item.cartItemId, item.quantity - 1)}
                         className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-black hover:bg-gray-200 rounded-full transition-colors active:scale-95"
+                        disabled={item.isSaved}
                       >
                         <Minus className="h-4 w-4" />
                       </button>
                       <span className="font-bold text-[15px] w-7 text-center text-gray-900">{item.quantity}</span>
                       <button
-                        onClick={() => onUpdateQty && onUpdateQty(item.cartItemId, item.quantity + 1)}
+                        onClick={() => !item.isSaved && onUpdateQty && onUpdateQty(item.cartItemId, item.quantity + 1)}
                         className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-black hover:bg-gray-200 rounded-full transition-colors active:scale-95"
+                        disabled={item.isSaved}
                       >
                         <Plus className="h-4 w-4" />
                       </button>
@@ -160,7 +285,7 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
                   })())}</span>
                     
                     <div className="flex items-center gap-1">
-                      {hasOptions && (
+                      {hasOptions && !item.isSaved && (
                         <button
                           onClick={() => onItemClick && onItemClick(item)}
                           className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors active:scale-95"
@@ -168,15 +293,23 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
                           <Edit2 className="h-[18px] w-[18px]" />
                         </button>
                       )}
-                      <button
-                        onClick={() => onRemove && onRemove(item.cartItemId)}
-                        className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors active:scale-95"
-                      >
-                        <Trash2 className="h-[18px] w-[18px]" />
-                      </button>
+                      {!item.isSaved ? (
+                        <button
+                          onClick={() => onRemove && onRemove(item.cartItemId)}
+                          className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors active:scale-95"
+                        >
+                          <Trash2 className="h-[18px] w-[18px]" />
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-1.5 bg-orange-50 text-orange-600 px-2 py-1 rounded-full border border-orange-200 shadow-sm" title="En preparación en cocina">
+                          <ChefHat className="h-3.5 w-3.5" />
+                          <span className="text-[9px] font-bold uppercase tracking-wider whitespace-nowrap">En Prep</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
+                </React.Fragment>
               );
             })}
           </div>
@@ -184,40 +317,42 @@ const CartPanel = ({ cartItems = [], onRemove, onUpdateQty, onCharge, onNewOrder
       </div>
 
       {/* Footer Area (Sticky at bottom) */}
-      <div className="shrink-0 flex flex-col bg-white border-t border-gray-100 pb-safe shadow-[0_-20px_40px_rgba(0,0,0,0.04)] md:shadow-none z-20">
+      <div className="shrink-0 flex flex-col bg-white border-t border-gray-100 pb-24 md:p-4 md:pb-4 z-20">
         
-        {/* Totals */}
-        {items.length > 0 && (
-          <div className="px-5 py-4 space-y-2 bg-gray-50/80 border-b border-gray-100">
-            <div className="flex justify-between items-center text-sm text-gray-500">
-              <span>Subtotal</span>
-              <span>${fmt(subtotal)}</span>
-            </div>
-            <div className="flex justify-between items-center text-sm text-gray-500">
-              <span>IVA (19%)</span>
-              <span>${fmt(tax)}</span>
-            </div>
-            <Separator className="my-2" />
-            <div className="flex justify-between items-center">
-              <span className="font-bold text-base text-gray-900">Total</span>
-              <span className="font-black text-xl text-gray-900">${fmt(total)}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Charge Button */}
-        <div className="p-4">
-          <Button
-            onClick={onCharge}
-            disabled={items.length === 0}
-            className="relative w-full flex items-center justify-center h-14 px-5 bg-black hover:bg-black text-white rounded-full shadow-2xl transition-transform active:scale-[0.98]"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            <div className="absolute left-3 bg-white text-black flex items-center justify-center h-8 w-8 rounded-full text-sm font-bold shadow-sm">
-              {totalQty}
-            </div>
-            <span className="font-bold text-[17px] tracking-wide">Cobrar ${fmt(total)}</span>
-          </Button>
+        {/* Action Buttons */}
+        <div className="fixed bottom-6 left-4 right-4 z-30 flex flex-col gap-3 md:static md:w-full md:transform-none md:z-auto md:flex-row pb-safe">
+          {(() => {
+            const hasNewItems = items.some(i => !i.isSaved) && activeTable;
+            
+            return (
+              <>
+                {hasNewItems && (
+                  <Button
+                    onClick={onSaveOrder}
+                    disabled={items.length === 0}
+                    className="w-full md:flex-1 flex items-center justify-center h-14 bg-black hover:bg-gray-900 text-white rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] font-bold text-[17px] tracking-wide px-5"
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                  >
+                    <ChefHat className="h-5 w-5 mr-2" />
+                    Agregar a la orden
+                  </Button>
+                )}
+                <Button
+                  onClick={onCharge}
+                  disabled={items.length === 0}
+                  variant={hasNewItems ? "outline" : "default"}
+                  className={`w-full md:flex-1 flex items-center justify-center h-14 rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] font-bold text-[17px] tracking-wide px-5 ${
+                    hasNewItems 
+                      ? "bg-white border-gray-200 hover:bg-gray-50 text-gray-900" 
+                      : "bg-black hover:bg-gray-900 text-white"
+                  }`}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                >
+                  Cobrar ${fmt(total)}
+                </Button>
+              </>
+            );
+          })()}
         </div>
       </div>
     </div>
