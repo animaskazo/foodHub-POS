@@ -196,8 +196,8 @@ serve(async (req) => {
               <h2 style="margin: 0 0 8px 0; font-size: 36px; font-weight: 800; color: #0a0a0a; letter-spacing: -1px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 ${data.order_number || ''}
               </h2>
-              <p style="margin: 0 0 24px 0; font-size: 13px; color: #666666; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
-                ID BD: <span style="font-weight: 600; color: #333333;">${data.order_id || data.id || ''}</span>
+              <p style="margin: 0 0 24px 0; font-size: 11px; color: #999999; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
+                ID: ${data.order_id || data.id || ''}
               </p>
             </td>
           </tr>
@@ -434,8 +434,8 @@ serve(async (req) => {
               <h2 style="margin: 0 0 8px 0; font-size: 36px; font-weight: 800; color: #0a0a0a; letter-spacing: -1px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 ${data.order_number || ''}
               </h2>
-              <p style="margin: 0 0 24px 0; font-size: 13px; color: #666666; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
-                ID BD: <span style="font-weight: 600; color: #333333;">${data.order_id || data.id || ''}</span>
+              <p style="margin: 0 0 24px 0; font-size: 11px; color: #999999; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">
+                ID: ${data.order_id || data.id || ''}
               </p>
             </td>
           </tr>
