@@ -169,12 +169,21 @@ serve(async (req) => {
 
           <!-- BRAND HEADER -->
           <tr>
-            <td style="background-color: #0a0a0a; padding: 36px 16px 28px 16px; text-align: center;">
+            <td style="background-color: #ffffff; padding: 40px 24px 24px 24px; text-align: center;">
               ${orgLogo
-                ? `<img src="${orgLogo}" alt="${orgName}" style="max-height: 52px; max-width: 180px; display: inline-block; margin-bottom: 20px;" />`
-                : `<p style="margin: 0 0 20px 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">${orgName}</p>`
+                ? `<img src="${orgLogo}" alt="${orgName}" style="width: 80px; height: 80px; object-fit: cover; display: inline-block; border-radius: 20px; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.10);" />`
+                : `<div style="display: inline-block; margin-bottom: 24px; background-color: #0a0a0a; width: 80px; height: 80px; border-radius: 20px; text-align: center; line-height: 80px;"><span style="font-size: 28px; font-weight: 900; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${orgName.charAt(0)}</span></div>`
               }
               <br/>
+              <h1 style="margin: 0 0 6px 0; font-size: 26px; font-weight: 800; color: #0a0a0a; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                ¡Gracias ${customerName}!
+              </h1>
+              <p style="margin: 0 0 16px 0; font-size: 18px; font-weight: 700; color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                Tu pedido fue confirmado
+              </p>
+              <p style="margin: 0 0 20px 0; font-size: 14px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                ${isDelivery ? 'Delivery' : 'Pickup'} (ID: <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #555555;">${data.order_id || data.order_number || ''}</span>)
+              </p>
               <span style="display: inline-block; background-color: ${isDelivery ? '#f97316' : '#22c55e'}; color: #ffffff; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 6px 18px; border-radius: 100px;">
                 ${isDelivery ? '&nbsp;A reparto' : '&nbsp;¡Listo para retirar!'}
               </span>
@@ -183,16 +192,13 @@ serve(async (req) => {
 
           <!-- ORDER HEADLINE -->
           <tr>
-            <td style="padding: 16px 16px 0 16px; text-align: center; border-bottom: 1px solid #f0f0f0;">
+            <td style="padding: 0 16px 0 16px; text-align: center; border-bottom: 1px solid #f0f0f0;">
               <p style="margin: 0 0 6px 0; font-size: 13px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: #aaaaaa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 Número de Pedido
               </p>
-              <h1 style="margin: 0 0 6px 0; font-size: 36px; font-weight: 800; color: #0a0a0a; letter-spacing: -1px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+              <h2 style="margin: 0 0 28px 0; font-size: 36px; font-weight: 800; color: #0a0a0a; letter-spacing: -1px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 ${data.order_number || ''}
-              </h1>
-              <p style="margin: 0 0 28px 0; font-size: 15px; color: #666666; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                ${isDelivery ? 'Tu pedido está listo y saldrá a reparto a tu dirección. Prepárate para recibirlo.' : 'Tu pedido está listo. Muestra este número en el local para retirar.'}
-              </p>
+              </h2>
             </td>
           </tr>
 
@@ -400,12 +406,21 @@ serve(async (req) => {
 
           <!-- HEADER -->
           <tr>
-            <td style="background-color: #0a0a0a; padding: 36px 16px 28px 16px; text-align: center;">
+            <td style="background-color: #ffffff; padding: 40px 24px 24px 24px; text-align: center;">
               ${orgLogo2
-                ? `<img src="${orgLogo2}" alt="${orgName2}" style="max-height: 52px; max-width: 180px; display: inline-block; margin-bottom: 20px;" />`
-                : `<p style="margin: 0 0 20px 0; font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">${orgName2}</p>`
+                ? `<img src="${orgLogo2}" alt="${orgName2}" style="width: 80px; height: 80px; object-fit: cover; display: inline-block; border-radius: 20px; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.10);" />`
+                : `<div style="display: inline-block; margin-bottom: 24px; background-color: #0a0a0a; width: 80px; height: 80px; border-radius: 20px; text-align: center; line-height: 80px;"><span style="font-size: 28px; font-weight: 900; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${orgName2.charAt(0)}</span></div>`
               }
               <br/>
+              <h1 style="margin: 0 0 6px 0; font-size: 26px; font-weight: 800; color: #0a0a0a; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                ¡Gracias ${data.customer_name || 'Cliente'}!
+              </h1>
+              <p style="margin: 0 0 16px 0; font-size: 18px; font-weight: 700; color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                Tu pedido fue confirmado
+              </p>
+              <p style="margin: 0 0 20px 0; font-size: 14px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                ${isDelivery2 ? 'Delivery' : 'Pickup'} (ID: <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #555555;">${data.order_id || data.order_number || ''}</span>)
+              </p>
               <span style="display: inline-block; background-color: #3b82f6; color: #ffffff; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 6px 18px; border-radius: 100px;">
                 &nbsp;Pedido Confirmado
               </span>
@@ -414,19 +429,13 @@ serve(async (req) => {
 
           <!-- HEADLINE -->
           <tr>
-            <td style="padding: 16px 16px 0 16px; text-align: center; border-bottom: 1px solid #f0f0f0;">
+            <td style="padding: 0 16px 0 16px; text-align: center; border-bottom: 1px solid #f0f0f0;">
               <p style="margin: 0 0 6px 0; font-size: 13px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: #aaaaaa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 Número de Pedido
               </p>
-              <h1 style="margin: 0 0 12px 0; font-size: 36px; font-weight: 800; color: #0a0a0a; letter-spacing: -1px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+              <h2 style="margin: 0 0 28px 0; font-size: 36px; font-weight: 800; color: #0a0a0a; letter-spacing: -1px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
                 ${data.order_number || ''}
-              </h1>
-              <p style="margin: 0 0 8px 0; font-size: 16px; color: #111111; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                ¡Recibimos tu pedido!
-              </p>
-              <p style="margin: 0 0 28px 0; font-size: 15px; color: #666666; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                Lo estamos preparando con cuidado.<br/>${isDelivery2 ? 'Te avisaremos por correo en cuanto salga a reparto a tu dirección.' : 'Te avisaremos por correo en cuanto esté listo para retirar.'}
-              </p>
+              </h2>
             </td>
           </tr>
 
