@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import AIImportModal from '../components/catalog/AIImportModal';
 import EditProductModal from '../components/catalog/EditProductModal';
+import UberDeliveryCard from '../components/pos/UberDeliveryCard';
 
 const SuperAdminView = () => {
   const [selectedOrganization, setSelectedOrganization] = useState(null);
@@ -995,17 +996,7 @@ const SuperAdminView = () => {
                     <div className="flex-1 min-w-0">
                       <span className="text-gray-500 block text-xs font-semibold uppercase tracking-wider">Dirección de Despacho</span>
                       <span className="text-sm font-medium text-gray-800">{selectedOrder.delivery_address}</span>
-                      {selectedOrder.uber_tracking_url && (
-                        <a
-                          href={selectedOrder.uber_tracking_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 hover:bg-green-100 px-2.5 py-1 rounded-lg border border-green-200 transition-colors"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                          Seguir delivery en vivo
-                        </a>
-                      )}
+                      <UberDeliveryCard order={selectedOrder} organization={selectedOrganization} />
                     </div>
                   </div>
                 )}

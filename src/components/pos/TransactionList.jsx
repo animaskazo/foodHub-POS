@@ -10,6 +10,7 @@ import { useAuth } from '../AuthContext';
 import { supabase } from '../../lib/supabase';
 import { updateOrderStatus } from '../../services/orderService';
 import { fmt, getKitchenTime, getPaymentMethod, getStatusTag } from '../../utils/orderUtils';
+import UberDeliveryCard from './UberDeliveryCard';
 
 const TransactionList = ({ orders, loading, onOrderUpdated }) => {
   const { organization, role, isSuperAdmin } = useAuth();
@@ -468,17 +469,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                       ) : (
                         <p className="text-sm text-gray-400 italic">Dirección no especificada</p>
                       )}
-                      {selectedOrder.uber_tracking_url && (
-                        <a
-                          href={selectedOrder.uber_tracking_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-green-600 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg border border-green-200 transition-colors"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          Seguir delivery en vivo
-                        </a>
-                      )}
+                      <UberDeliveryCard order={selectedOrder} organization={organization} />
                     </div>
                   ) : (
                     <div>
