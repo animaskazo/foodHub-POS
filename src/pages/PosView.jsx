@@ -641,7 +641,6 @@ const PosView = () => {
             <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/50">
               <PrepTimeSelector menuVariant />
             </div>
-            </div>
             <div className="p-5 border-t border-gray-100">
               <Button
                 variant="ghost"
