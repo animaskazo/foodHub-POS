@@ -577,6 +577,7 @@ const OrderView = () => {
           email: customerForm.email,
           data: {
             order_number: order.order_number,
+            order_id: order.id,
             delivery_type: customerForm.deliveryType,
             delivery_address: customerForm.deliveryAddress,
             customer_name: customerForm.name || 'Cliente',

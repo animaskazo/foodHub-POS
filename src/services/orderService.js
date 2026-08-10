@@ -434,6 +434,7 @@ export const updateOrderStatus = async (orderId, status) => {
           const branchAddress = isPlaceholder(rawAddress) ? '' : rawAddress;
           const emailData = {
             order_number: order.order_number,
+            order_id: order.id,
             order_type: order.order_type,
             delivery_type: order.delivery_type,
             delivery_address: order.delivery_address,
