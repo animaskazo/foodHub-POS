@@ -67,7 +67,7 @@ export const EcommerceSkeleton = () => (
       <Skeleton className="w-full h-44 sm:h-56 md:h-64 rounded-none" />
       <div className="max-w-4xl mx-auto px-4 relative -mt-12 sm:-mt-16 flex items-end justify-between">
         <div className="flex items-end gap-4">
-          <Skeleton className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl border-4 border-white shadow-md bg-gray-300" />
+          <Skeleton className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-md bg-gray-300" />
           <div className="mb-2 space-y-2">
             <Skeleton className="h-6 w-40 sm:w-56" />
             <Skeleton className="h-4 w-28 sm:w-36" />
