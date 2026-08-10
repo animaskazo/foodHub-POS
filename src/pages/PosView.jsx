@@ -23,7 +23,7 @@ import { useAuth } from '../components/AuthContext';
 import { getShiftSettings, getCurrentShift } from '../services/shiftService';
 import { PosSkeleton } from '../components/ui/Skeleton';
 import { defaultSelectionsForSlot, bundleHasChoices } from '../utils/bundleSelections';
-import PrepTimeSelector from '../components/ui/PrepTimeSelector';
+
 
 const PosView = () => {
   const { organization, role } = useAuth();
