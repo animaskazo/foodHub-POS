@@ -597,7 +597,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: `${senderName} <${fromEmail}>`,
-        reply_to: fromEmail,
+        reply_to: data?.organization?.email || fromEmail,
         to: email,
         subject: subject,
         html: html,

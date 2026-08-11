@@ -96,6 +96,16 @@ const OrderView = () => {
         }
         setOrg(orgData);
 
+        // Track visit (deduplicated by session)
+        const visitKey = `visited_org_${orgData.id}`;
+        if (!sessionStorage.getItem(visitKey)) {
+          supabase.rpc('increment_store_visits', { p_organization_id: orgData.id })
+            .then(({ error }) => {
+              if (!error) sessionStorage.setItem(visitKey, 'true');
+            })
+            .catch(console.error);
+        }
+
         const { categories: cats, products: prods } = await getPublicCatalog(orgData.id);
         setCategories(cats);
         setProducts(prods);

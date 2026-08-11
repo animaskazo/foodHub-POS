@@ -43,6 +43,25 @@ const Layout = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { isSuperAdmin, role, organization } = useAuth();
   const [inboxEnabled, setInboxEnabled] = useState(false);
+  const [todayVisits, setTodayVisits] = useState(0);
+
+  useEffect(() => {
+    if (organization?.id) {
+      const fetchVisits = async () => {
+        const today = new Date().toISOString().split('T')[0];
+        const { data } = await supabase
+          .from('store_visits')
+          .select('visit_count')
+          .eq('organization_id', organization.id)
+          .eq('date', today)
+          .single();
+        if (data) {
+          setTodayVisits(data.visit_count);
+        }
+      };
+      fetchVisits();
+    }
+  }, [organization?.id]);
 
   useEffect(() => {
     const checkInbox = async () => {
@@ -101,9 +120,12 @@ const Layout = () => {
         ${!isSidebarCollapsed ? 'lg:relative lg:translate-x-0' : 'lg:absolute lg:-translate-x-full'}
       `}>
         <div className="h-16 flex items-center justify-between px-6 border-b shrink-0">
-          <div className="flex items-center">
-            <Store className="h-6 w-6 text-black mr-2" />
-            <span className="font-bold text-lg">FoodHub</span>
+          <div className="flex flex-col justify-center">
+            <div className="flex items-center">
+              <Store className="h-5 w-5 text-black mr-2" />
+              <span className="font-bold text-lg">{organization?.name || 'FoodHub'}</span>
+            </div>
+            <span className="text-[10.5px] text-gray-500 mt-0.5 ml-7 leading-none">* Tuviste {todayVisits} Visitas hoy</span>
           </div>
           <div className="flex items-center gap-1">
             <button onClick={toggleSidebar} className="hidden lg:flex p-1 hover:bg-gray-100 rounded text-gray-500 transition-colors">
@@ -444,7 +466,10 @@ const Layout = () => {
           >
             <Menu className="h-6 w-6" />
           </button>
-          <span className="font-bold text-lg lg:hidden">FoodHub</span>
+          <div className="flex flex-col lg:hidden">
+            <span className="font-bold text-lg leading-tight">{organization?.name || 'FoodHub'}</span>
+            <span className="text-[10px] text-gray-500 leading-none">* Tuviste {todayVisits} Visitas hoy</span>
+          </div>
           <div className="flex-1" />
           {isDashboard && (
             <div className="flex items-center gap-2 lg:hidden">
