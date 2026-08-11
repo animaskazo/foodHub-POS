@@ -49,6 +49,11 @@ serve(async (req) => {
   <meta property="og:title" content="${escapeHtml(name)}" />
   <meta property="og:description" content="${escapeHtml(description)}" />
   <meta property="og:image" content="${image}" />
+  <meta property="og:image:secure_url" content="${image}" />
+  <meta property="og:image:width" content="600" />
+  <meta property="og:image:height" content="600" />
+  <meta property="og:image:alt" content="${escapeHtml(name)} logo" />
+  <meta property="og:site_name" content="${escapeHtml(name)}" />
   <meta property="og:url" content="${appUrl}" />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />

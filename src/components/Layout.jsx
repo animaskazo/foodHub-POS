@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { 
-  LayoutDashboard, 
-  Package, 
-  Tags, 
-  PlusCircle, 
-  ChevronDown, 
-  ChevronRight, 
+import {
+  LayoutDashboard,
+  Package,
+  Tags,
+  PlusCircle,
+  ChevronDown,
+  ChevronRight,
   Store,
   Building2,
   Settings,
@@ -86,7 +86,7 @@ const Layout = () => {
     };
     checkInbox();
   }, []);
-  
+
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(
     localStorage.getItem('sidebar_collapsed') === 'true'
   );
@@ -104,10 +104,10 @@ const Layout = () => {
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       <NewOrderAlert />
-      
+
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
@@ -125,7 +125,7 @@ const Layout = () => {
               <Store className="h-5 w-5 text-black mr-2" />
               <span className="font-bold text-lg">{organization?.name || 'FoodHub'}</span>
             </div>
-            <span className="text-[10.5px] text-gray-500 mt-0.5 ml-7 leading-none">* Tuviste {todayVisits} Visitas hoy</span>
+            <span className="text-[10.5px] text-gray-500 mt-0.5 ml-7 leading-none">Tuviste {todayVisits} Visitas hoy</span>
           </div>
           <div className="flex items-center gap-1">
             <button onClick={toggleSidebar} className="hidden lg:flex p-1 hover:bg-gray-100 rounded text-gray-500 transition-colors">
@@ -136,16 +136,15 @@ const Layout = () => {
             </button>
           </div>
         </div>
-        
+
         <nav className="flex-1 overflow-y-auto py-4">
           <ul className="space-y-1 px-3">
             <li>
-              <NavLink 
-                to="/" 
+              <NavLink
+                to="/"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={({ isActive }) => 
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${
-                    isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                   }`
                 }
               >
@@ -156,12 +155,11 @@ const Layout = () => {
 
             {isSuperAdmin && (
               <li>
-                <NavLink 
-                  to="/superadmin" 
+                <NavLink
+                  to="/superadmin"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={({ isActive }) => 
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${
-                      isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                     }`
                   }
                 >
@@ -172,7 +170,7 @@ const Layout = () => {
             )}
 
             <li className="pt-2">
-              <button 
+              <button
                 onClick={() => setIsProductsOpen(!isProductsOpen)}
                 className="w-full flex items-center justify-between px-3 py-2.5 text-gray-600 hover:bg-gray-50 hover:text-black rounded-lg transition-colors"
               >
@@ -182,16 +180,15 @@ const Layout = () => {
                 </div>
                 {isProductsOpen ? <ChevronDown className="h-[18px] w-[18px]" /> : <ChevronRight className="h-[18px] w-[18px]" />}
               </button>
-              
+
               {isProductsOpen && (
                 <ul className="mt-1 ml-4 pl-4 border-l border-gray-200 space-y-1">
                   <li>
-                    <NavLink 
-                      to="/categories" 
+                    <NavLink
+                      to="/categories"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={({ isActive }) => 
-                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
-                          isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                         }`
                       }
                     >
@@ -200,12 +197,11 @@ const Layout = () => {
                     </NavLink>
                   </li>
                   <li>
-                    <NavLink 
-                      to="/ingredients" 
+                    <NavLink
+                      to="/ingredients"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={({ isActive }) => 
-                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
-                          isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                         }`
                       }
                     >
@@ -214,12 +210,11 @@ const Layout = () => {
                     </NavLink>
                   </li>
                   <li>
-                    <NavLink 
-                      to="/products" 
+                    <NavLink
+                      to="/products"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={({ isActive }) => 
-                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
-                          isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                         }`
                       }
                     >
@@ -232,12 +227,11 @@ const Layout = () => {
             </li>
 
             <li className="pt-2">
-              <NavLink 
-                to="/inventory" 
+              <NavLink
+                to="/inventory"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={({ isActive }) => 
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${
-                    isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                   }`
                 }
               >
@@ -247,12 +241,11 @@ const Layout = () => {
             </li>
 
             <li className="pt-2">
-              <NavLink 
-                to="/customers" 
+              <NavLink
+                to="/customers"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={({ isActive }) => 
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${
-                    isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                   }`
                 }
               >
@@ -262,12 +255,11 @@ const Layout = () => {
             </li>
 
             <li className="pt-2">
-              <NavLink 
-                to="/reports" 
+              <NavLink
+                to="/reports"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={({ isActive }) => 
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${
-                    isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                   }`
                 }
               >
@@ -278,12 +270,11 @@ const Layout = () => {
 
             {inboxEnabled && (
               <li className="pt-2">
-                <NavLink 
-                  to="/conversations" 
+                <NavLink
+                  to="/conversations"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={({ isActive }) => 
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${
-                      isActive ? 'bg-green-50 text-green-800' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-green-50 text-green-800' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                     }`
                   }
                 >
@@ -294,12 +285,11 @@ const Layout = () => {
             )}
 
             <li className="pt-2">
-              <NavLink 
-                to="/delivery" 
+              <NavLink
+                to="/delivery"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={({ isActive }) => 
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${
-                    isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                   }`
                 }
               >
@@ -307,9 +297,9 @@ const Layout = () => {
                 Delivery
               </NavLink>
             </li>
-            
+
             <li className="pt-2">
-              <button 
+              <button
                 onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[15px] font-semibold text-gray-600 hover:bg-gray-50 hover:text-black transition-colors"
               >
@@ -319,20 +309,19 @@ const Layout = () => {
                 </div>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isSettingsOpen ? 'rotate-180' : ''}`} />
               </button>
-              
+
               {isSettingsOpen && (
                 <ul className="mt-1 ml-4 pl-4 border-l border-gray-200 space-y-1">
                   <li>
-                    <NavLink 
-                      to="/settings?tab=general" 
+                    <NavLink
+                      to="/settings?tab=general"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive, isPending }) => {
                         const isCurrentTab = window.location.search === '?tab=general' || window.location.search === '';
                         const isSettingsPath = window.location.pathname === '/settings';
                         const isMatch = isSettingsPath && isCurrentTab;
-                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
-                          isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
-                        }`;
+                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                          }`;
                       }}
                     >
                       <Store className="h-[18px] w-[18px]" />
@@ -340,14 +329,13 @@ const Layout = () => {
                     </NavLink>
                   </li>
                   <li>
-                    <NavLink 
-                      to="/settings?tab=hours" 
+                    <NavLink
+                      to="/settings?tab=hours"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) => {
                         const isMatch = window.location.pathname === '/settings' && window.location.search === '?tab=hours';
-                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
-                          isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
-                        }`;
+                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                          }`;
                       }}
                     >
                       <Clock className="h-[18px] w-[18px]" />
@@ -355,14 +343,13 @@ const Layout = () => {
                     </NavLink>
                   </li>
                   <li>
-                    <NavLink 
-                      to="/settings?tab=staff" 
+                    <NavLink
+                      to="/settings?tab=staff"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) => {
                         const isMatch = window.location.pathname === '/settings' && window.location.search === '?tab=staff';
-                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
-                          isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
-                        }`;
+                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                          }`;
                       }}
                     >
                       <User className="h-[18px] w-[18px]" />
@@ -370,14 +357,13 @@ const Layout = () => {
                     </NavLink>
                   </li>
                   <li>
-                    <NavLink 
-                      to="/settings?tab=printers" 
+                    <NavLink
+                      to="/settings?tab=printers"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) => {
                         const isMatch = window.location.pathname === '/settings' && window.location.search === '?tab=printers';
-                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
-                          isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
-                        }`;
+                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                          }`;
                       }}
                     >
                       <Printer className="h-[18px] w-[18px]" />
@@ -385,12 +371,11 @@ const Layout = () => {
                     </NavLink>
                   </li>
                   <li>
-                    <NavLink 
-                      to="/shifts-settings" 
+                    <NavLink
+                      to="/shifts-settings"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={({ isActive }) => 
-                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
-                          isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                         }`
                       }
                     >
@@ -400,12 +385,11 @@ const Layout = () => {
                   </li>
                   {organization?.dine_in_enabled === true && (
                     <li>
-                      <NavLink 
-                        to="/tables" 
+                      <NavLink
+                        to="/tables"
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className={({ isActive }) => 
-                          `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${
-                            isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        className={({ isActive }) =>
+                          `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                           }`
                         }
                       >
@@ -422,28 +406,26 @@ const Layout = () => {
 
         {/* Footer / Logout */}
         <div className="p-4 border-t shrink-0 flex flex-col gap-2">
-          
+
           <div className="flex flex-col gap-2 mb-1">
-            <NavLink 
+            <NavLink
               to="/pos"
-              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-bold transition-all border ${
-                isActive ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100 hover:border-blue-200'
-              }`}
+              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-bold transition-all border ${isActive ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100 hover:border-blue-200'
+                }`}
             >
               <MonitorPlay className="h-[18px] w-[18px]" />
               Punto de Venta
             </NavLink>
-            <NavLink 
+            <NavLink
               to="/kitchen"
-              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-bold transition-all border ${
-                isActive ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100 hover:border-blue-200'
-              }`}
+              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-bold transition-all border ${isActive ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100 hover:border-blue-200'
+                }`}
             >
               <ChefHat className="h-[18px] w-[18px]" />
               Cocina
             </NavLink>
           </div>
-          <button 
+          <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-semibold text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors mt-2"
           >
@@ -457,7 +439,7 @@ const Layout = () => {
       <main className="flex-1 flex flex-col min-w-0 relative">
         {/* Mobile Header OR Desktop Header when sidebar is collapsed */}
         <header className={`${!isSidebarCollapsed ? 'lg:hidden' : 'lg:flex'} bg-white border-b h-16 flex items-center px-4 shrink-0 shadow-sm sticky top-0 z-40`}>
-          <button 
+          <button
             onClick={() => {
               if (window.innerWidth >= 1024) toggleSidebar();
               else setIsMobileMenuOpen(true);
@@ -468,7 +450,7 @@ const Layout = () => {
           </button>
           <div className="flex flex-col lg:hidden">
             <span className="font-bold text-lg leading-tight">{organization?.name || 'FoodHub'}</span>
-            <span className="text-[10px] text-gray-500 leading-none">* Tuviste {todayVisits} Visitas hoy</span>
+            <span className="text-[10px] text-gray-500 leading-none">Tuviste {todayVisits} Visitas hoy</span>
           </div>
           <div className="flex-1" />
           {isDashboard && (

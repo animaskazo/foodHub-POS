@@ -18,7 +18,8 @@ import {
   Van,
   CalendarClock,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Info
 } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,8 @@ import PrepTimeSelector from '../components/ui/PrepTimeSelector';
 import StockNotifications from '../components/StockNotifications';
 import TransactionList from '../components/pos/TransactionList';
 import PrintableReceipt from '../components/pos/PrintableReceipt';
+import Sparkline from '../components/ui/Sparkline';
+import Tooltip from '../components/ui/tooltip';
 
 const DashboardView = () => {
   const { organization, loading: authLoading } = useAuth();
@@ -43,6 +46,49 @@ const DashboardView = () => {
   const [currentShift, setCurrentShift] = useState(null);
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [shiftModalType, setShiftModalType] = useState('open'); // 'open' or 'close'
+
+  const [weeklySparklines, setWeeklySparklines] = useState({ revenue: [], orders: [], ticket: [] });
+
+  useEffect(() => {
+    if (!organization?.id) return;
+    const fetchSparklines = async () => {
+      const startOfRange = new Date();
+      startOfRange.setDate(startOfRange.getDate() - 6);
+      startOfRange.setHours(0, 0, 0, 0);
+      
+      const { data } = await supabase
+        .from('orders')
+        .select('created_at, total')
+        .eq('organization_id', organization.id)
+        .gte('created_at', startOfRange.toISOString())
+        .order('created_at', { ascending: true });
+        
+      if (data) {
+        // Group by day (0 to 6)
+        const dailyRevenue = new Array(7).fill(0);
+        const dailyOrders = new Array(7).fill(0);
+        
+        data.forEach(order => {
+          const orderDate = new Date(order.created_at);
+          orderDate.setHours(0, 0, 0, 0);
+          const dayIndex = Math.floor((orderDate.getTime() - startOfRange.getTime()) / (1000 * 60 * 60 * 24));
+          if (dayIndex >= 0 && dayIndex < 7) {
+            dailyRevenue[dayIndex] += Number(order.total) || 0;
+            dailyOrders[dayIndex] += 1;
+          }
+        });
+        
+        const dailyTicket = dailyRevenue.map((rev, i) => dailyOrders[i] > 0 ? rev / dailyOrders[i] : 0);
+        
+        setWeeklySparklines({
+          revenue: dailyRevenue,
+          orders: dailyOrders,
+          ticket: dailyTicket
+        });
+      }
+    };
+    fetchSparklines();
+  }, [organization?.id]);
 
 
   useEffect(() => {
@@ -176,8 +222,14 @@ const DashboardView = () => {
     const totalRevenue = filteredOrders.reduce((sum, order) => sum + Number(order.total), 0);
     const totalOrders = filteredOrders.length;
     const averageTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    
+    // Additional metrics for new UI
+    const local = filteredOrders.filter(o => o.order_type === 'table').reduce((sum, o) => sum + Number(o.total), 0);
+    const pickup = filteredOrders.filter(o => o.order_type === 'pickup').reduce((sum, o) => sum + Number(o.total), 0);
+    const delivery = filteredOrders.filter(o => o.order_type === 'online' || o.delivery_type === 'delivery').reduce((sum, o) => sum + Number(o.total), 0);
+    const whatsapp = filteredOrders.filter(o => o.order_type === 'whatsapp').reduce((sum, o) => sum + Number(o.total), 0);
 
-    return { totalRevenue, totalOrders, averageTicket };
+    return { totalRevenue, totalOrders, averageTicket, local, pickup, delivery, whatsapp };
   }, [filteredOrders]);
 
   // Helper for formatting currency (assuming CLP for now, can be dynamic later)
@@ -185,6 +237,24 @@ const DashboardView = () => {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount);
   };
 
+  const sparklineDateRangeText = useMemo(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - 6);
+
+    const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+    const startMonth = start.toLocaleDateString('es-ES', { month: 'long' });
+    const endMonth = end.toLocaleDateString('es-ES', { month: 'long' });
+    const startDay = start.toLocaleDateString('es-ES', { day: '2-digit' });
+    const endDay = end.toLocaleDateString('es-ES', { day: '2-digit' });
+
+    if (startMonth === endMonth) {
+      return `Desde el ${startDay} al ${endDay} de ${capitalize(endMonth)}`;
+    } else {
+      return `Desde el ${startDay} de ${capitalize(startMonth)} al ${endDay} de ${capitalize(endMonth)}`;
+    }
+  }, []);
 
   useDocumentTitle('Dashboard');
 
@@ -311,48 +381,75 @@ const DashboardView = () => {
 
         {/* Metrics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-2xl border border-gray-200">
-            <div className="flex items-center gap-3 text-gray-500 mb-2">
-              <TrendingUp className="h-5 w-5 text-gray-900" />
-              <span className="font-medium">
-                Ventas {dateRange === 'today' ? 'de Hoy' : dateRange === '7days' ? '(7 días)' : '(30 días)'}
-              </span>
+          
+          {/* Ventas Totales Card */}
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 uppercase tracking-wider">
+                <div className="w-1.5 h-1.5 rounded-full bg-black"></div>
+                Ventas Totales 
+                <Tooltip text={sparklineDateRangeText}>
+                  <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                </Tooltip>
+              </div>
+              <div className="text-2xl font-bold text-gray-900">
+                {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : formatCurrency(metrics.totalRevenue)}
+              </div>
             </div>
-            <div className="text-3xl font-bold text-gray-900">
-              {loading ? <Loader2 className="h-8 w-8 animate-spin text-gray-300" /> : formatCurrency(metrics.totalRevenue)}
-            </div>
-            {/* Mobile Toggle Button inside the first card */}
-            <button 
-              onClick={() => setShowMetricsMobile(!showMetricsMobile)}
-              className="md:hidden mt-4 flex items-center justify-center gap-1.5 w-full py-2 bg-gray-50 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors"
-            >
-              {showMetricsMobile ? (
-                <><ChevronUp className="h-4 w-4" /> Ocultar métricas</>
-              ) : (
-                <><ChevronDown className="h-4 w-4" /> Ver más detalles</>
-              )}
-            </button>
-          </div>
-
-          <div className={`bg-white p-6 rounded-2xl border border-gray-200 md:block ${showMetricsMobile ? 'block' : 'hidden'}`}>
-            <div className="flex items-center gap-3 text-gray-500 mb-2">
-              <ShoppingCart className="h-5 w-5 text-gray-900" />
-              <span className="font-medium">Órdenes Totales</span>
-            </div>
-            <div className="text-3xl font-bold text-gray-900">
-              {loading ? <Loader2 className="h-8 w-8 animate-spin text-gray-300" /> : metrics.totalOrders}
+            <div className="pl-4">
+              <Sparkline data={weeklySparklines.revenue} color="#000000" fillColor="#e5e7eb" width={70} height={30} />
             </div>
           </div>
 
-          <div className={`bg-white p-6 rounded-2xl border border-gray-200 md:block ${showMetricsMobile ? 'block' : 'hidden'}`}>
-            <div className="flex items-center gap-3 text-gray-500 mb-2">
-              <Receipt className="h-5 w-5 text-gray-900" />
-              <span className="font-medium">Ticket Promedio</span>
+          {/* Órdenes Totales Card */}
+          <div className={`bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between md:flex ${showMetricsMobile ? 'flex' : 'hidden'}`}>
+            <div>
+              <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 uppercase tracking-wider">
+                <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+                Órdenes Totales 
+                <Tooltip text={sparklineDateRangeText}>
+                  <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                </Tooltip>
+              </div>
+              <div className="text-2xl font-bold text-gray-900">
+                {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : metrics.totalOrders}
+              </div>
             </div>
-            <div className="text-3xl font-bold text-gray-900">
-              {loading ? <Loader2 className="h-8 w-8 animate-spin text-gray-300" /> : formatCurrency(metrics.averageTicket)}
+            <div className="pl-4">
+              <Sparkline data={weeklySparklines.orders} color="#a855f7" width={70} height={30} />
             </div>
           </div>
+
+          {/* Ticket Promedio Card */}
+          <div className={`bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between md:flex ${showMetricsMobile ? 'flex' : 'hidden'}`}>
+            <div>
+              <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 uppercase tracking-wider">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                Ticket Promedio 
+                <Tooltip text={sparklineDateRangeText}>
+                  <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                </Tooltip>
+              </div>
+              <div className="text-2xl font-bold text-gray-900">
+                {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : formatCurrency(metrics.averageTicket)}
+              </div>
+            </div>
+            <div className="pl-4">
+              <Sparkline data={weeklySparklines.ticket} color="#3b82f6" width={70} height={30} />
+            </div>
+          </div>
+
+          {/* Mobile Toggle Button */}
+          <button 
+            onClick={() => setShowMetricsMobile(!showMetricsMobile)}
+            className="md:hidden flex items-center justify-center gap-1.5 w-full py-2 bg-gray-50 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors"
+          >
+            {showMetricsMobile ? (
+              <><ChevronUp className="h-4 w-4" /> Ocultar métricas</>
+            ) : (
+              <><ChevronDown className="h-4 w-4" /> Ver más detalles</>
+            )}
+          </button>
         </div>
 
         {/* Sales Record */}
