@@ -45,12 +45,12 @@ serve(async (req) => {
     const appBaseUrl = (returnOrigin || Deno.env.get("APP_URL") || "https://food-admin.digital-solutions.work").replace(/\/$/, "");
     
     const validReturnUrl = slug
-      ? `${appBaseUrl}/order/${slug}?orderId=${orderId}&status=success`
-      : `${appBaseUrl}?orderId=${orderId}&status=success`;
+      ? `${appBaseUrl}/order/${slug}?orderId=${orderId}&payment=klap`
+      : `${appBaseUrl}?orderId=${orderId}&payment=klap`;
 
     const cancelUrl = slug
-      ? `${appBaseUrl}/order/${slug}?orderId=${orderId}&status=error`
-      : `${appBaseUrl}?orderId=${orderId}&status=error`;
+      ? `${appBaseUrl}/order/${slug}?orderId=${orderId}&status=cancelled`
+      : `${appBaseUrl}?orderId=${orderId}&status=cancelled`;
 
     console.log("return_url →", validReturnUrl);
     console.log("cancel_url →", cancelUrl);

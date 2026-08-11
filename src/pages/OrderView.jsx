@@ -100,16 +100,42 @@ const OrderView = () => {
         setCategories(cats);
         setProducts(prods);
         
-        // Handle Return from Klap Success (Requires orgData)
+        // Handle Return from Klap (Requires orgData)
         const orderId = searchParams.get('orderId');
         const status = searchParams.get('status');
+        const payment = searchParams.get('payment');
         
-        if (orderId && status === 'success') {
-          // If there's a pending order saved locally (payment completed), create it now
+        if (status === 'error' || status === 'cancelled') {
+          const pendingKey = `pending_order_${slug}`;
+          localStorage.removeItem(pendingKey);
+          window.history.replaceState({}, '', storeRootUrl);
+          setError('El pago en Klap fue cancelado o no se completó. No se ha generado ningún pedido.');
+          setLoading(false);
+          return;
+        }
+
+        if (orderId && (status === 'success' || payment === 'klap')) {
+          // If there's a pending order saved locally (payment completed), verify and create it now
           const pendingRaw = localStorage.getItem(`pending_order_${slug}`);
           if (pendingRaw && !submittedOrder?.order_number) {
             try {
               const { cartItems: pendingCart, customerForm, scheduledAt, klapOrderId } = JSON.parse(pendingRaw);
+
+              // ── Verificar pago directamente con la API de Klap antes de crear la orden ──
+              if (klapOrderId) {
+                const { data: verifyRes, error: verifyErr } = await supabase.functions.invoke('klap-verify-payment', {
+                  body: { klapOrderId }
+                });
+
+                if (verifyErr || !verifyRes?.isApproved) {
+                  console.warn('[Klap Verification Failed]', verifyErr || verifyRes);
+                  localStorage.removeItem(`pending_order_${slug}`);
+                  window.history.replaceState({}, '', storeRootUrl);
+                  setError('El pago en Klap no fue aprobado o fue cancelado. No se ha generado la orden.');
+                  setLoading(false);
+                  return;
+                }
+              }
 
               const order = await createPublicOrder({
                 organizationId: orgData.id,
@@ -167,6 +193,7 @@ const OrderView = () => {
                   email: customerForm.email,
                   data: {
                     order_number: order.order_number,
+                    order_id: order.id,
                     delivery_type: order.delivery_type,
                     delivery_address: order.delivery_address,
                     customer_name: order.customer_name || customerForm.name || 'Cliente',
@@ -192,7 +219,9 @@ const OrderView = () => {
               window.history.replaceState({}, '', `${storeRootUrl}?orderId=${order.id}&orderNumber=${order.order_number}&status=success`);
             } catch (e) {
               console.error(e);
-              setError('No se pudo crear el pedido después del pago. Contacta al local.');
+              localStorage.removeItem(`pending_order_${slug}`);
+              window.history.replaceState({}, '', storeRootUrl);
+              setError('No se pudo procesar el pedido después del pago.');
             }
           } else {
             const { getPublicOrderById } = await import('../services/publicOrderService');
@@ -202,10 +231,6 @@ const OrderView = () => {
               setCartItems([]);
               localStorage.removeItem(`cart_${slug}`);
               setStep(4);
-
-              // No se reenvía el email de confirmación aquí: ya fue enviado al crear el pedido.
-              // Esta rama solo reconstruye la vista al recargar/compartir la URL de éxito.
-
               window.history.replaceState({}, '', storeRootUrl);
             } else {
               setError('No se pudo cargar la información del pedido.');
@@ -478,7 +503,7 @@ const OrderView = () => {
         };
         localStorage.setItem(pendingKey, JSON.stringify(pendingData));
 
-        const returnUrl = `${storeRootUrl}?orderId=${sessionId}&status=success`;
+        const returnUrl = `${storeRootUrl}?orderId=${sessionId}&payment=klap`;
 
         const { data, error } = await supabase.functions.invoke('klap-create-payment', {
           body: { orderId: sessionId, amount: pendingData.totalAmount, returnUrl }
