@@ -723,3 +723,46 @@ export const updateOrderItemsStatus = async (itemIds, newStatus, orderId) => {
     throw error;
   }
 };
+
+export const deleteOrder = async (orderId) => {
+  try {
+    await supabase.from('order_items').delete().eq('order_id', orderId);
+    await supabase.from('payments').delete().eq('order_id', orderId);
+    const { error } = await supabase.from('orders').delete().eq('id', orderId);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error deleting order:", error);
+    throw error;
+  }
+};
+
+export const bulkDeleteOrders = async (orderIds) => {
+  if (!orderIds || orderIds.length === 0) return true;
+  try {
+    await supabase.from('order_items').delete().in('order_id', orderIds);
+    await supabase.from('payments').delete().in('order_id', orderIds);
+    const { error } = await supabase.from('orders').delete().in('id', orderIds);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error bulk deleting orders:", error);
+    throw error;
+  }
+};
+
+export const bulkCancelOrders = async (orderIds) => {
+  if (!orderIds || orderIds.length === 0) return true;
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'cancelled' })
+      .in('id', orderIds);
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error bulk cancelling orders:", error);
+    throw error;
+  }
+};
+

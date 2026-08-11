@@ -69,8 +69,7 @@ const ReportsView = () => {
         if (sr.error) throw sr.error
         if (or.error) throw or.error
         setShifts(sr.data || [])
-        const hideCancelled = organization?.hide_cancelled_orders === true
-        setOrders(hideCancelled ? (or.data || []).filter(o => o.status !== 'cancelled') : (or.data || []))
+        setOrders((or.data || []).filter(o => o.status !== 'cancelled' && o.status !== 'refunded'))
       } catch (err) { console.error(err); setError('Error al cargar los datos.') }
       finally { setLoading(false) }
     })()
@@ -92,8 +91,7 @@ const ReportsView = () => {
         ])
         if (cr.error) throw cr.error
         if (pr.error) throw pr.error
-        const hide = organization?.hide_cancelled_orders === true
-        const clean = (rows) => (hide ? (rows || []).filter(o => o.status !== 'cancelled') : (rows || []))
+        const clean = (rows) => (rows || []).filter(o => o.status !== 'cancelled' && o.status !== 'refunded')
         const bucket = (rows) => {
           const m = Array.from({ length: 12 }, () => ({ sales: 0, orders: 0 }))
           ;(rows || []).forEach(o => {
@@ -118,16 +116,17 @@ const ReportsView = () => {
     for (let d = 1; d <= dc; d++) {
       const ds = `${cy}-${String(cm + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
       const ss = shifts.filter(s => new Date(s.start_time).toISOString().slice(0, 10) === ds)
-      const os = orders.filter(o => new Date(o.created_at).toISOString().slice(0, 10) === ds)
+      const os = orders.filter(o => new Date(o.created_at).toISOString().slice(0, 10) === ds && o.status !== 'cancelled' && o.status !== 'refunded')
       if (ss.length > 0 || os.length > 0) r.push({ date: ds, shifts: ss, orders: os })
     }
     return r.reverse()
   }, [shifts, orders, cm, cy])
 
   const isCm = cm === today.getMonth() && cy === today.getFullYear()
-  const mRev = orders.reduce((s, o) => s + Number(o.total || 0), 0)
-  const mOrd = orders.length
-  const mFees = orders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0)
+  const validOrders = useMemo(() => orders.filter(o => o.status !== 'cancelled' && o.status !== 'refunded'), [orders])
+  const mRev = validOrders.reduce((s, o) => s + Number(o.total || 0), 0)
+  const mOrd = validOrders.length
+  const mFees = validOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0), 0)
 
   const annualStats = useMemo(() => {
     if (!annual) return null

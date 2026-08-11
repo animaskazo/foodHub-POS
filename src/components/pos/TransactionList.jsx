@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock, Ban } from 'lucide-react';
+import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock, Ban, Trash2, CheckSquare, Square } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Modal from '../ui/Modal';
@@ -8,7 +8,7 @@ import AddressMap from './AddressMap';
 import PrintableReceipt from './PrintableReceipt';
 import { useAuth } from '../AuthContext';
 import { supabase } from '../../lib/supabase';
-import { updateOrderStatus } from '../../services/orderService';
+import { updateOrderStatus, deleteOrder, bulkDeleteOrders, bulkCancelOrders } from '../../services/orderService';
 import { fmt, getKitchenTime, getPaymentMethod, getStatusTag } from '../../utils/orderUtils';
 import UberDeliveryCard from './UberDeliveryCard';
 
@@ -21,6 +21,28 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
   const [isPaymentConfirmOpen, setIsPaymentConfirmOpen] = useState(false);
   const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  
+  // Selección masiva y eliminación
+  const [selectedOrderIds, setSelectedOrderIds] = useState([]);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isBulkCancelConfirmOpen, setIsBulkCancelConfirmOpen] = useState(false);
+  const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const toggleSelectAll = () => {
+    if (selectedOrderIds.length === orders.length) {
+      setSelectedOrderIds([]);
+    } else {
+      setSelectedOrderIds(orders.map(o => o.id));
+    }
+  };
+
+  const toggleSelectOrder = (e, orderId) => {
+    e.stopPropagation();
+    setSelectedOrderIds(prev =>
+      prev.includes(orderId) ? prev.filter(id => id !== orderId) : [...prev, orderId]
+    );
+  };
 
   const handleOpenModal = (order) => {
     setSelectedOrder(order);
@@ -60,6 +82,54 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
       alert(`No se pudo cancelar el pedido: ${err.message || JSON.stringify(err)}`);
     } finally {
       setIsCancelling(false);
+    }
+  };
+
+  const handleDeleteSingleOrder = async () => {
+    if (!selectedOrder) return;
+    setIsDeleting(true);
+    try {
+      await deleteOrder(selectedOrder.id);
+      setIsDeleteConfirmOpen(false);
+      handleCloseModal();
+      if (onOrderUpdated) await onOrderUpdated();
+    } catch (err) {
+      console.error('Error eliminando pedido:', err);
+      alert(`No se pudo eliminar el pedido: ${err.message || JSON.stringify(err)}`);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleBulkCancel = async () => {
+    if (selectedOrderIds.length === 0) return;
+    setIsCancelling(true);
+    try {
+      await bulkCancelOrders(selectedOrderIds);
+      setIsBulkCancelConfirmOpen(false);
+      setSelectedOrderIds([]);
+      if (onOrderUpdated) await onOrderUpdated();
+    } catch (err) {
+      console.error('Error cancelando pedidos masivamente:', err);
+      alert(`Error al cancelar pedidos: ${err.message || JSON.stringify(err)}`);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedOrderIds.length === 0) return;
+    setIsDeleting(true);
+    try {
+      await bulkDeleteOrders(selectedOrderIds);
+      setIsBulkDeleteConfirmOpen(false);
+      setSelectedOrderIds([]);
+      if (onOrderUpdated) await onOrderUpdated();
+    } catch (err) {
+      console.error('Error eliminando pedidos masivamente:', err);
+      alert(`Error al eliminar pedidos: ${err.message || JSON.stringify(err)}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -111,14 +181,25 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="px-8 py-3 w-48 text-xs font-semibold text-gray-500 uppercase tracking-wider">Orden</th>
-              <th className="px-8 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
-              <th className="px-8 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Hora</th>
-              <th className="px-8 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
-              <th className="px-8 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Canal</th>
-              <th className="px-8 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Envío</th>
-              <th className="px-8 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Total</th>
-              <th className="px-8 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Acción</th>
+              {canCancel && (
+                <th className="pl-6 pr-2 py-3 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={orders.length > 0 && selectedOrderIds.length === orders.length}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded text-black border-gray-300 focus:ring-black cursor-pointer"
+                    title="Seleccionar todos"
+                  />
+                </th>
+              )}
+              <th className="px-6 py-3 w-44 text-xs font-semibold text-gray-500 uppercase tracking-wider">Orden</th>
+              <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
+              <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Hora</th>
+              <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
+              <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Canal</th>
+              <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Envío</th>
+              <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Total</th>
+              <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Acción</th>
             </tr>
           </thead>
           <tbody>
@@ -138,13 +219,24 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                 const hours = String(date.getHours()).padStart(2, '0');
                 const minutes = String(date.getMinutes()).padStart(2, '0');
                 const formattedDate = `${day}/${monthCapitalized} ${hours}:${minutes}`;
+                const isChecked = selectedOrderIds.includes(order.id);
                 return (
                   <tr
                     key={order.id}
                     onClick={() => handleOpenModal(order)}
-                    className="border-b border-gray-50 hover:bg-gray-50 transition-colors text-sm cursor-pointer active:bg-gray-100 group"
+                    className={`border-b border-gray-50 hover:bg-gray-50 transition-colors text-sm cursor-pointer active:bg-gray-100 group ${isChecked ? 'bg-amber-50/40 hover:bg-amber-50/70' : ''}`}
                   >
-                    <td className="px-8 py-5 text-base font-bold text-gray-900">
+                    {canCancel && (
+                      <td className="pl-6 pr-2 py-5 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => toggleSelectOrder(e, order.id)}
+                          className="w-4 h-4 rounded text-black border-gray-300 focus:ring-black cursor-pointer"
+                        />
+                      </td>
+                    )}
+                    <td className="px-6 py-5 text-base font-bold text-gray-900">
                       <span>{order.order_number}</span>
                     </td>
                     <td className="px-8 py-5">
@@ -578,14 +670,41 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                                       <span className="text-gray-400 font-bold ml-1">(+${fmt(Math.round(child.unit_price))})</span>
                                     )}
                                   </div>
+                    selectedOrder.order_items.map((item, idx) => (
+                      <div key={idx} className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-gray-900 text-base bg-gray-100 w-8 h-8 rounded-full flex items-center justify-center shrink-0">
+                            {item.quantity}x
+                          </span>
+                          <div>
+                            <p className="font-semibold text-gray-900 text-sm">
+                              {item.product_name || item.name || 'Producto'}
+                            </p>
+
+                            {/* Opciones / Variantes */}
+                            {(item.order_item_variants?.length > 0 || item.order_item_ingredients?.length > 0) && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {item.order_item_variants?.map((v, i) => (
+                                  <span key={i} className="text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded">
+                                    {v.variant_option_name}
+                                  </span>
+                                ))}
+                                {item.order_item_ingredients?.map((ing, i) => (
+                                  <span key={i} className="text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded">
+                                    {ing.ingredient_name}
+                                  </span>
                                 ))}
                               </div>
                             )}
                           </div>
-                        );
-                      })
+                        </div>
+                        <span className="font-bold text-gray-900 text-sm">
+                          ${fmt((item.unit_price || item.price || 0) * (item.quantity || 1))}
+                        </span>
+                      </div>
+                    ))
                   ) : (
-                    <p className="text-gray-400 text-sm italic">Detalle de productos no disponible.</p>
+                    <p className="text-gray-400 text-sm italic p-4">Detalle de productos no disponible.</p>
                   )}
                 </div>
               </div>
@@ -619,18 +738,15 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                       const hasPending = selectedOrder.payments?.some(p => p.status === 'pending');
                       const isConfirmed = selectedOrder.payments?.some(p => p.status === 'paid');
                       if (isConfirmed) return (
-                        <Badge variant="success">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Pagado
+                        <Badge variant="success" className="text-sm px-3 py-1">
+                          <CheckCircle2 className="w-4 h-4" /> Pagado
                         </Badge>
                       );
                       if (hasPending) return (
                         <Button
                           variant="secondary"
                           size="xs"
-                          onClick={() => {
-                            setPendingPaymentOrder(selectedOrder);
-                            setIsPaymentConfirmOpen(true);
-                          }}
+                          onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, selectedOrder); }}
                         >
                           Confirmar pago
                         </Button>
@@ -639,21 +755,17 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                     })()}
                   </div>
                 </div>
-
-                <PrintableReceipt order={selectedOrder} organization={organization} />
               </div>
 
-              {/* Fecha del pedido */}
-              <div className="flex items-center justify-center gap-2 pt-4 border-t border-gray-100 text-gray-500">
-                <Clock className="h-3.5 w-3.5 text-gray-400" />
-                <p className="text-xs">
-                  Pedido realizado el {new Date(selectedOrder.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' })} a las {new Date(selectedOrder.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
             </div>
           </div>
         )}
       </Modal>
+
+      {/* Ticket imprimible invisible */}
+      {selectedOrder && (
+        <PrintableReceipt order={selectedOrder} organization={organization} />
+      )}
 
       {/* Modal confirmar pago online en caja */}
       {pendingPaymentOrder && (
@@ -667,7 +779,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
         />
       )}
 
-      {/* Modal confirmar cancelación de pedido */}
+      {/* Modal confirmar cancelación de pedido individual */}
       <Modal
         isOpen={isCancelConfirmOpen}
         onClose={() => setIsCancelConfirmOpen(false)}
@@ -677,7 +789,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
         <div className="p-6">
           <p className="text-gray-600 mb-6">
             ¿Estás seguro de que deseas cancelar la orden <strong>#{selectedOrder?.order_number}</strong>?
-            Esta acción no se puede deshacer.
+            Al cancelarla, <strong>quedará fuera de los reportes y contabilidad de ventas</strong>.
           </p>
           <div className="flex gap-3">
             <Button
@@ -689,7 +801,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
             <Button
               onClick={handleCancelOrder}
               disabled={isCancelling}
-              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
+              className="flex-1 py-3 rounded-xl bg-amber-600 text-white font-bold hover:bg-amber-700 transition-colors"
             >
               {isCancelling ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -700,8 +812,141 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
           </div>
         </div>
       </Modal>
-    </>
-  );
-};
 
-export default TransactionList;
+      {/* Modal eliminar pedido individual */}
+      <Modal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        title="Eliminar pedido definitivamente"
+        maxWidth="max-w-sm"
+      >
+        <div className="p-6">
+          <p className="text-gray-600 mb-6">
+            ¿Estás seguro de que deseas <strong>eliminar permanentemente</strong> la orden <strong>#{selectedOrder?.order_number}</strong> de la base de datos?
+            Esta acción la borrará por completo y no entrará en la contabilidad.
+          </p>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => setIsDeleteConfirmOpen(false)}
+              className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
+            >
+              Volver
+            </Button>
+            <Button
+              onClick={handleDeleteSingleOrder}
+              disabled={isDeleting}
+              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
+            >
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Eliminar Pedido'
+              )}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal cancelación masiva */}
+      <Modal
+        isOpen={isBulkCancelConfirmOpen}
+        onClose={() => setIsBulkCancelConfirmOpen(false)}
+        title="Cancelar pedidos seleccionados"
+        maxWidth="max-w-sm"
+      >
+        <div className="p-6">
+          <p className="text-gray-600 mb-6">
+            ¿Estás seguro de que deseas cancelar <strong>{selectedOrderIds.length}</strong> {selectedOrderIds.length === 1 ? 'pedido' : 'pedidos'}?
+            Las órdenes pasarán a estado cancelado y <strong>quedarán excluidas de la contabilidad</strong>.
+          </p>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => setIsBulkCancelConfirmOpen(false)}
+              className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
+            >
+              Volver
+            </Button>
+            <Button
+              onClick={handleBulkCancel}
+              disabled={isCancelling}
+              className="flex-1 py-3 rounded-xl bg-amber-600 text-white font-bold hover:bg-amber-700 transition-colors"
+            >
+              {isCancelling ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Cancelar Pedidos'
+              )}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal eliminación masiva */}
+      <Modal
+        isOpen={isBulkDeleteConfirmOpen}
+        onClose={() => setIsBulkDeleteConfirmOpen(false)}
+        title="Eliminar pedidos seleccionados"
+        maxWidth="max-w-sm"
+      >
+        <div className="p-6">
+          <p className="text-gray-600 mb-6">
+            ¿Estás seguro de que deseas <strong>eliminar definitivamente {selectedOrderIds.length} {selectedOrderIds.length === 1 ? 'pedido' : 'pedidos'}</strong> de la base de datos?
+            Esta acción es irreversible y no entrarán en la contabilidad.
+          </p>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => setIsBulkDeleteConfirmOpen(false)}
+              className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
+            >
+              Volver
+            </Button>
+            <Button
+              onClick={handleBulkDelete}
+              disabled={isDeleting}
+              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
+            >
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Eliminar Definitivamente'
+              )}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Barra Flotante de Acciones Masivas */}
+      {selectedOrderIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-black text-white px-6 py-3.5 rounded-2xl shadow-2xl flex flex-wrap items-center gap-4 animate-in fade-in slide-in-from-bottom-5 border border-zinc-800">
+          <span className="font-bold text-sm">
+            {selectedOrderIds.length} {selectedOrderIds.length === 1 ? 'pedido seleccionado' : 'pedidos seleccionados'}
+          </span>
+          <div className="h-4 w-px bg-zinc-700 hidden sm:block" />
+          <div className="flex items-center gap-2">
+            <Button
+              size="xs"
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold gap-1.5"
+              onClick={() => setIsBulkCancelConfirmOpen(true)}
+            >
+              <Ban className="w-3.5 h-3.5" />
+              Cancelar de contabilidad
+            </Button>
+            <Button
+              size="xs"
+              className="bg-red-700 hover:bg-red-800 text-white font-bold gap-1.5"
+              onClick={() => setIsBulkDeleteConfirmOpen(true)}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Eliminar definitivamente
+            </Button>
+            <Button
+              size="xs"
+              variant="ghost"
+              className="text-zinc-400 hover:text-white"
+              onClick={() => setSelectedOrderIds([])}
+            >
+              Deseleccionar
+            </Button>
+          </div>
+        </div>
+      )}
