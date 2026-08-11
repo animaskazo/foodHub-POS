@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock, Ban, Trash2, CheckSquare, Square } from 'lucide-react';
+import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock, Ban, Trash2, CheckSquare, Square, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Modal from '../ui/Modal';
@@ -486,9 +486,9 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
               <h2 className="text-3xl font-black text-gray-900">{selectedOrder.order_number}</h2>
               <div className="flex items-center gap-2 shrink-0 ml-4">
                 {canCancel && selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && (
-                  <Button size="sm" variant="destructive" onClick={() => setIsCancelConfirmOpen(true)} aria-label="Cancelar Pedido">
-                    <Ban className="w-4 h-4" />
-                    <span className="hidden md:inline ml-2">Cancelar Pedido</span>
+                  <Button size="sm" variant="outline" className="text-red-700 border-red-200 bg-red-50 hover:bg-red-100 font-bold" onClick={() => setIsCancelConfirmOpen(true)} aria-label="Cancelar">
+                    <XCircle className="w-4 h-4" />
+                    <span className="hidden md:inline ml-1.5">Cancelar</span>
                   </Button>
                 )}
                 <Button size="sm" variant="outline" onClick={() => {
@@ -774,12 +774,12 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
             <Button
               onClick={handleCancelOrder}
               disabled={isCancelling}
-              className="flex-1 py-3 rounded-xl bg-amber-600 text-white font-bold hover:bg-amber-700 transition-colors"
+              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
             >
               {isCancelling ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                'Cancelar Pedido'
+                'Cancelar'
               )}
             </Button>
           </div>
@@ -842,12 +842,12 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
             <Button
               onClick={handleBulkCancel}
               disabled={isCancelling}
-              className="flex-1 py-3 rounded-xl bg-amber-600 text-white font-bold hover:bg-amber-700 transition-colors"
+              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
             >
               {isCancelling ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                'Cancelar Pedidos'
+                'Cancelar'
               )}
             </Button>
           </div>
@@ -898,11 +898,11 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
           <div className="flex items-center gap-2">
             <Button
               size="xs"
-              className="bg-amber-600 hover:bg-amber-700 text-white font-bold gap-1.5"
+              className="bg-red-600 hover:bg-red-700 text-white font-bold gap-1.5"
               onClick={() => setIsBulkCancelConfirmOpen(true)}
             >
-              <Ban className="w-3.5 h-3.5" />
-              Cancelar de contabilidad
+              <XCircle className="w-3.5 h-3.5" />
+              Cancelar
             </Button>
             <Button
               size="xs"
