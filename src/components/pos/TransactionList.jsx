@@ -670,41 +670,14 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                                       <span className="text-gray-400 font-bold ml-1">(+${fmt(Math.round(child.unit_price))})</span>
                                     )}
                                   </div>
-                    selectedOrder.order_items.map((item, idx) => (
-                      <div key={idx} className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-gray-900 text-base bg-gray-100 w-8 h-8 rounded-full flex items-center justify-center shrink-0">
-                            {item.quantity}x
-                          </span>
-                          <div>
-                            <p className="font-semibold text-gray-900 text-sm">
-                              {item.product_name || item.name || 'Producto'}
-                            </p>
-
-                            {/* Opciones / Variantes */}
-                            {(item.order_item_variants?.length > 0 || item.order_item_ingredients?.length > 0) && (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {item.order_item_variants?.map((v, i) => (
-                                  <span key={i} className="text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded">
-                                    {v.variant_option_name}
-                                  </span>
-                                ))}
-                                {item.order_item_ingredients?.map((ing, i) => (
-                                  <span key={i} className="text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded">
-                                    {ing.ingredient_name}
-                                  </span>
                                 ))}
                               </div>
                             )}
                           </div>
-                        </div>
-                        <span className="font-bold text-gray-900 text-sm">
-                          ${fmt((item.unit_price || item.price || 0) * (item.quantity || 1))}
-                        </span>
-                      </div>
-                    ))
+                        );
+                      })
                   ) : (
-                    <p className="text-gray-400 text-sm italic p-4">Detalle de productos no disponible.</p>
+                    <p className="text-gray-400 text-sm italic">Detalle de productos no disponible.</p>
                   )}
                 </div>
               </div>
@@ -950,3 +923,9 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
           </div>
         </div>
       )}
+    </>
+  );
+};
+
+export default TransactionList;
+

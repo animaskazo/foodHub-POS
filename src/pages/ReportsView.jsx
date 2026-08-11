@@ -126,7 +126,7 @@ const ReportsView = () => {
   const validOrders = useMemo(() => orders.filter(o => o.status !== 'cancelled' && o.status !== 'refunded'), [orders])
   const mRev = validOrders.reduce((s, o) => s + Number(o.total || 0), 0)
   const mOrd = validOrders.length
-  const mFees = validOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0), 0)
+  const mFees = validOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0)
 
   const annualStats = useMemo(() => {
     if (!annual) return null
