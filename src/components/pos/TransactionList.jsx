@@ -515,17 +515,13 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
               <div className="flex flex-wrap items-center gap-2 mt-1">
                 {getStatusTag(selectedOrder)}
 
-                <Badge variant="grayOutline">
+                <Badge 
+                  variant="grayOutline"
+                  title={selectedOrder.payments?.find(p => p.reference_code)?.reference_code ? `Klap ID: ${selectedOrder.payments.find(p => p.reference_code).reference_code}` : undefined}
+                >
                   <CreditCard className="h-3.5 w-3.5" />
                   {getPaymentMethod(selectedOrder)}
                 </Badge>
-
-                {selectedOrder.payments?.find(p => p.reference_code)?.reference_code && (
-                  <Badge variant="grayOutline">
-                    <span className="font-bold">Klap:</span>
-                    <span className="font-mono ml-1">{selectedOrder.payments.find(p => p.reference_code).reference_code}</span>
-                  </Badge>
-                )}
 
                 <Badge variant="warning">
                   <Timer className="h-3.5 w-3.5" />
@@ -574,9 +570,9 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                 </div>
               )}
 
-              {/* Mapa (fixed, proporción 4:3) - solo delivery */}
+              {/* Mapa - menor altura en mobile, proporción video en desktop */}
               {selectedOrder.delivery_type === 'delivery' && (
-                <div className="aspect-[4/3] w-full rounded-xl overflow-hidden border border-gray-200 shadow-sm lg:sticky lg:top-4">
+                <div className="h-32 lg:h-auto lg:aspect-video w-full rounded-xl overflow-hidden border border-gray-200 lg:sticky lg:top-4">
                   <AddressMap address={selectedOrder.delivery_address} />
                 </div>
               )}
@@ -727,6 +723,18 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                       return null;
                     })()}
                   </div>
+                </div>
+              </div>
+              
+              {/* Info de ID, Fecha y Hora */}
+              <div className="flex flex-col items-center justify-center mt-2 text-[11px] text-gray-400 font-mono space-y-1 opacity-70">
+                <div className="flex items-center gap-2">
+                  <span>ID: {selectedOrder.id}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>Fecha: {new Date(selectedOrder.created_at).toLocaleDateString('es-CL')}</span>
+                  <span>•</span>
+                  <span>Hora: {new Date(selectedOrder.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               </div>
 

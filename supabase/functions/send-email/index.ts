@@ -582,6 +582,13 @@ serve(async (req) => {
       ? (data?.organization_name || 'FoodHub')
       : (data?.organization?.name || 'FoodHub')
 
+    // Generate a simple plain text fallback to prevent spam filters from flagging HTML-only emails
+    const plainText = html
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -590,9 +597,11 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: `${senderName} <${fromEmail}>`,
+        reply_to: fromEmail,
         to: email,
         subject: subject,
-        html: html
+        html: html,
+        text: plainText
       })
     })
 

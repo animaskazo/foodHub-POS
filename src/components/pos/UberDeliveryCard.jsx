@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Truck, Phone, User, ExternalLink, RefreshCw, AlertCircle, Clock } from 'lucide-react';
+import { Truck, Phone, User, ExternalLink, RefreshCw, AlertCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getAccessToken, getDelivery } from '../../services/uberDirectService';
 
@@ -7,6 +7,7 @@ export const UberDeliveryCard = ({ order, organization }) => {
   const [deliveryData, setDeliveryData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const fetchUberData = useCallback(async () => {
     if (!order?.uber_delivery_id) return;
@@ -77,88 +78,100 @@ export const UberDeliveryCard = ({ order, organization }) => {
   };
 
   return (
-    <div className="mt-3 bg-gray-50 border border-gray-200 rounded-xl p-3.5 text-xs space-y-3">
+    <div className="mt-3 bg-gray-50 border border-gray-200 rounded-xl p-3.5 text-xs">
       {/* Encabezado Estado Uber */}
-      <div className="flex items-center justify-between">
+      <div 
+        className="flex items-center justify-between cursor-pointer select-none"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         <div className="flex items-center gap-1.5 font-bold text-gray-800">
           <Truck className="h-4 w-4 text-black" />
-          <span>Uber Direct</span>
+          <span>Uber Direct <span className="font-normal text-gray-500">({currentStatus.label})</span></span>
+          {isExpanded ? <ChevronUp className="h-4 w-4 ml-1 text-gray-500" /> : <ChevronDown className="h-4 w-4 ml-1 text-gray-500" />}
         </div>
         <button
-          onClick={fetchUberData}
+          onClick={(e) => {
+            e.stopPropagation();
+            fetchUberData();
+          }}
           disabled={loading}
-          className="flex items-center gap-1 text-gray-500 hover:text-black transition-colors px-2 py-1 rounded bg-white border border-gray-200"
+          className="p-1 text-gray-400 hover:text-black transition-colors rounded-full hover:bg-gray-100"
           title="Actualizar estado"
         >
-          <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-          <span>{loading ? 'Cargando...' : 'Actualizar'}</span>
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-blue-500' : ''}`} />
         </button>
       </div>
 
-      {/* Badge Estado */}
-      <div className={`px-2.5 py-1.5 rounded-lg border font-semibold flex items-center justify-between ${currentStatus.color}`}>
-        <span>{currentStatus.label}</span>
-        {deliveryData?.pickup_eta && status === 'pending' && (
-          <span className="text-[10px] opacity-80 flex items-center gap-1">
-            <Clock className="h-3 w-3" /> ETA Retiro: {new Date(deliveryData.pickup_eta).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        )}
-      </div>
-
-      {/* Info Repartidor */}
-      {courier ? (
-        <div className="bg-white p-3 rounded-lg border border-gray-200 space-y-2">
-          <div className="flex items-center gap-3">
-            {courier.img_href ? (
-              <img src={courier.img_href} alt={courier.name} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold border border-gray-200">
-                <User className="h-5 w-5" />
-              </div>
+      {isExpanded && (
+        <div className="space-y-3 mt-3 pt-3 border-t border-gray-200">
+          {/* Badge Estado */}
+          <div className={`px-2.5 py-1.5 rounded-lg border font-semibold flex items-center justify-between ${currentStatus.color}`}>
+            <span>{currentStatus.label}</span>
+            {deliveryData?.pickup_eta && status === 'pending' && (
+              <span className="text-[10px] opacity-80 flex items-center gap-1">
+                <Clock className="h-3 w-3" /> ETA Retiro: {new Date(deliveryData.pickup_eta).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+              </span>
             )}
-            <div className="flex-1">
-              <p className="font-bold text-gray-900 text-sm">{courier.name}</p>
-              <div className="flex items-center gap-2 text-gray-500 text-[11px]">
-                <span>{vehicleIcons[courier.vehicle_type] || courier.vehicle_type || 'Repartidor'}</span>
-                {courier.rating && <span>· ⭐ {courier.rating}</span>}
-              </div>
-            </div>
           </div>
 
-          {/* Teléfono Conductor */}
-          {courier.phone_number && (
-            <div className="pt-2 border-t border-gray-100 flex gap-2">
-              <a
-                href={`tel:${courier.phone_number}`}
-                className="flex-1 text-center font-bold text-black bg-gray-100 hover:bg-gray-200 py-1.5 rounded-md flex items-center justify-center gap-1 text-xs"
-              >
-                <Phone className="h-3.5 w-3.5" />
-                Llamar ({courier.phone_number})
-              </a>
+          {/* Info Repartidor */}
+          {courier ? (
+            <div className="bg-white p-3 rounded-lg border border-gray-200 space-y-2">
+              <div className="flex items-center gap-3">
+                {courier.img_href ? (
+                  <img src={courier.img_href} alt={courier.name} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold border border-gray-200">
+                    <User className="h-5 w-5" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <p className="font-bold text-gray-900 text-sm">{courier.name}</p>
+                  <div className="flex items-center gap-2 text-gray-500 text-[11px]">
+                    <span>{vehicleIcons[courier.vehicle_type] || courier.vehicle_type || 'Repartidor'}</span>
+                    {courier.rating && <span>· ⭐ {courier.rating}</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Teléfono Conductor */}
+              {courier.phone_number && (
+                <div className="pt-2 border-t border-gray-100 flex gap-2">
+                  <a
+                    href={`tel:${courier.phone_number}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex-1 text-center font-bold text-black bg-gray-100 hover:bg-gray-200 py-1.5 rounded-md flex items-center justify-center gap-1 text-xs"
+                  >
+                    <Phone className="h-3.5 w-3.5" />
+                    Llamar ({courier.phone_number})
+                  </a>
+                </div>
+              )}
+            </div>
+          ) : !loading && (
+            <div className="bg-white p-2.5 rounded-lg border border-gray-200 text-gray-500 text-[11px] flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+              <span>Uber está asignando el repartidor para esta orden. Vuelve a presionar "Actualizar" en unos momentos.</span>
             </div>
           )}
-        </div>
-      ) : !loading && (
-        <div className="bg-white p-2.5 rounded-lg border border-gray-200 text-gray-500 text-[11px] flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
-          <span>Uber está asignando el repartidor para esta orden. Vuelve a presionar "Actualizar" en unos momentos.</span>
+
+          {/* Tracking Link */}
+          {(deliveryData?.tracking_url || order?.uber_tracking_url) && (
+            <a
+              href={deliveryData?.tracking_url || order?.uber_tracking_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="w-full flex items-center justify-center gap-1.5 text-xs font-bold text-green-700 bg-green-50 hover:bg-green-100 py-2 rounded-lg border border-green-200 transition-colors"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Seguir en vivo (Mapa Uber)
+            </a>
+          )}
+
+          {error && <p className="text-[11px] text-red-600 italic">{error}</p>}
         </div>
       )}
-
-      {/* Tracking Link */}
-      {(deliveryData?.tracking_url || order?.uber_tracking_url) && (
-        <a
-          href={deliveryData?.tracking_url || order?.uber_tracking_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full flex items-center justify-center gap-1.5 text-xs font-bold text-green-700 bg-green-50 hover:bg-green-100 py-2 rounded-lg border border-green-200 transition-colors"
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-          Seguir en vivo (Mapa Uber)
-        </a>
-      )}
-
-      {error && <p className="text-[11px] text-red-600 italic">{error}</p>}
     </div>
   );
 };
