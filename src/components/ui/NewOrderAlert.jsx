@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useKitchenOrders } from '../../hooks/useKitchenOrders';
-import { ChefHat, X, Receipt } from 'lucide-react';
+import { ChefHat, X, Receipt, Printer } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import PrintableReceipt from '../pos/PrintableReceipt';
@@ -88,22 +88,6 @@ const NewOrderAlert = () => {
       
       if (localStorage.getItem('pos_auto_print_enabled') === 'true') {
         setAutoPrintOrder(latestNewOrder);
-        import('sonner').then(({ toast }) => toast.info('Impresión automática iniciada...'));
-        
-        setTimeout(() => {
-          const originalTitle = document.title;
-          document.title = `Orden_#${latestNewOrder.order_number || latestNewOrder.id.slice(0,4)}`;
-          
-          const btn = document.getElementById('global-hidden-print-trigger');
-          if (btn) {
-            btn.click();
-          } else {
-            window.focus();
-            window.print();
-          }
-          
-          document.title = originalTitle;
-        }, 500);
       }
 
       // Solo limpiamos si mostramos la alerta visual o si auto-imprimimos.
@@ -192,17 +176,26 @@ const NewOrderAlert = () => {
               )}
             </div>
 
-            <button
-              onClick={() => {
-                setIsVisible(false);
-                setTimeout(clearLatestNewOrder, 300);
-                navigate('/kitchen');
-              }}
-              className="w-full bg-white text-black font-bold py-2 md:py-2.5 rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 text-sm"
-            >
-              <Receipt className="h-4 w-4" />
-              Ver en Cocina
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleManualPrint}
+                className="bg-white/10 text-white font-bold py-2 md:py-2.5 px-4 rounded-xl hover:bg-white/20 transition-colors flex items-center justify-center gap-2 text-sm"
+                title="Imprimir Ticket"
+              >
+                <Printer className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => {
+                  setIsVisible(false);
+                  setTimeout(clearLatestNewOrder, 300);
+                  navigate('/kitchen');
+                }}
+                className="flex-1 bg-white text-black font-bold py-2 md:py-2.5 rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 text-sm"
+              >
+                <Receipt className="h-4 w-4" />
+                Ver en Cocina
+              </button>
+            </div>
           </div>
         </div>
       </div>
