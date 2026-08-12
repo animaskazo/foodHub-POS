@@ -4,6 +4,7 @@ import { ChefHat, X, Receipt, Printer } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import PrintableReceipt from '../pos/PrintableReceipt';
+import { printReceipt } from '../../services/printerService';
 
 const NewOrderAlert = () => {
   const { latestNewOrder, clearLatestNewOrder } = useKitchenOrders();
@@ -105,6 +106,64 @@ const NewOrderAlert = () => {
       setIsVisible(false);
     }
   }, [latestNewOrder, clearLatestNewOrder]);
+
+  // Dedicated effect for printing to ensure DOM/React state is ready
+  useEffect(() => {
+    if (autoPrintOrder && localStorage.getItem('pos_auto_print_enabled') === 'true') {
+      import('sonner').then(({ toast }) => toast.info('Generando ticket...'));
+      
+      const timer = setTimeout(async () => {
+        const qzPrinter = localStorage.getItem('qz_default_printer');
+        
+        if (qzPrinter) {
+          try {
+            await printReceipt(autoPrintOrder, organization, qzPrinter);
+          } catch (e) {
+            console.error('QZ Print failed', e);
+            import('sonner').then(({ toast }) => toast.error('Error imprimiendo en QZ Tray'));
+          }
+        } else {
+          // Fallback to native print window
+          const originalTitle = document.title;
+          document.title = `Orden_#${autoPrintOrder.order_number || autoPrintOrder.id.slice(0,4)}`;
+          
+          const btn = document.getElementById('global-hidden-print-trigger');
+          if (btn) {
+            btn.click();
+          } else {
+            window.focus();
+            window.print();
+          }
+          
+          document.title = originalTitle;
+        }
+      }, 1000); // 1s delay for logo rendering
+      
+      return () => clearTimeout(timer);
+    }
+  }, [autoPrintOrder, organization]);
+
+  const handleManualPrint = async () => {
+    const qzPrinter = localStorage.getItem('qz_default_printer');
+    if (qzPrinter && latestNewOrder) {
+      import('sonner').then(({ toast }) => toast.info('Imprimiendo ticket...'));
+      try {
+        await printReceipt(latestNewOrder, organization, qzPrinter);
+      } catch (e) {
+        console.error('QZ Print failed', e);
+        import('sonner').then(({ toast }) => toast.error('Error imprimiendo en QZ Tray'));
+      }
+    } else {
+      setAutoPrintOrder(latestNewOrder);
+      setTimeout(() => {
+        const originalTitle = document.title;
+        document.title = `Orden_#${latestNewOrder?.order_number || latestNewOrder?.id?.slice(0,4)}`;
+        window.focus();
+        window.print();
+        document.title = originalTitle;
+      }, 150);
+    }
+  };
 
   if (!latestNewOrder && !isVisible) return null;
 
