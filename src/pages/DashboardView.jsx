@@ -242,17 +242,15 @@ const DashboardView = () => {
     const start = new Date();
     start.setDate(start.getDate() - 6);
 
-    const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-
     const startMonth = start.toLocaleDateString('es-ES', { month: 'long' });
     const endMonth = end.toLocaleDateString('es-ES', { month: 'long' });
     const startDay = start.toLocaleDateString('es-ES', { day: '2-digit' });
     const endDay = end.toLocaleDateString('es-ES', { day: '2-digit' });
 
     if (startMonth === endMonth) {
-      return `Desde el ${startDay} al ${endDay} de ${capitalize(endMonth)}`;
+      return `Desde el ${startDay} al ${endDay} de ${endMonth}`;
     } else {
-      return `Desde el ${startDay} de ${capitalize(startMonth)} al ${endDay} de ${capitalize(endMonth)}`;
+      return `Desde el ${startDay} de ${startMonth} al ${endDay} de ${endMonth}`;
     }
   }, []);
 
@@ -385,9 +383,9 @@ const DashboardView = () => {
           {/* Ventas Totales Card */}
           <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between">
             <div>
-              <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 uppercase tracking-wider">
+              <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
                 <div className="w-1.5 h-1.5 rounded-full bg-black"></div>
-                Ventas Totales 
+                Ventas totales 
                 <Tooltip text={sparklineDateRangeText}>
                   <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
                 </Tooltip>
@@ -404,9 +402,9 @@ const DashboardView = () => {
           {/* Órdenes Totales Card */}
           <div className={`bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between md:flex ${showMetricsMobile ? 'flex' : 'hidden'}`}>
             <div>
-              <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 uppercase tracking-wider">
+              <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
                 <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
-                Órdenes Totales 
+                Órdenes totales 
                 <Tooltip text={sparklineDateRangeText}>
                   <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
                 </Tooltip>
@@ -416,16 +414,16 @@ const DashboardView = () => {
               </div>
             </div>
             <div className="pl-4">
-              <Sparkline data={weeklySparklines.orders} color="#a855f7" width={70} height={30} />
+              <Sparkline data={weeklySparklines.orders} color="#a855f7" fillColor="#f3e8ff" width={70} height={30} />
             </div>
           </div>
 
           {/* Ticket Promedio Card */}
           <div className={`bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between md:flex ${showMetricsMobile ? 'flex' : 'hidden'}`}>
             <div>
-              <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 uppercase tracking-wider">
+              <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                Ticket Promedio 
+                Ticket promedio 
                 <Tooltip text={sparklineDateRangeText}>
                   <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
                 </Tooltip>
@@ -435,7 +433,7 @@ const DashboardView = () => {
               </div>
             </div>
             <div className="pl-4">
-              <Sparkline data={weeklySparklines.ticket} color="#3b82f6" width={70} height={30} />
+              <Sparkline data={weeklySparklines.ticket} color="#3b82f6" fillColor="#dbeafe" width={70} height={30} />
             </div>
           </div>
 

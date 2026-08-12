@@ -695,12 +695,21 @@ export const appendItemsToOrder = async (orderId, newCartItems, additionalTotal,
 
 export const updateOrderItemsStatus = async (itemIds, newStatus, orderId) => {
   try {
+    // 1. Update the parent items
     const { error } = await supabase
       .from('order_items')
       .update({ status: newStatus })
       .in('id', itemIds);
 
     if (error) throw error;
+
+    // 2. Update their child items (modifiers, combos) to match the parent status
+    const { error: childrenError } = await supabase
+      .from('order_items')
+      .update({ status: newStatus })
+      .in('parent_item_id', itemIds);
+
+    if (childrenError) throw childrenError;
 
     // Check if all items in this order are now ready
     if (newStatus === 'ready' && orderId) {
@@ -712,10 +721,8 @@ export const updateOrderItemsStatus = async (itemIds, newStatus, orderId) => {
       if (!fetchError && items) {
         const allReady = items.every(i => i.status === 'ready');
         if (allReady) {
-          await supabase
-            .from('orders')
-            .update({ status: 'ready' })
-            .eq('id', orderId);
+          // Call updateOrderStatus so emails and Uber Direct webhooks are fired correctly
+          await updateOrderStatus(orderId, 'ready');
         }
       }
     }
