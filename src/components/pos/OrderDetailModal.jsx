@@ -96,6 +96,15 @@ const OrderDetailModal = ({
                   ) : (
                     <p className="text-sm text-gray-400 italic">Dirección no especificada</p>
                   )}
+                  {order.delivery_notes && (
+                    <div className="flex items-start gap-3 text-sm mt-3 pt-3 border-t border-gray-100">
+                      <Info className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-gray-500 font-medium text-xs mb-0.5">Referencias de entrega</p>
+                        <p className="text-gray-800 font-semibold">{order.delivery_notes}</p>
+                      </div>
+                    </div>
+                  )}
                   <UberDeliveryCard order={order} organization={organization} />
                 </div>
               ) : (
@@ -104,6 +113,15 @@ const OrderDetailModal = ({
                     <PaperBag className="h-5 w-5 text-gray-400" />
                     <h3 className="font-bold text-lg">Retiro en Local</h3>
                   </div>
+                  {order.delivery_notes && (
+                    <div className="flex items-start gap-3 text-sm mt-3 pt-3 border-t border-gray-100">
+                      <Info className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-gray-500 font-medium text-xs mb-0.5">Referencias de entrega</p>
+                        <p className="text-gray-800 font-semibold">{order.delivery_notes}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

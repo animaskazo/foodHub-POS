@@ -46,6 +46,7 @@ const SuperAdminView = () => {
           subtotal,
           tax_amount,
           delivery_fee,
+          delivery_notes,
           created_at,
           uber_delivery_id,
           uber_tracking_url,

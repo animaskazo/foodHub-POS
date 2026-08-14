@@ -173,6 +173,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           paymentMethod: 'local',
           deliveryType: 'pickup',
           deliveryAddress: '',
+          deliveryNotes: '',
           deliveryFee: 0,
           deliveryCoords: null,
           quoteId: null,
@@ -192,6 +193,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       paymentMethod: 'local',
       deliveryType: 'pickup',
       deliveryAddress: '',
+      deliveryNotes: '',
       deliveryFee: 0,
       deliveryCoords: null,
       quoteId: null,
@@ -379,6 +381,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
 
   const handleAddressBlur = async () => {
     if (!form.deliveryAddress?.trim()) return;
+    if (isValidatedAddress) return;
     if (deliveryMode !== 'uber_direct' && (!org?.store_lat || !org?.store_lng)) return;
 
     setIsGeocoding(true);
@@ -705,6 +708,17 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                         <Info className="h-4 w-4 shrink-0 mt-0.5" />
                         <p className="text-xs font-semibold leading-relaxed">{distanceError}</p>
                       </div>
+                    )}
+
+                    {!distanceError && isValidatedAddress && (
+                      <InputField
+                        icon={MapPin}
+                        label="Nº Depto / Referencias (Opcional)"
+                        type="text"
+                        placeholder="Ej: Depto 402, Condominio Los Aromos"
+                        value={form.deliveryNotes}
+                        onChange={e => update('deliveryNotes', e.target.value)}
+                      />
                     )}
 
                     {!distanceError && isValidatedAddress && (

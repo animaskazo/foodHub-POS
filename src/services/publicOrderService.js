@@ -175,6 +175,7 @@ export const createPublicOrder = async ({
   deliveryType = 'pickup',
   deliveryAddress = null,
   deliveryFee = 0,
+  deliveryNotes = null,
   scheduledAt = null,
   referenceCode = null
 }) => {
@@ -232,6 +233,7 @@ export const createPublicOrder = async ({
       total,
       delivery_type: deliveryType,
       delivery_address: deliveryAddress,
+      delivery_notes: deliveryNotes,
       delivery_fee: deliveryFee || 0,
     }])
     .select()

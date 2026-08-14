@@ -437,6 +437,7 @@ const OrderView = () => {
           dropoff_longitude: dropoffCoords?.lng,
           pickup_phone_number: normalizedPickupPhone,
           dropoff_phone_number: normalizePhone(customerForm.phone),
+          dropoff_notes: customerForm.deliveryNotes || '',
           manifest_items: cart.map(item => ({
             name: item.product_name || item.name || 'Producto',
             quantity: item.quantity || 1,
@@ -458,6 +459,7 @@ const OrderView = () => {
         dropoff_address: JSON.stringify(dropoffAddr),
         dropoff_name: customerForm.name,
         dropoff_phone_number: normalizePhone(customerForm.phone),
+        dropoff_notes: customerForm.deliveryNotes || '',
         dropoff_latitude: dropoffCoords?.lat,
         dropoff_longitude: dropoffCoords?.lng,
         manifest_items: cart.map(item => ({
@@ -556,6 +558,7 @@ const OrderView = () => {
         paymentStatus: 'pending',
         deliveryType: customerForm.deliveryType,
         deliveryAddress: customerForm.deliveryAddress,
+        deliveryNotes: customerForm.deliveryNotes,
         deliveryFee: customerForm.deliveryFee,
         scheduledAt,
       });
