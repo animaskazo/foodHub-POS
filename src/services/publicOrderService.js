@@ -208,7 +208,7 @@ export const createPublicOrder = async ({
 
   const { data: orgData } = await supabase
     .from('organizations')
-    .select('default_tax_rate, name, logo_url, address')
+    .select('default_tax_rate, name, logo_url, address, email')
     .eq('id', organizationId)
     .single();
 
