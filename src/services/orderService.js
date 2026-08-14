@@ -307,9 +307,7 @@ export const getKitchenOrders = async () => {
 
     if (error) throw error;
 
-    // Excluir pedidos programados futuros (aún no les llegó su hora)
-    const now = Date.now();
-    return (data || []).filter(o => !o.scheduled_at || new Date(o.scheduled_at).getTime() <= now);
+    return data || [];
   } catch (error) {
     console.error("Error fetching kitchen orders:", error);
     return [];

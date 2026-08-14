@@ -44,6 +44,7 @@ const SuperAdminView = () => {
           status,
           total,
           subtotal,
+          tax_amount,
           delivery_fee,
           created_at,
           uber_delivery_id,
@@ -51,12 +52,10 @@ const SuperAdminView = () => {
           uber_status,
           payments ( method, status, reference_code ),
           order_items (
-            id,
-            product_name,
-            quantity,
-            unit_price,
-            total_price,
-            parent_item_id
+            *,
+            products(description, product_images(url)),
+            order_item_variants(variant_option_name),
+            order_item_ingredients(ingredient_name, price)
           )
         `)
         .eq('organization_id', orgId)

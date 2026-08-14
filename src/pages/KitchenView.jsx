@@ -244,13 +244,7 @@ const KitchenView = () => {
         </div>
 
         <div className="flex flex-col md:flex-row md:flex-nowrap gap-4 md:gap-6 w-full items-start pb-20 overflow-x-auto hide-scrollbar">
-          {orders.length === 0 && !loading && (
-            <div className="flex flex-col items-center justify-center w-full h-full py-20 col-span-full">
-              <ChefHat className="h-24 w-24 mb-6 text-gray-400" />
-              <p className="text-xl font-medium text-center text-gray-500">No hay órdenes pendientes en este momento.</p>
-              <p className="text-sm mt-2 text-center text-gray-400">La cocina está al día.</p>
-            </div>
-          )}
+
           {(() => {
             const allTickets = [];
             orders.forEach(order => {
