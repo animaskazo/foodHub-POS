@@ -20,7 +20,7 @@ function text(value: unknown) { return typeof value === "string" ? value : ""; }
 function toNumber(value: unknown) { const number = Number(value); return Number.isFinite(number) ? number : 0; }
 
 async function getContext(slug: string) {
-  const organizations = await db(`organizations?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=id,name,slug,currency,primary_color,default_tax_rate,delivery_enabled,store_lat,store_lng,delivery_radius_km,delivery_fee,delivery_min_order,address,logo_url,business_hours,phone`);
+  const organizations = await db(`organizations?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=id,name,slug,currency,primary_color,default_tax_rate,delivery_enabled,store_lat,store_lng,delivery_radius_km,delivery_fee,delivery_min_order,address,logo_url,business_hours,phone,email`);
   const organization = organizations[0];
   if (!organization) throw new Error("No existe un negocio activo para ese enlace.");
   const branches = await db(`branches?organization_id=eq.${organization.id}&is_active=eq.true&select=id,name,accepts_online`);
@@ -214,6 +214,7 @@ async function confirmOrder(cart: unknown, customer: any, delivery: any, context
   
   await db("payments", { method: "POST", body: JSON.stringify({ order_id: order.id, method: "cash", status: "pending", amount: grossTotal }) });
 
+  // Send confirmation email to customer
   if (customerEmail) {
     const emailData = {
       order_number: order.order_number,
@@ -249,6 +250,44 @@ async function confirmOrder(cart: unknown, customer: any, delivery: any, context
     } catch (e) {
       console.error("Error sending email:", e);
     }
+  }
+
+  // Send sale notification email to the business (non-blocking)
+  const orgEmail = (context.organization as any).email;
+  if (orgEmail) {
+    const businessEmailData = {
+      order_number: order.order_number,
+      order_type: orderType,
+      channel: 'whatsapp',
+      delivery_type: deliveryType,
+      delivery_address: deliveryAddress,
+      delivery_fee: deliveryFee,
+      customer_name: customerName,
+      customer_phone: phone,
+      total: grossTotal,
+      subtotal: netTotal,
+      payment_method: 'cash',
+      notes: text((context as any).notes) || null,
+      items: items.map(item => ({
+        product_name: item.product.name,
+        quantity: item.quantity,
+        total_price: item.grossUnitPrice * item.quantity,
+      })),
+      organization: {
+        name: context.organization.name || 'FoodHub',
+        logo_url: context.organization.logo_url || null,
+      },
+      branch: {
+        name: context.branch.name || '',
+        address: context.organization.address || '',
+      },
+    };
+    // fire-and-forget: do not await so it never blocks the order confirmation
+    fetch(`${url}/functions/v1/send-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceKey}` },
+      body: JSON.stringify({ type: 'sale_notification', email: orgEmail, data: businessEmailData }),
+    }).catch(e => console.error('[Business email] Error sending sale notification from WhatsApp agent:', e));
   }
 
   return { order_id: order.id, order_number: order.order_number, total: grossTotal };

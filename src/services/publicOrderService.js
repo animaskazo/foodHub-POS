@@ -375,8 +375,67 @@ export const createPublicOrder = async ({
     }
   }
 
+  // 8. Notify business via email (non-blocking, ecommerce/online orders only)
+  sendBusinessSaleNotification({
+    order,
+    cartItems,
+    orgData,
+    branchData: branch,
+    deliveryType,
+    deliveryAddress,
+    deliveryFee,
+    paymentMethod,
+    notes,
+    channel: 'online',
+  });
+
   return { ...order, customer_email: customer.email, customer_name: customer.name, cart_items: cartItems, org_data: orgData };
 };
+
+// Helper: send a non-blocking sale notification email to the business
+async function sendBusinessSaleNotification({ order, cartItems, orgData, branchData, deliveryType, deliveryAddress, deliveryFee, paymentMethod, notes, channel = 'online' }) {
+  const orgEmail = orgData?.email;
+  if (!orgEmail) return; // skip silently if no business email configured
+
+  try {
+    const { sendEmail } = await import('./emailService.js');
+    const items = cartItems.map(item => ({
+      product_name: item.name + (item.variant ? ` (${item.variant.name})` : ''),
+      quantity: item.quantity,
+      total_price: item.price * item.quantity,
+    }));
+    await sendEmail({
+      type: 'sale_notification',
+      email: orgEmail,
+      data: {
+        order_number: order.order_number,
+        order_type: channel,
+        channel,
+        delivery_type: deliveryType,
+        delivery_address: deliveryAddress || null,
+        delivery_fee: deliveryFee || 0,
+        customer_name: order.customer_name || 'Cliente',
+        customer_phone: order.customer_phone || null,
+        total: order.total,
+        subtotal: order.subtotal,
+        payment_method: paymentMethod || 'cash',
+        notes: notes || null,
+        items,
+        organization: {
+          name: orgData?.name || 'FoodHub',
+          logo_url: orgData?.logo_url || null,
+        },
+        branch: {
+          name: branchData?.name || '',
+          address: orgData?.address || '',
+        },
+      },
+    });
+  } catch (err) {
+    // Non-blocking: log but don't propagate
+    console.error('[Business email] Error sending sale notification:', err);
+  }
+}
 
 // ── Get public order details by its ID (for confirmation page) ──
 export const getPublicOrderById = async (orderId) => {
