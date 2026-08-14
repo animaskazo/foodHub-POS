@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,10 +14,35 @@ serve(async (req) => {
   }
 
   try {
-    const { type, email, data } = await req.json()
+    let { type, email, data } = await req.json()
     
+    // Fallback: If no email is provided, try to find the organization owner's email
+    if (!email && data?.organization?.id) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+      if (supabaseUrl && supabaseServiceKey) {
+        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+        
+        // Find the owner of the organization
+        const { data: staffData } = await supabaseAdmin
+          .from('staff')
+          .select('id')
+          .eq('organization_id', data.organization.id)
+          .eq('role', 'owner')
+          .limit(1)
+          .single()
+          
+        if (staffData?.id) {
+          const { data: userData } = await supabaseAdmin.auth.admin.getUserById(staffData.id)
+          if (userData?.user?.email) {
+            email = userData.user.email
+          }
+        }
+      }
+    }
+
     if (!email) {
-      throw new Error('Email is required')
+      throw new Error('Email is required and could not be resolved')
     }
 
     if (!RESEND_API_KEY) {

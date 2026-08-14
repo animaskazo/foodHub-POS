@@ -255,41 +255,40 @@ async function confirmOrder(cart: unknown, customer: any, delivery: any, context
 
   // Send sale notification email to the business (non-blocking)
   const orgEmail = (context.organization as any).email;
-  if (orgEmail) {
-    const businessEmailData = {
-      order_number: order.order_number,
-      order_type: orderType,
-      channel: 'whatsapp',
-      delivery_type: deliveryType,
-      delivery_address: deliveryAddress,
-      delivery_fee: deliveryFee,
-      customer_name: customerName,
-      customer_phone: phone,
-      total: grossTotal,
-      subtotal: netTotal,
-      payment_method: 'cash',
-      notes: text((context as any).notes) || null,
-      items: items.map(item => ({
-        product_name: item.product.name,
-        quantity: item.quantity,
-        total_price: item.grossUnitPrice * item.quantity,
-      })),
-      organization: {
-        name: context.organization.name || 'FoodHub',
-        logo_url: context.organization.logo_url || null,
-      },
-      branch: {
-        name: context.branch.name || '',
-        address: context.organization.address || '',
-      },
-    };
-    // fire-and-forget: do not await so it never blocks the order confirmation
-    fetch(`${url}/functions/v1/send-email`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceKey}` },
-      body: JSON.stringify({ type: 'sale_notification', email: orgEmail, data: businessEmailData }),
-    }).catch(e => console.error('[Business email] Error sending sale notification from WhatsApp agent:', e));
-  }
+  const businessEmailData = {
+    order_number: order.order_number,
+    order_type: orderType,
+    channel: 'whatsapp',
+    delivery_type: deliveryType,
+    delivery_address: deliveryAddress,
+    delivery_fee: deliveryFee,
+    customer_name: customerName,
+    customer_phone: phone,
+    total: grossTotal,
+    subtotal: netTotal,
+    payment_method: 'cash',
+    notes: text((context as any).notes) || null,
+    items: items.map(item => ({
+      product_name: item.product.name,
+      quantity: item.quantity,
+      total_price: item.grossUnitPrice * item.quantity,
+    })),
+    organization: {
+      id: context.organization.id,
+      name: context.organization.name || 'FoodHub',
+      logo_url: context.organization.logo_url || null,
+    },
+    branch: {
+      name: context.branch.name || '',
+      address: context.organization.address || '',
+    },
+  };
+  // fire-and-forget: do not await so it never blocks the order confirmation
+  fetch(`${url}/functions/v1/send-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceKey}` },
+    body: JSON.stringify({ type: 'sale_notification', email: orgEmail || null, data: businessEmailData }),
+  }).catch(e => console.error('[Business email] Error sending sale notification from WhatsApp agent:', e));
 
   return { order_id: order.id, order_number: order.order_number, total: grossTotal };
 }

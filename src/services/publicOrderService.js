@@ -395,7 +395,6 @@ export const createPublicOrder = async ({
 // Helper: send a non-blocking sale notification email to the business
 async function sendBusinessSaleNotification({ order, cartItems, orgData, branchData, deliveryType, deliveryAddress, deliveryFee, paymentMethod, notes, channel = 'online' }) {
   const orgEmail = orgData?.email;
-  if (!orgEmail) return; // skip silently if no business email configured
 
   try {
     const { sendEmail } = await import('./emailService.js');
@@ -406,7 +405,7 @@ async function sendBusinessSaleNotification({ order, cartItems, orgData, branchD
     }));
     await sendEmail({
       type: 'sale_notification',
-      email: orgEmail,
+      email: orgEmail || null,
       data: {
         order_number: order.order_number,
         order_type: channel,
@@ -422,6 +421,7 @@ async function sendBusinessSaleNotification({ order, cartItems, orgData, branchD
         notes: notes || null,
         items,
         organization: {
+          id: order.organization_id,
           name: orgData?.name || 'FoodHub',
           logo_url: orgData?.logo_url || null,
         },
