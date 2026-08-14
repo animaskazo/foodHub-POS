@@ -16,8 +16,8 @@ serve(async (req) => {
   try {
     let { type, email, data } = await req.json()
     
-    // Fallback: If no email is provided, try to find the organization owner's email
-    if (!email && data?.organization?.id) {
+    // Always use the administrator's email for business notifications
+    if (type === 'sale_notification' && data?.organization?.id) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')
       const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
       if (supabaseUrl && supabaseServiceKey) {
