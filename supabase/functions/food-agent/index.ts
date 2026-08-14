@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
+declare const Deno: any;
 const url = Deno.env.get("SUPABASE_URL")!;
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const claudeKey = Deno.env.get("CLAUDE_API_KEY");
@@ -53,7 +54,7 @@ function validateCart(input: unknown, context: Awaited<ReturnType<typeof getCont
     const selected = Array.isArray(raw?.variant_option_ids) ? raw.variant_option_ids : [];
     const productGroups = context.variants.filter((group: any) => group.product_id === product.id);
     const options = selected.map((id: string) => {
-      const group = [...groups.values()].find((candidate: any) => candidate.product_id === product.id && candidate.variant_options?.some((option: any) => option.id === id && option.is_active));
+      const group = Array.from(groups.values()).find((candidate: any) => candidate.product_id === product.id && candidate.variant_options?.some((option: any) => option.id === id && option.is_active));
       const option = group?.variant_options.find((candidate: any) => candidate.id === id);
       if (!group || !option) throw new Error("Una opción elegida no pertenece al producto.");
       return { group, option };
