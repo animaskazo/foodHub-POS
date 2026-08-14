@@ -494,17 +494,23 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             const currency = (quoteRes.currency_type || quoteRes.currency || 'USD').toUpperCase();
             const price = currency === 'CLP' ? Math.round(rawFee / 100) : rawFee / 100;
 
-            update('quoteId', quoteRes.id);
-            update('quotePrice', price);
-            update('quoteCurrency', currency);
-            update('deliveryFee', price);
-            update('deliveryCurrency', currency);
+            setForm(f => {
+              if (f.deliveryType === 'pickup') return f;
+              return {
+                ...f,
+                quoteId: quoteRes.id,
+                quotePrice: price,
+                quoteCurrency: currency,
+                deliveryFee: price,
+                deliveryCurrency: currency,
+              };
+            });
           } catch (quoteError) {
             console.error('[Uber Quote Error]', quoteError.message || quoteError);
             console.error('[Uber Quote Error stack]', quoteError.stack);
             setDistanceError('No pudimos cotizar el envío con Uber. Intenta de nuevo.');
             setIsValidatedAddress(false);
-            update('deliveryFee', 0);
+            setForm(f => f.deliveryType === 'pickup' ? f : { ...f, deliveryFee: 0 });
           } finally {
             setIsQuoting(false);
           }

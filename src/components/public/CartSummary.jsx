@@ -82,7 +82,7 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
                     <div className="mt-1.5 space-y-1 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
                       {item.selectedOptions.map((opt, idx) => (
                         <div key={idx} className="text-[11px] text-gray-600 font-medium">
-                          <span className="text-blue-500 font-bold">•</span> {opt.name}
+                          <span className="text-blue-500 font-bold">•</span> {opt.quantity > 1 && <span className="font-bold text-gray-800">{opt.quantity}x </span>}{opt.name}
                           {opt.selectedIngredients && opt.selectedIngredients.length > 0 && (
                             <span className="text-[10px] text-orange-600 font-semibold ml-1">
                               (+ {opt.selectedIngredients.map(i => i.name).join(', ')})
@@ -142,7 +142,7 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
               <span className="font-bold text-gray-900 text-base">Total a pagar</span>
               <span className="font-black text-gray-900 text-xl">${fmt(total)}</span>
             </div>
-            <p className="text-xs text-gray-400 mt-1">IVA incluido · Pago en local al retirar</p>
+            <p className="text-xs text-gray-400 mt-1">IVA incluido</p>
           </div>
 
           <div className="h-24" />

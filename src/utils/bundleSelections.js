@@ -11,6 +11,7 @@ export const buildSelection = (opt) => {
     productId: opt.productId,
     name: opt.name,
     priceModifier: opt.priceModifier || 0,
+    quantity: 1,
     variant: chosenVariant,
     selectedIngredients: []
   };
@@ -21,6 +22,7 @@ export const selectionFromCartOption = (opt) => ({
   productId: opt.productId,
   name: opt.originalName || opt.name,
   priceModifier: opt.priceModifier || 0,
+  quantity: opt.quantity || 1,
   variant: opt.variant || null,
   selectedIngredients: opt.selectedIngredients || []
 });

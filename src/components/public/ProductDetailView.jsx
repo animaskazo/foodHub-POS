@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Plus, Minus } from 'lucide-react';
 import IngredientIcon from '../ui/IngredientIcon';
 import { buildSelection, selectionFromCartOption, defaultSelectionsForSlot } from '../../utils/bundleSelections';
 
@@ -60,20 +60,62 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
     setSelections(prev => {
       const current = prev[slotId] || [];
       const existingIndex = current.findIndex(s => s.optionId === opt.id);
+      const slot = product.bundleSlots?.find(s => s.id === slotId);
+      const max = slot?.maxSelections > 0 ? slot.maxSelections : 1;
+      const count = current.reduce((acc, s) => acc + (s.quantity || 1), 0);
+
       if (existingIndex >= 0) {
         return { ...prev, [slotId]: current.filter((_, i) => i !== existingIndex) };
       }
 
-      const slot = product.bundleSlots?.find(s => s.id === slotId);
-      const max = slot?.maxSelections > 0 ? slot.maxSelections : 1;
-      if (current.length >= max) {
-        // Comportamiento radio para max = 1: reemplazar en vez de ignorar
+      if (count >= max) {
         if (max === 1 && current.length === 1) {
           return { ...prev, [slotId]: [buildSelection(opt)] };
         }
         return prev;
       }
       return { ...prev, [slotId]: [...current, buildSelection(opt)] };
+    });
+  };
+
+  const handleIncrementOption = (e, slotId, opt) => {
+    e.stopPropagation();
+    setSelections(prev => {
+      const current = prev[slotId] || [];
+      const existingIndex = current.findIndex(s => s.optionId === opt.id);
+      if (existingIndex < 0) return prev;
+
+      const slot = product.bundleSlots?.find(s => s.id === slotId);
+      const max = slot?.maxSelections > 0 ? slot.maxSelections : 1;
+      const count = current.reduce((acc, s) => acc + (s.quantity || 1), 0);
+
+      if (count >= max) return prev;
+
+      return {
+        ...prev,
+        [slotId]: current.map((s, i) => i === existingIndex ? { ...s, quantity: (s.quantity || 1) + 1 } : s)
+      };
+    });
+  };
+
+  const handleDecrementOption = (e, slotId, opt) => {
+    e.stopPropagation();
+    setSelections(prev => {
+      const current = prev[slotId] || [];
+      const existingIndex = current.findIndex(s => s.optionId === opt.id);
+      if (existingIndex < 0) return prev;
+
+      const existing = current[existingIndex];
+      const newQty = (existing.quantity || 1) - 1;
+
+      if (newQty <= 0) {
+        return { ...prev, [slotId]: current.filter((_, i) => i !== existingIndex) };
+      }
+
+      return {
+        ...prev,
+        [slotId]: current.map((s, i) => i === existingIndex ? { ...s, quantity: newQty } : s)
+      };
     });
   };
 
@@ -112,17 +154,19 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
 
     Object.keys(selections).forEach(slotId => {
       (selections[slotId] || []).forEach(sel => {
-        totalGross += Math.round(sel.priceModifier || 0);
+        const qty = sel.quantity || 1;
+        let optionTotal = Math.round(sel.priceModifier || 0);
         if (sel.variant) {
-          totalGross += Math.round(sel.variant.price_modifier || 0);
+          optionTotal += Math.round(sel.variant.price_modifier || 0);
         }
         if (sel.selectedIngredients) {
           sel.selectedIngredients?.forEach(ing => {
             if (ing.isExtra) {
-              totalGross += Math.round(ing.price || 0);
+              optionTotal += Math.round(ing.price || 0);
             }
           });
         }
+        totalGross += (optionTotal * qty);
       });
     });
 
@@ -149,7 +193,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
 
   const slotsComplete = isBundle
     ? !product.bundleSlots?.some(slot => {
-        const count = (selections[slot.id] || []).length;
+        const count = (selections[slot.id] || []).reduce((acc, s) => acc + (s.quantity || 1), 0);
         return slot.minSelections > 0 && count < slot.minSelections;
       })
     : true;
@@ -157,11 +201,11 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
   const handleConfirm = () => {
     if (isBundle) {
       const missingSlot = product.bundleSlots?.find(slot => {
-        const count = (selections[slot.id] || []).length;
+        const count = (selections[slot.id] || []).reduce((acc, s) => acc + (s.quantity || 1), 0);
         return slot.minSelections > 0 && count < slot.minSelections;
       });
       if (missingSlot) {
-        const count = (selections[missingSlot.id] || []).length;
+        const count = (selections[missingSlot.id] || []).reduce((acc, s) => acc + (s.quantity || 1), 0);
         alert(`"${missingSlot.name}" requiere al menos ${missingSlot.minSelections} selección${missingSlot.minSelections > 1 ? 'es' : ''}. Has elegido ${count}.`);
         return;
       }
@@ -184,7 +228,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
             name: fullName,
             originalName: sel.name,
             price: optPriceNet,
-            quantity: 1,
+            quantity: sel.quantity || 1,
             variant: sel.variant,
             selectedIngredients: sel.selectedIngredients
           };
@@ -358,7 +402,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
             {isBundle && product.bundleSlots?.map(slot => {
               const currentSelection = selections[slot.id] || [];
               const max = slot.maxSelections > 0 ? slot.maxSelections : 1;
-              const count = currentSelection.length;
+              const count = currentSelection.reduce((acc, s) => acc + (s.quantity || 1), 0);
               const atMax = count >= max;
 
               return (
@@ -384,6 +428,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                   <div className="space-y-2.5 mb-4">
                     {slot.options?.map(opt => {
                       const isSelected = currentSelection.some(s => s.optionId === opt.id);
+                      const currentQty = isSelected ? (currentSelection.find(s => s.optionId === opt.id)?.quantity || 1) : 0;
                       const extraPrice = Math.round(opt.priceModifier);
                       const isSingleOption = slot.options.length === 1;
                       const isLocked = max > 1 && atMax && !isSelected && !isSingleOption;
@@ -392,20 +437,19 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                         <div
                           key={opt.id}
                           onClick={() => {
-                            if (!isSingleOption) {
+                            if (!isSingleOption && !isLocked) {
                               handleSelectOption(slot.id, opt);
                             }
                           }}
-                          className={`flex items-center justify-between p-4 border rounded-2xl transition-all cursor-pointer select-none ${
+                          className={`flex items-center justify-between p-4 min-h-[68px] border rounded-2xl transition-all cursor-pointer select-none ${
                             isSelected 
                               ? 'border-black bg-gray-50/50' 
                               : isLocked
-                                ? 'border-gray-200 bg-gray-50 opacity-60'
+                                ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
                                 : 'border-gray-200 hover:border-gray-300 bg-white'
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            {/* Checkbox Icon */}
                             <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-all ${
                               isSelected 
                                 ? 'border-black bg-black text-white' 
@@ -420,17 +464,37 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                               <span className="text-[9px] text-gray-400 bg-gray-150 px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider">Incluido</span>
                             )}
                           </div>
-                          {opt.priceModifier > 0 && (
-                            <span className="text-xs font-bold text-gray-900 shrink-0 bg-gray-100 px-2.5 py-0.5 rounded-full">
-                              +${extraPrice.toLocaleString('es-CL')}
-                            </span>
-                          )}
+                          
+                          <div className="flex items-center gap-3">
+                            {opt.priceModifier > 0 && (
+                              <span className="text-xs font-bold text-gray-900 shrink-0 bg-gray-100 px-2.5 py-0.5 rounded-full">
+                                +${extraPrice.toLocaleString('es-CL')}
+                              </span>
+                            )}
+                            {max > 1 && isSelected && !isSingleOption && (
+                              <div className="flex items-center bg-gray-100 rounded-full h-8 px-1 shrink-0" onClick={e => e.stopPropagation()}>
+                                <button 
+                                  onClick={(e) => handleDecrementOption(e, slot.id, opt)}
+                                  className="w-6 h-6 flex items-center justify-center rounded-full text-gray-600 hover:bg-gray-200 hover:text-black transition-colors"
+                                >
+                                  <Minus className="w-3.5 h-3.5" />
+                                </button>
+                                <span className="font-bold text-sm w-5 text-center text-gray-900">{currentQty}</span>
+                                <button 
+                                  onClick={(e) => handleIncrementOption(e, slot.id, opt)}
+                                  disabled={count >= max}
+                                  className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${count >= max ? 'text-gray-400' : 'text-gray-600 hover:bg-gray-200 hover:text-black'}`}
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
                   </div>
-
-                  {atMax && max > 1 && (
+                {atMax && max > 1 && (
                     <p className="text-xs text-gray-400 font-medium mb-4 -mt-1">
                       Máximo alcanzado ({max}). Deselecciona una opción para elegir otra.
                     </p>
@@ -445,12 +509,14 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                       selectedOptionObj.ingredients?.some(i => i.isExtra)
                     );
                     if (!hasCustomization) return null;
+                    const qty = sel.quantity || 1;
 
                     return (
                       <div key={sel.optionId} className="bg-gray-100/70 p-4 rounded-2xl border border-gray-200 space-y-4">
-                        {currentSelection.length > 1 && (
-                          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{sel.name}</p>
-                        )}
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-gray-400"></div>
+                          <p className="font-bold text-sm text-gray-900">Personaliza {selectedOptionObj.name} {qty > 1 && <span className="text-xs text-gray-500 font-medium">(x{qty})</span>}</p>
+                        </div>
 
                         {/* Nested Variants */}
                         {selectedOptionObj.variants && selectedOptionObj.variants.length > 0 && !selectedOptionObj.variantId && (

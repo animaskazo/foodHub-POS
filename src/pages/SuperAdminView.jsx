@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import AIImportModal from '../components/catalog/AIImportModal';
 import EditProductModal from '../components/catalog/EditProductModal';
-import UberDeliveryCard from '../components/pos/UberDeliveryCard';
+import OrderDetailModal from '../components/pos/OrderDetailModal';
 
 const SuperAdminView = () => {
   const [selectedOrganization, setSelectedOrganization] = useState(null);
@@ -927,160 +927,13 @@ const SuperAdminView = () => {
       />
 
       {/* Order Detail Modal */}
-      {selectedOrder && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl w-full max-w-2xl overflow-hidden border flex flex-col max-h-[85vh]">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b flex items-center justify-between bg-gray-50">
-              <div>
-                <h3 className="font-bold text-lg text-gray-900">Pedido #{selectedOrder.order_number}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Creado el {new Date(selectedOrder.created_at).toLocaleString()}</p>
-              </div>
-              <button 
-                onClick={() => setSelectedOrder(null)}
-                className="text-gray-400 hover:text-gray-700 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 overflow-y-auto space-y-6">
-              {/* Status and Method Info */}
-              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border text-sm">
-                <div>
-                  <span className="text-gray-500 block text-xs uppercase font-bold tracking-wider">Estado de preparación</span>
-                  <span className={`inline-block mt-1 px-2.5 py-0.5 rounded text-xs font-bold ${
-                    selectedOrder.status === 'scheduled' ? 'bg-indigo-100 text-indigo-800' :
-                    selectedOrder.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    selectedOrder.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
-                    selectedOrder.status === 'preparing' ? 'bg-purple-100 text-purple-800' :
-                    selectedOrder.status === 'ready' ? 'bg-indigo-100 text-indigo-800' :
-                    selectedOrder.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {selectedOrder.status}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-500 block text-xs uppercase font-bold tracking-wider">Canal / Entrega</span>
-                  <div className="mt-1 font-semibold text-gray-900 flex items-center gap-1.5">
-                    <span className="capitalize">{selectedOrder.order_type}</span>
-                    <span>•</span>
-                    <span className="text-xs bg-gray-200 px-2 py-0.5 rounded text-gray-700">
-                      {selectedOrder.delivery_type === 'delivery' ? 'Despacho' : 'Retiro'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Customer Details */}
-              <div className="space-y-2">
-                <h4 className="font-bold text-gray-900 border-b pb-1 text-sm uppercase tracking-wider text-gray-500">Datos del Cliente</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500 block">Nombre:</span>
-                    <span className="font-semibold text-gray-800">{selectedOrder.customer_name || 'Cliente'}</span>
-                  </div>
-                  {selectedOrder.customer_phone && (
-                    <div>
-                      <span className="text-gray-500 block">Teléfono:</span>
-                      <span className="font-semibold text-gray-800">{selectedOrder.customer_phone}</span>
-                    </div>
-                  )}
-                </div>
-
-                {selectedOrder.delivery_type === 'delivery' && selectedOrder.delivery_address && (
-                  <div className="mt-3 bg-orange-50/50 border border-orange-100 p-3 rounded-lg flex gap-2.5">
-                    <MapPin className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-gray-500 block text-xs font-semibold uppercase tracking-wider">Dirección de Despacho</span>
-                      <span className="text-sm font-medium text-gray-800">{selectedOrder.delivery_address}</span>
-                      <UberDeliveryCard order={selectedOrder} organization={selectedOrganization} />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Order Items */}
-              <div className="space-y-2">
-                <h4 className="font-bold text-gray-900 border-b pb-1 text-sm uppercase tracking-wider text-gray-500">Productos del Pedido</h4>
-                <div className="divide-y border rounded-lg overflow-hidden">
-                  {selectedOrder.order_items?.map((item) => {
-                    if (item.parent_item_id) return null; // Render child combo items nested
-                    const childItems = selectedOrder.order_items.filter(child => child.parent_item_id === item.id);
-                    return (
-                      <div key={item.id} className="p-3 bg-white hover:bg-gray-50/50 transition-colors">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="font-semibold text-gray-900 text-sm">
-                              {item.quantity}x {item.product_name}
-                            </div>
-                            {childItems.length > 0 && (
-                              <div className="ml-4 mt-1 space-y-0.5 text-xs text-gray-500 border-l pl-2.5">
-                                {childItems.map(child => (
-                                  <div key={child.id}>
-                                    {child.quantity}x {child.product_name}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <span className="font-semibold text-sm text-gray-800">
-                            ${Number(item.total_price || 0).toLocaleString('es-CL')}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Financial Breakdown */}
-              <div className="bg-gray-50 p-4 rounded-lg border text-sm space-y-2.5">
-                {selectedOrder.delivery_type === 'delivery' && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Subtotal</span>
-                      <span className="font-medium text-gray-800">${Number(selectedOrder.subtotal || selectedOrder.total - (selectedOrder.delivery_fee || 0)).toLocaleString('es-CL')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Costo de envío</span>
-                      <span className="font-medium text-gray-800">${Number(selectedOrder.delivery_fee || 0).toLocaleString('es-CL')}</span>
-                    </div>
-                    <div className="border-t my-1"></div>
-                  </>
-                )}
-                <div className="flex justify-between text-base font-bold text-gray-900">
-                  <span>Total</span>
-                  <span>${Number(selectedOrder.total || 0).toLocaleString('es-CL')}</span>
-                </div>
-              </div>
-
-              {/* Payment Details */}
-              {selectedOrder.payments?.length > 0 && (
-                <div className="bg-gray-50 p-4 rounded-lg border text-sm flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="h-4 w-4 text-gray-400" />
-                    <span className="text-gray-600">Método de pago:</span>
-                    <span className="font-semibold text-gray-800 capitalize">{selectedOrder.payments[0].method}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {selectedOrder.payments[0].reference_code && (
-                      <span className="text-xs text-blue-700 font-mono">{selectedOrder.payments[0].reference_code}</span>
-                    )}
-                    <span className={`px-2 py-0.5 text-xs font-semibold rounded ${
-                      selectedOrder.payments[0].status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {selectedOrder.payments[0].status === 'completed' ? 'Pagado' : 'Pendiente'}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <OrderDetailModal
+        isOpen={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        order={selectedOrder}
+        organization={selectedOrganization}
+        canCancel={false}
+      />
     </div>
   );
 };
