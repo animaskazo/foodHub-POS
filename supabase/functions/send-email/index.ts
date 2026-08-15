@@ -140,7 +140,7 @@ serve(async (req) => {
                       Programado: ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)} a las ${timeStr} hrs
                     </p>
                     <p style="margin: 4px 0 0 0; font-size: 13px; color: #6d28d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                      Tu pedido se preparará para esa fecha y hora.
+                      Tu pedido programado ya se encuentra listo.
                     </p>
                   </td>
                 </tr>
@@ -189,7 +189,7 @@ serve(async (req) => {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Tu pedido saldrá a reparto</title>
+  <title>${isDelivery ? 'Tu pedido saldrá a reparto' : 'Tu pedido está listo para retirar'}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #ffffff; -webkit-font-smoothing: antialiased;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; padding: 0;">
@@ -206,10 +206,10 @@ serve(async (req) => {
               }
               <br/>
               <h1 style="margin: 0 0 6px 0; font-size: 26px; font-weight: 800; color: #0a0a0a; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                ¡Gracias ${customerName}!
+                ¡Hola ${customerName}!
               </h1>
               <p style="margin: 0; font-size: 18px; font-weight: 700; color: #111111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-                Tu pedido fue confirmado
+                ${isDelivery ? 'Tu pedido está listo para ser despachado' : 'Tu pedido está listo para ser retirado'}
               </p>
             </td>
           </tr>
