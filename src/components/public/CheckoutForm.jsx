@@ -513,25 +513,50 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           } catch (quoteError) {
             console.error('[Uber Quote Error]', quoteError.message || quoteError);
             console.error('[Uber Quote Error stack]', quoteError.stack);
-            
             let errMsg = 'No pudimos cotizar el envío con Uber. Intenta de nuevo.';
+            let rawError = quoteError.message;
+            
             if (quoteError.message) {
               try {
                 // Check if it's a JSON error from the proxy
                 const parsed = JSON.parse(quoteError.message);
                 if (parsed && (parsed.message || parsed.code)) {
-                  errMsg = parsed.message || parsed.code;
+                  rawError = parsed.message || parsed.code;
                 } else if (parsed && parsed.error && parsed.error.message) {
-                  errMsg = parsed.error.message;
-                } else {
-                  errMsg = quoteError.message;
+                  rawError = parsed.error.message;
                 }
               } catch (e) {
-                // Not JSON
-                errMsg = quoteError.message;
+                // Not JSON, keep original string
+                rawError = quoteError.message;
               }
             } else if (typeof quoteError === 'string') {
-               errMsg = quoteError;
+               rawError = quoteError;
+            }
+
+            // Translate common Uber errors to Spanish
+            const translations = {
+              'The specified location is not in a deliverable area.': 'La dirección está fuera del área de cobertura de reparto de Uber.',
+              'out_of_coverage': 'La dirección está fuera del área de cobertura de Uber.',
+              'distance_too_long': 'La distancia supera el máximo permitido por Uber.',
+              'dropoff_address is invalid': 'La dirección de entrega no es válida o está incompleta.',
+              'pickup_address is invalid': 'La dirección del local no es válida (revisa la configuración).',
+              'invalid_phone_number': 'El teléfono ingresado no es válido para Uber.',
+              'El teléfono ingresado no es válido para cotizar.': 'El teléfono ingresado no es válido para cotizar.',
+              'Ingresa un teléfono válido antes de validar la dirección.': 'Ingresa un teléfono válido antes de validar la dirección.',
+            };
+
+            // Find exact match or partial match
+            if (translations[rawError]) {
+              errMsg = translations[rawError];
+            } else {
+              // Try partial matching for dynamic Uber messages
+              const matchedKey = Object.keys(translations).find(k => rawError.includes(k));
+              if (matchedKey) {
+                errMsg = translations[matchedKey];
+              } else if (rawError) {
+                // Fallback to the raw error if it's not a generic object string
+                errMsg = rawError.includes('[object') ? errMsg : rawError;
+              }
             }
             
             setDistanceError(errMsg);
