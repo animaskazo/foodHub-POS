@@ -177,7 +177,8 @@ export const createPublicOrder = async ({
   deliveryFee = 0,
   deliveryNotes = null,
   scheduledAt = null,
-  referenceCode = null
+  referenceCode = null,
+  status = null
 }) => {
   // Get first active branch
   const { data: branch, error: branchError } = await supabase
@@ -223,7 +224,7 @@ export const createPublicOrder = async ({
       organization_id: organizationId,
       branch_id: branch.id,
       order_type: 'online',
-      status: scheduledAt ? 'scheduled' : 'confirmed',
+      status: status || (scheduledAt ? 'scheduled' : 'confirmed'),
       scheduled_at: scheduledAt || null,
       customer_name: customer.name,
       customer_phone: customer.phone || null,

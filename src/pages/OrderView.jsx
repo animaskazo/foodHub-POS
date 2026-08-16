@@ -129,9 +129,9 @@ const OrderView = () => {
           const pendingRaw = localStorage.getItem(`pending_order_${slug}`);
           if (pendingRaw && !submittedOrder?.order_number) {
             try {
-              const { cartItems: pendingCart, customerForm, scheduledAt, klapOrderId } = JSON.parse(pendingRaw);
+              const { cartItems: pendingCart, customerForm, scheduledAt, klapOrderId, orderId: storedOrderId } = JSON.parse(pendingRaw);
 
-              // ── Verificar pago directamente con la API de Klap antes de crear la orden ──
+              // ── Verificar pago directamente con la API de Klap antes de confirmar la orden ──
               if (klapOrderId) {
                 const { data: verifyRes, error: verifyErr } = await supabase.functions.invoke('klap-verify-payment', {
                   body: { klapOrderId }
@@ -141,33 +141,44 @@ const OrderView = () => {
                   console.warn('[Klap Verification Failed]', verifyErr || verifyRes);
                   localStorage.removeItem(`pending_order_${slug}`);
                   window.history.replaceState({}, '', storeRootUrl);
-                  setError('El pago en Klap no fue aprobado o fue cancelado. No se ha generado la orden.');
+                  setError('El pago en Klap no fue aprobado o fue cancelado.');
                   setLoading(false);
                   return;
                 }
               }
 
-              const order = await createPublicOrder({
-                organizationId: orgData.id,
-                cartItems: pendingCart,
-                customer: {
-                  name: customerForm.name,
-                  phone: customerForm.phone,
-                  email: customerForm.email,
-                },
-                notes: customerForm.notes,
-                paymentMethod: 'online_gateway',
-                paymentStatus: 'paid',
-                deliveryType: customerForm.deliveryType,
-                deliveryAddress: customerForm.deliveryAddress,
-                deliveryFee: customerForm.deliveryFee,
-                scheduledAt,
-                referenceCode: klapOrderId || null,
-              });
+              // Since the order was created before redirecting to Klap, we just get it
+              const orderIdToUpdate = storedOrderId || orderId;
+              const { getPublicOrderById } = await import('../services/publicOrderService');
+              let order = await getPublicOrderById(orderIdToUpdate);
+              
+              if (!order) {
+                throw new Error("No se encontró la orden original.");
+              }
 
-              // Uber Direct delivery (if applicable)
-              const uberInfo = await createUberDelivery(orgData, customerForm, pendingCart, scheduledAt);
-              if (uberInfo) {
+              // Update order status if still pending (webhook might have already updated it)
+              if (order.status === 'pending') {
+                const newStatus = scheduledAt ? 'scheduled' : 'confirmed';
+                const { error: updateError } = await supabase
+                  .from('orders')
+                  .update({ status: newStatus })
+                  .eq('id', order.id);
+                if (!updateError) order.status = newStatus;
+              }
+
+              // Update payment status if still pending
+              if (order.payments?.[0]?.status === 'pending') {
+                const { error: payUpdateError } = await supabase
+                  .from('payments')
+                  .update({ status: 'paid', reference_code: klapOrderId, method: 'online_gateway' })
+                  .eq('order_id', order.id);
+                if (!payUpdateError) order.payments[0].status = 'paid';
+              }
+
+              // Uber Direct delivery (if applicable and not already created)
+              if (!order.uber_delivery_id && customerForm.deliveryType === 'delivery') {
+                const uberInfo = await createUberDelivery(orgData, customerForm, pendingCart, scheduledAt);
+                if (uberInfo) {
                 const adjustedTotal = order.total - (customerForm.deliveryFee || 0) + uberInfo.deliveryFee;
                 const { error: updateError } = await supabase
                   .from('orders')
@@ -188,6 +199,7 @@ const OrderView = () => {
                 } else {
                   console.error('[Uber] Failed to update order with delivery info:', updateError);
                 }
+              }
               }
 
               // Send confirmation email
@@ -499,26 +511,43 @@ const OrderView = () => {
       return;
     }
     try {
-      // ── Online payment: DO NOT create the order yet ──
-      // Save the pending order to localStorage, then redirect to Klap.
-      // The order is created only when the customer returns with status=success.
       if (customerForm.paymentMethod === 'online') {
         const pendingKey = `pending_order_${slug}`;
-        const sessionId = (crypto && crypto.randomUUID)
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        
+        // ── Create the order immediately in the database as 'pending' ──
+        const order = await createPublicOrder({
+          organizationId: org.id,
+          cartItems,
+          customer: {
+            name: customerForm.name,
+            phone: customerForm.phone,
+            email: customerForm.email,
+          },
+          notes: customerForm.notes,
+          paymentMethod: 'online_gateway',
+          paymentStatus: 'pending', // IMPORTANT: pending until Klap confirms
+          deliveryType: customerForm.deliveryType,
+          deliveryAddress: customerForm.deliveryAddress,
+          deliveryNotes: customerForm.deliveryNotes,
+          deliveryFee: customerForm.deliveryFee,
+          scheduledAt,
+          status: 'pending', // The order itself is pending payment
+        });
+
         const pendingData = {
+          orderId: order.id,
+          orderNumber: order.order_number,
           cartItems,
           customerForm,
           scheduledAt,
-          totalAmount: computeSubtotal(cartItems) + (customerForm.deliveryFee || 0),
+          totalAmount: order.total,
         };
         localStorage.setItem(pendingKey, JSON.stringify(pendingData));
 
-        const returnUrl = `${storeRootUrl}?orderId=${sessionId}&payment=klap`;
+        const returnUrl = `${storeRootUrl}?orderId=${order.id}&payment=klap`;
 
         const { data, error } = await supabase.functions.invoke('klap-create-payment', {
-          body: { orderId: sessionId, amount: pendingData.totalAmount, returnUrl }
+          body: { orderId: order.id, amount: order.total, returnUrl }
         });
 
         if (error || !data?.success) {
@@ -526,6 +555,8 @@ const OrderView = () => {
           const errMsg = `${data?.error || error?.message || 'Error desconocido'}${klapDetails ? ` | Klap: ${klapDetails}` : ''}`;
           console.error('[Klap Debug] Full error:', errMsg);
           localStorage.removeItem(pendingKey);
+          // If klap fails to initialize, the order stays pending in the db. 
+          // We throw an error so the UI shows the problem.
           throw new Error(errMsg);
         }
 

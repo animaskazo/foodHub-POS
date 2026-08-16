@@ -84,6 +84,23 @@ serve(async (req) => {
         // Do not throw error, we must return status: "ok" so Klap doesn't refund.
       } else {
         console.log(`Orden ${orderId} marcada como pagada exitosamente.`);
+        
+        // Update the order status from pending to confirmed or scheduled
+        const { data: orderData } = await supabase
+          .from('orders')
+          .select('scheduled_at, status')
+          .eq('id', orderId)
+          .single();
+          
+        if (orderData && orderData.status === 'pending') {
+          const newStatus = orderData.scheduled_at ? 'scheduled' : 'confirmed';
+          await supabase
+            .from('orders')
+            .update({ status: newStatus })
+            .eq('id', orderId);
+            
+          console.log(`Estado de la orden ${orderId} actualizado a ${newStatus}`);
+        }
       }
     } else {
       // ── Pago rechazado: solo registrar en logs ──
