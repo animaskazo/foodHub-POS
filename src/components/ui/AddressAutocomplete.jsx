@@ -41,12 +41,21 @@ const AddressAutocomplete = ({ value, onChange, onSelectAddress, error, required
           const results = data.features.map(f => {
             const props = f.properties;
             const street = props.street || props.name || '';
-            const housenumber = props.housenumber ? ` ${props.housenumber}` : '';
+            
+            // Extract number from user query if OSM doesn't have it
+            let userNumber = '';
+            const match = query.match(/\b\d+\b/);
+            if (!props.housenumber && match) {
+              userNumber = match[0];
+            }
+            const finalHouseNumber = props.housenumber || userNumber;
+            const housenumberStr = finalHouseNumber ? ` ${finalHouseNumber}` : '';
+            
             const city = props.city || props.town || props.village || props.county || '';
             
             // Format a nice display name
             const parts = [];
-            if (street) parts.push(street + housenumber);
+            if (street) parts.push(street + housenumberStr);
             if (city && city !== street) parts.push(city);
             if (props.state && props.state !== city) parts.push(props.state);
             
@@ -56,7 +65,7 @@ const AddressAutocomplete = ({ value, onChange, onSelectAddress, error, required
               lng: f.geometry.coordinates[0],
               addressData: {
                 street: street,
-                housenumber: props.housenumber || '',
+                housenumber: finalHouseNumber,
                 city: city,
                 state: props.state || '',
                 postcode: props.postcode || ''
