@@ -5,6 +5,7 @@ import { geocodeAddress, calculateDistance, isPointInPolygon } from '../../utils
 import { getAccessToken, createQuote } from '../../services/uberDirectService';
 import { MapPin } from 'lucide-react';
 import { X } from 'lucide-react';
+import AddressAutocomplete from '../ui/AddressAutocomplete';
 import Modal from '../ui/Modal';
 
 const InputField = ({ icon: Icon, label, isLoading, rightElement, ...props }) => (
@@ -379,15 +380,15 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     onSubmit(form);
   };
 
-  const handleAddressBlur = async () => {
-    if (!form.deliveryAddress?.trim()) return;
-    if (isValidatedAddress) return;
+  const handleAddressBlur = async (preFetchedCoords = null) => {
+    if (!form.deliveryAddress?.trim() && !preFetchedCoords) return;
+    if (isValidatedAddress && !preFetchedCoords) return;
     if (deliveryMode !== 'uber_direct' && (!org?.store_lat || !org?.store_lng)) return;
 
     setIsGeocoding(true);
     setDistanceError(null);
     try {
-      const coords = await geocodeAddress(form.deliveryAddress);
+      const coords = preFetchedCoords || await geocodeAddress(form.deliveryAddress);
       if (coords) {
         if (deliveryMode === 'uber_direct') {
           setDistanceError(null);
@@ -675,32 +676,25 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
 
                 {form.deliveryType === 'delivery' && (
                   <div className="space-y-3">
-                    <InputField
-                      icon={MapPin}
-                      label="Dirección de entrega *"
-                      type="text"
-                      placeholder="Ej: Av. Providencia 1234, Depto 45"
+                    <AddressAutocomplete
                       value={form.deliveryAddress}
-                      onChange={e => update('deliveryAddress', e.target.value)}
-                      onBlur={handleAddressBlur}
-                      isLoading={isGeocoding}
-                      rightElement={
-                        <button
-                          type="button"
-                          onMouseDown={(e) => {
-                            // Prevent focus loss before click registers
-                            e.preventDefault();
-                          }}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleAddressBlur();
-                          }}
-                          disabled={!form.deliveryAddress?.trim() || isGeocoding}
-                          className="bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded-xl hover:bg-gray-800 disabled:opacity-50 transition-colors"
-                        >
-                          Validar
-                        </button>
-                      }
+                      onChange={val => {
+                         update('deliveryAddress', val);
+                         setIsValidatedAddress(false);
+                      }}
+                      onSelectAddress={(sugg) => {
+                        update('deliveryAddress', sugg.display);
+                        setIsValidatedAddress(false);
+                        const mappedCoords = {
+                           lat: sugg.lat,
+                           lng: sugg.lng,
+                           displayName: sugg.display,
+                           address: sugg.addressData
+                        };
+                        handleAddressBlur(mappedCoords);
+                      }}
+                      error={distanceError}
+                      required={true}
                     />
 
                     {distanceError && (
