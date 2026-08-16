@@ -122,6 +122,7 @@ const NewOrderAlert = () => {
             console.error('QZ Print failed', e);
             import('sonner').then(({ toast }) => toast.error('Error imprimiendo en QZ Tray'));
           }
+          setAutoPrintOrder(null);
         } else {
           // Fallback to native print window
           const originalTitle = document.title;
@@ -136,6 +137,7 @@ const NewOrderAlert = () => {
           }
           
           document.title = originalTitle;
+          setTimeout(() => setAutoPrintOrder(null), 1000);
         }
       }, 1000); // 1s delay for logo rendering
       
@@ -161,11 +163,12 @@ const NewOrderAlert = () => {
         window.focus();
         window.print();
         document.title = originalTitle;
+        setTimeout(() => setAutoPrintOrder(null), 1000);
       }, 150);
     }
   };
 
-  if (!latestNewOrder && !isVisible) return null;
+  if (!latestNewOrder && !isVisible && !autoPrintOrder) return null;
 
   return (
     <>
