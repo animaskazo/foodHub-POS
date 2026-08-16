@@ -977,14 +977,19 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                 <span>Subtotal (Productos)</span>
                 <span>${fmt(totalAmount)}</span>
               </div>
-              <div className="flex justify-between items-center text-sm font-bold text-gray-700">
-                <span>Costo de envío</span>
+              <div className="flex justify-between items-center text-sm font-bold text-gray-700 mt-1 pt-2 border-t border-gray-100">
+                <div className="flex items-center gap-2">
+                  <span>Costo de envío</span>
+                  {deliveryMode === 'uber_direct' && (
+                    <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">Uber</span>
+                  )}
+                </div>
                 {deliveryMode === 'uber_direct' && isQuoting ? (
                   <span className="text-gray-400 text-xs">Cotizando…</span>
                 ) : deliveryMode === 'uber_direct' && form.quotePrice > 0 ? (
-                  <span>{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
+                  <span className="bg-green-50 text-green-700 px-2.5 py-0.5 rounded-lg border border-green-200 shadow-sm">{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
                 ) : deliveryMode === 'uber_direct' ? (
-                  <span>Gratis</span>
+                  <span className="text-gray-400">Gratis</span>
                 ) : (
                   <span>${fmt(form.deliveryFee)}</span>
                 )}
