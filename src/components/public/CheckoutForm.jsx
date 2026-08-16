@@ -769,7 +769,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                     )}
 
                     {!distanceError && isValidatedAddress && (
-                      <div className={`flex items-center justify-between px-4 py-3.5 rounded-xl shadow-sm ${deliveryMode === 'uber_direct' ? 'bg-green-600 text-white border border-green-700' : 'bg-green-50 text-green-700 border border-green-100'}`}>
+                      <div className={`flex items-center justify-between px-4 py-3.5 rounded-xl ${deliveryMode === 'uber_direct' ? 'bg-green-700 text-white border border-green-800' : 'bg-green-50 text-green-700 border border-green-100'}`}>
                         {deliveryMode === 'uber_direct' && isQuoting ? (
                           <>
                             <span className="font-semibold text-xs text-green-100 pr-2">Cotizando envío con Uber…</span>
@@ -778,7 +778,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                         ) : deliveryMode === 'uber_direct' && form.quotePrice > 0 ? (
                           <>
                             <div className="flex items-center gap-2.5">
-                              <span className="bg-white text-green-700 text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-sm">Uber</span>
+                              <span className="bg-white text-green-800 text-[10px] font-black uppercase px-2 py-0.5 rounded">Uber</span>
                               <span className="font-bold text-[13px] text-white">Tarifa de envío</span>
                             </div>
                             <span className="font-black text-base text-white shrink-0">{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
@@ -786,7 +786,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                         ) : deliveryMode === 'uber_direct' ? (
                           <>
                             <div className="flex items-center gap-2.5">
-                              <span className="bg-white text-green-700 text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-sm">Uber</span>
+                              <span className="bg-white text-green-800 text-[10px] font-black uppercase px-2 py-0.5 rounded">Uber</span>
                               <span className="font-bold text-[13px] text-white">Tarifa de envío</span>
                             </div>
                             <span className="font-black text-base text-white shrink-0">Gratis</span>
