@@ -58,7 +58,7 @@ const AddressMap = ({ address, coords: initialCoords, emptyLabel = 'Ubicación n
   }
 
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full relative z-0">
       <MapContainer center={[coords.lat, coords.lng]} zoom={15} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

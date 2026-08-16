@@ -752,7 +752,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                     )}
 
                     {form.deliveryCoords && (
-                      <div className="h-48 w-full rounded-xl overflow-hidden border border-gray-200 my-2 shadow-inner">
+                      <div className="h-48 w-full rounded-xl overflow-hidden border border-gray-200 my-2 shadow-inner relative z-0">
                         <AddressMap coords={form.deliveryCoords} />
                       </div>
                     )}
