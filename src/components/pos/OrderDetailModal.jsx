@@ -1,5 +1,5 @@
 import React from 'react';
-import { CreditCard, Timer, User, Van, PaperBag, CalendarClock, ShoppingBag, CheckCircle2, Printer, XCircle } from 'lucide-react';
+import { CreditCard, Timer, User, Van, PaperBag, CalendarClock, ShoppingBag, CheckCircle2, Printer, XCircle, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Modal from '../ui/Modal';
