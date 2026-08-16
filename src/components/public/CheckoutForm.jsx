@@ -751,7 +751,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                       </div>
                     )}
 
-                    {!distanceError && isValidatedAddress && form.deliveryCoords && (
+                    {form.deliveryCoords && (
                       <div className="h-48 w-full rounded-xl overflow-hidden border border-gray-200 my-2 shadow-inner">
                         <AddressMap coords={form.deliveryCoords} />
                       </div>
