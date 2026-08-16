@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/button';
 import { buildSelection, selectionFromCartOption, defaultSelectionsForSlot } from '../../utils/bundleSelections';
+import { Plus, Minus } from 'lucide-react';
 
 const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem, onDelete }) => {
   const [selections, setSelections] = useState({});
@@ -36,13 +37,15 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
     setSelections(prev => {
       const current = prev[slotId] || [];
       const existingIndex = current.findIndex(s => s.optionId === option.id);
+      const slot = product.bundleSlots?.find(s => s.id === slotId);
+      const max = slot?.maxSelections > 0 ? slot.maxSelections : 1;
+      const count = current.reduce((acc, s) => acc + (s.quantity || 1), 0);
+
       if (existingIndex >= 0) {
         return { ...prev, [slotId]: current.filter((_, i) => i !== existingIndex) };
       }
 
-      const slot = product.bundleSlots?.find(s => s.id === slotId);
-      const max = slot?.maxSelections > 0 ? slot.maxSelections : 1;
-      if (current.length >= max) {
+      if (count >= max) {
         // Comportamiento radio para max = 1: reemplazar en vez de ignorar
         if (max === 1 && current.length === 1) {
           return { ...prev, [slotId]: [buildSelection(option)] };
@@ -50,6 +53,47 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
         return prev;
       }
       return { ...prev, [slotId]: [...current, buildSelection(option)] };
+    });
+  };
+
+  const handleIncrementOption = (e, slotId, opt) => {
+    e.stopPropagation();
+    setSelections(prev => {
+      const current = prev[slotId] || [];
+      const existingIndex = current.findIndex(s => s.optionId === opt.id);
+      if (existingIndex < 0) return prev;
+
+      const slot = product.bundleSlots?.find(s => s.id === slotId);
+      const max = slot?.maxSelections > 0 ? slot.maxSelections : 1;
+      const count = current.reduce((acc, s) => acc + (s.quantity || 1), 0);
+
+      if (count >= max) return prev;
+
+      return {
+        ...prev,
+        [slotId]: current.map((s, i) => i === existingIndex ? { ...s, quantity: (s.quantity || 1) + 1 } : s)
+      };
+    });
+  };
+
+  const handleDecrementOption = (e, slotId, opt) => {
+    e.stopPropagation();
+    setSelections(prev => {
+      const current = prev[slotId] || [];
+      const existingIndex = current.findIndex(s => s.optionId === opt.id);
+      if (existingIndex < 0) return prev;
+
+      const existing = current[existingIndex];
+      const newQty = (existing.quantity || 1) - 1;
+
+      if (newQty <= 0) {
+        return { ...prev, [slotId]: current.filter((_, i) => i !== existingIndex) };
+      }
+
+      return {
+        ...prev,
+        [slotId]: current.map((s, i) => i === existingIndex ? { ...s, quantity: newQty } : s)
+      };
     });
   };
 
@@ -170,7 +214,7 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
         {product.bundleSlots?.map(slot => {
           const currentSelection = selections[slot.id] || [];
           const max = slot.maxSelections > 0 ? slot.maxSelections : 1;
-          const count = currentSelection.length;
+          const count = currentSelection.reduce((acc, s) => acc + (s.quantity || 1), 0);
           const atMax = count >= max;
 
           return (
@@ -194,6 +238,7 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
               <div className="space-y-2 mb-4">
                 {slot.options?.map(opt => {
                   const isSelected = currentSelection.some(s => s.optionId === opt.id);
+                  const currentQty = isSelected ? (currentSelection.find(s => s.optionId === opt.id)?.quantity || 1) : 0;
                   const extraPrice = Math.round(opt.priceModifier);
                   const isSingleOption = slot.options.length === 1;
                   const isLocked = max > 1 && atMax && !isSelected && !isSingleOption;
@@ -202,7 +247,7 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
                     <div
                       key={opt.id}
                       onClick={() => {
-                        if (!isSingleOption) {
+                        if (!isSingleOption && !isLocked) {
                           handleSelectOption(slot.id, opt);
                         }
                       }}
@@ -230,11 +275,33 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
                           <span className="text-[9px] text-gray-400 bg-gray-150 px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider">Incluido</span>
                         )}
                       </div>
-                      {opt.priceModifier > 0 && (
-                        <span className="text-xs font-bold text-blue-600 shrink-0 bg-blue-50 px-2 py-0.5 rounded-full ml-2">
-                          +${extraPrice.toLocaleString('es-CL')}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-3">
+                        {opt.priceModifier > 0 && (
+                          <span className="text-xs font-bold text-blue-600 shrink-0 bg-blue-50 px-2 py-0.5 rounded-full ml-2">
+                            +${extraPrice.toLocaleString('es-CL')}
+                          </span>
+                        )}
+                        {max > 1 && isSelected && !isSingleOption && (
+                          <div className="flex items-center bg-blue-50/50 border border-blue-100 rounded-full h-8 px-1 shrink-0" onClick={e => e.stopPropagation()}>
+                            <button 
+                              onClick={(e) => handleDecrementOption(e, slot.id, opt)}
+                              className="w-6 h-6 flex items-center justify-center rounded-full text-blue-600 hover:bg-blue-100 transition-colors"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="w-4 text-center font-bold text-sm text-blue-900">{currentQty}</span>
+                            <button 
+                              onClick={(e) => handleIncrementOption(e, slot.id, opt)}
+                              disabled={atMax}
+                              className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors ${
+                                atMax ? 'text-blue-300' : 'text-blue-600 hover:bg-blue-100'
+                              }`}
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
