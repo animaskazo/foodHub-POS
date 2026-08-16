@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { geocodeAddress } from '../../utils/geo';
@@ -11,6 +11,16 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
+
+const MapUpdater = ({ coords }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (coords && coords.lat && coords.lng) {
+      map.flyTo([coords.lat, coords.lng], 15);
+    }
+  }, [coords, map]);
+  return null;
+};
 
 const AddressMap = ({ address, coords: initialCoords, emptyLabel = 'Ubicación no disponible' }) => {
   const [coords, setCoords] = useState(initialCoords || null);
@@ -64,6 +74,7 @@ const AddressMap = ({ address, coords: initialCoords, emptyLabel = 'Ubicación n
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <MapUpdater coords={coords} />
         <Marker position={[coords.lat, coords.lng]} />
       </MapContainer>
     </div>
