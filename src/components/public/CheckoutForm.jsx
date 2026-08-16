@@ -769,21 +769,27 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                     )}
 
                     {!distanceError && isValidatedAddress && (
-                      <div className="flex items-center justify-between bg-green-50 text-green-700 px-3 py-2.5 rounded-xl border border-green-100">
+                      <div className={`flex items-center justify-between px-4 py-3.5 rounded-xl shadow-sm ${deliveryMode === 'uber_direct' ? 'bg-green-600 text-white border border-green-700' : 'bg-green-50 text-green-700 border border-green-100'}`}>
                         {deliveryMode === 'uber_direct' && isQuoting ? (
                           <>
-                            <span className="font-semibold text-xs pr-2">Cotizando envío con Uber…</span>
-                            <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                            <span className="font-semibold text-xs text-green-100 pr-2">Cotizando envío con Uber…</span>
+                            <Loader2 className="h-4 w-4 animate-spin shrink-0 text-white" />
                           </>
                         ) : deliveryMode === 'uber_direct' && form.quotePrice > 0 ? (
                           <>
-                            <span className="font-semibold text-xs pr-2">Delivery vía Uber Direct</span>
-                            <span className="font-bold text-[13px] shrink-0">{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
+                            <div className="flex items-center gap-2.5">
+                              <span className="bg-white text-green-700 text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-sm">Uber</span>
+                              <span className="font-bold text-[13px] text-white">Tarifa de envío</span>
+                            </div>
+                            <span className="font-black text-base text-white shrink-0">{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
                           </>
                         ) : deliveryMode === 'uber_direct' ? (
                           <>
-                            <span className="font-semibold text-xs pr-2">Delivery vía Uber Direct</span>
-                            <span className="font-bold text-[13px] shrink-0">Gratis</span>
+                            <div className="flex items-center gap-2.5">
+                              <span className="bg-white text-green-700 text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-sm">Uber</span>
+                              <span className="font-bold text-[13px] text-white">Tarifa de envío</span>
+                            </div>
+                            <span className="font-black text-base text-white shrink-0">Gratis</span>
                           </>
                         ) : (
                           <>
@@ -977,19 +983,14 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                 <span>Subtotal (Productos)</span>
                 <span>${fmt(totalAmount)}</span>
               </div>
-              <div className="flex justify-between items-center text-sm font-bold text-gray-700 mt-1 pt-2 border-t border-gray-100">
-                <div className="flex items-center gap-2">
-                  <span>Costo de envío</span>
-                  {deliveryMode === 'uber_direct' && (
-                    <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wide">Uber</span>
-                  )}
-                </div>
+              <div className="flex justify-between items-center text-sm font-bold text-gray-700">
+                <span>Costo de envío</span>
                 {deliveryMode === 'uber_direct' && isQuoting ? (
                   <span className="text-gray-400 text-xs">Cotizando…</span>
                 ) : deliveryMode === 'uber_direct' && form.quotePrice > 0 ? (
-                  <span className="bg-green-50 text-green-700 px-2.5 py-0.5 rounded-lg border border-green-200 shadow-sm">{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
+                  <span>{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
                 ) : deliveryMode === 'uber_direct' ? (
-                  <span className="text-gray-400">Gratis</span>
+                  <span>Gratis</span>
                 ) : (
                   <span>${fmt(form.deliveryFee)}</span>
                 )}
