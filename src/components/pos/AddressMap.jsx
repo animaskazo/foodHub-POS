@@ -12,12 +12,18 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-const AddressMap = ({ address, emptyLabel = 'Ubicación no disponible' }) => {
-  const [coords, setCoords] = useState(null);
-  const [state, setState] = useState('loading');
+const AddressMap = ({ address, coords: initialCoords, emptyLabel = 'Ubicación no disponible' }) => {
+  const [coords, setCoords] = useState(initialCoords || null);
+  const [state, setState] = useState(initialCoords ? 'ok' : 'loading');
 
   useEffect(() => {
     let active = true;
+    if (initialCoords) {
+      setCoords(initialCoords);
+      setState('ok');
+      return;
+    }
+    
     if (!address) {
       setState('empty');
       return;
@@ -32,7 +38,7 @@ const AddressMap = ({ address, emptyLabel = 'Ubicación no disponible' }) => {
       })
       .catch(() => { if (active) setState('error'); });
     return () => { active = false; };
-  }, [address]);
+  }, [address, initialCoords]);
 
   if (state === 'empty' || state === 'error') {
     return (

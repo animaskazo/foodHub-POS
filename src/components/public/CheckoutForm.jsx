@@ -6,6 +6,7 @@ import { getAccessToken, createQuote } from '../../services/uberDirectService';
 import { MapPin } from 'lucide-react';
 import { X } from 'lucide-react';
 import AddressAutocomplete from '../ui/AddressAutocomplete';
+import AddressMap from '../pos/AddressMap';
 import Modal from '../ui/Modal';
 
 const InputField = ({ icon: Icon, label, isLoading, rightElement, ...props }) => (
@@ -455,9 +456,9 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               return `+56${n}`
             }
             const normalizedPickupPhone = normalizePhone(org.phone)
-            const normalizedDropoffPhone = normalizePhone(form.phone)
+            const normalizedDropoffPhone = normalizePhone(form.phone || '+56911111111')
             if (!normalizedDropoffPhone || normalizedDropoffPhone.replace(/\D/g, '').length < 9) {
-              throw new Error('Ingresa un teléfono válido antes de validar la dirección.')
+              throw new Error('El teléfono ingresado no es válido para cotizar.')
             }
 
             const quoteWindow = (() => {
@@ -512,7 +513,28 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           } catch (quoteError) {
             console.error('[Uber Quote Error]', quoteError.message || quoteError);
             console.error('[Uber Quote Error stack]', quoteError.stack);
-            setDistanceError('No pudimos cotizar el envío con Uber. Intenta de nuevo.');
+            
+            let errMsg = 'No pudimos cotizar el envío con Uber. Intenta de nuevo.';
+            if (quoteError.message) {
+              try {
+                // Check if it's a JSON error from the proxy
+                const parsed = JSON.parse(quoteError.message);
+                if (parsed && (parsed.message || parsed.code)) {
+                  errMsg = parsed.message || parsed.code;
+                } else if (parsed && parsed.error && parsed.error.message) {
+                  errMsg = parsed.error.message;
+                } else {
+                  errMsg = quoteError.message;
+                }
+              } catch (e) {
+                // Not JSON
+                errMsg = quoteError.message;
+              }
+            } else if (typeof quoteError === 'string') {
+               errMsg = quoteError;
+            }
+            
+            setDistanceError(errMsg);
             setIsValidatedAddress(false);
             setForm(f => f.deliveryType === 'pickup' ? f : { ...f, deliveryFee: 0 });
           } finally {
@@ -701,6 +723,12 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                       <div className="flex items-start gap-2 bg-red-50 text-red-600 p-3 rounded-xl border border-red-100">
                         <Info className="h-4 w-4 shrink-0 mt-0.5" />
                         <p className="text-xs font-semibold leading-relaxed">{distanceError}</p>
+                      </div>
+                    )}
+
+                    {!distanceError && isValidatedAddress && form.deliveryCoords && (
+                      <div className="h-48 w-full rounded-xl overflow-hidden border border-gray-200 my-2 shadow-inner">
+                        <AddressMap coords={form.deliveryCoords} />
                       </div>
                     )}
 
