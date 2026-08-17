@@ -364,7 +364,7 @@ const OrderView = () => {
 
   // ── Uber Direct: create delivery, returns info to apply to an order ──
   const createUberDelivery = async (orgData, customerForm, cart, scheduledAt) => {
-    if (orgData.delivery_mode !== 'uber_direct' || orgData.uber_enabled === false || customerForm.deliveryType !== 'delivery') {
+    if (customerForm.deliveryService !== 'uber' || orgData.uber_enabled === false || customerForm.deliveryType !== 'delivery') {
       return null;
     }
     try {
@@ -530,6 +530,7 @@ const OrderView = () => {
           deliveryAddress: customerForm.deliveryAddress,
           deliveryNotes: customerForm.deliveryNotes,
           deliveryFee: customerForm.deliveryFee,
+          deliveryService: customerForm.deliveryService,
           scheduledAt,
           status: 'pending', // The order itself is pending payment
         });
@@ -591,10 +592,11 @@ const OrderView = () => {
         deliveryAddress: customerForm.deliveryAddress,
         deliveryNotes: customerForm.deliveryNotes,
         deliveryFee: customerForm.deliveryFee,
+        deliveryService: customerForm.deliveryService,
         scheduledAt,
       });
 
-      // ── Uber Direct: create delivery if mode is uber_direct (immediate or scheduled) ──
+      // ── Uber Direct: create delivery if service is uber (immediate or scheduled) ──
       const uberInfo = await createUberDelivery(org, customerForm, cartItems, scheduledAt);
       if (uberInfo) {
         const adjustedTotal = order.total - (customerForm.deliveryFee || 0) + uberInfo.deliveryFee;

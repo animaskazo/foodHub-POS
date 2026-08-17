@@ -52,6 +52,7 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
       orderPayload.customer_name = deliveryInfo.customerName;
       orderPayload.customer_phone = deliveryInfo.customerPhone;
       orderPayload.delivery_address = deliveryInfo.deliveryAddress;
+      orderPayload.delivery_service = deliveryInfo.deliveryService || 'own';
     }
 
     const { data: order, error: orderError } = await supabase

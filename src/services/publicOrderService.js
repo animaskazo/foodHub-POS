@@ -178,7 +178,8 @@ export const createPublicOrder = async ({
   deliveryNotes = null,
   scheduledAt = null,
   referenceCode = null,
-  status = null
+  status = null,
+  deliveryService = 'own'
 }) => {
   // Get first active branch
   const { data: branch, error: branchError } = await supabase
@@ -236,6 +237,7 @@ export const createPublicOrder = async ({
       delivery_address: deliveryAddress,
       delivery_notes: deliveryNotes,
       delivery_fee: deliveryFee || 0,
+      delivery_service: deliveryService || 'own',
     }])
     .select()
     .single();
