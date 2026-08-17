@@ -15,7 +15,8 @@ import { Switch } from '@/components/ui/switch';
 
 const MODES = [
   { value: 'own', label: 'Delivery Propio', icon: Truck, desc: 'Tus propios repartidores gestionan las entregas.' },
-  { value: 'uber_direct', label: 'Uber Direct', icon: Globe, desc: 'Usa la red de repartidores de Uber para las entregas.' },
+  { value: 'uber_direct', label: 'Solo Uber Direct', icon: Globe, desc: 'Usa la red de repartidores de Uber para las entregas.' },
+  { value: 'uber_with_fallback', label: 'Híbrido: Uber + Respaldo', icon: Globe, desc: 'Intenta con Uber, si falla asigna Reparto Propio.' },
 ];
 
 const DeliverySettingsView = () => {
@@ -307,7 +308,7 @@ const DeliverySettingsView = () => {
                 {MODES.map((mode) => {
                   const Icon = mode.icon;
                   const isActive = deliveryData.delivery_mode === mode.value;
-                  const isUber = mode.value === 'uber_direct';
+                  const isUber = mode.value === 'uber_direct' || mode.value === 'uber_with_fallback';
                   const locked = isUber && !uberEnabled;
                   return (
                     <button
@@ -429,7 +430,7 @@ const DeliverySettingsView = () => {
                 </>
               )}
 
-              {deliveryData.delivery_mode === 'uber_direct' && (
+              {(deliveryData.delivery_mode === 'uber_direct' || deliveryData.delivery_mode === 'uber_with_fallback') && (
                 <div className="space-y-5">
                   <div>
                     <h4 className="text-sm font-semibold text-gray-800 mb-1">Credenciales de Uber Direct</h4>
