@@ -138,11 +138,12 @@ const PosView = () => {
 
         const defaultOptionsList = product.bundleSlots?.flatMap(slot => {
           return defaultSelectionsForSlot(slot).map(sel => {
-            // Sumar modificadores al precio bruto
-            totalGross += Math.round(sel.priceModifier || 0);
+            const qty = sel.quantity || 1;
+            let itemGross = Math.round(sel.priceModifier || 0);
             if (sel.variant) {
-              totalGross += Math.round(sel.variant.price_modifier || 0);
+              itemGross += Math.round(sel.variant.price_modifier || 0);
             }
+            totalGross += itemGross * qty;
 
             let fullName = sel.name;
             if (sel.variant) {
@@ -159,7 +160,7 @@ const PosView = () => {
               name: fullName,
               originalName: sel.name,
               price: optPriceNet,
-              quantity: 1,
+              quantity: sel.quantity || 1,
               variant: sel.variant,
               selectedIngredients: []
             };

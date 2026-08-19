@@ -132,17 +132,19 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
 
     Object.keys(selections).forEach(slotId => {
       (selections[slotId] || []).forEach(sel => {
-        totalGross += Math.round(sel.priceModifier || 0);
+        const qty = sel.quantity || 1;
+        let itemGross = Math.round(sel.priceModifier || 0);
         if (sel.variant) {
-          totalGross += Math.round(sel.variant.price_modifier || 0);
+          itemGross += Math.round(sel.variant.price_modifier || 0);
         }
         if (sel.selectedIngredients) {
           sel.selectedIngredients.forEach(ing => {
             if (ing.isExtra) {
-              totalGross += Math.round(ing.price || 0);
+              itemGross += Math.round(ing.price || 0);
             }
           });
         }
+        totalGross += itemGross * qty;
       });
     });
 
@@ -187,7 +189,7 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
           name: fullName,
           originalName: sel.name,
           price: optPriceNet, // precio neto
-          quantity: 1, // cantidad por combo
+          quantity: sel.quantity || 1, // cantidad por combo
           variant: sel.variant,
           selectedIngredients: sel.selectedIngredients
         };
