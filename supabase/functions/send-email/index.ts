@@ -558,6 +558,91 @@ serve(async (req) => {
   </table>
 </body>
 </html>`
+    } else if (type === 'order_rescheduled') {
+      const isDelivery3 = data.delivery_type === 'delivery'
+      subject = `Tu pedido ha sido reprogramado`
+      const uberTracking3 = data.uber_tracking_url
+
+      const orgName3 = data.organization?.name || 'FoodHub'
+      const orgLogo3 = data.organization?.logo_url || null
+      const branchName3 = data.branch?.name || 'Tu Local'
+      const branchAddress3 = data.branch?.address || ''
+
+      const scheduledBlock3 = data.new_scheduled_at ? (() => {
+        const d = new Date(data.new_scheduled_at)
+        const dateStr = d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Santiago' })
+        const timeStr = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Santiago' })
+        return `
+          <tr>
+            <td style="padding: 16px 16px 0 16px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fce7f3; border: 1px solid #fbcfe8; border-radius: 12px; overflow: hidden;">
+                <tr>
+                  <td style="padding: 14px 18px;">
+                    <p style="margin: 0; font-size: 14px; font-weight: 700; color: #be185d; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                      Nueva fecha: ${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)} a las ${timeStr} hrs
+                    </p>
+                    <p style="margin: 4px 0 0 0; font-size: 13px; color: #db2777; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                      Hemos actualizado la fecha y hora de entrega o retiro de tu pedido.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`
+      })() : ''
+
+      html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pedido reprogramado</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #ffffff; -webkit-font-smoothing: antialiased;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; padding: 0;">
+    <tr>
+      <td align="center" style="padding: 0;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; overflow: hidden;">
+          <tr>
+            <td style="background-color: #ffffff; padding: 40px 24px 24px 24px; text-align: center;">
+              ${orgLogo3
+                ? `<img src="${orgLogo3}" alt="${orgName3}" style="width: 80px; height: 80px; object-fit: cover; display: inline-block; border-radius: 20px; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.10);" />`
+                : `<div style="display: inline-block; margin-bottom: 24px; background-color: #0a0a0a; width: 80px; height: 80px; border-radius: 20px; text-align: center; line-height: 80px;"><span style="font-size: 28px; font-weight: 900; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${orgName3.charAt(0)}</span></div>`
+              }
+              <br/>
+              <h1 style="margin: 0 0 6px 0; font-size: 26px; font-weight: 800; color: #0a0a0a; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                Hola ${data.customer_name || 'Cliente'},
+              </h1>
+              <p style="margin: 0; font-size: 16px; color: #666666; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                Tu pedido <span style="font-weight: 600; color: #333333;">${data.order_number || ''}</span> ha sido reprogramado.
+              </p>
+            </td>
+          </tr>
+          ${scheduledBlock3}
+          <tr>
+            <td style="padding: 24px 24px 8px 24px; text-align: center;">
+               ${uberTracking3 ? `
+               <a href="${uberTracking3}" target="_blank" style="display: inline-block; background-color: #16a34a; color: #ffffff; font-size: 13px; font-weight: 700; padding: 10px 24px; border-radius: 8px; text-decoration: none;">
+                 Seguir delivery en vivo
+               </a>` : ''}
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #f7f7f8; padding: 20px 24px; border-top: 1px solid #eeeeee;">
+              <p style="margin: 0 0 6px 0; font-size: 13px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                ID: <span style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">${data.order_id || data.order_number || ''}</span>
+              </p>
+              <p style="margin: 0; font-size: 12px; color: #aaaaaa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+                Impulsado por <strong style="color: #888888;">FoodHub</strong>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
     } else if (type === 'send_whatsapp') {
       const { phone, organization_id, message, from_number } = data
       if (!phone) throw new Error('Phone is required')

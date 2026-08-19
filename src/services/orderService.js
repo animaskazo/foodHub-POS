@@ -1,6 +1,8 @@
 import { supabase } from '../lib/supabase';
 import { checkInventoryStock, deductInventoryForOrder } from './inventoryService';
 import { upsertCustomerForOrder } from './customerService';
+import { getAccessToken, createQuote, createDelivery, cancelDelivery } from './uberDirectService';
+import { sendEmail } from './emailService';
 
 export const createOrder = async (cartItems, paymentMethod, orderType, total, subtotal, tax, deliveryInfo = null, orderNotes = '', deliveryFee = 0, tableId = null) => {
   try {
@@ -768,6 +770,181 @@ export const bulkCancelOrders = async (orderIds) => {
     return true;
   } catch (error) {
     console.error("Error bulk cancelling orders:", error);
+    throw error;
+  }
+};
+
+export const rescheduleOrder = async (orderId, newScheduledAt, orderData, fallbackAction = null) => {
+  try {
+    const { data: orgData } = await supabase
+      .from('organizations')
+      .select('*')
+      .eq('id', orderData.organization_id)
+      .single();
+
+    if (!orgData) throw new Error("No se encontró la organización");
+
+    let newUberDeliveryId = orderData.uber_delivery_id;
+    let newUberTrackingUrl = orderData.uber_tracking_url;
+    let newDeliveryService = orderData.delivery_service;
+    let newDeliveryFee = orderData.delivery_fee;
+
+    if (orderData.delivery_service === 'uber' && orderData.uber_delivery_id) {
+      if (fallbackAction === 'switch_to_own') {
+        newDeliveryService = 'own';
+        newUberDeliveryId = null;
+        newUberTrackingUrl = null;
+        newDeliveryFee = orgData.delivery_fee || 0;
+        
+        try {
+          const tokenRes = await getAccessToken(orgData.uber_client_id, orgData.uber_client_secret);
+          await cancelDelivery(orgData.uber_customer_id, tokenRes.access_token, orderData.uber_delivery_id);
+        } catch (e) {
+          console.warn('Failed to cancel old Uber delivery during fallback switch:', e);
+        }
+      } else {
+        const tokenRes = await getAccessToken(orgData.uber_client_id, orgData.uber_client_secret);
+        const token = tokenRes.access_token;
+        
+        // Cancel previous delivery
+        try {
+          await cancelDelivery(orgData.uber_customer_id, token, orderData.uber_delivery_id);
+        } catch (e) {
+          console.warn('Failed to cancel old Uber delivery. It might already be cancelled or completed.', e);
+        }
+
+        const scheduledAtMs = new Date(newScheduledAt).getTime();
+        const now = Date.now();
+        const pickupReady = Math.max(scheduledAtMs - 30 * 60000, now + 15 * 60000);
+        const pickupDeadline = Math.max(scheduledAtMs, pickupReady + 30 * 60000);
+
+        const dropoffCoords = { lat: orderData.delivery_lat || -33.456, lng: orderData.delivery_lng || -70.648 }; // Assuming we can just use the address for quote? Wait, we need coords.
+        // Actually, let's just geocode the address again since we didn't save coords in the order.
+        const { geocodeAddress } = await import('../utils/geo');
+        let dropoffLoc = await geocodeAddress(orderData.delivery_address);
+        if (!dropoffLoc) {
+          dropoffLoc = dropoffCoords;
+        }
+
+        const city = dropoffLoc?.address?.city || dropoffLoc?.address?.town || dropoffLoc?.address?.village || dropoffLoc?.address?.county || 'Santiago';
+        const zip = dropoffLoc?.address?.postcode || '';
+        const state = dropoffLoc?.address?.state || 'RM';
+
+        let pickupLat = orgData.store_lat;
+        let pickupLng = orgData.store_lng;
+        if (!pickupLat || !pickupLng) {
+          const orgCoords = await geocodeAddress(orgData.address || 'Chile');
+          pickupLat = orgCoords?.lat || dropoffLoc.lat;
+          pickupLng = orgCoords?.lng || dropoffLoc.lng;
+        }
+
+        const pickupAddr = {
+          street_address: [orgData.address || 'Dirección del local'],
+          state, city, zip_code: zip, country: 'CL',
+        };
+        const dropoffAddr = {
+          street_address: [orderData.delivery_address],
+          state, city, zip_code: zip, country: 'CL',
+        };
+
+        const normalizePhone = (phone) => {
+          if (!phone) return '';
+          let n = (phone || '').replace(/^0+/, '').replace(/[^\d+]/g, '');
+          if (n.startsWith('+')) return n;
+          if (n.startsWith('56')) return `+${n}`;
+          return `+56${n}`;
+        };
+
+        const reqBody = {
+          external_store_id: orgData.id,
+          pickup_address: JSON.stringify(pickupAddr),
+          dropoff_address: JSON.stringify(dropoffAddr),
+          pickup_latitude: pickupLat,
+          pickup_longitude: pickupLng,
+          dropoff_latitude: dropoffLoc.lat,
+          dropoff_longitude: dropoffLoc.lng,
+          pickup_phone_number: normalizePhone(orgData.phone),
+          dropoff_phone_number: normalizePhone(orderData.customer_phone || '+56900000000'),
+          dropoff_name: orderData.customer_name || 'Cliente',
+        };
+
+        try {
+          const quote = await createQuote(orgData.uber_customer_id, token, reqBody);
+          const delivery = await createDelivery(orgData.uber_customer_id, token, {
+            quote_id: quote.id,
+            ...reqBody,
+            pickup_ready_dt: new Date(pickupReady).toISOString(),
+            pickup_deadline_dt: new Date(pickupDeadline).toISOString(),
+            dropoff_ready_dt: new Date(scheduledAtMs).toISOString(),
+            dropoff_deadline_dt: new Date(Math.max(scheduledAtMs + 60 * 60000, pickupReady + 90 * 60000)).toISOString(),
+            dropoff_notes: orderData.delivery_notes || '',
+          });
+
+          newUberDeliveryId = delivery.id;
+          newUberTrackingUrl = delivery.tracking_url;
+          newDeliveryFee = quote.fee;
+
+        } catch (err) {
+          console.error('[Uber] Error al generar el nuevo viaje:', err);
+          const e = new Error(err.message || "Error al reprogramar en Uber");
+          e.code = 'UBER_REJECTED';
+          throw e;
+        }
+      }
+    }
+
+    // Prepare total update if delivery fee changed
+    let updatedTotal = orderData.total;
+    if (newDeliveryFee !== orderData.delivery_fee) {
+      updatedTotal = orderData.total - (orderData.delivery_fee || 0) + newDeliveryFee;
+    }
+
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
+        scheduled_at: newScheduledAt,
+        uber_delivery_id: newUberDeliveryId,
+        uber_tracking_url: newUberTrackingUrl,
+        delivery_service: newDeliveryService,
+        delivery_fee: newDeliveryFee,
+        total: updatedTotal
+      })
+      .eq('id', orderId);
+
+    if (updateError) throw updateError;
+
+    // Send email notification if there's a customer email or customer attached
+    let customerEmail = orderData.customer_email;
+    if (!customerEmail && orderData.customer_id) {
+       const { data: custData } = await supabase.from('customers').select('email').eq('id', orderData.customer_id).single();
+       if (custData && custData.email) customerEmail = custData.email;
+    }
+
+    if (customerEmail) {
+      // Find branch info
+      const { data: branchData } = await supabase.from('branches').select('name, address').eq('id', orderData.branch_id).single();
+      
+      const emailPayload = {
+        type: 'order_rescheduled',
+        email: customerEmail,
+        data: {
+          order_number: orderData.order_number,
+          order_id: orderData.id,
+          new_scheduled_at: newScheduledAt,
+          customer_name: orderData.customer_name || 'Cliente',
+          delivery_type: orderData.delivery_type,
+          delivery_address: orderData.delivery_address,
+          uber_tracking_url: newUberTrackingUrl,
+          organization: { name: orgData.name, logo_url: orgData.logo_url },
+          branch: branchData || { name: 'Tu Local', address: '' },
+        }
+      };
+      sendEmail(emailPayload).catch(console.error); // Fire and forget
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error rescheduling order:", error);
     throw error;
   }
 };

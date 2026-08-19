@@ -3,6 +3,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { User, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe, Store } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getStoreUrl } from '../utils/tenant';
+import { rescheduleOrder } from '../services/orderService';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
@@ -70,6 +71,18 @@ const SuperAdminView = () => {
       console.error('Error fetching org orders:', err);
     } finally {
       setLoadingOrders(false);
+    }
+  };
+
+  const handleRescheduleOrder = async (orderId, newDateStr, orderData, fallbackAction) => {
+    try {
+      await rescheduleOrder(orderId, newDateStr, orderData, fallbackAction);
+      toast.success('Pedido reprogramado correctamente');
+      setSelectedOrder(prev => ({ ...prev, scheduled_at: newDateStr, delivery_service: fallbackAction === 'switch_to_own' ? 'own' : prev.delivery_service }));
+      fetchOrgOrders(selectedOrganization.id); // Refresh list
+    } catch (error) {
+      toast.error('Error al reprogramar: ' + error.message);
+      throw error;
     }
   };
 
@@ -935,6 +948,7 @@ const SuperAdminView = () => {
         order={selectedOrder}
         organization={selectedOrganization}
         canCancel={false}
+        onReschedule={handleRescheduleOrder}
       />
     </div>
   );

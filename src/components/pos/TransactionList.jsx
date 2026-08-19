@@ -8,7 +8,7 @@ import AddressMap from './AddressMap';
 import PrintableReceipt from './PrintableReceipt';
 import { useAuth } from '../AuthContext';
 import { supabase } from '../../lib/supabase';
-import { updateOrderStatus, deleteOrder, bulkDeleteOrders, bulkCancelOrders } from '../../services/orderService';
+import { deleteOrder, cancelOrder, bulkDeleteOrders, bulkCancelOrders, rescheduleOrder } from '../../services/orderService';
 import { fmt, getKitchenTime, getPaymentMethod, getStatusTag } from '../../utils/orderUtils';
 import UberDeliveryCard from './UberDeliveryCard';
 import OrderDetailModal from './OrderDetailModal';
@@ -173,6 +173,15 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
       console.error('Error confirmando pago:', err);
       alert(`No se pudo confirmar el pago: ${err.message || JSON.stringify(err)}`);
     }
+  };
+
+  const handleRescheduleOrder = async (orderId, newDateStr, orderData, fallbackAction) => {
+    await rescheduleOrder(orderId, newDateStr, orderData, fallbackAction);
+    if (onOrderUpdated) {
+      await onOrderUpdated();
+    }
+    // Update local selectedOrder to reflect the new scheduled time
+    setSelectedOrder(prev => ({ ...prev, scheduled_at: newDateStr, delivery_service: fallbackAction === 'switch_to_own' ? 'own' : prev.delivery_service }));
   };
 
   return (
@@ -490,6 +499,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
           document.title = originalTitle;
         }}
         onConfirmPayment={(e, order) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
+        onReschedule={handleRescheduleOrder}
       />
 
       {/* Ticket imprimible invisible */}

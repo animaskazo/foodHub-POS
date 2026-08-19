@@ -6,6 +6,7 @@ import Modal from '../ui/Modal';
 import AddressMap from './AddressMap';
 import UberDeliveryCard from './UberDeliveryCard';
 import { fmt, getKitchenTime, getPaymentMethod, getStatusTag } from '../../utils/orderUtils';
+import { Loader2 } from 'lucide-react';
 
 const OrderDetailModal = ({
   isOpen,
@@ -15,9 +16,58 @@ const OrderDetailModal = ({
   canCancel = false,
   onCancel,
   onPrint,
+  onPrint,
   onConfirmPayment,
+  onReschedule,
 }) => {
+  const [isRescheduling, setIsRescheduling] = React.useState(false);
+  const [newDate, setNewDate] = React.useState('');
+  const [newTime, setNewTime] = React.useState('');
+  const [rescheduleLoading, setRescheduleLoading] = React.useState(false);
+  const [rescheduleError, setRescheduleError] = React.useState('');
+  const [uberFallbackPrompt, setUberFallbackPrompt] = React.useState(null);
+
+  React.useEffect(() => {
+    setIsRescheduling(false);
+    setRescheduleError('');
+    setUberFallbackPrompt(null);
+    if (order?.scheduled_at) {
+      const d = new Date(order.scheduled_at);
+      setNewDate(d.toLocaleDateString('en-CA')); // YYYY-MM-DD local format
+      setNewTime(d.toTimeString().slice(0,5)); // HH:MM local format
+    } else {
+      setNewDate('');
+      setNewTime('');
+    }
+  }, [order, isOpen]);
+
+  const handleSubmitReschedule = async (fallbackAction = null) => {
+    if (!newDate || !newTime) {
+      setRescheduleError('Selecciona fecha y hora');
+      return;
+    }
+    setRescheduleLoading(true);
+    setRescheduleError('');
+    setUberFallbackPrompt(null);
+    try {
+      const newScheduledAt = new Date(`${newDate}T${newTime}:00`);
+      await onReschedule(order.id, newScheduledAt.toISOString(), order, fallbackAction);
+      setIsRescheduling(false);
+    } catch (err) {
+      if (err.code === 'UBER_REJECTED') {
+        setUberFallbackPrompt(err.message || 'Uber rechazó la nueva hora.');
+      } else {
+        setRescheduleError(err.message || 'Error al reprogramar');
+      }
+    } finally {
+      setRescheduleLoading(false);
+    }
+  };
+
   if (!order) return null;
+
+  const canReschedule = order.scheduled_at && order.status !== 'shipped' && order.status !== 'delivered' && order.status !== 'cancelled' && onReschedule;
+
 
   return (
     <Modal
@@ -140,18 +190,77 @@ const OrderDetailModal = ({
 
           {/* Programado */}
           {order.scheduled_at && (
-            (() => {
-              const d = new Date(order.scheduled_at);
-              return (
-                <div className="bg-purple-100 border border-purple-200 rounded-xl px-3 py-2.5 flex items-center gap-3">
-                  <CalendarClock className="h-4 w-4 text-purple-700 shrink-0" />
+            <div className="bg-purple-100 border border-purple-200 rounded-xl px-4 py-3 flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <CalendarClock className="h-5 w-5 text-purple-700 shrink-0" />
                   <p className="text-sm font-bold text-purple-700 leading-tight">
-                    Programado: {d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })} a las{' '}
-                    {d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} hrs
+                    Programado: {new Date(order.scheduled_at).toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })} a las{' '}
+                    {new Date(order.scheduled_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} hrs
                   </p>
                 </div>
-              );
-            })()
+                {canReschedule && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-purple-700 border-purple-300 bg-white hover:bg-purple-50 shrink-0"
+                    onClick={() => setIsRescheduling(!isRescheduling)}
+                  >
+                    Reprogramar
+                  </Button>
+                )}
+              </div>
+              {isRescheduling && (
+                <div className="pt-3 border-t border-purple-200/60 flex flex-col gap-3">
+                  <p className="text-xs font-semibold text-purple-800">Selecciona la nueva fecha y hora:</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={newDate}
+                      onChange={e => setNewDate(e.target.value)}
+                      className="px-3 py-1.5 rounded-lg border border-purple-300 text-sm outline-none focus:ring-2 focus:ring-purple-400 bg-white text-gray-800 w-full"
+                    />
+                    <input
+                      type="time"
+                      value={newTime}
+                      onChange={e => setNewTime(e.target.value)}
+                      className="px-3 py-1.5 rounded-lg border border-purple-300 text-sm outline-none focus:ring-2 focus:ring-purple-400 bg-white text-gray-800 w-32"
+                    />
+                  </div>
+                  {rescheduleError && (
+                    <p className="text-xs text-red-600 font-bold bg-red-50 p-2 rounded">{rescheduleError}</p>
+                  )}
+                  {uberFallbackPrompt && (
+                    <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg flex flex-col gap-3">
+                      <p className="text-xs text-orange-800 font-medium">{uberFallbackPrompt}</p>
+                      <p className="text-xs text-orange-800 font-bold">¿Qué deseas hacer?</p>
+                      <div className="flex flex-col gap-2">
+                        <Button size="sm" variant="outline" className="w-full justify-start text-orange-700 border-orange-300 hover:bg-orange-100" onClick={() => handleSubmitReschedule('switch_to_own')} disabled={rescheduleLoading}>
+                          {rescheduleLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                          Cambiar a Reparto Propio
+                        </Button>
+                        {canCancel && onCancel && (
+                          <Button size="sm" variant="outline" className="w-full justify-start text-red-700 border-red-300 hover:bg-red-50" onClick={onCancel} disabled={rescheduleLoading}>
+                            Cancelar Pedido Completo
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {!uberFallbackPrompt && (
+                    <div className="flex items-center justify-end gap-2 mt-1">
+                      <Button size="sm" variant="ghost" className="text-gray-500 hover:text-gray-700" onClick={() => setIsRescheduling(false)}>
+                        Cancelar
+                      </Button>
+                      <Button size="sm" className="bg-purple-700 text-white hover:bg-purple-800 font-bold" onClick={() => handleSubmitReschedule(null)} disabled={rescheduleLoading}>
+                        {rescheduleLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                        Confirmar
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Notas del cliente */}
