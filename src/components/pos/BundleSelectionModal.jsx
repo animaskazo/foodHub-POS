@@ -399,7 +399,7 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
         })}
       </div>
 
-      <div className="p-4 sm:p-6 border-t border-gray-100 bg-gray-50/50 shrink-0 space-y-3">
+      <div className="p-4 sm:p-6 border-t border-gray-200 bg-white shrink-0 space-y-3 sticky bottom-0 z-10 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)]">
         {editingItem && (
           <Button
             variant="destructive"
@@ -408,7 +408,7 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
               if (onDelete) onDelete(editingItem.cartItemId);
               onClose();
             }}
-            className="w-full"
+            className="w-full font-bold"
           >
             Eliminar combo
           </Button>
@@ -417,10 +417,10 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
           size="lg"
           onClick={handleConfirmClick}
           disabled={!slotsComplete}
-          className="w-full flex items-center justify-between text-base"
+          className="w-full flex items-center justify-between text-base font-bold shadow-md"
         >
           <span>{editingItem ? 'Actualizar combo' : 'Agregar combo al carrito'}</span>
-          <span className="font-bold">${(calculateTotal() * quantity).toLocaleString('es-CL')}</span>
+          <span className="font-extrabold">${(calculateTotal() * quantity).toLocaleString('es-CL')}</span>
         </Button>
         {!slotsComplete && (
           <p className="text-xs text-red-500 font-semibold text-center">
