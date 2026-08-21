@@ -8,7 +8,7 @@ import {
   getStaff 
 } from '../services/organizationService';
 import { uploadImage } from '../services/storageService';
-import { Store, User, Clock, CalendarClock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2, Timer, CreditCard } from 'lucide-react';
+import { Store, User, Clock, CalendarClock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2, Timer } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -992,118 +992,99 @@ const SettingsView = () => {
             {activeTab === 'payments' && (
               <div className="p-6 md:p-8 space-y-8 animate-in fade-in">
                 
-                {/* Klap API Key */}
-                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 flex items-start gap-4">
-                  <div className="h-12 w-12 bg-white rounded-full border border-gray-200 flex items-center justify-center shrink-0">
-                    <CreditCard className="h-6 w-6 text-gray-700" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-bold text-gray-900 text-lg">API Key de Klap</h3>
-                        <p className="text-gray-500 text-sm mt-1">
-                          Ingresa tu propia API key para procesar pagos online. 
-                          <br/>Si no ingresas una, se usará la predeterminada de la plataforma.
-                        </p>
-                      </div>
-                    </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-lg">API Key de Klap</h3>
+                  <p className="text-gray-500 text-sm mt-1">
+                    Ingresa tu propia API key para procesar pagos online. Si no ingresas una, se usará la predeterminada de la plataforma.
+                  </p>
 
-                    <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
-                      <div>
-                        <label className="text-sm font-semibold text-gray-700 mb-2 block">API Key</label>
-                        <div className="flex gap-2">
-                          <div className="relative flex-1">
-                            <input
-                              type={showKlapKey ? 'text' : 'password'}
-                              value={klapApiKey}
-                              onChange={(e) => { setKlapApiKey(e.target.value); setKlapApiKeyStatus(null); }}
-                              placeholder="Pega tu API key aquí..."
-                              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-black transition-all"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowKlapKey(!showKlapKey)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                            >
-                              {showKlapKey ? (
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
-                              ) : (
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                              )}
-                            </button>
-                          </div>
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <label className="text-sm font-semibold text-gray-700 mb-2 block">API Key</label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            type={showKlapKey ? 'text' : 'password'}
+                            value={klapApiKey}
+                            onChange={(e) => { setKlapApiKey(e.target.value); setKlapApiKeyStatus(null); }}
+                            placeholder="Pega tu API key aquí..."
+                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                          />
                           <button
-                            onClick={handleValidateKlapKey}
-                            disabled={!klapApiKey.trim() || klapApiKeyValidating}
-                            className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                            type="button"
+                            onClick={() => setShowKlapKey(!showKlapKey)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                           >
-                            {klapApiKeyValidating ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                            {showKlapKey ? (
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
                             ) : (
-                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                             )}
-                            Validar
                           </button>
                         </div>
-                        {klapApiKeyStatus === 'valid' && (
-                          <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
-                            <CheckCircle2 className="h-3.5 w-3.5" /> API key válida y funcional
-                          </p>
-                        )}
-                        {klapApiKeyStatus === 'invalid' && (
-                          <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
-                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            API key inválida o no accesible
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-3">
                         <button
-                          onClick={handleSaveKlapKey}
-                          disabled={klapApiKeySaving}
-                          className="bg-black text-white font-bold py-2.5 px-6 rounded-xl hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm disabled:opacity-50"
+                          onClick={handleValidateKlapKey}
+                          disabled={!klapApiKey.trim() || klapApiKeyValidating}
+                          className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                         >
-                          {klapApiKeySaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                          Guardar API Key
+                          {klapApiKeyValidating ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          )}
+                          Validar
                         </button>
-                        {klapApiKey && (
-                          <button
-                            onClick={() => { setKlapApiKey(''); setKlapApiKeyStatus(null); }}
-                            className="text-sm text-gray-500 hover:text-red-500 font-semibold transition-colors"
-                          >
-                            Usar key global
-                          </button>
-                        )}
                       </div>
+                      {klapApiKeyStatus === 'valid' && (
+                        <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> API key válida y funcional
+                        </p>
+                      )}
+                      {klapApiKeyStatus === 'invalid' && (
+                        <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                          API key inválida o no accesible
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={handleSaveKlapKey}
+                        disabled={klapApiKeySaving}
+                        className="bg-black text-white font-bold py-2.5 px-6 rounded-xl hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm disabled:opacity-50"
+                      >
+                        {klapApiKeySaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        Guardar API Key
+                      </button>
+                      {klapApiKey && (
+                        <button
+                          onClick={() => { setKlapApiKey(''); setKlapApiKeyStatus(null); }}
+                          className="text-sm text-gray-500 hover:text-red-500 font-semibold transition-colors"
+                        >
+                          Usar key global
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Info sobre pagos online */}
-                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 flex items-start gap-4">
-                  <div className="h-12 w-12 bg-white rounded-full border border-gray-200 flex items-center justify-center shrink-0">
-                    <Info className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 text-lg mb-4">¿Cómo funcionan los pagos online?</h3>
-                    <div className="space-y-3 text-sm text-gray-700">
-                      <p>Klap (Multicaja) procesa pagos con tarjeta de crédito y débito de forma segura.</p>
-                      <div className="bg-white rounded-xl p-4 border border-gray-100">
-                        <p className="font-semibold text-gray-900 mb-2">Flujo del pago:</p>
-                        <ol className="list-decimal pl-5 space-y-1 text-gray-600">
-                          <li>El cliente selecciona "Pago Online" en el checkout</li>
-                          <li>Es redirigido a la página de pago de Klap</li>
-                          <li>Ingresa los datos de su tarjeta</li>
-                          <li>Klap confirma el pago y notifica a tu sistema</li>
-                          <li>El pedido se marca como pagado automáticamente</li>
-                        </ol>
-                      </div>
-                      <p className="text-gray-500 text-xs">
-                        <strong>Nota:</strong> Si no tienes una API key propia, se usa la key global de la plataforma. 
-                        Para obtener tu propia key, contacta a Klap o tu comercio habilitador.
-                      </p>
-                    </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-lg mb-3">¿Cómo funcionan los pagos online?</h3>
+                  <div className="space-y-2 text-sm text-gray-700">
+                    <p>Klap (Multicaja) procesa pagos con tarjeta de crédito y débito de forma segura.</p>
+                    <p className="font-semibold text-gray-900">Flujo del pago:</p>
+                    <ol className="list-decimal pl-5 space-y-1 text-gray-600">
+                      <li>El cliente selecciona "Pago Online" en el checkout</li>
+                      <li>Es redirigido a la página de pago de Klap</li>
+                      <li>Ingresa los datos de su tarjeta</li>
+                      <li>Klap confirma el pago y notifica a tu sistema</li>
+                      <li>El pedido se marca como pagado automáticamente</li>
+                    </ol>
+                    <p className="text-gray-500 text-xs pt-2">
+                      <strong>Nota:</strong> Si no tienes una API key propia, se usa la key global de la plataforma. 
+                      Para obtener tu propia key, contacta a Klap o tu comercio habilitador.
+                    </p>
                   </div>
                 </div>
 

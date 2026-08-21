@@ -461,84 +461,161 @@ const DashboardView = () => {
 
         {/* Metrics Cards (Slider on Mobile, Grid on Desktop) */}
         <div className="md:grid md:grid-cols-4 md:gap-6 md:mb-8">
+          
+          {/* Mobile: Slider */}
           <MobileMetricsSlider>
-            
             {/* Ventas Totales Card */}
             <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between w-full">
-            <div>
-              <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
-                <div className="w-1.5 h-1.5 rounded-full bg-black"></div>
-                Ventas totales 
-                <Tooltip text={sparklineDateRangeText}>
-                  <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
-                </Tooltip>
+              <div>
+                <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
+                  <div className="w-1.5 h-1.5 rounded-full bg-black"></div>
+                  Ventas totales 
+                  <Tooltip text={sparklineDateRangeText}>
+                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                  </Tooltip>
+                </div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : formatCurrency(metrics.totalRevenue)}
+                </div>
               </div>
-              <div className="text-2xl font-bold text-gray-900">
-                {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : formatCurrency(metrics.totalRevenue)}
+              <div className="pl-4">
+                <Sparkline data={weeklySparklines.revenue} color="#000000" fillColor="#e5e7eb" width={70} height={30} />
               </div>
             </div>
-            <div className="pl-4">
-              <Sparkline data={weeklySparklines.revenue} color="#000000" fillColor="#e5e7eb" width={70} height={30} />
-            </div>
-          </div>
 
-          {/* Órdenes Totales Card */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between w-full">
-            <div>
-              <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
-                <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
-                Órdenes totales 
-                <Tooltip text={sparklineDateRangeText}>
-                  <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
-                </Tooltip>
+            {/* Órdenes Totales Card */}
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between w-full">
+              <div>
+                <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
+                  <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+                  Órdenes totales 
+                  <Tooltip text={sparklineDateRangeText}>
+                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                  </Tooltip>
+                </div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : metrics.totalOrders}
+                </div>
               </div>
-              <div className="text-2xl font-bold text-gray-900">
-                {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : metrics.totalOrders}
+              <div className="pl-4">
+                <Sparkline data={weeklySparklines.orders} color="#a855f7" fillColor="#f3e8ff" width={70} height={30} />
               </div>
             </div>
-            <div className="pl-4">
-              <Sparkline data={weeklySparklines.orders} color="#a855f7" fillColor="#f3e8ff" width={70} height={30} />
-            </div>
-          </div>
 
-          {/* Ticket Promedio Card */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between w-full">
-            <div>
-              <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                Ticket promedio 
-                <Tooltip text={sparklineDateRangeText}>
-                  <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
-                </Tooltip>
+            {/* Ticket Promedio Card */}
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between w-full">
+              <div>
+                <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                  Ticket promedio 
+                  <Tooltip text={sparklineDateRangeText}>
+                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                  </Tooltip>
+                </div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : formatCurrency(metrics.averageTicket)}
+                </div>
               </div>
-              <div className="text-2xl font-bold text-gray-900">
-                {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : formatCurrency(metrics.averageTicket)}
+              <div className="pl-4">
+                <Sparkline data={weeklySparklines.ticket} color="#3b82f6" fillColor="#dbeafe" width={70} height={30} />
               </div>
             </div>
-            <div className="pl-4">
-              <Sparkline data={weeklySparklines.ticket} color="#3b82f6" fillColor="#dbeafe" width={70} height={30} />
-            </div>
-          </div>
 
-          {/* Visitas Card */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between w-full">
-            <div>
-              <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                Visitas totales
-                <Tooltip text={sparklineDateRangeText}>
-                  <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
-                </Tooltip>
+            {/* Visitas Card */}
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between w-full">
+              <div>
+                <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                  Visitas totales
+                  <Tooltip text={sparklineDateRangeText}>
+                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                  </Tooltip>
+                </div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : totalVisits}
+                </div>
               </div>
-              <div className="text-2xl font-bold text-gray-900">
-                {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : totalVisits}
+              <div className="pl-4">
+                <Sparkline data={weeklySparklines.visits} color="#10b981" fillColor="#d1fae5" width={70} height={30} />
               </div>
             </div>
-            <div className="pl-4">
-              <Sparkline data={weeklySparklines.visits} color="#10b981" fillColor="#d1fae5" width={70} height={30} />
-            </div>
-          </div>
           </MobileMetricsSlider>
+
+          {/* Desktop: Grid directo */}
+          <div className="hidden md:contents">
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
+                  <div className="w-1.5 h-1.5 rounded-full bg-black"></div>
+                  Ventas totales 
+                  <Tooltip text={sparklineDateRangeText}>
+                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                  </Tooltip>
+                </div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : formatCurrency(metrics.totalRevenue)}
+                </div>
+              </div>
+              <div className="pl-4">
+                <Sparkline data={weeklySparklines.revenue} color="#000000" fillColor="#e5e7eb" width={70} height={30} />
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
+                  <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+                  Órdenes totales 
+                  <Tooltip text={sparklineDateRangeText}>
+                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                  </Tooltip>
+                </div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : metrics.totalOrders}
+                </div>
+              </div>
+              <div className="pl-4">
+                <Sparkline data={weeklySparklines.orders} color="#a855f7" fillColor="#f3e8ff" width={70} height={30} />
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                  Ticket promedio 
+                  <Tooltip text={sparklineDateRangeText}>
+                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                  </Tooltip>
+                </div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : formatCurrency(metrics.averageTicket)}
+                </div>
+              </div>
+              <div className="pl-4">
+                <Sparkline data={weeklySparklines.ticket} color="#3b82f6" fillColor="#dbeafe" width={70} height={30} />
+              </div>
+            </div>
+
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                  Visitas totales
+                  <Tooltip text={sparklineDateRangeText}>
+                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                  </Tooltip>
+                </div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : totalVisits}
+                </div>
+              </div>
+              <div className="pl-4">
+                <Sparkline data={weeklySparklines.visits} color="#10b981" fillColor="#d1fae5" width={70} height={30} />
+              </div>
+            </div>
+          </div>
+
         </div>
 
         {/* Sales Record */}
