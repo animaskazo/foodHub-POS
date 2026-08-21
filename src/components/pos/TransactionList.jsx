@@ -9,6 +9,7 @@ import PrintableReceipt from './PrintableReceipt';
 import { useAuth } from '../AuthContext';
 import { supabase } from '../../lib/supabase';
 import { updateOrderStatus, deleteOrder, bulkDeleteOrders, bulkCancelOrders } from '../../services/orderService';
+import { printReceipt } from '../../services/printerService';
 import { fmt, getKitchenTime, getPaymentMethod, getStatusTag } from '../../utils/orderUtils';
 import UberDeliveryCard from './UberDeliveryCard';
 import OrderDetailModal from './OrderDetailModal';
@@ -483,11 +484,28 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
         organization={organization}
         canCancel={canCancel}
         onCancel={() => setIsCancelConfirmOpen(true)}
-        onPrint={() => {
-          const originalTitle = document.title;
-          document.title = `Orden_#${selectedOrder.order_number}`;
-          window.print();
-          document.title = originalTitle;
+        onPrint={async () => {
+          const qzPrinter = localStorage.getItem('qz_default_printer');
+          if (qzPrinter && selectedOrder) {
+            try {
+              const { toast } = await import('sonner');
+              toast.info('Imprimiendo ticket...');
+              await printReceipt(selectedOrder, organization, qzPrinter);
+            } catch (e) {
+              console.error('QZ Print failed, usando impresión nativa', e);
+              const { toast } = await import('sonner');
+              toast.error('Error con QZ Tray, usando impresión del navegador');
+              const originalTitle = document.title;
+              document.title = `Orden_#${selectedOrder.order_number}`;
+              window.print();
+              document.title = originalTitle;
+            }
+          } else {
+            const originalTitle = document.title;
+            document.title = `Orden_#${selectedOrder.order_number}`;
+            window.print();
+            document.title = originalTitle;
+          }
         }}
         onConfirmPayment={(e, order) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
       />
