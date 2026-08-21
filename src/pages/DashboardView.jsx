@@ -61,7 +61,7 @@ const MobileMetricsSlider = ({ children }) => {
         style={{ transform: `translateX(calc(-${active} * (75vw + 1rem)))` }}
       >
         {React.Children.map(children, child => (
-          <div className="w-[75vw] shrink-0">
+          <div className="w-[75vw] last:w-full shrink-0">
             {child}
           </div>
         ))}
