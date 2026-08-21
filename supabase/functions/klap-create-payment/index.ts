@@ -55,9 +55,38 @@ serve(async (req) => {
     console.log("return_url →", validReturnUrl);
     console.log("cancel_url →", cancelUrl);
 
+    // ── Obtener API key de la organización ────────────────────────────────────
+    const globalApiKey = Deno.env.get("KLAP_API_KEY") || "mKaTZ4yBm3rVFapqNctziKCvXsjD6fDO";
+    let apiKey = globalApiKey;
 
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+      const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const apiKey = Deno.env.get("KLAP_API_KEY") || "mKaTZ4yBm3rVFapqNctziKCvXsjD6fDO";
+      const { data: orderData } = await supabase
+        .from('orders')
+        .select('organization_id')
+        .eq('id', orderId)
+        .single();
+
+      if (orderData?.organization_id) {
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('klap_api_key')
+          .eq('id', orderData.organization_id)
+          .single();
+
+        if (orgData?.klap_api_key) {
+          apiKey = orgData.klap_api_key;
+          console.log("Usando API key personalizada de la organización:", orderData.organization_id);
+        } else {
+          console.log("Organización sin API key propia, usando key global");
+        }
+      }
+    } catch (e) {
+      console.error("Error obteniendo API key de la organización, usando key global:", e);
+    }
 
     // Llamada estándar a la API de Klap (Multicaja) — producción
     const klapResponse = await fetch("https://api.pasarela.multicaja.cl/payment-gateway/v1/orders", {

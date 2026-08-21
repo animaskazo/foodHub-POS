@@ -134,7 +134,7 @@ const OrderView = () => {
               // ── Verificar pago directamente con la API de Klap antes de confirmar la orden ──
               if (klapOrderId) {
                 const { data: verifyRes, error: verifyErr } = await supabase.functions.invoke('klap-verify-payment', {
-                  body: { klapOrderId }
+                  body: { klapOrderId, orderId: storedOrderId }
                 });
 
                 if (verifyErr || !verifyRes?.isApproved) {

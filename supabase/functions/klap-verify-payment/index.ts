@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { klapOrderId } = await req.json();
+    const { klapOrderId, orderId } = await req.json();
 
     if (!klapOrderId) {
       return new Response(JSON.stringify({ isApproved: false, error: "Falta klapOrderId" }), {
@@ -21,7 +22,38 @@ serve(async (req) => {
       });
     }
 
-    const apiKey = Deno.env.get("KLAP_API_KEY") || "mKaTZ4yBm3rVFapqNctziKCvXsjD6fDO";
+    // ── Obtener API key de la organización ────────────────────────────────────
+    const globalApiKey = Deno.env.get("KLAP_API_KEY") || "mKaTZ4yBm3rVFapqNctziKCvXsjD6fDO";
+    let apiKey = globalApiKey;
+
+    if (orderId) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        const { data: orderData } = await supabase
+          .from('orders')
+          .select('organization_id')
+          .eq('id', orderId)
+          .single();
+
+        if (orderData?.organization_id) {
+          const { data: orgData } = await supabase
+            .from('organizations')
+            .select('klap_api_key')
+            .eq('id', orderData.organization_id)
+            .single();
+
+          if (orgData?.klap_api_key) {
+            apiKey = orgData.klap_api_key;
+            console.log("[Klap Verify] Usando API key de la organización:", orderData.organization_id);
+          }
+        }
+      } catch (e) {
+        console.error("[Klap Verify] Error obteniendo API key de la organización, usando global:", e);
+      }
+    }
 
     const klapResponse = await fetch(`https://api.pasarela.multicaja.cl/payment-gateway/v1/orders/${klapOrderId}`, {
       method: "GET",

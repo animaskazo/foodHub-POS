@@ -29,7 +29,43 @@ serve(async (req) => {
 
     // ── Verificar autenticidad del webhook ────────────────────────────────────
     // Klap envía un header 'Apikey' = sha256(reference_id + order_id + private_apikey)
-    const privateApiKey = Deno.env.get("KLAP_API_KEY") || "mKaTZ4yBm3rVFapqNctziKCvXsjD6fDO";
+    // Necesitamos buscar la API key de la organización dueña de esta orden
+    const globalApiKey = Deno.env.get("KLAP_API_KEY") || "mKaTZ4yBm3rVFapqNctziKCvXsjD6fDO";
+
+    // Extraer el UUID original de la orden desde reference_id
+    // El reference_id se genera como `${orderId}-${Date.now()}`, entonces
+    // los primeros 5 segmentos separados por guion forman el UUID v4.
+    const orderId = reference_id.split('-').slice(0, 5).join('-');
+
+    // Buscar la API key de la organización
+    let privateApiKey = globalApiKey;
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+      const supabaseForAuth = createClient(supabaseUrl, supabaseKey);
+
+      const { data: orderData } = await supabaseForAuth
+        .from('orders')
+        .select('organization_id')
+        .eq('id', orderId)
+        .single();
+
+      if (orderData?.organization_id) {
+        const { data: orgData } = await supabaseForAuth
+          .from('organizations')
+          .select('klap_api_key')
+          .eq('id', orderData.organization_id)
+          .single();
+
+        if (orgData?.klap_api_key) {
+          privateApiKey = orgData.klap_api_key;
+          console.log("Webhook: usando API key de la organización:", orderData.organization_id);
+        }
+      }
+    } catch (e) {
+      console.error("Webhook: error obteniendo API key de la organización, usando global:", e);
+    }
+
     const receivedApikey = req.headers.get("Apikey") || req.headers.get("apikey") || "";
 
     if (receivedApikey) {
@@ -59,11 +95,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Extraer el UUID original de la orden desde reference_id
-    // El reference_id se genera como `${orderId}-${Date.now()}`, entonces
-    // los primeros 5 segmentos separados por guion forman el UUID v4.
-    const orderId = reference_id.split('-').slice(0, 5).join('-');
 
     if (isConfirm) {
       // ── Pago exitoso: marcar como pagado ──

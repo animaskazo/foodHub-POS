@@ -22,6 +22,7 @@ import {
   User,
   DollarSign,
   Printer,
+  CreditCard,
   ChevronLeft,
   MessageCircle,
   BarChart3,
@@ -368,6 +369,20 @@ const Layout = () => {
                     >
                       <Printer className="h-[18px] w-[18px]" />
                       Impresoras
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink
+                      to="/settings?tab=payments"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={({ isActive }) => {
+                        const isMatch = window.location.pathname === '/settings' && window.location.search === '?tab=payments';
+                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                          }`;
+                      }}
+                    >
+                      <CreditCard className="h-[18px] w-[18px]" />
+                      Pasarela de pago
                     </NavLink>
                   </li>
                   <li>
