@@ -210,8 +210,44 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
   const quantity = editingItem?.quantity || 1;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Configurar ${originalName}`} maxWidth="max-w-xl">
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title={`Configurar ${originalName}`} 
+      maxWidth="max-w-xl"
+      footer={
+        <div className="p-4 sm:p-6 space-y-3">
+          {editingItem && (
+            <Button
+              variant="destructive"
+              size="lg"
+              onClick={() => {
+                if (onDelete) onDelete(editingItem.cartItemId);
+                onClose();
+              }}
+              className="w-full font-bold h-14 text-lg"
+            >
+              Eliminar combo
+            </Button>
+          )}
+          <Button
+            size="lg"
+            onClick={handleConfirmClick}
+            disabled={!slotsComplete}
+            className="w-full flex items-center justify-between font-bold shadow-md h-16 text-lg px-6"
+          >
+            <span>{editingItem ? 'Actualizar combo' : 'Agregar combo al carrito'}</span>
+            <span className="font-extrabold text-xl">${(calculateTotal() * quantity).toLocaleString('es-CL')}</span>
+          </Button>
+          {!slotsComplete && (
+            <p className="text-xs text-red-500 font-semibold text-center">
+              Completa las selecciones obligatorias del combo para continuar.
+            </p>
+          )}
+        </div>
+      }
+    >
+      <div className="flex-1 p-4 sm:p-6">
         
         {product.bundleSlots?.map(slot => {
           const currentSelection = selections[slot.id] || [];
@@ -397,36 +433,6 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
             </div>
           );
         })}
-      </div>
-
-      <div className="p-4 sm:p-6 border-t border-gray-200 bg-white shrink-0 space-y-3 sticky bottom-0 z-10 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)]">
-        {editingItem && (
-          <Button
-            variant="destructive"
-            size="lg"
-            onClick={() => {
-              if (onDelete) onDelete(editingItem.cartItemId);
-              onClose();
-            }}
-            className="w-full font-bold"
-          >
-            Eliminar combo
-          </Button>
-        )}
-        <Button
-          size="lg"
-          onClick={handleConfirmClick}
-          disabled={!slotsComplete}
-          className="w-full flex items-center justify-between text-base font-bold shadow-md"
-        >
-          <span>{editingItem ? 'Actualizar combo' : 'Agregar combo al carrito'}</span>
-          <span className="font-extrabold">${(calculateTotal() * quantity).toLocaleString('es-CL')}</span>
-        </Button>
-        {!slotsComplete && (
-          <p className="text-xs text-red-500 font-semibold text-center">
-            Completa las selecciones obligatorias del combo para continuar.
-          </p>
-        )}
       </div>
     </Modal>
   );

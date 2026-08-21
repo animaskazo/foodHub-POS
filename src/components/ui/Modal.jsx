@@ -7,6 +7,7 @@ const Modal = ({
   onClose, 
   title, 
   children, 
+  footer,
   maxWidth = 'max-w-md', 
   hideHeader = false, 
   customAnimation = null, 
@@ -79,6 +80,11 @@ const Modal = ({
         <div className="flex-1 overflow-y-auto min-h-0">
           {children}
         </div>
+        {footer && (
+          <div className="shrink-0 bg-white border-t border-gray-100 z-10">
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
     document.body

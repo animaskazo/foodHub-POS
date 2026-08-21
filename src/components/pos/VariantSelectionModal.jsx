@@ -63,8 +63,39 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
   const quantity = editingItem?.quantity || 1;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Opciones para ${originalName}`} maxWidth="max-w-xl">
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title={`Opciones para ${originalName}`} 
+      maxWidth="max-w-xl"
+      footer={
+        <div className="p-4 sm:p-6 space-y-3">
+          {editingItem && (
+            <Button
+              variant="destructive"
+              size="lg"
+              onClick={() => {
+                if (onDelete) onDelete(editingItem.cartItemId);
+                onClose();
+              }}
+              className="w-full font-bold h-14 text-lg"
+            >
+              Eliminar producto
+            </Button>
+          )}
+          <Button
+            size="lg"
+            onClick={handleConfirm}
+            disabled={hasVariants && !selectedVariant}
+            className="w-full flex items-center justify-between font-bold shadow-md h-16 text-lg px-6"
+          >
+            <span>{editingItem ? 'Actualizar' : 'Agregar al carrito'}</span>
+            <span className="font-extrabold text-xl">${(totalGross * quantity).toLocaleString('es-CL')}</span>
+          </Button>
+        </div>
+      }
+    >
+      <div className="flex-1 p-4 sm:p-6">
         
         {baseIngredients.length > 0 && (
           <div className="mb-4 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100">
@@ -177,31 +208,6 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
             </div>
           </div>
         )}
-      </div>
-
-      <div className="p-4 sm:p-6 border-t border-gray-100 bg-gray-50/50 shrink-0 space-y-3">
-        {editingItem && (
-          <Button
-            variant="destructive"
-            size="lg"
-            onClick={() => {
-              if (onDelete) onDelete(editingItem.cartItemId);
-              onClose();
-            }}
-            className="w-full"
-          >
-            Eliminar producto
-          </Button>
-        )}
-        <Button
-          size="lg"
-          onClick={handleConfirm}
-          disabled={hasVariants && !selectedVariant}
-          className="w-full flex items-center justify-between"
-        >
-          <span>{editingItem ? 'Actualizar' : 'Agregar al carrito'}</span>
-          <span>${(totalGross * quantity).toLocaleString('es-CL')}</span>
-        </Button>
       </div>
     </Modal>
   );

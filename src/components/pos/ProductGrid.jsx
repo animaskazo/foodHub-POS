@@ -62,6 +62,26 @@ const ProductGrid = ({
   const [hasDraggedCats, setHasDraggedCats] = useState(false);
   const [catDragStart, setCatDragStart] = useState({ x: 0, scrollLeft: 0 });
 
+  const [catScrollProgress, setCatScrollProgress] = useState(0);
+
+  const checkCatScroll = () => {
+    // We can just rely on categories length or always show it
+  };
+
+  useEffect(() => {
+    // Keeping this for resize events if needed, but dots will always render
+  }, [categories]);
+
+  const handleCatScroll = (e) => {
+    const { scrollLeft, scrollWidth, clientWidth } = e.target;
+    const maxScroll = scrollWidth - clientWidth;
+    if (maxScroll > 0) {
+      setCatScrollProgress(scrollLeft / maxScroll);
+    } else {
+      setCatScrollProgress(0);
+    }
+  };
+
   const scrollCats = (direction) => {
     if (categoryScrollRef.current) {
       categoryScrollRef.current.scrollBy({ left: direction === 'left' ? -200 : 200, behavior: 'smooth' });
@@ -69,6 +89,7 @@ const ProductGrid = ({
   };
 
   const handleCatPointerDown = (e) => {
+    if (e.pointerType === 'touch') return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (!categoryScrollRef.current) return;
     setIsDraggingCats(true);
@@ -80,6 +101,7 @@ const ProductGrid = ({
   };
 
   const handleCatPointerMove = (e) => {
+    if (e.pointerType === 'touch') return;
     if (!isDraggingCats || !categoryScrollRef.current) return;
     const dx = e.pageX - catDragStart.x;
     if (Math.abs(dx) > 5) {
@@ -88,7 +110,8 @@ const ProductGrid = ({
     categoryScrollRef.current.scrollLeft = catDragStart.scrollLeft - dx;
   };
 
-  const handleCatPointerUp = () => {
+  const handleCatPointerUp = (e) => {
+    if (e.pointerType === 'touch') return;
     setIsDraggingCats(false);
   };
 
@@ -353,59 +376,78 @@ const ProductGrid = ({
             <div className="h-10 w-20 bg-gray-200 rounded-full animate-pulse shrink-0"></div>
           </div>
         ) : (
-          <div className="relative flex items-center group w-full overflow-hidden">
-            {/* Left Button */}
-            <button 
-              onClick={() => scrollCats('left')}
-              className="hidden md:flex absolute left-0 z-10 bg-gradient-to-r from-white via-white/80 to-transparent h-full w-14 items-center justify-start pl-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto"
-            >
-              <div className="bg-white rounded-full shadow-sm border border-gray-200 p-1 text-gray-500 hover:text-black hover:shadow cursor-pointer pointer-events-auto">
-                <ChevronLeft className="h-5 w-5" />
-              </div>
-            </button>
+          <div className="flex flex-col mb-2">
+            <div className="relative flex items-center group w-full overflow-hidden">
+              {/* Left Button */}
+              <button 
+                onClick={() => scrollCats('left')}
+                className="hidden md:flex absolute left-0 z-10 bg-gradient-to-r from-white via-white/80 to-transparent h-full w-14 items-center justify-start pl-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto"
+              >
+                <div className="bg-white rounded-full shadow-sm border border-gray-200 p-1 text-gray-500 hover:text-black hover:shadow cursor-pointer pointer-events-auto">
+                  <ChevronLeft className="h-5 w-5" />
+                </div>
+              </button>
 
-            <div 
-              ref={categoryScrollRef}
-              className={`flex px-5 gap-3 overflow-x-auto no-scrollbar snap-x relative select-none ${isDraggingCats ? 'cursor-grabbing' : 'cursor-grab'} w-full`}
-              onPointerDown={handleCatPointerDown}
-              onPointerMove={handleCatPointerMove}
-              onPointerUp={handleCatPointerUp}
-              onPointerLeave={handleCatPointerUp}
-              onWheel={handleCatWheel}
-            >
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={(e) => {
-                    if (hasDraggedCats) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      return;
-                    }
-                    setActiveCategory(cat.id);
-                  }}
-                  className={`
-                    snap-start shrink-0 px-6 py-2.5 rounded-full font-bold text-[14px] whitespace-nowrap transition-colors select-none
-                    ${activeCategory === cat.id 
-                      ? 'bg-black text-white shadow-md' 
-                      : 'bg-white text-gray-700 border border-gray-200 active:bg-gray-100'}
-                  `}
-                  style={{ WebkitTapHighlightColor: 'transparent' }}
-                >
-                  {cat.name}
-                </button>
+              <div 
+                ref={categoryScrollRef}
+                className={`flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory relative select-none ${isDraggingCats ? 'cursor-grabbing' : 'cursor-grab'} w-full`}
+                onPointerDown={handleCatPointerDown}
+                onPointerMove={handleCatPointerMove}
+                onPointerUp={handleCatPointerUp}
+                onPointerLeave={handleCatPointerUp}
+                onWheel={handleCatWheel}
+                onScroll={handleCatScroll}
+              >
+                {categories.map((cat, index) => (
+                  <div 
+                    key={cat.id} 
+                    className={`snap-start shrink-0 flex ${index === 0 ? 'pl-5' : ''} ${index === categories.length - 1 ? 'pr-5' : ''}`}
+                  >
+                    <button
+                      onClick={(e) => {
+                        if (hasDraggedCats) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          return;
+                        }
+                        setActiveCategory(cat.id);
+                      }}
+                      className={`
+                        px-6 py-2.5 rounded-full font-bold text-[14px] whitespace-nowrap transition-colors select-none
+                        ${activeCategory === cat.id 
+                          ? 'bg-black text-white shadow-md' 
+                          : 'bg-white text-gray-700 border border-gray-200 active:bg-gray-100'}
+                      `}
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
+                    >
+                      {cat.name}
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Right Button */}
+              <button 
+                onClick={() => scrollCats('right')}
+                className="hidden md:flex absolute right-0 z-10 bg-gradient-to-l from-white via-white/80 to-transparent h-full w-14 items-center justify-end pr-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto"
+              >
+                <div className="bg-white rounded-full shadow-sm border border-gray-200 p-1 text-gray-500 hover:text-black hover:shadow cursor-pointer pointer-events-auto">
+                  <ChevronRight className="h-5 w-5" />
+                </div>
+              </button>
+            </div>
+            
+            {/* Scroll Indicator Dots */}
+            <div className="flex justify-center items-center gap-1.5 mt-2 mb-2 min-h-[10px]">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    Math.round(catScrollProgress * 2) === i ? 'w-4 bg-gray-800' : 'w-1.5 bg-gray-300'
+                  }`}
+                />
               ))}
             </div>
-
-            {/* Right Button */}
-            <button 
-              onClick={() => scrollCats('right')}
-              className="hidden md:flex absolute right-0 z-10 bg-gradient-to-l from-white via-white/80 to-transparent h-full w-14 items-center justify-end pr-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto"
-            >
-              <div className="bg-white rounded-full shadow-sm border border-gray-200 p-1 text-gray-500 hover:text-black hover:shadow cursor-pointer pointer-events-auto">
-                <ChevronRight className="h-5 w-5" />
-              </div>
-            </button>
           </div>
         )}
       </div>

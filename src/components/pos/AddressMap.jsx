@@ -33,7 +33,7 @@ const AddressMap = ({ address, coords: initialCoords, emptyLabel = 'Ubicación n
       setState('ok');
       return;
     }
-    
+
     if (!address) {
       setState('empty');
       return;

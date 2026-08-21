@@ -30,16 +30,66 @@ import PrintableReceipt from '../components/pos/PrintableReceipt';
 import Sparkline from '../components/ui/Sparkline';
 import Tooltip from '../components/ui/tooltip';
 
+const MobileMetricsSlider = ({ children }) => {
+  const [active, setActive] = useState(0);
+  const count = React.Children.count(children);
+  const touchStart = useRef(null);
+
+  const onTouchStart = (e) => {
+    touchStart.current = e.touches[0].clientX;
+  };
+
+  const onTouchEnd = (e) => {
+    if (touchStart.current === null) return;
+    const diff = touchStart.current - e.changedTouches[0].clientX;
+    if (diff > 50 && active < count - 1) {
+      setActive(prev => prev + 1);
+    } else if (diff < -50 && active > 0) {
+      setActive(prev => prev - 1);
+    }
+    touchStart.current = null;
+  };
+
+  return (
+    <div 
+      className="md:hidden w-full overflow-hidden mb-8"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      <div 
+        className="flex gap-4 transition-transform duration-500 ease-in-out"
+        style={{ transform: `translateX(calc(-${active} * (75vw + 1rem)))` }}
+      >
+        {React.Children.map(children, child => (
+          <div className="w-[75vw] shrink-0">
+            {child}
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-center gap-2 mt-4">
+        {Array.from({ length: count }).map((_, i) => (
+          <button 
+            key={i} 
+            onClick={() => setActive(i)}
+            className={`w-2 h-2 rounded-full transition-colors ${i === active ? 'bg-gray-800' : 'bg-gray-300'}`} 
+            aria-label={`Ver diapositiva ${i + 1}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const DashboardView = () => {
   const { organization, loading: authLoading } = useAuth();
   const [orders, setOrders] = useState([]);
+  const [totalVisits, setTotalVisits] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [channelFilter, setChannelFilter] = useState('all'); // all, table, pickup, online, whatsapp
   const [showScheduled, setShowScheduled] = useState(false);
   const [kitchenStatusFilter, setKitchenStatusFilter] = useState('all'); // all, pending, preparing, ready, delivered, cancelled
   const [dateRange, setDateRange] = useState('today'); // today, 7days, 30days
-  const [showMetricsMobile, setShowMetricsMobile] = useState(false);
   
   // Shifts State
   const [shiftSettings, setShiftSettings] = useState(null);
@@ -47,7 +97,7 @@ const DashboardView = () => {
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [shiftModalType, setShiftModalType] = useState('open'); // 'open' or 'close'
 
-  const [weeklySparklines, setWeeklySparklines] = useState({ revenue: [], orders: [], ticket: [] });
+  const [weeklySparklines, setWeeklySparklines] = useState({ revenue: [], orders: [], ticket: [], visits: [] });
 
   useEffect(() => {
     if (!organization?.id) return;
@@ -79,11 +129,31 @@ const DashboardView = () => {
         });
         
         const dailyTicket = dailyRevenue.map((rev, i) => dailyOrders[i] > 0 ? rev / dailyOrders[i] : 0);
+
+        // Fetch visits for sparkline
+        const { data: visitsData } = await supabase
+          .from('store_visits')
+          .select('date, visit_count')
+          .eq('organization_id', organization.id)
+          .gte('date', startOfRange.toISOString().split('T')[0])
+          .order('date', { ascending: true });
+
+        const dailyVisits = new Array(7).fill(0);
+        if (visitsData) {
+          visitsData.forEach(visit => {
+            const visitDate = new Date(visit.date + 'T00:00:00');
+            const dayIndex = Math.floor((visitDate.getTime() - startOfRange.getTime()) / (1000 * 60 * 60 * 24));
+            if (dayIndex >= 0 && dayIndex < 7) {
+              dailyVisits[dayIndex] += visit.visit_count;
+            }
+          });
+        }
         
         setWeeklySparklines({
           revenue: dailyRevenue,
           orders: dailyOrders,
-          ticket: dailyTicket
+          ticket: dailyTicket,
+          visits: dailyVisits
         });
       }
     };
@@ -179,6 +249,18 @@ const DashboardView = () => {
 
       const newOrders = data || [];
       setOrders(newOrders);
+
+      // Fetch visits for the selected date range
+      const { data: visitsData } = await supabase
+        .from('store_visits')
+        .select('visit_count')
+        .eq('organization_id', organization.id)
+        .gte('date', startOfRange.toISOString().split('T')[0])
+        .lte('date', endOfDay.toISOString().split('T')[0]);
+      
+      const totalVisitsCount = (visitsData || []).reduce((sum, v) => sum + (v.visit_count || 0), 0);
+      setTotalVisits(totalVisitsCount);
+      
     } catch (err) {
       if (!isBackground) setError('Error al cargar órdenes.');
       console.error(err);
@@ -377,11 +459,12 @@ const DashboardView = () => {
           </Button>
         </div>
 
-        {/* Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          
-          {/* Ventas Totales Card */}
-          <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between">
+        {/* Metrics Cards (Slider on Mobile, Grid on Desktop) */}
+        <div className="md:grid md:grid-cols-4 md:gap-6 md:mb-8">
+          <MobileMetricsSlider>
+            
+            {/* Ventas Totales Card */}
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between w-full">
             <div>
               <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
                 <div className="w-1.5 h-1.5 rounded-full bg-black"></div>
@@ -400,7 +483,7 @@ const DashboardView = () => {
           </div>
 
           {/* Órdenes Totales Card */}
-          <div className={`bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between md:flex ${showMetricsMobile ? 'flex' : 'hidden'}`}>
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between w-full">
             <div>
               <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
                 <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
@@ -419,7 +502,7 @@ const DashboardView = () => {
           </div>
 
           {/* Ticket Promedio Card */}
-          <div className={`bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between md:flex ${showMetricsMobile ? 'flex' : 'hidden'}`}>
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between w-full">
             <div>
               <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
@@ -437,44 +520,53 @@ const DashboardView = () => {
             </div>
           </div>
 
-          {/* Mobile Toggle Button */}
-          <button 
-            onClick={() => setShowMetricsMobile(!showMetricsMobile)}
-            className="md:hidden flex items-center justify-center gap-1.5 w-full py-2 bg-gray-50 text-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors"
-          >
-            {showMetricsMobile ? (
-              <><ChevronUp className="h-4 w-4" /> Ocultar métricas</>
-            ) : (
-              <><ChevronDown className="h-4 w-4" /> Ver más detalles</>
-            )}
-          </button>
+          {/* Visitas Card */}
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 font-mono tracking-tight shadow-sm flex items-center justify-between w-full">
+            <div>
+              <div className="flex items-center gap-1.5 font-bold text-[12px] text-gray-900 mb-1 tracking-wider">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                Visitas totales
+                <Tooltip text={sparklineDateRangeText}>
+                  <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                </Tooltip>
+              </div>
+              <div className="text-2xl font-bold text-gray-900">
+                {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : totalVisits}
+              </div>
+            </div>
+            <div className="pl-4">
+              <Sparkline data={weeklySparklines.visits} color="#10b981" fillColor="#d1fae5" width={70} height={30} />
+            </div>
+          </div>
+          </MobileMetricsSlider>
         </div>
 
         {/* Sales Record */}
         <div className="md:bg-white md:rounded-2xl md:border md:border-gray-200 overflow-hidden flex flex-col">
           {/* Toolbar */}
-          <div className="pb-4 md:p-6 md:border-b flex justify-between items-center gap-3">
-            <h2 className="text-lg font-semibold text-gray-900">Registro Diario</h2>
-            <div className="flex items-center gap-2">
+          <div className="pb-4 md:p-6 md:border-b flex items-center gap-2">
+            <h2 className="text-base font-semibold text-gray-900 whitespace-nowrap">Registro Diario</h2>
+            <div className="flex items-center gap-1.5 ml-auto">
               <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
-                className="bg-white border border-gray-200 text-gray-700 rounded-lg px-3 py-1.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer appearance-none pr-8 transition-all"
-                style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
+                className="bg-white border border-gray-200 text-gray-700 rounded-lg px-2 py-1.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer appearance-none pr-6 transition-all"
+                style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.25rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.2em 1.2em' }}
               >
                 <option value="today">Hoy</option>
-                <option value="7days">Últimos 7 días</option>
-                <option value="30days">Últimos 30 días</option>
+                <option value="7days">7 días</option>
+                <option value="30days">30 días</option>
               </select>
               <select
                 value={kitchenStatusFilter}
                 onChange={(e) => setKitchenStatusFilter(e.target.value)}
-                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:border-gray-300"
+                className="bg-white border border-gray-200 text-gray-700 rounded-lg px-2 py-1.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer appearance-none pr-6 transition-all"
+                style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.25rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.2em 1.2em' }}
               >
-                <option value="all">Todos los estados</option>
+                <option value="all">Todos</option>
                 <option value="scheduled">Programados</option>
                 <option value="pending">Pendientes</option>
-                <option value="preparing">En preparación</option>
+                <option value="preparing">Preparación</option>
                 <option value="ready">Listos</option>
                 <option value="delivered">Entregados</option>
                 <option value="cancelled">Cancelados</option>
