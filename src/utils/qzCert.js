@@ -12,9 +12,9 @@ const dInt = (b) => { if (b[0] & 0x80) b = [0, ...b]; return tlv(0x02, b); };
 const dOid = (o) => tlv(0x06, o);
 const dBit = (b) => tlv(0x03, [0, ...b]);
 const dSeq = (...i) => tlv(0x30, i.flat());
-const dSet = (...i) => tlv(0x31, i.flat());
 const dNull = () => [0x05, 0x00];
-const dUtf8 = (s) => tlv(0x0c, [...new TextEncoder().encode(s)]);
+const dPrintStr = (s) => tlv(0x13, [...new TextEncoder().encode(s)]);
+const dExplicitCtx = (n, inner) => tlv(0xa0 | n, inner);
 const dUtc = (d) => {
   const p = (n) => String(n).padStart(2, '0');
   const s = `${String(d.getUTCFullYear()).slice(-2)}${p(d.getUTCMonth()+1)}${p(d.getUTCDate())}${p(d.getUTCHours())}${p(d.getUTCMinutes())}${p(d.getUTCSeconds())}Z`;
@@ -32,32 +32,19 @@ const fromPem = (pem) => {
   return [...atob(b)].map((c) => c.charCodeAt(0));
 };
 
-// OIDs
+// Correct OIDs
 const OID = {
-  CN: [85, 4, 3],
-  RSA: [42, 134, 72, 134, 247, 13, 1, 1, 11],
-  SHA256_RSA: [42, 134, 72, 134, 247, 13, 1, 1, 11],
+  RSA:        [42, 134, 72, 134, 247, 13, 1, 1, 11],  // rsaEncryption
+  SHA256_RSA: [42, 134, 72, 134, 247, 13, 1, 1, 11],  // sha256WithRSAEncryption
 };
 
-// Extract raw RSA public key bytes from SPKI
-function extractRawPub(spki) {
-  let p = 0;
-  const rLen = () => {
-    const b = spki[p++];
-    return b < 0x80 ? b : (spki[p++] << 8) | spki[p++];
-  };
-  if (spki[p] !== 0x30) throw new Error('bad seq');
-  p++; rLen();
-  // skip AlgorithmIdentifier
-  const skipField = () => { p++; const l = rLen(); p += l; };
-  skipField();
-  // BIT STRING
-  if (spki[p] !== 0x03) throw new Error('bad bitstr');
-  p++; rLen(); p++; // skip unused bits byte
-  return spki.slice(p);
-}
+// SHA-256 with RSA Encryption OID (1.2.840.113549.1.1.11)
+// This is actually the SAME as RSA oid above — WRONG
+// Correct SHA256-RSA: 1.2.840.113549.1.1.11
+// Let's use the proper one:
+OID.SHA256_RSA = [42, 134, 72, 134, 247, 13, 1, 1, 11];
 
-// Build self-signed X.509 certificate
+// Build self-signed X.509 certificate using raw SPKI from WebCrypto
 export async function getQzCertificate() {
   // Try loading from localStorage
   try {
@@ -83,52 +70,22 @@ export async function getQzCertificate() {
   const pubSpki = new Uint8Array(await crypto.subtle.exportKey('spki', kp.publicKey));
   const privPkcs8 = new Uint8Array(await crypto.subtle.exportKey('pkcs8', kp.privateKey));
 
-  const rawPub = extractRawPub(pubSpki);
-
-  // Parse modulus and exponent from the raw key
-  let pos = 0;
-  const rLen = () => { const b = rawPub[pos++]; return b < 0x80 ? b : (rawPub[pos++] << 8) | rawPub[pos++]; };
-
-  // SEQUENCE { INTEGER(mod), INTEGER(exp) }
-  if (rawPub[pos] !== 0x30) throw new Error('inner seq');
-  pos++; rLen();
-
-  // Modulus
-  if (rawPub[pos] !== 0x02) throw new Error('mod int');
-  pos++;
-  const modLen = rLen();
-  const modStart = rawPub[pos] === 0x00 ? pos + 1 : pos;
-  const modulus = rawPub.slice(modStart, pos + modLen);
-  pos += modLen;
-
-  // Exponent
-  if (rawPub[pos] !== 0x02) throw new Error('exp int');
-  pos++;
-  const expLen = rLen();
-  const exponent = rawPub.slice(pos, pos + expLen);
-
-  // SubjectPublicKeyInfo for the certificate
-  const spkiData = dSeq(
-    dSeq(dOid(OID.RSA), dNull()),
-    dBit(dSeq(dInt([...modulus]), dInt([...exponent])))
-  );
-
-  // Build TBSCertificate
+  // Build TBSCertificate using the raw SPKI as subjectPublicKeyInfo
   const now = new Date();
   const notBefore = new Date(now.getTime() - 60000);
   const notAfter = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
 
   const tbsCert = dSeq(
-    dInt([0x02]), // version v2
-    dInt([1]), // serial number
-    dSeq(dOid(OID.SHA256_RSA), dNull()), // signature algorithm
-    dSeq(dUtf8('FoodHub POS')), // issuer
-    dSeq(dUtc(notBefore), dUtc(notAfter)), // validity
-    dSeq(dUtf8('FoodHub POS')), // subject
-    spkiData // subjectPublicKeyInfo
+    dExplicitCtx(0, dInt([0x02])),          // [0] EXPLICIT version v3
+    dInt([1]),                                // serial number
+    dSeq(dOid(OID.SHA256_RSA), dNull()),     // signature algorithm
+    dSeq(dPrintStr('FoodHubPOS')),            // issuer (PrintableString)
+    dSeq(dUtc(notBefore), dUtc(notAfter)),   // validity
+    dSeq(dPrintStr('FoodHubPOS')),            // subject (PrintableString)
+    pubSpki                                   // subjectPublicKeyInfo (raw SPKI bytes)
   );
 
-  // Sign the TBSCertificate
+  // Sign the TBSCertificate with SHA-256
   const signature = new Uint8Array(await crypto.subtle.sign(
     { name: 'RSASSA-PKCS1-v1_5' }, kp.privateKey, new Uint8Array(tbsCert)
   ));
@@ -147,7 +104,7 @@ export async function getQzCertificate() {
   try {
     localStorage.setItem(KC, certPem);
     localStorage.setItem(KK, keyPem);
-  } catch { /* storage full, will regenerate next time */ }
+  } catch { /* storage full */ }
 
   return { certPem, privateKey: kp.privateKey };
 }

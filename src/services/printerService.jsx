@@ -37,8 +37,8 @@ const setupCertificate = async () => {
       }
     });
 
-    qz.security.setSignaturePromise((toSign, resolve, reject) => {
-      try {
+    qz.security.setSignaturePromise((toSign) => {
+      return (resolve, reject) => {
         const encoder = new TextEncoder();
         const data = encoder.encode(toSign);
         crypto.subtle.sign(
@@ -48,9 +48,7 @@ const setupCertificate = async () => {
         ).then((sig) => {
           resolve(btoa(String.fromCharCode(...new Uint8Array(sig))));
         }).catch(reject);
-      } catch (e) {
-        reject(e);
-      }
+      };
     });
 
     certReady = true;
@@ -112,32 +110,92 @@ const buildReceiptHtml = (order, organization) => {
 
   const styles = `
     <style>
-      body { font-family: monospace; font-size: 12px; margin: 0; padding: 0; }
-      .receipt-content { width: 100%; max-width: 300px; margin: 0 auto; text-align: left; padding: 10px 0; }
-      .receipt-order-type { font-weight: bold; font-size: 1.5em; text-align: center; margin-bottom: 10px; }
-      .receipt-header { display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 15px; }
-      .receipt-logo { max-width: 120px; max-height: 80px; object-fit: contain; }
-      .receipt-title { font-weight: 800; font-size: 1.25em; text-transform: uppercase; margin: 0; text-align: center; }
-      .receipt-divider-solid { border-top: 2px solid black; margin: 10px 0; }
-      .receipt-divider { border-top: 1px dashed black; margin: 10px 0; }
-      .receipt-order-number { font-size: 1.5em; font-weight: bold; }
-      .receipt-order-date { font-size: 0.9em; color: #333; }
-      .receipt-section-title { font-weight: bold; text-transform: uppercase; font-size: 1em; text-align: left; margin-bottom: 4px; }
-      table { width: 100%; border-collapse: collapse; text-align: left; }
-      th { border-bottom: 1px solid black; padding-bottom: 2px; }
-      td { padding: 4px 0; vertical-align: top; }
+      @page { margin: 0; size: 80mm auto; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+      body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.4; margin: 0; padding: 0; color: black; background: white; }
+      .print-receipt-container { width: 100%; margin: 0; padding: 0; background: white; }
+      .receipt-content { width: 76mm; margin: 0 auto; padding: 5mm 2mm; }
+      .receipt-header { text-align: center; margin-bottom: 5mm; }
+      .receipt-title-box { background: black; color: white !important; padding: 4mm 2mm; margin-bottom: 2mm; border-radius: 4px; }
+      .receipt-title { font-size: 20px; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
+      .receipt-order-number { font-size: 36px; font-weight: 900; text-align: center; margin-top: 4mm; margin-bottom: 0; line-height: 1; }
+      .receipt-order-type { font-size: 20px; font-weight: 900; text-align: center; text-transform: uppercase; margin-top: 3mm; margin-bottom: 3mm; padding: 2mm 0; border-top: 2px dashed #000; border-bottom: 2px dashed #000; }
+      .receipt-unpaid-warning { font-size: 18px; font-weight: 900; text-align: center; text-transform: uppercase; color: #fff; background: #000; margin-top: 4mm; margin-bottom: 4mm; padding: 3mm 0; border: 2px solid #000; }
+      .receipt-order-date { font-size: 12px; color: #333; text-align: center; margin-bottom: 4mm; }
+      .receipt-logo { max-width: 45mm; margin: 0 auto 3mm auto; display: block; filter: grayscale(100%) contrast(1.2); }
+      .receipt-divider { border-bottom: 1.5px dashed black; margin: 3mm 0; }
+      .receipt-divider-solid { border-bottom: 2px solid black; margin: 3mm 0; }
+      .receipt-section-title { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1mm; }
+      .receipt-items th { font-weight: bold; font-size: 12px; border-bottom: 1.5px solid black; padding-bottom: 2mm; }
+      .receipt-items td { padding-top: 2mm; }
+      .receipt-items .item-name { font-size: 13px; font-weight: 700; }
+      .receipt-totals { margin-top: 4mm; }
+      .receipt-total-row { display: flex; justify-content: space-between; font-size: 22px; font-weight: 900; margin-top: 2mm; padding-top: 2mm; border-top: 2px solid black; }
+
       .text-right { text-align: right; }
       .text-center { text-align: center; }
       .font-bold { font-weight: bold; }
       .text-sm { font-size: 0.85em; }
-      .mt-1 { margin-top: 4px; }
-      .mb-2 { margin-bottom: 8px; }
-      .mb-4 { margin-bottom: 16px; }
+      .mt-1 { margin-top: 1mm; }
+      .mt-2 { margin-top: 2mm; }
+      .mt-4 { margin-top: 4mm; }
+      .mb-1 { margin-bottom: 1mm; }
+      .mb-2 { margin-bottom: 2mm; }
+      .mb-4 { margin-bottom: 4mm; }
+      .mb-6 { margin-bottom: 6mm; }
       .flex { display: flex; }
       .justify-between { justify-content: space-between; }
       .uppercase { text-transform: uppercase; }
+      .inline-block { display: inline-block; }
+      .items-start { align-items: flex-start; }
+      .items-center { align-items: center; }
+      .flex-col { flex-direction: column; }
+      .flex-1 { flex: 1; }
+      .shrink-0 { flex-shrink: 0; }
+      .gap-1 { gap: 1mm; }
+      .gap-2 { gap: 2mm; }
+      .leading-tight { line-height: 1.2; }
+      .border-t { border-top: 1px solid #ccc; }
+      .pt-2 { padding-top: 2mm; }
+      .tracking-wider { letter-spacing: 0.5px; }
+      .tracking-widest { letter-spacing: 2px; }
+      .border-gray-300 { border-color: #d1d5db; }
+      .border-gray-400 { border-color: #9ca3af; }
+      .text-gray-400 { color: #9ca3af; }
+      .text-gray-500 { color: #6b7280; }
+      .text-gray-800 { color: #1f2937; }
+      .bg-gray-100 { background: #f3f4f6; }
+      .bg-black { background: black; }
+      .bg-white { background: white; }
+      .rounded { border-radius: 4px; }
+      .p-1 { padding: 1mm; }
+      .p-2 { padding: 2mm; }
+      .pl-1 { padding-left: 1mm; }
+      .pl-2 { padding-left: 2mm; }
+      .pr-4 { padding-right: 4mm; }
+      .ml-1 { margin-left: 1mm; }
+      .border-l { border-left: 1px solid #9ca3af; }
+      .border-b { border-bottom: 1px solid #9ca3af; }
+      .border { border: 1px solid #9ca3af; }
+      .font-medium { font-weight: 500; }
+      .font-semibold { font-weight: 600; }
+      .font-extrabold { font-weight: 800; }
+      .text-left { text-align: left; }
+      .text-xs { font-size: 10px; }
+      .text-lg { font-size: 18px; }
+      .text-\[8px\] { font-size: 8px; }
+      .text-\[10px\] { font-size: 10px; }
+      .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .align-top { vertical-align: top; }
+      .mt-0_5, .mt-0\.5 { margin-top: 0.5mm; }
+      .inline-flex { display: inline-flex; }
+      .w-full { width: 100%; }
+
       ul { list-style: none; padding-left: 10px; margin: 0; font-size: 0.9em; }
+      table { width: 100%; border-collapse: collapse; text-align: left; }
       svg { display: block; margin: 0 auto; }
+      img { display: block; margin: 0 auto; }
     </style>
   `;
 
