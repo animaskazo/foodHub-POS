@@ -64,28 +64,36 @@ serve(async (req) => {
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
       const supabase = createClient(supabaseUrl, supabaseKey);
 
-      const { data: orderData } = await supabase
+      console.log("[Klap] Buscando orden:", orderId);
+
+      const { data: orderData, error: orderErr } = await supabase
         .from('orders')
         .select('organization_id')
         .eq('id', orderId)
         .single();
 
+      console.log("[Klap] orderData:", JSON.stringify(orderData), "error:", JSON.stringify(orderErr));
+
       if (orderData?.organization_id) {
-        const { data: orgData } = await supabase
+        const { data: orgData, error: orgErr } = await supabase
           .from('organizations')
           .select('klap_api_key')
           .eq('id', orderData.organization_id)
           .single();
 
+        console.log("[Klap] orgData:", orgData ? { id: orderData.organization_id, has_key: !!orgData.klap_api_key, key_prefix: orgData.klap_api_key?.substring(0, 8) } : null, "error:", JSON.stringify(orgErr));
+
         if (orgData?.klap_api_key) {
           apiKey = orgData.klap_api_key;
-          console.log("Usando API key personalizada de la organización:", orderData.organization_id);
+          console.log("[Klap] Usando API key personalizada de la organización:", orderData.organization_id);
         } else {
-          console.log("Organización sin API key propia, usando key global");
+          console.log("[Klap] Organización sin API key propia, usando key global");
         }
+      } else {
+        console.log("[Klap] No se encontró la orden o falta organization_id");
       }
     } catch (e) {
-      console.error("Error obteniendo API key de la organización, usando key global:", e);
+      console.error("[Klap] Error obteniendo API key de la organización, usando key global:", e.message);
     }
 
     // Llamada estándar a la API de Klap (Multicaja) — producción

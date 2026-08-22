@@ -2,10 +2,12 @@ import qz from 'qz-tray';
 import ReactDOMServer from 'react-dom/server';
 import React from 'react';
 import PrintableReceipt from '../components/pos/PrintableReceipt';
+import { getQzCertificate } from '../utils/qzCert';
 
 let isConnected = false;
 let isConnecting = false;
 let connectPromise = null;
+let certReady = false;
 
 // Detectar cuando QZ Tray se desconecta y resetear estado
 const setupDisconnectDetection = () => {
@@ -21,9 +23,49 @@ const setupDisconnectDetection = () => {
 
 setupDisconnectDetection();
 
-// Conexión con prote contra llamadas concurrentes
+// Configurar certificado para que QZ Tray recuerde la decisión de confiar
+const setupCertificate = async () => {
+  if (certReady) return;
+  try {
+    const { certPem, privateKey } = await getQzCertificate();
+
+    qz.security.setCertificatePromise((resolve, reject) => {
+      try {
+        resolve(certPem);
+      } catch (e) {
+        reject(e);
+      }
+    });
+
+    qz.security.setSignaturePromise((toSign, resolve, reject) => {
+      try {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(toSign);
+        crypto.subtle.sign(
+          { name: 'RSASSA-PKCS1-v1_5' },
+          privateKey,
+          data
+        ).then((sig) => {
+          resolve(btoa(String.fromCharCode(...new Uint8Array(sig))));
+        }).catch(reject);
+      } catch (e) {
+        reject(e);
+      }
+    });
+
+    certReady = true;
+    console.log('Certificado QZ Tray configurado correctamente.');
+  } catch (e) {
+    console.error('Error configurando certificado QZ Tray:', e);
+  }
+};
+
+// Conexión con protección contra llamadas concurrentes
 const ensureConnection = async () => {
   if (isConnected) return;
+
+  // Configurar certificado antes de conectar
+  await setupCertificate();
 
   // Si ya hay una conexión en progreso, esperar a que termine
   if (isConnecting && connectPromise) {
@@ -60,18 +102,6 @@ export const getPrinters = async () => {
   } catch (error) {
     console.error('Error buscando impresoras:', error);
     return [];
-  }
-};
-
-// Verificar si la conexión está viva antes de imprimir
-const checkConnection = async () => {
-  try {
-    // ping simple: si responde, la conexión está viva
-    await qz.printers.find();
-    return true;
-  } catch {
-    isConnected = false;
-    return false;
   }
 };
 
