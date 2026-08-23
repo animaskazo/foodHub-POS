@@ -87,6 +87,49 @@ export const updateDeliveryStatus = async (customerId, token, deliveryId, status
   })
 }
 
+// ── NEW: Retry wrapper with exponential backoff ──
+// Reintenta crear delivery con backoff exponencial en caso de errores transitorios
+export const createDeliveryWithRetry = async (
+  customerId, 
+  token, 
+  deliveryData, 
+  maxRetries = 3
+) => {
+  let lastError
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[Uber Delivery] Attempt ${attempt}/${maxRetries}`)
+      const result = await createDelivery(customerId, token, deliveryData)
+      console.log(`[Uber Delivery] ✅ Success on attempt ${attempt}`)
+      return result
+    } catch (error) {
+      lastError = error
+      console.error(`[Uber Delivery] ❌ Attempt ${attempt} failed:`, error.message)
+      
+      // Errores de validación no se reintentan (son problemas reales)
+      const errorStr = error.message.toLowerCase()
+      if (errorStr.includes('validation') || 
+          errorStr.includes('invalid') ||
+          errorStr.includes('not found') ||
+          errorStr.includes('unauthorized')) {
+        console.error(`[Uber Delivery] Validation/Auth error - not retrying`)
+        throw error
+      }
+      
+      // Esperar antes de reintentar (exponential backoff: 1s, 2s, 4s)
+      if (attempt < maxRetries) {
+        const delayMs = Math.pow(2, attempt - 1) * 1000
+        console.log(`[Uber Delivery] ⏳ Retrying in ${delayMs}ms...`)
+        await new Promise(resolve => setTimeout(resolve, delayMs))
+      }
+    }
+  }
+  
+  console.error(`[Uber Delivery] ❌ Failed after ${maxRetries} attempts`)
+  throw lastError
+}
+
 export const TEST_LOCATIONS = {
   pickup: {
     address: { street_address: ['Av. 5 de Abril 050'], state: 'RM', city: 'Maipú', zip_code: '9250000', country: 'CL' },
