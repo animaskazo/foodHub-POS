@@ -9,7 +9,7 @@ import OrderError from '../components/public/OrderError';
 import ProductDetailView from '../components/public/ProductDetailView';
 import { ArrowLeft } from 'lucide-react';
 import { getOrganizationByName, getPublicCatalog, createPublicOrder } from '../services/publicOrderService';
-import { getAccessToken, createQuote, createDelivery } from '../services/uberDirectService';
+import { getAccessToken, createQuote, createDeliveryWithRetry } from '../services/uberDirectService';
 import { geocodeAddress } from '../utils/geo';
 import { sendEmail } from '../services/emailService';
 import { supabase } from '../lib/supabase';
@@ -460,7 +460,8 @@ const OrderView = () => {
         quoteId = quote.id
       }
 
-      const delivery = await createDelivery(orgData.uber_customer_id, token, {
+      // ⭐ USE createDeliveryWithRetry INSTEAD OF createDelivery
+      const delivery = await createDeliveryWithRetry(orgData.uber_customer_id, token, {
         quote_id: quoteId,
         external_store_id: orgData.id,
         pickup_address: JSON.stringify(pickupAddr),
@@ -673,7 +674,7 @@ const OrderView = () => {
             organizationId: org.id,
             phone: customerForm.phone,
             fromNumber: org.whatsapp_phone_number_id,
-            message: `${greeting}\n\nTu pedido *${order.order_number}* en *${org.name}* fue recibido y está siendo preparado. 🎉\n\n🛵 *Sigue tu delivery en vivo:*\n${order.uber_tracking_url}`,
+            message: `${greeting}\n\nTu pedido *${order.order_number}* en *${org.name}* fue recibido y está siendo preparado. 🎉\n\n🛵 *Sigue tu delivery en vivo:*\n${order.uber_tracking_url}`
           })
         } catch (wpErr) {
           console.error('WhatsApp notification failed:', wpErr)
