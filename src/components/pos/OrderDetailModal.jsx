@@ -16,6 +16,7 @@ const OrderDetailModal = ({
   onCancel,
   onPrint,
   onConfirmPayment,
+  onReschedule,
 }) => {
   if (!order) return null;
 
