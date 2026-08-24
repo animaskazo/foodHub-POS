@@ -62,7 +62,7 @@ const KlapReconciliationTab = ({ orders }) => {
       let match = null;
 
       if (csvData) {
-        // 1. Match by 'codigo_autorizacion'
+        // Pass 1. Match by 'codigo_autorizacion'
         if (refCode) {
           match = csvData.find(row => {
             if (row._used) return false;
@@ -71,28 +71,32 @@ const KlapReconciliationTab = ({ orders }) => {
           });
         }
 
-        // 2. Fallback: match by Amount and Date
+        // Pass 2. Match by Amount AND Date
         if (!match) {
           match = csvData.find(row => {
             if (row._used) return false;
             
-            // Limpiar monto: remover puntos de miles y considerar solo la parte entera
             let rawMonto = String(row['monto_venta(+)'] || row['total'] || '0');
             rawMonto = rawMonto.replace(/\./g, '').split(',')[0]; 
             const csvMonto = parseFloat(rawMonto);
             
-            const csvFecha = String(row['fecha_venta'] || row['fecha venta'] || '');
-            
             if (csvMonto !== Number(order.total)) return false;
 
-            // Comprobar múltiples formatos de fecha que Excel/SheetJS puede devolver
+            let csvFecha = String(row['fecha_venta'] || row['fecha venta'] || '');
+            
+            // Si la fecha de Excel viene como número de serie (ej: 45200)
+            if (!isNaN(Number(csvFecha)) && csvFecha.length === 5) {
+               const excelEpoch = new Date(1900, 0, -1);
+               const jsDate = new Date(excelEpoch.getTime() + Number(csvFecha) * 86400000);
+               csvFecha = jsDate.toISOString();
+            }
+
             const orderDate = new Date(order.created_at);
             const d = String(orderDate.getDate()).padStart(2, '0');
             const m = String(orderDate.getMonth() + 1).padStart(2, '0');
             const yyyy = orderDate.getFullYear();
             const yy = String(yyyy).slice(2);
             
-            // A veces getDate o getMonth te da sin el cero adelante en el CSV
             const d1 = String(orderDate.getDate());
             const m1 = String(orderDate.getMonth() + 1);
 
@@ -103,16 +107,29 @@ const KlapReconciliationTab = ({ orders }) => {
               `${m}/${d}/${yyyy}`,
               `${m}/${d}/${yy}`,
               `${d}-${m}-${yy}`,
-              `${m1}/${d1}/${yy}`
+              `${m1}/${d1}/${yy}`,
+              `${m1}/${d1}/${yyyy}`
             ];
             
             return formats.some(f => csvFecha.includes(f));
           });
         }
+        
+        // Pass 3. Fallback: Match by EXACT Amount ONLY
+        // Si no coincidió la fecha por problemas de formato u horas, pero el monto es exacto
+        if (!match) {
+          match = csvData.find(row => {
+            if (row._used) return false;
+            let rawMonto = String(row['monto_venta(+)'] || row['total'] || '0');
+            rawMonto = rawMonto.replace(/\./g, '').split(',')[0]; 
+            const csvMonto = parseFloat(rawMonto);
+            return csvMonto === Number(order.total);
+          });
+        }
       }
 
       if (match) {
-        match._used = true; // Marcar como usado para no asignarlo a dos pedidos distintos con igual monto
+        match._used = true; // Evita que dos pedidos reclamen la misma línea del Excel
       }
 
       const getVal = (val) => {
