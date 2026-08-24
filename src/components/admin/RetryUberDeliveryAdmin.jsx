@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { getAccessToken, createDeliveryWithRetry } from '../services/uberDirectService';
+import { getAccessToken, createQuote, createDeliveryWithRetry } from '../services/uberDirectService';
+import { geocodeAddress } from '../utils/geo';
 import { RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 /**
@@ -64,7 +65,7 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
       const { data: orgData, error: orgError } = await supabase
         .from('organizations')
         .select(`
-          id, name, address, phone, 
+          id, name, address, phone,
           store_lat, store_lng,
           uber_client_id, uber_client_secret, uber_customer_id,
           delivery_mode, uber_enabled
@@ -74,7 +75,6 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
 
       if (orgError || !orgData) throw new Error('No se encontraron credenciales de la organización');
 
-      // Validar que Uber está habilitado
       if (orgData.delivery_mode !== 'uber_direct' || !orgData.uber_enabled) {
         throw new Error('Uber Direct no está habilitado para esta organización');
       }
@@ -88,26 +88,8 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
       if (itemsError) throw itemsError;
 
       // Obtener token
-      const tokenRes = await getAccessToken(
-        orgData.uber_client_id,
-        orgData.uber_client_secret
-      );
+      const tokenRes = await getAccessToken(orgData.uber_client_id, orgData.uber_client_secret);
       const token = tokenRes.access_token;
-
-      // Construir payload para crear delivery
-      const pickupAddr = {
-        street_address: [orgData.address || 'Dirección del local'],
-        state: 'RM',
-        city: 'Santiago',
-        country: 'CL',
-      };
-
-      const dropoffAddr = {
-        street_address: [order.delivery_address],
-        state: 'RM',
-        city: 'Santiago',
-        country: 'CL',
-      };
 
       const normalizePhone = (phone) => {
         if (!phone) return '';
@@ -117,35 +99,94 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
         return `+56${n}`;
       };
 
-      const deliveryData = {
-        quote_id: null,
+      // ── Geocodificar pickup (local) ───────────────────────────────────────
+      let pickupLat = orgData.store_lat;
+      let pickupLng = orgData.store_lng;
+      if (!pickupLat || !pickupLng) {
+        console.log('[Retry] Geocodificando dirección del local...');
+        const pickupCoords = await geocodeAddress((orgData.address || '') + ', Chile');
+        if (pickupCoords) { pickupLat = pickupCoords.lat; pickupLng = pickupCoords.lng; }
+      }
+
+      // ── Geocodificar dropoff (cliente) ────────────────────────────────────
+      console.log('[Retry] Geocodificando dirección del cliente...');
+      const dropoffCoords = await geocodeAddress(order.delivery_address);
+      const dropoffLat = dropoffCoords?.lat ?? null;
+      const dropoffLng = dropoffCoords?.lng ?? null;
+
+      // Extraer ciudad/estado de la geocodificación, con fallback a RM/Santiago
+      const city  = dropoffCoords?.address?.city ||
+                    dropoffCoords?.address?.town ||
+                    dropoffCoords?.address?.village ||
+                    dropoffCoords?.address?.county ||
+                    'Santiago';
+      const state = dropoffCoords?.address?.state || 'RM';
+      const zip   = dropoffCoords?.address?.postcode || '';
+
+      const pickupAddr = {
+        street_address: [orgData.address || 'Dirección del local'],
+        state,
+        city,
+        zip_code: zip,
+        country: 'CL',
+      };
+
+      const dropoffAddr = {
+        street_address: [order.delivery_address],
+        state,
+        city,
+        zip_code: zip,
+        country: 'CL',
+      };
+
+      const manifestItems = (orderItems || []).map(item => ({
+        name: item.product_name || 'Producto',
+        quantity: item.quantity || 1,
+        value: item.unit_price || 0,
+      }));
+
+      const quoteParams = {
+        external_store_id: orgData.id,
+        pickup_address: JSON.stringify(pickupAddr),
+        dropoff_address: JSON.stringify(dropoffAddr),
+        pickup_latitude: pickupLat,
+        pickup_longitude: pickupLng,
+        dropoff_latitude: dropoffLat,
+        dropoff_longitude: dropoffLng,
+        pickup_phone_number: normalizePhone(orgData.phone),
+        dropoff_phone_number: normalizePhone(order.customer_phone),
+        dropoff_notes: order.delivery_notes || '',
+        manifest_items: manifestItems,
+      };
+
+      const baseDeliveryData = {
         external_store_id: orgData.id,
         pickup_address: JSON.stringify(pickupAddr),
         pickup_name: orgData.name,
         pickup_phone_number: normalizePhone(orgData.phone),
-        pickup_latitude: orgData.store_lat || -33.8688,
-        pickup_longitude: orgData.store_lng || -70.8693,
+        pickup_latitude: pickupLat,
+        pickup_longitude: pickupLng,
         dropoff_address: JSON.stringify(dropoffAddr),
         dropoff_name: order.customer_name || 'Cliente',
         dropoff_phone_number: normalizePhone(order.customer_phone),
-        dropoff_latitude: -33.8688, // Would need to geocode for accuracy
-        dropoff_longitude: -70.8693,
+        dropoff_latitude: dropoffLat,
+        dropoff_longitude: dropoffLng,
         dropoff_notes: order.delivery_notes || '',
-        manifest_items: (orderItems || []).map(item => ({
-          name: item.product_name || 'Producto',
-          quantity: item.quantity || 1,
-          value: item.unit_price || 0,
-        })),
+        manifest_items: manifestItems,
       };
 
-      console.log('[Retry] Attempting delivery creation with retry logic...');
-      
-      // Use createDeliveryWithRetry to handle transient errors
+      console.log('[Retry] Creando delivery con reintentos y quote fresco por intento...');
+
+      // Cada reintento obtiene un quote nuevo (el anterior puede expirar en segundos)
       const delivery = await createDeliveryWithRetry(
         orgData.uber_customer_id,
         token,
-        deliveryData,
-        3 // maxRetries
+        async (attempt) => {
+          console.log(`[Retry] Obteniendo quote fresco (intento ${attempt})...`);
+          const freshQuote = await createQuote(orgData.uber_customer_id, token, quoteParams);
+          return { quote_id: freshQuote.id, ...baseDeliveryData };
+        },
+        3,
       );
 
       // Actualizar orden con datos de delivery
@@ -162,24 +203,24 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
 
       setResults(prev => ({
         ...prev,
-        [order.id]: { 
-          success: true, 
+        [order.id]: {
+          success: true,
           message: `✅ Delivery creado: ${delivery.id}`,
-          deliveryId: delivery.id
-        }
+          deliveryId: delivery.id,
+        },
       }));
 
-      // Refrescar lista
+      // Quitar de la lista
       setOrders(prev => prev.filter(o => o.id !== order.id));
     } catch (error) {
       console.error('[Retry Error]:', error);
       setResults(prev => ({
         ...prev,
-        [order.id]: { 
-          success: false, 
+        [order.id]: {
+          success: false,
           message: `❌ Error: ${error.message || 'No se pudo crear el delivery'}`,
-          error: error.message
-        }
+          error: error.message,
+        },
       }));
     } finally {
       setRetrying(null);

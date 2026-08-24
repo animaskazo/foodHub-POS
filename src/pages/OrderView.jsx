@@ -175,9 +175,12 @@ const OrderView = () => {
                 if (!payUpdateError) order.payments[0].status = 'paid';
               }
 
-              // Uber Direct delivery (if applicable and not already created)
+              // Uber Direct delivery (if applicable and not already created).
+              // Importante: forzamos quoteId=null porque el quote guardado en localStorage
+              // expiró mientras el usuario completaba el pago en Klap (puede tomar varios minutos).
               if (!order.uber_delivery_id && customerForm.deliveryType === 'delivery') {
-                const uberInfo = await createUberDelivery(orgData, customerForm, pendingCart, scheduledAt);
+                const freshCustomerForm = { ...customerForm, quoteId: null }
+                const uberInfo = await createUberDelivery(orgData, freshCustomerForm, pendingCart, scheduledAt);
                 if (uberInfo) {
                 const adjustedTotal = order.total - (customerForm.deliveryFee || 0) + uberInfo.deliveryFee;
                 const { error: updateError } = await supabase
@@ -437,32 +440,8 @@ const OrderView = () => {
       }
       const normalizedPickupPhone = normalizePhone(orgData.phone)
 
-      let quoteId = scheduledAt ? null : customerForm.quoteId
-      if (!quoteId) {
-        const quote = await createQuote(orgData.uber_customer_id, token, {
-          external_store_id: orgData.id,
-          pickup_address: JSON.stringify(pickupAddr),
-          dropoff_address: JSON.stringify(dropoffAddr),
-          pickup_latitude: pickupLat,
-          pickup_longitude: pickupLng,
-          dropoff_latitude: dropoffCoords?.lat,
-          dropoff_longitude: dropoffCoords?.lng,
-          pickup_phone_number: normalizedPickupPhone,
-          dropoff_phone_number: normalizePhone(customerForm.phone),
-          dropoff_notes: customerForm.deliveryNotes || '',
-          manifest_items: cart.map(item => ({
-            name: item.product_name || item.name || 'Producto',
-            quantity: item.quantity || 1,
-            value: item.price || 0,
-          })),
-          ...(deliveryWindow || {}),
-        })
-        quoteId = quote.id
-      }
-
-      // ⭐ USE createDeliveryWithRetry INSTEAD OF createDelivery
-      const delivery = await createDeliveryWithRetry(orgData.uber_customer_id, token, {
-        quote_id: quoteId,
+      // Construir datos base del delivery (sin quoteId aún — se obtiene por intento)
+      const baseDeliveryData = {
         external_store_id: orgData.id,
         pickup_address: JSON.stringify(pickupAddr),
         pickup_name: orgData.name,
@@ -481,7 +460,46 @@ const OrderView = () => {
           value: item.price || 0,
         })),
         ...(deliveryWindow || {}),
-      })
+      }
+
+      // Parámetros para cotizar (reutilizados en cada reintento)
+      const quoteParams = {
+        external_store_id: orgData.id,
+        pickup_address: JSON.stringify(pickupAddr),
+        dropoff_address: JSON.stringify(dropoffAddr),
+        pickup_latitude: pickupLat,
+        pickup_longitude: pickupLng,
+        dropoff_latitude: dropoffCoords?.lat,
+        dropoff_longitude: dropoffCoords?.lng,
+        pickup_phone_number: normalizedPickupPhone,
+        dropoff_phone_number: normalizePhone(customerForm.phone),
+        dropoff_notes: customerForm.deliveryNotes || '',
+        manifest_items: cart.map(item => ({
+          name: item.product_name || item.name || 'Producto',
+          quantity: item.quantity || 1,
+          value: item.price || 0,
+        })),
+        ...(deliveryWindow || {}),
+      }
+
+      // El quoteId del customerForm puede estar expirado (p.ej. al volver de Klap tras varios minutos).
+      // Por eso pasamos una función: en el intento 1 reutilizamos el quoteId si existe y es fresco;
+      // en reintentos posteriores siempre pedimos uno nuevo.
+      let cachedQuoteId = scheduledAt ? null : (customerForm.quoteId || null)
+
+      const delivery = await createDeliveryWithRetry(
+        orgData.uber_customer_id,
+        token,
+        async (attempt) => {
+          // En reintentos (o si no hay quoteId), obtener quote fresco
+          if (attempt > 1 || !cachedQuoteId) {
+            console.log(`[Uber Delivery] Obteniendo quote fresco (intento ${attempt})...`)
+            const freshQuote = await createQuote(orgData.uber_customer_id, token, quoteParams)
+            cachedQuoteId = freshQuote.id
+          }
+          return { quote_id: cachedQuoteId, ...baseDeliveryData }
+        }
+      )
 
       const deliveryFee = delivery.fee ? (((delivery.currency_type || delivery.currency) || '').toUpperCase() === 'CLP' ? Math.round(delivery.fee / 100) : delivery.fee / 100) : customerForm.deliveryFee
 
@@ -492,7 +510,16 @@ const OrderView = () => {
         deliveryFee,
       }
     } catch (uberError) {
-      console.error('Uber Direct delivery creation failed:', uberError)
+      console.error('[Uber Direct] Delivery creation failed definitively:', uberError)
+      // Aviso al cliente: el pedido fue recibido y pagado, pero Uber no pudo asignarse ahora.
+      // El admin lo gestionará manualmente desde el panel de reintentos.
+      try {
+        const { toast } = await import('sonner')
+        toast('Tu pedido fue recibido. Estamos coordinando el despacho y te contactaremos pronto.', {
+          icon: '🛵',
+          duration: 8000,
+        })
+      } catch (_) { /* toast no disponible en este contexto */ }
       return null
     }
   }

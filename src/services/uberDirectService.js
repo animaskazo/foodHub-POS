@@ -4,24 +4,45 @@ const PROXY_FN = `${SUPABASE_URL}/functions/v1/uber-direct-proxy`
 
 const tokenCache = new Map()
 
+// Timeout total para la Edge Function (cubre el tiempo del proxy + Uber API)
+const PROXY_TIMEOUT_MS = 30_000
+
 async function callProxy(payload) {
-  const res = await fetch(PROXY_FN, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify(payload),
-  })
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS)
+
+  let res
+  try {
+    res = await fetch(PROXY_FN, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    })
+  } catch (fetchErr) {
+    if (fetchErr.name === 'AbortError') {
+      throw new Error(`[Uber Proxy] Request timed out after ${PROXY_TIMEOUT_MS / 1000}s`)
+    }
+    throw fetchErr
+  } finally {
+    clearTimeout(timer)
+  }
 
   const data = await res.json()
   if (!res.ok) {
-    console.error('[Uber Proxy Error] status:', res.status, 'body:', JSON.stringify(data))
-    throw new Error(data.error || `Request failed (${res.status})`)
+    // Extraer mensaje legible: puede venir como string o como objeto de Uber
+    const raw = data?.error
+    const msg = typeof raw === 'string' ? raw : (raw?.message || JSON.stringify(raw) || `Request failed (${res.status})`)
+    console.error('[Uber Proxy Error] status:', res.status, 'msg:', msg)
+    throw new Error(msg)
   }
   return data
 }
+
 
 export const getAccessToken = async (clientId, clientSecret) => {
   const cacheKey = `${clientId}:${clientSecret}`
@@ -87,37 +108,49 @@ export const updateDeliveryStatus = async (customerId, token, deliveryId, status
   })
 }
 
-// ── NEW: Retry wrapper with exponential backoff ──
-// Reintenta crear delivery con backoff exponencial en caso de errores transitorios
+// ── Retry wrapper with exponential backoff ──
+// `deliveryDataOrFn` puede ser:
+//   - Un objeto estático con los datos del delivery
+//   - Una función async (attempt: number) => deliveryData
+//     Útil para regenerar un quote fresco en cada reintento (el quote expira en ~60s).
+//
+// Solo interrumpe los reintentos ante errores definitivos (unauthorized, validation).
+// Errores de "invalid"/"not found" pueden ser quote expirado → se reintenta con datos frescos.
 export const createDeliveryWithRetry = async (
-  customerId, 
-  token, 
-  deliveryData, 
+  customerId,
+  token,
+  deliveryDataOrFn,
   maxRetries = 3
 ) => {
   let lastError
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`[Uber Delivery] Attempt ${attempt}/${maxRetries}`)
+
+      // Si es función, la invocamos para obtener datos frescos (nuevo quoteId, etc.)
+      const deliveryData = typeof deliveryDataOrFn === 'function'
+        ? await deliveryDataOrFn(attempt)
+        : deliveryDataOrFn
+
       const result = await createDelivery(customerId, token, deliveryData)
       console.log(`[Uber Delivery] ✅ Success on attempt ${attempt}`)
       return result
     } catch (error) {
       lastError = error
       console.error(`[Uber Delivery] ❌ Attempt ${attempt} failed:`, error.message)
-      
-      // Errores de validación no se reintentan (son problemas reales)
+
       const errorStr = error.message.toLowerCase()
-      if (errorStr.includes('validation') || 
-          errorStr.includes('invalid') ||
-          errorStr.includes('not found') ||
-          errorStr.includes('unauthorized')) {
-        console.error(`[Uber Delivery] Validation/Auth error - not retrying`)
+
+      // Errores definitivos que nunca se reintentan
+      if (errorStr.includes('unauthorized') || errorStr.includes('validation')) {
+        console.error(`[Uber Delivery] Auth/Validation error — not retrying`)
         throw error
       }
-      
-      // Esperar antes de reintentar (exponential backoff: 1s, 2s, 4s)
+
+      // "invalid"/"not found" puede ser quote expirado: sí se reintenta
+      // Si deliveryDataOrFn es función, el próximo intento pedirá un quote nuevo.
+
       if (attempt < maxRetries) {
         const delayMs = Math.pow(2, attempt - 1) * 1000
         console.log(`[Uber Delivery] ⏳ Retrying in ${delayMs}ms...`)
@@ -125,7 +158,7 @@ export const createDeliveryWithRetry = async (
       }
     }
   }
-  
+
   console.error(`[Uber Delivery] ❌ Failed after ${maxRetries} attempts`)
   throw lastError
 }
