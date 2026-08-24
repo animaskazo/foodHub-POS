@@ -61,12 +61,40 @@ const KlapReconciliationTab = ({ orders }) => {
       const refCode = order.payments?.[0]?.reference_code;
       let match = null;
 
-      if (csvData && refCode) {
-        // Match by 'codigo_autorizacion'
-        match = csvData.find(row => {
-          const csvAuth = row['codigo_autorizacion'] || row['codigo autorizacion'];
-          return csvAuth && String(csvAuth).trim().toLowerCase() === String(refCode).trim().toLowerCase();
-        });
+      if (csvData) {
+        // 1. Match by 'codigo_autorizacion'
+        if (refCode) {
+          match = csvData.find(row => {
+            if (row._used) return false;
+            const csvAuth = row['codigo_autorizacion'] || row['codigo autorizacion'];
+            return csvAuth && String(csvAuth).trim().toLowerCase() === String(refCode).trim().toLowerCase();
+          });
+        }
+
+        // 2. Fallback: match by Amount and Date
+        if (!match) {
+          match = csvData.find(row => {
+            if (row._used) return false;
+            
+            const csvMonto = parseFloat(row['monto_venta(+)'] || row['total'] || 0);
+            const csvFecha = row['fecha_venta'] || row['fecha venta'] || '';
+            
+            if (csvMonto !== order.total) return false;
+
+            // Formatear la fecha del pedido a YYYY-MM-DD local
+            const orderDate = new Date(order.created_at);
+            const orderDateStr = orderDate.getFullYear() + "-" + 
+                                 String(orderDate.getMonth() + 1).padStart(2, '0') + "-" + 
+                                 String(orderDate.getDate()).padStart(2, '0');
+            
+            // Puede que el CSV traiga YYYY-MM-DD o DD-MM-YYYY, probamos similitud
+            return csvFecha.includes(orderDateStr) || orderDateStr.includes(csvFecha);
+          });
+        }
+      }
+
+      if (match) {
+        match._used = true; // Marcar como usado para no asignarlo a dos pedidos distintos con igual monto
       }
 
       const csvMontoPagado = match ? parseFloat(match['monto_pagado'] || match['monto pagado'] || 0) : null;
@@ -87,6 +115,11 @@ const KlapReconciliationTab = ({ orders }) => {
         csvMontoBruto
       };
     });
+
+    // Clean up _used flag for subsequent searches (so changing search input works correctly)
+    if (csvData) {
+       csvData.forEach(row => delete row._used);
+    }
 
     return { matchedOrders: matched, totalBruto: bruto, totalLiquidado: liquidado, totalComision: comision };
   }, [orders, csvData, search]);
