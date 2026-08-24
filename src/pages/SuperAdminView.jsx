@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import AIImportModal from '../components/catalog/AIImportModal';
 import EditProductModal from '../components/catalog/EditProductModal';
 import OrderDetailModal from '../components/pos/OrderDetailModal';
+import { getPaymentMethod } from '../utils/orderUtils';
 
 const SuperAdminView = () => {
   const [selectedOrganization, setSelectedOrganization] = useState(null);
@@ -468,8 +469,19 @@ const SuperAdminView = () => {
                                 <td className="px-6 py-4 text-sm text-gray-500">
                                   {orderDate}
                                 </td>
-                                <td className="px-6 py-4 text-sm font-bold text-gray-900">
-                                  ${Number(order.total || 0).toLocaleString('es-CL')}
+                                <td className="px-6 py-4">
+                                  <div className="text-sm font-bold text-gray-900">
+                                    ${Number(order.total || 0).toLocaleString('es-CL')}
+                                  </div>
+                                  <div 
+                                    className="text-[10px] text-gray-500 mt-0.5 w-fit"
+                                    title={order.payments?.find(p => p.reference_code)?.reference_code ? `Klap ID: ${order.payments.find(p => p.reference_code).reference_code}` : undefined}
+                                  >
+                                    <span className="flex items-center gap-1 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
+                                      <CreditCard className="w-3 h-3" />
+                                      {getPaymentMethod(order)}
+                                    </span>
+                                  </div>
                                 </td>
                                 <td className="px-6 py-4">
                                   <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded ${
