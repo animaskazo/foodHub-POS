@@ -2,8 +2,8 @@
 // Generates a self-signed X.509 certificate persisted in localStorage
 // so QZ Tray trusts the site permanently after first approval.
 
-const KC = 'qz_cert_pem';
-const KK = 'qz_key_pem';
+const KC = 'qz_cert_v2';
+const KK = 'qz_key_v2';
 
 // ASN.1 DER helpers
 const aLen = (n) => n < 0x80 ? [n] : n < 0x100 ? [0x80, n] : [0x81, n >> 8, n & 0xff];
@@ -32,17 +32,10 @@ const fromPem = (pem) => {
   return [...atob(b)].map((c) => c.charCodeAt(0));
 };
 
-// Correct OIDs
 const OID = {
   RSA:        [42, 134, 72, 134, 247, 13, 1, 1, 11],  // rsaEncryption
-  SHA256_RSA: [42, 134, 72, 134, 247, 13, 1, 1, 11],  // sha256WithRSAEncryption
+  SHA512_RSA: [42, 134, 72, 134, 247, 13, 1, 1, 13],  // sha512WithRSAEncryption
 };
-
-// SHA-256 with RSA Encryption OID (1.2.840.113549.1.1.11)
-// This is actually the SAME as RSA oid above — WRONG
-// Correct SHA256-RSA: 1.2.840.113549.1.1.11
-// Let's use the proper one:
-OID.SHA256_RSA = [42, 134, 72, 134, 247, 13, 1, 1, 11];
 
 // Build self-signed X.509 certificate using raw SPKI from WebCrypto
 export async function getQzCertificate() {
@@ -54,7 +47,7 @@ export async function getQzCertificate() {
       const keyBytes = fromPem(keyPem);
       const privateKey = await crypto.subtle.importKey(
         'pkcs8', new Uint8Array(keyBytes),
-        { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+        { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-512' },
         false, ['sign']
       );
       return { certPem, privateKey };
@@ -63,7 +56,7 @@ export async function getQzCertificate() {
 
   // Generate RSA 2048 key pair
   const kp = await crypto.subtle.generateKey(
-    { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+    { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-512' },
     true, ['sign', 'verify']
   );
 
@@ -78,14 +71,14 @@ export async function getQzCertificate() {
   const tbsCert = dSeq(
     dExplicitCtx(0, dInt([0x02])),          // [0] EXPLICIT version v3
     dInt([1]),                                // serial number
-    dSeq(dOid(OID.SHA256_RSA), dNull()),     // signature algorithm
+    dSeq(dOid(OID.SHA512_RSA), dNull()),     // signature algorithm
     dSeq(dPrintStr('FoodHubPOS')),            // issuer (PrintableString)
     dSeq(dUtc(notBefore), dUtc(notAfter)),   // validity
     dSeq(dPrintStr('FoodHubPOS')),            // subject (PrintableString)
     pubSpki                                   // subjectPublicKeyInfo (raw SPKI bytes)
   );
 
-  // Sign the TBSCertificate with SHA-256
+  // Sign the TBSCertificate with SHA-512
   const signature = new Uint8Array(await crypto.subtle.sign(
     { name: 'RSASSA-PKCS1-v1_5' }, kp.privateKey, new Uint8Array(tbsCert)
   ));
@@ -93,7 +86,7 @@ export async function getQzCertificate() {
   // Build the final certificate
   const certDer = dSeq(
     tbsCert,
-    dSeq(dOid(OID.SHA256_RSA), dNull()),
+    dSeq(dOid(OID.SHA512_RSA), dNull()),
     dBit([...signature])
   );
 

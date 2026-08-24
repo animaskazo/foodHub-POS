@@ -38,11 +38,11 @@ const setupCertificate = async () => {
     });
 
     // QZ Tray 2.1+ requires setting the algorithm if not using the default.
-    // Our WebCrypto key uses SHA-256.
+    // Our WebCrypto key uses SHA-512.
     try {
-      qz.security.setSignatureAlgorithm("SHA256");
+      qz.security.setSignatureAlgorithm("SHA512");
     } catch (e) {
-      console.warn("No se pudo configurar algoritmo SHA256 en QZ Tray:", e);
+      console.warn("No se pudo configurar algoritmo SHA512 en QZ Tray:", e);
     }
 
     qz.security.setSignaturePromise((toSign) => {
