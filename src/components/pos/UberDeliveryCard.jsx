@@ -54,7 +54,51 @@ export const UberDeliveryCard = ({ order, organization }) => {
     fetchUberData();
   }, [fetchUberData]);
 
-  if (!order?.uber_delivery_id && !order?.uber_tracking_url) return null;
+  // Si no hay delivery de Uber, verificamos si debería haber uno (fallido)
+  if (!order?.uber_delivery_id && !order?.uber_tracking_url) {
+    if (order?.delivery_type === 'delivery' && organization?.uber_enabled) {
+      return (
+        <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-4 text-xs">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h4 className="font-bold text-red-800 text-sm mb-1">Error al asignar repartidor</h4>
+              <p className="text-red-600 mb-3 leading-relaxed">
+                El pedido fue confirmado pero hubo un problema al solicitar el repartidor en Uber Direct.
+              </p>
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const { toast } = await import('sonner');
+                  const { retryFailedUberDelivery } = await import('../../utils/uberDeliveryRetry');
+                  
+                  const toastId = toast.loading('Solicitando repartidor en Uber Direct...');
+                  const result = await retryFailedUberDelivery(order.id, organization.id);
+                  
+                  if (result.success) {
+                    toast.success('Repartidor asignado con éxito', { id: toastId });
+                    // Recargar la data forzando actualización
+                    if (window.location.pathname.includes('superadmin')) {
+                       window.dispatchEvent(new Event('reload-orders'));
+                    } else {
+                       window.location.reload();
+                    }
+                  } else {
+                    toast.error(result.message, { id: toastId, duration: 5000 });
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Reintentar solicitud en Uber
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }
 
   const courier = deliveryData?.courier;
   const status = deliveryData?.status || order?.uber_status || 'pending';

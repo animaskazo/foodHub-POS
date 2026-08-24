@@ -21,7 +21,14 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
     const interval = setInterval(() => {
       fetchOrders(true);
     }, 10000);
-    return () => clearInterval(interval);
+
+    const handleReload = () => fetchOrders(true);
+    window.addEventListener('reload-orders', handleReload);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('reload-orders', handleReload);
+    };
   }, []);
 
   const filteredOrders = orders.filter(order => 

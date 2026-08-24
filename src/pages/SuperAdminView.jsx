@@ -65,6 +65,7 @@ const SuperAdminView = () => {
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
+      
       setOrgOrders(data || []);
     } catch (err) {
       console.error('Error fetching org orders:', err);
@@ -72,6 +73,16 @@ const SuperAdminView = () => {
       setLoadingOrders(false);
     }
   };
+
+  useEffect(() => {
+    const handleReload = () => {
+      if (selectedOrganization?.id) {
+        fetchOrgOrders(selectedOrganization.id);
+      }
+    };
+    window.addEventListener('reload-orders', handleReload);
+    return () => window.removeEventListener('reload-orders', handleReload);
+  }, [selectedOrganization]);
 
   useEffect(() => {
     fetchData();
