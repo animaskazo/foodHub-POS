@@ -55,6 +55,7 @@ const SuperAdminView = () => {
           uber_delivery_id,
           uber_tracking_url,
           uber_status,
+          is_klap_reconciled,
           payments ( method, status, reference_code ),
           order_items (
             *,
@@ -611,7 +612,7 @@ const SuperAdminView = () => {
               {/* Klap Reconciliation Tab */}
               {detailTab === 'klap' && (
                 <div className="p-4 md:p-8 animate-in fade-in">
-                  <KlapReconciliationTab orders={orgOrders} />
+                  <KlapReconciliationTab orders={orgOrders} onReconciled={() => fetchOrgOrders(selectedOrganization.id)} />
                 </div>
               )}
 

@@ -1,13 +1,16 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { Upload, FileText, CheckCircle2, AlertCircle, XCircle, Search, CreditCard, DollarSign } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, AlertCircle, XCircle, Search, CreditCard, DollarSign, Save, Loader2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
-const KlapReconciliationTab = ({ orders }) => {
+const KlapReconciliationTab = ({ orders, onReconciled }) => {
   const [csvData, setCsvData] = useState(null);
   const [fileName, setFileName] = useState('');
   const [search, setSearch] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleFileUpload = (e) => {
@@ -184,6 +187,37 @@ const KlapReconciliationTab = ({ orders }) => {
     XLSX.writeFile(wb, `Reporte_Conciliacion_Klap_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
+  const pendingToReconcile = useMemo(() => {
+    if (!matchedOrders) return [];
+    return matchedOrders.filter(o => o.klapMatch && !o.is_klap_reconciled);
+  }, [matchedOrders]);
+
+  const handleMarkAsReconciled = async () => {
+    if (pendingToReconcile.length === 0) return;
+    setIsSaving(true);
+    try {
+      const idsToUpdate = pendingToReconcile.map(o => o.id);
+      
+      const { error } = await supabase
+        .from('orders')
+        .update({ is_klap_reconciled: true })
+        .in('id', idsToUpdate);
+
+      if (error) throw error;
+
+      toast.success(`Se han marcado ${idsToUpdate.length} pedidos como abonados.`);
+      
+      if (onReconciled) {
+        onReconciled();
+      }
+    } catch (err) {
+      console.error('Error marking as reconciled:', err);
+      toast.error('Error al marcar los pedidos. Intenta nuevamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6 py-4 animate-in fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-xl border border-gray-200">
@@ -203,6 +237,16 @@ const KlapReconciliationTab = ({ orders }) => {
               className="flex items-center gap-2 font-medium"
             >
               Descargar Reporte
+            </Button>
+          )}
+          {pendingToReconcile.length > 0 && (
+            <Button 
+              onClick={handleMarkAsReconciled}
+              disabled={isSaving}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-2 shadow-sm"
+            >
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Marcar {pendingToReconcile.length} como Abonados
             </Button>
           )}
           <input 
@@ -303,10 +347,17 @@ const KlapReconciliationTab = ({ orders }) => {
                           ${Number(order.csvMontoPagado).toLocaleString('es-CL')}
                         </td>
                         <td className="px-6 py-3">
-                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100 flex items-center gap-1 w-fit border-none">
-                            <CheckCircle2 className="h-3 w-3" />
-                            Conciliado
-                          </Badge>
+                          {order.is_klap_reconciled ? (
+                            <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 flex items-center gap-1 w-fit border-none">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Ya Abonado
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-green-100 text-green-800 hover:bg-green-100 flex items-center gap-1 w-fit border-none">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Conciliado
+                            </Badge>
+                          )}
                         </td>
                       </>
                     ) : (
@@ -314,7 +365,12 @@ const KlapReconciliationTab = ({ orders }) => {
                         <td className="px-6 py-3 text-sm text-gray-400 bg-blue-50/10">-</td>
                         <td className="px-6 py-3 text-sm text-gray-400 bg-green-50/10">-</td>
                         <td className="px-6 py-3">
-                          {csvData ? (
+                          {order.is_klap_reconciled ? (
+                            <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 flex items-center gap-1 w-fit border-none">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Ya Abonado
+                            </Badge>
+                          ) : csvData ? (
                             <Badge className="bg-red-50 text-red-600 hover:bg-red-50 flex items-center gap-1 w-fit border border-red-100">
                               <XCircle className="h-3 w-3" />
                               Falta en Klap
