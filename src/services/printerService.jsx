@@ -119,27 +119,27 @@ const buildReceiptHtml = (order, organization) => {
   const styles = `
     <style>
       @page { margin: 0; size: 80mm auto; }
-      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
 
-      body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.4; margin: 0; padding: 0; color: black; background: white; }
+      body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.4; margin: 0; padding: 0; color: black; background: white; width: 80mm; }
       .print-receipt-container { width: 100%; margin: 0; padding: 0; background: white; }
-      .receipt-content { width: 76mm; margin: 0 auto; padding: 5mm 2mm; }
-      .receipt-header { text-align: center; margin-bottom: 5mm; }
-      .receipt-title-box { background: black; color: white !important; padding: 4mm 2mm; margin-bottom: 2mm; border-radius: 4px; }
-      .receipt-title { font-size: 20px; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
-      .receipt-order-number { font-size: 36px; font-weight: 900; text-align: center; margin-top: 4mm; margin-bottom: 0; line-height: 1; }
-      .receipt-order-type { font-size: 20px; font-weight: 900; text-align: center; text-transform: uppercase; margin-top: 3mm; margin-bottom: 3mm; padding: 2mm 0; border-top: 2px dashed #000; border-bottom: 2px dashed #000; }
-      .receipt-unpaid-warning { font-size: 18px; font-weight: 900; text-align: center; text-transform: uppercase; color: #fff; background: #000; margin-top: 4mm; margin-bottom: 4mm; padding: 3mm 0; border: 2px solid #000; }
-      .receipt-order-date { font-size: 12px; color: #333; text-align: center; margin-bottom: 4mm; }
-      .receipt-logo { max-width: 45mm; margin: 0 auto 3mm auto; display: block; filter: grayscale(100%) contrast(1.2); }
-      .receipt-divider { border-bottom: 1.5px dashed black; margin: 3mm 0; }
-      .receipt-divider-solid { border-bottom: 2px solid black; margin: 3mm 0; }
+      .receipt-content { width: 72mm; margin: 0 auto; padding: 2mm; overflow: hidden; }
+      .receipt-header { text-align: center; margin-bottom: 3mm; }
+      .receipt-title-box { background: black; color: white !important; padding: 3mm 2mm; margin-bottom: 2mm; border-radius: 4px; }
+      .receipt-title { font-size: 18px; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
+      .receipt-order-number { font-size: 32px; font-weight: 900; text-align: center; margin-top: 2mm; margin-bottom: 0; line-height: 1; }
+      .receipt-order-type { font-size: 18px; font-weight: 900; text-align: center; text-transform: uppercase; margin-top: 2mm; margin-bottom: 2mm; padding: 1.5mm 0; border-top: 2px dashed #000; border-bottom: 2px dashed #000; }
+      .receipt-unpaid-warning { font-size: 16px; font-weight: 900; text-align: center; text-transform: uppercase; color: #fff; background: #000; margin-top: 2mm; margin-bottom: 2mm; padding: 2mm 0; border: 2px solid #000; }
+      .receipt-order-date { font-size: 11px; color: #333; text-align: center; margin-bottom: 2mm; }
+      .receipt-logo { max-width: 40mm; margin: 0 auto 2mm auto; display: block; filter: grayscale(100%) contrast(1.2); }
+      .receipt-divider { border-bottom: 1.5px dashed black; margin: 2mm 0; }
+      .receipt-divider-solid { border-bottom: 2px solid black; margin: 2mm 0; }
       .receipt-section-title { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1mm; }
-      .receipt-items th { font-weight: bold; font-size: 12px; border-bottom: 1.5px solid black; padding-bottom: 2mm; }
-      .receipt-items td { padding-top: 2mm; }
-      .receipt-items .item-name { font-size: 13px; font-weight: 700; }
-      .receipt-totals { margin-top: 4mm; }
-      .receipt-total-row { display: flex; justify-content: space-between; font-size: 22px; font-weight: 900; margin-top: 2mm; padding-top: 2mm; border-top: 2px solid black; }
+      .receipt-items th { font-weight: bold; font-size: 12px; border-bottom: 1.5px solid black; padding-bottom: 1mm; }
+      .receipt-items td { padding-top: 1.5mm; }
+      .receipt-items .item-name { font-size: 12px; font-weight: 700; }
+      .receipt-totals { margin-top: 2mm; }
+      .receipt-total-row { display: flex; justify-content: space-between; font-size: 18px; font-weight: 900; margin-top: 1.5mm; padding-top: 1.5mm; border-top: 2px solid black; }
 
       .text-right { text-align: right; }
       .text-center { text-align: center; }
@@ -228,7 +228,8 @@ const sendToQz = async (printerName, fullHtml) => {
   const printData = [{
     type: 'html',
     format: 'plain',
-    data: fullHtml
+    data: fullHtml,
+    options: { pageWidth: '80mm' }
   }];
 
   await qz.print(config, printData);
