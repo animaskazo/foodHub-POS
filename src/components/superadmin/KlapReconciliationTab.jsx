@@ -152,6 +152,13 @@ const KlapReconciliationTab = ({ orders }) => {
           </Button>
         </div>
       </div>
+      
+      {csvData && csvData.length > 0 && (
+        <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-800">
+          <strong>Info de diagnóstico:</strong> Columnas detectadas en el archivo: {Object.keys(csvData[0]).join(', ')}. 
+          Total filas leídas: {csvData.length}.
+        </div>
+      )}
 
       {csvData && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
