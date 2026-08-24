@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import AIImportModal from '../components/catalog/AIImportModal';
 import EditProductModal from '../components/catalog/EditProductModal';
 import OrderDetailModal from '../components/pos/OrderDetailModal';
+import KlapReconciliationTab from '../components/superadmin/KlapReconciliationTab';
 import { getPaymentMethod } from '../utils/orderUtils';
 
 const SuperAdminView = () => {
@@ -388,6 +389,16 @@ const SuperAdminView = () => {
               </Button>
               <Button
                 variant="ghost"
+                onClick={() => setDetailTab('klap')}
+                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
+                  detailTab === 'klap' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <DollarSign className="h-4 w-4" />
+                Conciliación Klap
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => setDetailTab('reports')}
                 className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
                   detailTab === 'reports' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
@@ -594,6 +605,13 @@ const SuperAdminView = () => {
                       )}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {/* Klap Reconciliation Tab */}
+              {detailTab === 'klap' && (
+                <div className="p-4 md:p-8 animate-in fade-in">
+                  <KlapReconciliationTab orders={orgOrders} />
                 </div>
               )}
 
