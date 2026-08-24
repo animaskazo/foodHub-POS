@@ -76,19 +76,37 @@ const KlapReconciliationTab = ({ orders }) => {
           match = csvData.find(row => {
             if (row._used) return false;
             
-            const csvMonto = parseFloat(row['monto_venta(+)'] || row['total'] || 0);
-            const csvFecha = row['fecha_venta'] || row['fecha venta'] || '';
+            // Limpiar monto: remover puntos de miles y considerar solo la parte entera
+            let rawMonto = String(row['monto_venta(+)'] || row['total'] || '0');
+            rawMonto = rawMonto.replace(/\./g, '').split(',')[0]; 
+            const csvMonto = parseFloat(rawMonto);
             
-            if (csvMonto !== order.total) return false;
+            const csvFecha = String(row['fecha_venta'] || row['fecha venta'] || '');
+            
+            if (csvMonto !== Number(order.total)) return false;
 
-            // Formatear la fecha del pedido a YYYY-MM-DD local
+            // Comprobar múltiples formatos de fecha que Excel/SheetJS puede devolver
             const orderDate = new Date(order.created_at);
-            const orderDateStr = orderDate.getFullYear() + "-" + 
-                                 String(orderDate.getMonth() + 1).padStart(2, '0') + "-" + 
-                                 String(orderDate.getDate()).padStart(2, '0');
+            const d = String(orderDate.getDate()).padStart(2, '0');
+            const m = String(orderDate.getMonth() + 1).padStart(2, '0');
+            const yyyy = orderDate.getFullYear();
+            const yy = String(yyyy).slice(2);
             
-            // Puede que el CSV traiga YYYY-MM-DD o DD-MM-YYYY, probamos similitud
-            return csvFecha.includes(orderDateStr) || orderDateStr.includes(csvFecha);
+            // A veces getDate o getMonth te da sin el cero adelante en el CSV
+            const d1 = String(orderDate.getDate());
+            const m1 = String(orderDate.getMonth() + 1);
+
+            const formats = [
+              `${yyyy}-${m}-${d}`,
+              `${d}-${m}-${yyyy}`,
+              `${d}/${m}/${yyyy}`,
+              `${m}/${d}/${yyyy}`,
+              `${m}/${d}/${yy}`,
+              `${d}-${m}-${yy}`,
+              `${m1}/${d1}/${yy}`
+            ];
+            
+            return formats.some(f => csvFecha.includes(f));
           });
         }
       }
@@ -97,12 +115,17 @@ const KlapReconciliationTab = ({ orders }) => {
         match._used = true; // Marcar como usado para no asignarlo a dos pedidos distintos con igual monto
       }
 
-      const csvMontoPagado = match ? parseFloat(match['monto_pagado'] || match['monto pagado'] || 0) : null;
-      const csvComision = match ? parseFloat(match['comision(-)'] || match['comision'] || 0) : null;
-      const csvMontoBruto = match ? parseFloat(match['monto_venta(+)'] || match['total'] || 0) : null;
+      const getVal = (val) => {
+        if (!val) return 0;
+        return parseFloat(String(val).replace(/\./g, '').split(',')[0]) || 0;
+      };
+
+      const csvMontoPagado = match ? getVal(match['monto_pagado'] || match['monto pagado']) : null;
+      const csvComision = match ? getVal(match['comision(-)'] || match['comision']) : null;
+      const csvMontoBruto = match ? getVal(match['monto_venta(+)'] || match['total']) : null;
 
       if (match) {
-        bruto += order.total;
+        bruto += Number(order.total);
         liquidado += csvMontoPagado || 0;
         comision += csvComision || 0;
       }
