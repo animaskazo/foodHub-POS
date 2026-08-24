@@ -164,6 +164,26 @@ const KlapReconciliationTab = ({ orders }) => {
     return { matchedOrders: matched, totalBruto: bruto, totalLiquidado: liquidado, totalComision: comision };
   }, [orders, csvData, search]);
 
+  const downloadReport = () => {
+    if (!matchedOrders || matchedOrders.length === 0) return;
+    
+    const exportData = matchedOrders.map(order => ({
+      'ID Pedido': order.order_number,
+      'Fecha POS': new Date(order.created_at).toLocaleString('es-CL'),
+      'Klap Auth ID': order.payments?.[0]?.reference_code || 'Sin ID',
+      'Monto POS': order.total,
+      'Klap Bruto': order.klapMatch ? order.csvMontoBruto : 0,
+      'Klap Liquidado': order.klapMatch ? order.csvMontoPagado : 0,
+      'Klap Comisión': order.klapMatch ? order.csvComision : 0,
+      'Estado': order.klapMatch ? 'Conciliado' : (csvData ? 'Falta en Klap' : 'Pendiente')
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Reporte Klap");
+    XLSX.writeFile(wb, `Reporte_Conciliacion_Klap_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
   return (
     <div className="space-y-6 py-4 animate-in fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-xl border border-gray-200">
@@ -175,7 +195,16 @@ const KlapReconciliationTab = ({ orders }) => {
           <p className="text-sm text-gray-500 mt-1">Sube la liquidación oficial de Klap (CSV/Excel) para cruzar los montos liquidados con tus pedidos.</p>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {csvData && (
+            <Button 
+              onClick={downloadReport}
+              variant="outline"
+              className="flex items-center gap-2 font-medium"
+            >
+              Descargar Reporte
+            </Button>
+          )}
           <input 
             type="file" 
             accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
