@@ -124,20 +124,11 @@ const NewOrderAlert = () => {
           }
           setAutoPrintOrder(null);
         } else {
-          // Fallback to native print window
-          const originalTitle = document.title;
-          document.title = `Orden_#${autoPrintOrder.order_number || autoPrintOrder.id.slice(0,4)}`;
-          
-          const btn = document.getElementById('global-hidden-print-trigger');
-          if (btn) {
-            btn.click();
-          } else {
-            window.focus();
-            window.print();
-          }
-          
-          document.title = originalTitle;
-          setTimeout(() => setAutoPrintOrder(null), 1000);
+          // Si no hay QZ Tray configurado, NO lanzamos window.print() automáticamente 
+          // porque bloquea la pantalla con el diálogo nativo (a menos que usen Kiosk mode).
+          console.warn('Auto-impresión ignorada: No hay impresora QZ Tray seleccionada.');
+          import('sonner').then(({ toast }) => toast.warning('Impresión automática omitida: Selecciona una impresora en Configuración.'));
+          setAutoPrintOrder(null);
         }
       }, 1000); // 1s delay for logo rendering
       
