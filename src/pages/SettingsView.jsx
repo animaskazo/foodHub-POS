@@ -948,6 +948,9 @@ const SettingsView = () => {
                           className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
                         >
                           <option value="">Impresión normal (ventana del navegador)</option>
+                          {selectedQzPrinter && !qzPrinters.includes(selectedQzPrinter) && (
+                            <option value={selectedQzPrinter}>{selectedQzPrinter} (Guardada)</option>
+                          )}
                           {qzPrinters.map(p => (
                             <option key={p} value={p}>{p}</option>
                           ))}
