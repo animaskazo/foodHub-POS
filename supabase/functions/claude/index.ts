@@ -161,9 +161,24 @@ La descripción debe sonar natural, tentar al cliente y no superar las 2 líneas
       });
 
     } else if (action === 'generate_joke') {
+      const topics = [
+        "especias raras", "el origen de la pizza", "frutas exóticas", 
+        "técnicas de cocina antiguas", "datos curiosos del café", 
+        "historia del chocolate", "el umami", "fermentación tradicional",
+        "quesos del mundo", "comida espacial", "gastronomía japonesa",
+        "el picante y los chiles", "postres históricos", "vegetales extraños",
+        "el mundo del té", "el sushi", "cultura del vino", "panadería milenaria",
+        "datos sorprendentes sobre el agua", "la miel que no caduca", "hongos comestibles",
+        "los primeros restaurantes", "inventos culinarios por accidente", "comida de reyes",
+        "comida callejera asiática", "historia de las hamburguesas", "frutas que ya no existen",
+        "datos sobre el ajo", "curiosidades del azúcar", "el origen del helado"
+      ];
+      const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+
       const prompt = `
 Eres un experto en cultura general y gastronomía. Tu objetivo es sorprender y entretener al cliente que acaba de hacer un pedido de comida.
 Genera una curiosidad o dato interesante corto (máximo 2 líneas) sobre el mundo de la cocina, los alimentos, o alguna curiosidad fascinante del mundo en general.
+IMPORTANTE: Para asegurar variedad, centra esta curiosidad en el siguiente tema específico: "${randomTopic}".
 Reglas:
 1. DEBE ser un dato real, curioso y sorprendente.
 2. NO repitas datos súper conocidos (ej: "el tomate es una fruta"). Sé original.
