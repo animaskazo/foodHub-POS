@@ -160,6 +160,46 @@ La descripción debe sonar natural, tentar al cliente y no superar las 2 líneas
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
 
+    } else if (action === 'generate_joke') {
+      const prompt = `
+Eres un comediante familiar. Genera un chiste blanco muy corto (máximo 2 líneas) relacionado con comida, restaurantes, o clientes. 
+Debe ser apto para todo público y amable. No incluyas introducciones ni comillas, solo devuelve el chiste directo.
+      `;
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 150,
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return new Response(JSON.stringify({ success: false, error: `Anthropic API error: ${response.status} - ${errorText}` }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const resData = await response.json();
+      const joke = resData.content[0].text.trim();
+
+      return new Response(JSON.stringify({ success: true, joke }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+
     } else if (action === 'generate_image') {
       const { productName, description, comboItems, geminiApiKey, imageDetails } = payload;
       if (!productName) {

@@ -122,3 +122,29 @@ export const generateProductImage = async (productName, description = '', comboI
     throw new Error(error.message || "No se pudo generar la imagen del producto. Inténtalo de nuevo.");
   }
 };
+
+export const generateJoke = async () => {
+  try {
+    const { data, error } = await supabase.functions.invoke('claude', {
+      body: {
+        action: 'generate_joke',
+        payload: {}
+      }
+    });
+
+    if (error) {
+      console.error("Error al invocar la función de Supabase para chiste:", error);
+      return null;
+    }
+
+    if (data && data.success === false) {
+      console.error("Error devuelto por la IA al generar chiste:", data.error);
+      return null;
+    }
+
+    return data.joke;
+  } catch (error) {
+    console.error("Error al generar chiste con Claude via Edge Function:", error);
+    return null;
+  }
+};

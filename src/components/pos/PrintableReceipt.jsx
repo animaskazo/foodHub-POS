@@ -174,6 +174,13 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
         {/* Footer */}
         <div className="text-center flex flex-col items-center">
           <p className="font-bold text-lg mb-1">¡Gracias por preferirnos!</p>
+          
+          {order.receipt_joke && (
+            <div className="mt-2 mb-2 px-4 italic text-sm text-gray-800">
+              "{order.receipt_joke}"
+            </div>
+          )}
+
           <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-2 border-t border-gray-300 pt-2 inline-block">Powered by FoodHub POS</p>
         </div>
       </div>
