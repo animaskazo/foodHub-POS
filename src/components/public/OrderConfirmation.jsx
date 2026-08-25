@@ -269,7 +269,7 @@ const OrderConfirmation = ({ order, org }) => {
           {/* Joke Section */}
           {joke && (
             <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center mt-4">
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">🍽️ El chiste del chef</p>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">💡 Curiosidad del chef</p>
               <p className="text-sm text-gray-700 italic">"{joke}"</p>
             </div>
           )}

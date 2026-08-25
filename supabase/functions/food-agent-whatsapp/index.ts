@@ -467,7 +467,7 @@ async function processMessage(
       const isNo = emailText.includes("no");
       
       const joke = await getJoke();
-      const jokeText = joke ? `\n\n🍽️ *El chiste del chef:*\n_${joke}_` : "";
+      const jokeText = joke ? `\n\n💡 *Curiosidad del chef:*\n_${joke}_\n` : "";
       
       if (isNo) {
         replyText = `¡Entendido! Te avisaremos por aquí cuando tu pedido esté listo.${jokeText}`;

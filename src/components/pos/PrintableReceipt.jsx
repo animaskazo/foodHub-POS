@@ -176,8 +176,9 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
           <p className="font-bold text-lg mb-1">¡Gracias por preferirnos!</p>
           
           {order.receipt_joke && (
-            <div className="mt-2 mb-2 px-4 italic text-sm text-gray-800">
-              "{order.receipt_joke}"
+            <div className="mt-2 mb-2 px-4 text-center">
+              <p className="text-[10px] font-bold uppercase mb-1">💡 Curiosidad del chef</p>
+              <p className="italic text-sm text-gray-800">"{order.receipt_joke}"</p>
             </div>
           )}
 

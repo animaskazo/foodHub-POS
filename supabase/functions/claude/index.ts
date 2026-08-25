@@ -162,13 +162,13 @@ La descripción debe sonar natural, tentar al cliente y no superar las 2 líneas
 
     } else if (action === 'generate_joke') {
       const prompt = `
-Eres un maestro de la comedia stand-up familiar. Tu objetivo es hacer sonreír al cliente que acaba de hacer un pedido de comida.
-Genera un chiste corto (máximo 2 líneas) relacionado EXCLUSIVAMENTE con comida, restaurantes, cocineros o delivery.
+Eres un experto en cultura general y gastronomía. Tu objetivo es sorprender y entretener al cliente que acaba de hacer un pedido de comida.
+Genera una curiosidad o dato interesante corto (máximo 2 líneas) sobre el mundo de la cocina, los alimentos, o alguna curiosidad fascinante del mundo en general.
 Reglas:
-1. DEBE ser realmente ingenioso, divertido o tener un juego de palabras inteligente.
-2. NO repitas chistes clásicos aburridos (ej: "qué le dijo una uva a otra"). Sé original.
-3. Totalmente blanco y apto para todo público.
-4. Devuelve SOLO el chiste directo, sin comillas, sin introducciones ni emoticones.
+1. DEBE ser un dato real, curioso y sorprendente.
+2. NO repitas datos súper conocidos (ej: "el tomate es una fruta"). Sé original.
+3. Totalmente apto para todo público.
+4. Devuelve SOLO la curiosidad directa, sin comillas, sin introducciones ni emoticones.
       `;
 
       const response = await fetch("https://api.anthropic.com/v1/messages", {
