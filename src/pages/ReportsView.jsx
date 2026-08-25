@@ -4,7 +4,9 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/AuthContext'
 import PageHeader from '../components/ui/PageHeader'
 import SalesAreaChart from '../components/charts/SalesAreaChart'
-import { ChevronLeft, ChevronRight, Loader2, FileDown, CalendarDays, FileText, FileSpreadsheet, Store, ShoppingBag, Globe, MessageCircle, Van, LineChart, TrendingUp, TrendingDown, Minus, Trophy, Clock, Ban, Wallet } from 'lucide-react'
+import DonutChart from '../components/charts/DonutChart'
+import HourHeatmap from '../components/charts/HourHeatmap'
+import { ChevronLeft, ChevronRight, Loader2, FileDown, CalendarDays, FileText, FileSpreadsheet, Store, ShoppingBag, Globe, MessageCircle, Van, LineChart, TrendingUp, TrendingDown, Minus, Trophy, Clock, Ban, Wallet, Sparkles, Send } from 'lucide-react'
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DAYS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado']
@@ -15,10 +17,10 @@ const fmt = (n) => {
 }
 
 const paymentMeta = {
-  cash:          { label: 'Efectivo',   bar: 'bg-emerald-500' },
-  card:          { label: 'Tarjeta',    bar: 'bg-blue-500' },
-  transfer:      { label: 'Transfer.',  bar: 'bg-violet-500' },
-  online_gateway:{ label: 'Online',     bar: 'bg-cyan-500' },
+  cash:          { label: 'Efectivo',   bar: 'bg-emerald-500', color: '#10b981' },
+  card:          { label: 'Tarjeta',    bar: 'bg-blue-500',    color: '#3b82f6' },
+  transfer:      { label: 'Transfer.',  bar: 'bg-violet-500',  color: '#8b5cf6' },
+  online_gateway:{ label: 'Online',     bar: 'bg-cyan-500',    color: '#06b6d4' },
 }
 
 const channelMeta = {
@@ -164,7 +166,25 @@ const ReportsView = () => {
   // KPI: Tasa de cancelación
   const cancellationRate = totalOrderCount > 0 ? (cancelledCount / totalOrderCount) * 100 : 0
 
-  // KPI: Ticket promedio por canal
+  // Donut chart payment data
+  const paymentDonutData = useMemo(() => {
+    const totals = {};
+    days.forEach((d) => {
+      const { payments } = calcDay(d.orders);
+      Object.entries(payments).forEach(([k, v]) => {
+        totals[k] = (totals[k] || 0) + v;
+      });
+    });
+
+    return Object.entries(paymentMeta)
+      .map(([key, meta]) => ({
+        key,
+        label: meta.label,
+        value: totals[key] || 0,
+        color: meta.color,
+      }))
+      .filter((item) => item.value > 0);
+  }, [days]);
   const ticketByChannel = useMemo(() => {
     const map = {}
     validOrders.forEach(o => {
@@ -767,52 +787,22 @@ const ReportsView = () => {
 
                   {/* Hora pico distribution */}
                   {peakHour.count > 0 && (
-                    <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Clock className="h-4 w-4 text-blue-500" />
-                        <h3 className="text-sm font-semibold text-gray-900">Distribución por hora</h3>
+                    <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-blue-500" />
+                          <h3 className="text-sm font-semibold text-gray-900">Distribución de ventas por hora y día</h3>
+                        </div>
                       </div>
-                      <div className="flex items-end gap-[3px] h-20">
-                        {peakHour.distribution.map((count, h) => {
-                          const maxC = Math.max(...peakHour.distribution)
-                          const pct = maxC > 0 ? (count / maxC) * 100 : 0
-                          const isPeak = h === peakHour.hour
-                          return (
-                            <div key={h} className="flex-1 flex flex-col items-center gap-0.5 group relative">
-                              <div
-                                className={`w-full rounded-t transition-all ${isPeak ? 'bg-blue-500' : count > 0 ? 'bg-blue-200' : 'bg-gray-100'}`}
-                                style={{ height: `${Math.max(pct, count > 0 ? 8 : 2)}%`, minHeight: count > 0 ? '4px' : '1px' }}
-                                title={`${String(h).padStart(2,'0')}:00 — ${count} órdenes`}
-                              />
-                              {h % 3 === 0 && <span className="text-[8px] text-gray-400 leading-none mt-0.5">{String(h).padStart(2,'0')}</span>}
-                            </div>
-                          )
-                        })}
-                      </div>
+
+                      <HourHeatmap orders={validOrders} />
                     </div>
                   )}
 
-                  {/* Month payments */}
+                  {/* Month payments Donut Chart */}
                   <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-4">Métodos de pago</h3>
-                    <div className="space-y-3">
-                      {Object.entries(paymentMeta).map(([key, m]) => {
-                        const amt = days.reduce((s, d) => s + (calcDay(d.orders).payments[key] || 0), 0)
-                        if (!amt) return null
-                        const pct = mRev > 0 ? (amt / mRev) * 100 : 0
-                        return (
-                          <div key={key}>
-                            <div className="flex items-center justify-between text-sm mb-1">
-                              <span className="text-gray-700 font-medium">{m.label}</span>
-                              <span className="text-gray-900 font-semibold">{fmt(amt)} <span className="text-xs text-gray-400 font-normal">({Math.round(pct)}%)</span></span>
-                            </div>
-                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                              <div className={`h-full rounded-full ${m.bar} transition-all`} style={{ width: `${pct}%` }} />
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-4">Desglose de métodos de pago</h3>
+                    <DonutChart data={paymentDonutData} total={mRev} />
                     {mFees > 0 && (
                       <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-sm">
                         <span className="text-gray-500">Delivery fees</span>
