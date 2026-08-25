@@ -485,24 +485,42 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
         canCancel={canCancel}
         onCancel={() => setIsCancelConfirmOpen(true)}
         onPrint={async () => {
+          let orderToPrint = selectedOrder;
+          
+          // Obtener un chiste para el ticket si no lo tiene
+          if (!orderToPrint.receipt_joke) {
+            try {
+              const { generateJoke } = await import('../../services/aiService');
+              const joke = await generateJoke();
+              if (joke) {
+                orderToPrint = { ...orderToPrint, receipt_joke: joke };
+                setSelectedOrder(orderToPrint);
+                // Esperar a que el DOM se actualice con el nuevo estado antes de imprimir
+                await new Promise(r => setTimeout(r, 200));
+              }
+            } catch (e) {
+              console.error('Failed to fetch joke for print', e);
+            }
+          }
+
           const qzPrinter = localStorage.getItem('qz_default_printer');
-          if (qzPrinter && selectedOrder) {
+          if (qzPrinter && orderToPrint) {
             try {
               const { toast } = await import('sonner');
               toast.info('Imprimiendo ticket...');
-              await printReceipt(selectedOrder, organization, qzPrinter);
+              await printReceipt(orderToPrint, organization, qzPrinter);
             } catch (e) {
               console.error('QZ Print failed, usando impresión nativa', e);
               const { toast } = await import('sonner');
               toast.error('Error con QZ Tray, usando impresión del navegador');
               const originalTitle = document.title;
-              document.title = `Orden_#${selectedOrder.order_number}`;
+              document.title = `Orden_#${orderToPrint.order_number}`;
               window.print();
               document.title = originalTitle;
             }
           } else {
             const originalTitle = document.title;
-            document.title = `Orden_#${selectedOrder.order_number}`;
+            document.title = `Orden_#${orderToPrint.order_number}`;
             window.print();
             document.title = originalTitle;
           }

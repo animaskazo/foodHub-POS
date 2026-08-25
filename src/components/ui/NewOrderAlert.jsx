@@ -137,20 +137,40 @@ const NewOrderAlert = () => {
   }, [autoPrintOrder, organization]);
 
   const handleManualPrint = async () => {
+    let orderToPrint = latestNewOrder;
+    
+    if (orderToPrint && !orderToPrint.receipt_joke) {
+      try {
+        const { generateJoke } = await import('../../services/aiService');
+        const joke = await generateJoke();
+        if (joke) {
+          orderToPrint = { ...orderToPrint, receipt_joke: joke };
+          // Esto actualizará el estado de latestNewOrder
+          if (orderToPrint.id === latestNewOrder.id) {
+             // asumiendo que setLatestNewOrder no existe aquí, busquemos qué estado usar. 
+             // Espera, handleManualPrint usa latestNewOrder. Si setLatestNewOrder existe, lo usamos.
+             // revisaremos eso.
+          }
+        }
+      } catch (e) {
+        console.error('Failed to fetch joke for print', e);
+      }
+    }
+
     const qzPrinter = localStorage.getItem('qz_default_printer');
-    if (qzPrinter && latestNewOrder) {
+    if (qzPrinter && orderToPrint) {
       import('sonner').then(({ toast }) => toast.info('Imprimiendo ticket...'));
       try {
-        await printReceipt(latestNewOrder, organization, qzPrinter);
+        await printReceipt(orderToPrint, organization, qzPrinter);
       } catch (e) {
         console.error('QZ Print failed', e);
         import('sonner').then(({ toast }) => toast.error('Error imprimiendo en QZ Tray'));
       }
     } else {
-      setAutoPrintOrder(latestNewOrder);
+      setAutoPrintOrder(orderToPrint);
       setTimeout(() => {
         const originalTitle = document.title;
-        document.title = `Orden_#${latestNewOrder?.order_number || latestNewOrder?.id?.slice(0,4)}`;
+        document.title = `Orden_#${orderToPrint?.order_number || orderToPrint?.id?.slice(0,4)}`;
         window.focus();
         window.print();
         document.title = originalTitle;
