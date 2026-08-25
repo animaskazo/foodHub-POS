@@ -148,3 +148,33 @@ export const generateJoke = async () => {
     return `Excepción: ${error.message}`;
   }
 };
+
+export const analyzeReportWithAI = async (question, summaryData, chatHistory = []) => {
+  try {
+    const { data, error } = await supabase.functions.invoke('claude', {
+      body: {
+        action: 'analyze_sales',
+        payload: {
+          question,
+          summaryData,
+          chatHistory
+        }
+      }
+    });
+
+    if (error) {
+      console.error("Error al invocar Supabase para análisis de reportes:", error);
+      throw new Error(error.message || "Error al conectar con la IA de reportes");
+    }
+
+    if (data && data.success === false) {
+      console.error("Error devuelto por la IA al analizar reportes:", data.error);
+      throw new Error(data.error || "Error analizando reporte");
+    }
+
+    return data.answer;
+  } catch (error) {
+    console.error("Error en analyzeReportWithAI:", error);
+    throw error;
+  }
+};

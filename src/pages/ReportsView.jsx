@@ -6,6 +6,7 @@ import PageHeader from '../components/ui/PageHeader'
 import SalesAreaChart from '../components/charts/SalesAreaChart'
 import DonutChart from '../components/charts/DonutChart'
 import HourHeatmap from '../components/charts/HourHeatmap'
+import ReportsChatDrawer from '../components/reports/ReportsChatDrawer'
 import { ChevronLeft, ChevronRight, Loader2, FileDown, CalendarDays, FileText, FileSpreadsheet, Store, ShoppingBag, Globe, MessageCircle, Van, LineChart, TrendingUp, TrendingDown, Minus, Trophy, Clock, Ban, Wallet, Sparkles, Send } from 'lucide-react'
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
@@ -46,6 +47,7 @@ const ReportsView = () => {
   const [openDropdown, setOpenDropdown] = useState(null)
   const [annualYear, setAnnualYear] = useState(() => today.getFullYear())
   const [annual, setAnnual] = useState(null)
+  const [isChatOpen, setIsChatOpen] = useState(false)
   const dropdownRef = useRef(null)
   const printRef = useRef()
 
@@ -185,6 +187,28 @@ const ReportsView = () => {
       }))
       .filter((item) => item.value > 0);
   }, [days]);
+
+  // Payload para el chat de IA BI
+  const summaryReportPayload = useMemo(() => {
+    return {
+      periodo: `${MONTHS[cm]} ${cy}`,
+      ventasTotales: mRev,
+      totalOrdenes: mOrd,
+      ticketPromedio: mOrd > 0 ? Math.round(mRev / mOrd) : 0,
+      ingresoNeto: mNetRev,
+      totalDeliveryFees: mFees,
+      tasaCancelacion: `${cancellationRate.toFixed(1)}%`,
+      ordenesCanceladas: cancelledCount,
+      horaPico: peakHour.count > 0 ? `${String(peakHour.hour).padStart(2, '0')}:00 (${peakHour.count} órdenes)` : 'N/A',
+      productosMasVendidos: topProducts.map(p => ({ producto: p.name, cantidadVendida: p.qty, ingresosGenerados: p.revenue })),
+      metodosDePago: paymentDonutData.map(p => ({ metodo: p.label, montoTotal: p.value })),
+      ticketPorCanal: ticketByChannel.map(c => ({ canal: c.label, ordenes: c.count, ticketPromedio: c.avg })),
+      resumenDiario: days.map(d => {
+        const { rev, cnt, avg } = calcDay(d.orders);
+        return { fecha: d.date, ventas: rev, ordenes: cnt, ticketPromedio: avg };
+      })
+    };
+  }, [cm, cy, mRev, mOrd, mNetRev, mFees, cancellationRate, cancelledCount, peakHour, topProducts, paymentDonutData, ticketByChannel, days]);
   const ticketByChannel = useMemo(() => {
     const map = {}
     validOrders.forEach(o => {
@@ -426,6 +450,14 @@ const ReportsView = () => {
           subtitle="Resumen de ventas diarias"
           actions={
             <div className="flex items-center gap-2" ref={dropdownRef}>
+              {/* AI Chat button */}
+              <button
+                onClick={() => setIsChatOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 rounded-xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+              >
+                <Sparkles className="h-4 w-4" /> Asistente IA
+              </button>
+
               {/* Semanal dropdown */}
               <div className="relative">
                 <button onClick={() => setOpenDropdown(openDropdown === 'weekly' ? null : 'weekly')}
@@ -980,6 +1012,13 @@ const ReportsView = () => {
           </div>
         )}
       </div>
+
+      {/* AI Reports Chat Drawer */}
+      <ReportsChatDrawer
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        reportData={summaryReportPayload}
+      />
     </div>
   )
 }
