@@ -5,7 +5,6 @@ import { useAuth } from '../components/AuthContext'
 import PageHeader from '../components/ui/PageHeader'
 import SalesAreaChart from '../components/charts/SalesAreaChart'
 import DonutChart from '../components/charts/DonutChart'
-import HourHeatmap from '../components/charts/HourHeatmap'
 import ReportsChatDrawer from '../components/reports/ReportsChatDrawer'
 import { ChevronLeft, ChevronRight, Loader2, FileDown, CalendarDays, FileText, FileSpreadsheet, Store, ShoppingBag, Globe, MessageCircle, Van, LineChart, TrendingUp, TrendingDown, Minus, Trophy, Clock, Ban, Wallet, Sparkles, Send } from 'lucide-react'
 
@@ -816,20 +815,6 @@ const ReportsView = () => {
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
-
-                  {/* Hora pico distribution */}
-                  {peakHour.count > 0 && (
-                    <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-blue-500" />
-                          <h3 className="text-sm font-semibold text-gray-900">Distribución de ventas por hora y día</h3>
-                        </div>
-                      </div>
-
-                      <HourHeatmap orders={validOrders} />
                     </div>
                   )}
 
