@@ -145,7 +145,11 @@ REGLAS DE DELIVERY Y RETIRO:
 - Solo puedes tomar el pedido completo por WhatsApp si el cliente elige RETIRO, o si el local tiene Delivery Propio (Delivery Propio = true) y NO usa UberDirect.
 
 INSTRUCCIONES DEL CARRITO:
-La carta adjunta es la única fuente de productos, precios y opciones. Nunca inventes productos, precios ni disponibilidad. Ayuda a armar el pedido y pregunta lo mínimo necesario por variantes obligatorias. Devuelve el carrito completo; conserva productos ya presentes salvo que el cliente pida cambiarlos. NUNCA calcules sumas ni el total del pedido, el sistema lo hará automáticamente. SIEMPRE que menciones o recomiendes un producto o variante, debes mostrar su precio exacto entre paréntesis. No confirmes ni cobres: la aplicación lo hace después. Cuando el pedido esté armado y correcto, pídele al cliente que diga la palabra "confirmar" para finalizar.
+La carta adjunta es la única fuente de productos, precios y opciones. Nunca inventes productos, precios ni disponibilidad. Ayuda a armar el pedido y pregunta lo mínimo necesario por variantes obligatorias. Devuelve el carrito completo; conserva productos ya presentes salvo que el cliente pida cambiarlos. NUNCA calcules sumas ni el total del pedido, el sistema lo hará automáticamente. SIEMPRE que menciones o recomiendes un producto o variante, debes mostrar su precio exacto entre paréntesis. No confirmes ni cobres: la aplicación lo hace después.
+
+VENTA CRUZADA Y CIERRE:
+Cuando el cliente termine de pedir y antes de que diga "confirmar", analiza su carrito y recomiéndale UN (1) complemento lógico de la carta que no haya pedido (por ejemplo, si pidió hamburguesa, ofrécele una bebida o papas fritas, siempre mostrando el precio exacto).
+Asegúrate de recolectar su nombre (si no lo sabes), el tipo de entrega ("delivery" o "pickup") y la dirección (si es delivery). Una vez que tengas todo correcto y el cliente acepte (o rechace) tu recomendación, pídele que diga la palabra "confirmar" para finalizar.
 
 INFORMACIÓN DEL LOCAL:
 - Dirección: ${context.organization.address || "No especificada"}
@@ -164,7 +168,9 @@ CARTA: ${JSON.stringify(menu)}
 VENTA_WEB: ${Boolean(context.branch.accepts_online)}`;
   const schema = {
     type: "object", additionalProperties: false, required: ["message", "cart"], properties: {
-      message: { type: "string" },
+      message: { type: "string", description: "El mensaje a enviar al usuario en lenguaje natural." },
+      delivery_type: { type: "string", enum: ["delivery", "pickup"], description: "El tipo de entrega acordado. Nulo si aún no se ha definido." },
+      delivery_address: { type: "string", description: "La dirección exacta de entrega si el tipo es delivery. Nulo si es pickup o no se ha definido." },
       cart: {
         type: "array", items: {
           type: "object", additionalProperties: false,
@@ -314,7 +320,17 @@ Deno.serve(async (request) => {
     const body = await request.json(); const slug = text(body.organization_slug); if (!slug || !/^[a-z0-9-]{2,80}$/.test(slug)) throw new Error("El enlace del negocio no es válido.");
     const context = await getContext(slug);
     if (body.action === "welcome") return json({ organization: { name: context.organization.name, currency: context.organization.currency, online_enabled: Boolean(context.branch.accepts_online) }, message: `¡Hola! Soy el asistente de ${context.organization.name}. ¿Qué te gustaría pedir hoy?` });
-    if (body.action === "chat") { const reply = await askAgent(Array.isArray(body.messages) ? body.messages.slice(-10) : [], body.cart, context, text(body.phone)); const requestedCart = Array.isArray(reply.cart) ? reply.cart : []; const validCart = requestedCart.length ? validateCart(requestedCart, context) : []; return json({ message: text(reply.message), cart: validCart.map((item) => ({ product_id: item.product.id, name: item.product.name, quantity: item.quantity, notes: item.notes, variant_option_ids: item.options.map((option: any) => option.option.id), unit_price: item.grossUnitPrice })) }); }
+    if (body.action === "chat") { 
+      const reply = await askAgent(Array.isArray(body.messages) ? body.messages.slice(-10) : [], body.cart, context, text(body.phone)); 
+      const requestedCart = Array.isArray(reply.cart) ? reply.cart : []; 
+      const validCart = requestedCart.length ? validateCart(requestedCart, context) : []; 
+      return json({ 
+        message: text(reply.message), 
+        delivery_type: reply.delivery_type, 
+        delivery_address: reply.delivery_address, 
+        cart: validCart.map((item) => ({ product_id: item.product.id, name: item.product.name, quantity: item.quantity, notes: item.notes, variant_option_ids: item.options.map((option: any) => option.option.id), unit_price: item.grossUnitPrice })) 
+      }); 
+    }
     if (body.action === "confirm") return json(await confirmOrder(body.cart, body.customer, body.delivery, context));
     return json({ error: "Acción no reconocida." }, 400);
   } catch (error) { return json({ error: error instanceof Error ? error.message : "Ocurrió un error inesperado." }, 400); }

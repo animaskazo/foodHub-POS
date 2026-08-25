@@ -42,8 +42,8 @@ interface CartItem {
 
 interface CollectState {
   active: boolean;
-  step: "checkout_email_prompt" | "delivery_method_prompt" | "delivery_address_prompt" | "confirm_prompt" | "name" | null;
-  data: { name?: string; phone?: string; notes?: string };
+  step: "post_checkout_email" | "checkout_email_prompt" | "delivery_method_prompt" | "delivery_address_prompt" | "confirm_prompt" | "name" | null;
+  data: { name?: string; phone?: string; notes?: string; customer_phone?: string };
 }
 
 interface Session {
@@ -412,9 +412,16 @@ async function handleGetOrderHistory(
 async function processMessage(
   userPhone: string,
   phoneNumberId: string,
-  userText: string
+  userText: string,
+  pushName?: string
 ): Promise<void> {
   const session = await loadSession(userPhone, phoneNumberId);
+  
+  // Guardar el nombre de perfil si no tenemos nombre
+  if (!session.customer_name && pushName) {
+    session.customer_name = pushName;
+  }
+  
   const { collect } = session;
   
   // Reanudar automáticamente si han pasado más de 6 horas desde la pausa humana
@@ -437,46 +444,28 @@ async function processMessage(
       collect.step = null;
       collect.data = {};
       replyText = "Entendido, no confirmamos el pedido. ¿Deseas modificar algo en tu carrito?";
-    } else if (collect.step === "name") {
-      const name = userText.trim();
-      session.customer_name = name;
-      collect.active = false;
-      collect.step = null;
-      
-      const welcome = await callFoodAgent({
-        organization_slug: session.org_slug,
-        action: "welcome",
-      });
-      replyText = `¡Gracias, ${name}! ${welcome.message ?? "¿Qué te gustaría pedir hoy?"}`;
-      session.messages.push({ role: "assistant", content: replyText });
-    } else if (collect.step === "checkout_email_prompt") {
+    } else if (collect.step === "post_checkout_email") {
       const emailText = userText.trim().toLowerCase();
-      const isYes = /^(si|sí|ok|perfecto|dale|listo|ya|bueno|claro|yes|yep|s)$/.test(emailText);
       const isNo = emailText.includes("no");
       
-      let valid = true;
-      if (isYes && session.customer_email) {
-        // Keep the saved email
-      } else if (isNo) {
-        session.customer_email = undefined;
+      if (isNo) {
+        replyText = "¡Entendido! Te avisaremos por aquí cuando tu pedido esté listo.";
+        collect.active = false;
+        collect.step = null;
+        collect.data = {};
       } else if (/^\S+@\S+\.\S+$/.test(emailText)) {
         session.customer_email = emailText;
-      } else {
-        replyText = "Por favor ingresa un correo válido, responde 'sí' para confirmar el actual, o 'no' para omitir.";
-        valid = false;
-      }
-      
-      if (valid) {
         const supabase = getSupabase();
-        const { data: orgData } = await supabase.from("organizations").select("delivery_enabled").eq("slug", session.org_slug).maybeSingle();
-        if (orgData?.delivery_enabled) {
-          collect.step = "delivery_method_prompt";
-          replyText = "¿El pedido será con *Delivery* o *Retiro en local*?";
-        } else {
-          session.delivery_type = "pickup";
-          collect.step = "confirm_prompt";
-          replyText = buildConfirmSummary(session);
+        const { data: orgData } = await supabase.from("organizations").select("id").eq("slug", session.org_slug).maybeSingle();
+        if (orgData) {
+            await supabase.from("customers").update({ email: emailText }).eq("organization_id", orgData.id).eq("phone", userPhone);
         }
+        replyText = "¡Correo guardado! Te avisaremos por aquí cuando tu pedido esté listo.";
+        collect.active = false;
+        collect.step = null;
+        collect.data = {};
+      } else {
+        replyText = "Por favor ingresa un correo válido o escribe 'no' para omitir.";
       }
     } else if (collect.step === "delivery_method_prompt") {
       const txt = userText.trim().toLowerCase();
@@ -561,12 +550,13 @@ async function processMessage(
             `${itemLines}\n\n` +
             `Total: *${total}*\n` +
             `\nA nombre de: *${session.customer_name || "Cliente WhatsApp"}*\n` +
-            `El local te contactará pronto para coordinar 🙌`;
+            `El local te contactará pronto para coordinar 🙌\n\n` +
+            `Para enviarte el comprobante de venta, ¿cuál es tu *correo electrónico*? (Si no lo deseas, simplemente escribe 'no')`;
 
-          // Limpiar sesión tras confirmación exitosa
+          // Limpiar el carrito y mover a pedir correo
           session.cart = [];
           session.messages = [];
-          collect.active = false;
+          collect.step = "post_checkout_email";
           collect.data = {};
         } else {
           replyText =
@@ -601,11 +591,42 @@ async function processMessage(
     collect.active = true;
     collect.data = {};
     
-    collect.step = "checkout_email_prompt";
-    if (session.customer_email) {
-      replyText = `Para enviarte el comprobante usaremos el correo *${session.customer_email}*.\n¿Es correcto? (Responde "sí", o escribe uno nuevo si deseas cambiarlo, o "no" para omitir).`;
+    if (!session.delivery_type) {
+      collect.step = "delivery_method_prompt";
+      replyText = "¿El pedido será con *Delivery* o *Retiro en local*?";
+    } else if (session.delivery_type === "delivery" && !session.delivery_address) {
+      collect.step = "delivery_address_prompt";
+      replyText = "Por favor indica tu dirección exacta de entrega (Calle, Número y Comuna) para validar la cobertura.";
     } else {
-      replyText = "¿Cuál es tu correo electrónico para enviarte el comprobante de tu pedido? (Si prefieres no entregarlo, escribe 'no')";
+      if (session.delivery_type === "delivery") {
+        const coords = await geocodeAddress(session.delivery_address!);
+        const supabase = getSupabase();
+        const { data: orgData } = await supabase.from("organizations").select("store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee").eq("slug", session.org_slug).maybeSingle();
+        
+        let isInside = false;
+        let distStr = "";
+        if (coords && orgData?.store_lat && orgData?.store_lng) {
+          if (Array.isArray(orgData.delivery_polygon) && orgData.delivery_polygon.length > 0) {
+            isInside = isPointInPolygon(coords, orgData.delivery_polygon as Array<{ lat: number; lng: number }>);
+          } else {
+            const dist = calculateDistance(orgData.store_lat, orgData.store_lng, coords.lat, coords.lng);
+            const maxDist = orgData.delivery_radius_km || 5;
+            isInside = dist <= maxDist;
+            distStr = ` (distancia calculada: ${dist.toFixed(1)}km, límite: ${maxDist}km)`;
+          }
+        }
+        if (isInside) {
+          session.delivery_fee = orgData?.delivery_fee || 0;
+          collect.step = "confirm_prompt";
+          replyText = buildConfirmSummary(session);
+        } else {
+          collect.step = "delivery_address_prompt";
+          replyText = `Lo siento, la dirección (${session.delivery_address}) está fuera de cobertura${distStr}. ¿Deseas intentar otra dirección o pasarlo a *Retiro*?`;
+        }
+      } else {
+        collect.step = "confirm_prompt";
+        replyText = buildConfirmSummary(session);
+      }
     }
 
   } else if (CONFIRM_RE.test(userText) && session.cart.length === 0) {
@@ -622,7 +643,7 @@ async function processMessage(
 
   // ── Chat normal con el agente ─────────────────────────────────────────────
   } else {
-    // Si no tenemos el nombre, lo intentamos buscar o pedir
+    // Si no tenemos el nombre, lo intentamos buscar
     if (!session.customer_name) {
       const supabase = getSupabase();
       const { data: orgData } = await supabase.from("organizations").select("id").eq("slug", session.org_slug).maybeSingle();
@@ -632,25 +653,16 @@ async function processMessage(
           session.customer_name = custData.full_name;
         }
       }
-      
-      if (!session.customer_name) {
-        collect.active = true;
-        collect.step = "name";
-        replyText = "¡Hola! Bienvenido. Para brindarte una mejor atención, ¿cuál es tu nombre y apellido?";
-        await saveSession(userPhone, session);
-        await sendWhatsApp(phoneNumberId, userPhone, replyText);
-        return;
-      }
     }
 
-    // Si el usuario inicia con "hola" sin sesión, hacer welcome primero
     const isGreeting = /^(hola|hi|buenas|hey|buenos\s+(días|dias|tardes|noches))\b/i.test(userText.trim());
     if (isGreeting && session.messages.length === 0) {
       const welcome = await callFoodAgent({
         organization_slug: session.org_slug,
         action: "welcome",
       });
-      replyText = `¡Hola, ${session.customer_name}! ${welcome.message ?? "¿Qué te gustaría pedir hoy?"}`;
+      const nameStr = session.customer_name ? `¡Hola, ${session.customer_name}!` : "¡Hola!";
+      replyText = `${nameStr} ${welcome.message ?? "¿Qué te gustaría pedir hoy?"}`;
       session.messages.push({ role: "assistant", content: replyText });
     } else {
       session.messages.push({ role: "user", content: userText });
@@ -664,6 +676,8 @@ async function processMessage(
       replyText = d.message ?? "(sin respuesta)";
       session.messages.push({ role: "assistant", content: replyText });
       if (d.cart) session.cart = d.cart;
+      if (d.delivery_type) session.delivery_type = d.delivery_type;
+      if (d.delivery_address) session.delivery_address = d.delivery_address;
     }
   }
 
@@ -728,13 +742,15 @@ Deno.serve(async (req) => {
 
         const userPhone: string =
           message.from ?? evt.contact?.wa_id ?? "";
+          
+        const pushName: string = evt.contact?.profile?.name ?? "";
 
         if (!userPhone || !phoneNumberId) {
           console.warn("Evento sin userPhone o phoneNumberId:", JSON.stringify(evt));
           return;
         }
 
-        await processMessage(userPhone, phoneNumberId, text);
+        await processMessage(userPhone, phoneNumberId, text, pushName);
       })
     );
 
