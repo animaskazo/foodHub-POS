@@ -134,17 +134,17 @@ export const generateJoke = async () => {
 
     if (error) {
       console.error("Error al invocar la función de Supabase para chiste:", error);
-      return null;
+      return `Error Edge: ${error.message}`;
     }
 
     if (data && data.success === false) {
       console.error("Error devuelto por la IA al generar chiste:", data.error);
-      return null;
+      return `Error API: ${data.error}`;
     }
 
-    return data.joke;
+    return data.joke || "No joke generated";
   } catch (error) {
     console.error("Error al generar chiste con Claude via Edge Function:", error);
-    return null;
+    return `Excepción: ${error.message}`;
   }
 };
