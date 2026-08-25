@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
 
     const { data: org, error } = await supabase
       .from("organizations")
-      .select("name, whatsapp_phone_number_id")
+      .select("name, slug, whatsapp_phone_number_id")
       .eq("id", record.organization_id)
       .single();
 
@@ -97,6 +97,30 @@ Deno.serve(async (req) => {
         console.error("Error Kapso:", txt);
         throw new Error(`Kapso error: ${res.status}`);
       }
+      
+      // Al notificar que el pedido está listo, reanudamos al agente (quitamos la pausa)
+      const sessionKey = `${record.customer_phone}_${org.slug || 'pizza-nostra'}`;
+      try {
+        const { data: sessionData } = await supabase
+          .from("whatsapp_sessions")
+          .select("session_data")
+          .eq("phone", sessionKey)
+          .single();
+          
+        if (sessionData?.session_data) {
+          const s = sessionData.session_data;
+          if (s.human_paused_at) {
+            delete s.human_paused_at;
+            await supabase
+              .from("whatsapp_sessions")
+              .update({ session_data: s, updated_at: new Date().toISOString() })
+              .eq("phone", sessionKey);
+          }
+        }
+      } catch (err) {
+        console.error("No se pudo quitar la pausa de la sesión:", err);
+      }
+
     } else {
       console.warn("No KAPSO_API_KEY configurado. Simulando envío:", message);
     }

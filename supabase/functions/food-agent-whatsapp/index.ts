@@ -56,6 +56,7 @@ interface Session {
   delivery_type?: "delivery" | "pickup";
   delivery_address?: string;
   delivery_fee?: number;
+  human_paused_at?: string;
 }
 
 // ── Geo Utils ───────────────────────────────────────────────────────────────
@@ -415,6 +416,18 @@ async function processMessage(
 ): Promise<void> {
   const session = await loadSession(userPhone, phoneNumberId);
   const { collect } = session;
+  
+  // Reanudar automáticamente si han pasado más de 6 horas desde la pausa humana
+  if (session.human_paused_at) {
+    const pausedAt = new Date(session.human_paused_at).getTime();
+    if (Date.now() - pausedAt > 6 * 60 * 60 * 1000) {
+      session.human_paused_at = undefined;
+    } else {
+      console.log(`Mensaje ignorado, sesión pausada por intervención humana. Phone: ${userPhone}`);
+      return;
+    }
+  }
+
   let replyText = "";
 
   // ── Flujo de recolección conversacional ─────────────────────────────────
@@ -674,8 +687,11 @@ Deno.serve(async (req) => {
     const event =
       req.headers.get("x-webhook-event") ?? body.type ?? "";
 
-    // Solo procesar mensajes entrantes
-    if (!event.includes("message.received")) {
+    // Solo procesar mensajes entrantes o salientes de texto
+    const isIncoming = event.includes("message.received") || event.includes("messages");
+    const isOutgoing = event.includes("message.sent") || event.includes("message_send") || (body.data && body.data[0]?.message?.fromMe === true);
+
+    if (!isIncoming && !isOutgoing) {
       return new Response(JSON.stringify({ ok: true, ignored: true }), {
         headers: { ...CORS, "Content-Type": "application/json" },
       });
@@ -690,20 +706,35 @@ Deno.serve(async (req) => {
         const message = evt.message;
         if (!message || message.type !== "text") return;
 
-        const userText = message.text?.body?.trim();
-        if (!userText) return;
+        const text = message.text?.body?.trim();
+        if (!text) return;
+
+        const phoneNumberId: string =
+          evt.phone_number_id ?? message.kapso?.phone_number_id ?? "";
+          
+        if (isOutgoing || message.fromMe) {
+          const userPhone = message.to ?? evt.contact?.wa_id ?? "";
+          if (!userPhone || !phoneNumberId) return;
+          const session = await loadSession(userPhone, phoneNumberId);
+          // Verificar si el texto NO coincide con el último mensaje enviado por el AI
+          const lastAiMsg = session.messages.slice().reverse().find(m => m.role === "assistant")?.content?.trim();
+          if (text !== lastAiMsg) {
+             console.log(`[Human Handover] Humano detectado enviando mensaje a ${userPhone}. Pausando AI.`);
+             session.human_paused_at = new Date().toISOString();
+             await saveSession(userPhone, session);
+          }
+          return;
+        }
 
         const userPhone: string =
           message.from ?? evt.contact?.wa_id ?? "";
-        const phoneNumberId: string =
-          evt.phone_number_id ?? message.kapso?.phone_number_id ?? "";
 
         if (!userPhone || !phoneNumberId) {
           console.warn("Evento sin userPhone o phoneNumberId:", JSON.stringify(evt));
           return;
         }
 
-        await processMessage(userPhone, phoneNumberId, userText);
+        await processMessage(userPhone, phoneNumberId, text);
       })
     );
 
