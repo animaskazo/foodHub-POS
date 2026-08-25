@@ -22,7 +22,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     // Activa pedidos programados cuya hora ya llegó: scheduled/pending -> confirmed
-    const { data, error } = await supabase
+    const { data: activatedData, error: activateError } = await supabase
       .from('orders')
       .update({ status: 'confirmed' })
       .in('status', ['pending', 'scheduled'])
@@ -30,9 +30,50 @@ serve(async (req) => {
       .lte('scheduled_at', new Date().toISOString())
       .select('id, order_number')
 
-    if (error) throw error
+    if (activateError) throw activateError
 
-    return new Response(JSON.stringify({ activated: data?.length || 0, ids: data?.map(o => o.id) || [] }), {
+    // -- Nueva lógica: Cancelar pedidos online con pago pendiente de más de 1 hora --
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    
+    const { data: staleOrders, error: fetchError } = await supabase
+      .from('orders')
+      .select('id, order_number, payments(status, method)')
+      .eq('order_type', 'online')
+      .eq('status', 'pending')
+      .lte('created_at', oneHourAgo)
+      
+    if (fetchError) throw fetchError
+
+    const ordersToCancel = staleOrders?.filter(order => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const hasUnpaidOnlinePayment = order.payments?.some((p: any) => p.method === 'online_gateway' && p.status === 'pending')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const hasPaidPayment = order.payments?.some((p: any) => p.status === 'paid')
+      return hasUnpaidOnlinePayment && !hasPaidPayment
+    }) || []
+    
+    let cancelledCount = 0;
+    if (ordersToCancel.length > 0) {
+      const orderIdsToCancel = ordersToCancel.map(o => o.id);
+      const { error: cancelError } = await supabase
+        .from('orders')
+        .update({ 
+          status: 'cancelled', 
+          cancellation_reason: 'El cliente no completó el pago',
+          cancelled_at: new Date().toISOString()
+        })
+        .in('id', orderIdsToCancel)
+        
+      if (cancelError) throw cancelError
+      cancelledCount = orderIdsToCancel.length;
+    }
+
+    return new Response(JSON.stringify({ 
+      activated: activatedData?.length || 0, 
+      activated_ids: activatedData?.map(o => o.id) || [],
+      cancelled: cancelledCount,
+      cancelled_ids: ordersToCancel.map(o => o.id)
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {

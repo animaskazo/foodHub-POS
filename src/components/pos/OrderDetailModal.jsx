@@ -139,6 +139,32 @@ const OrderDetailModal = ({
         {/* Columna derecha: información del pedido */}
         <div className={`space-y-6 ${order.delivery_type === 'delivery' ? 'flex-1 min-w-0' : ''}`}>
 
+          {/* Alerta de pago no completado */}
+          {order.order_type === 'online' && order.status === 'pending' && order.payments?.some(p => p.method === 'online_gateway' && p.status === 'pending') && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex flex-col gap-3">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-red-800 font-bold text-sm">Pago no completado</h4>
+                  <p className="text-red-700 text-sm mt-1 leading-snug">
+                    El cliente inició el pago en línea pero no lo finalizó. El pedido no entrará a cocina. Se cancelará automáticamente tras 1 hora.
+                  </p>
+                </div>
+              </div>
+              {canCancel && onCancel && (
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="bg-white text-red-700 border-red-200 hover:bg-red-50 w-full"
+                  onClick={onCancel}
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Cancelar pedido ahora
+                </Button>
+              )}
+            </div>
+          )}
+
           {/* Programado */}
           {order.scheduled_at && (
             (() => {

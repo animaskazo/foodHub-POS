@@ -307,7 +307,14 @@ export const getKitchenOrders = async () => {
 
     if (error) throw error;
 
-    return data || [];
+    const validOrders = data?.filter(order => {
+      if (order.order_type !== 'online' || order.status !== 'pending') return true;
+      const hasUnpaidOnlinePayment = order.payments?.some(p => p.method === 'online_gateway' && p.status === 'pending');
+      const hasPaidPayment = order.payments?.some(p => p.status === 'paid');
+      return !(hasUnpaidOnlinePayment && !hasPaidPayment);
+    }) || [];
+
+    return validOrders;
   } catch (error) {
     console.error("Error fetching kitchen orders:", error);
     return [];
