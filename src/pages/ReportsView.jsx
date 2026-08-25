@@ -32,6 +32,23 @@ const channelMeta = {
   whatsapp: { label: 'WhatsApp', icon: MessageCircle, bg: 'bg-emerald-50', iconColor: 'text-emerald-600' },
 }
 
+const calcDay = (orders) => {
+  const rev = orders.reduce((s, o) => s + Number(o.total || 0), 0)
+  const cnt = orders.length
+  const avg = cnt > 0 ? Math.round(rev / cnt) : 0
+  const payments = {}; const channels = {}; let fees = 0
+  orders.forEach(o => {
+    const ch = o.delivery_type === 'delivery' ? 'delivery' : (o.order_type || 'other')
+    channels[ch] = (channels[ch] || 0) + 1
+    fees += Number(o.delivery_fee || 0)
+    if (o.payments) o.payments.filter(p => p.status === 'paid').forEach(p => {
+      const m = p.method || 'other'
+      payments[m] = (payments[m] || 0) + Number(p.amount || 0)
+    })
+  })
+  return { rev, cnt, avg, payments, channels, fees }
+}
+
 const ReportsView = () => {
   const { organization, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(true)
@@ -168,6 +185,23 @@ const ReportsView = () => {
   // KPI: Tasa de cancelación
   const cancellationRate = totalOrderCount > 0 ? (cancelledCount / totalOrderCount) * 100 : 0
 
+  // KPI: Ticket promedio por canal
+  const ticketByChannel = useMemo(() => {
+    const map = {}
+    validOrders.forEach(o => {
+      const ch = o.delivery_type === 'delivery' ? 'delivery' : (o.order_type || 'other')
+      if (!map[ch]) map[ch] = { total: 0, count: 0 }
+      map[ch].total += Number(o.total || 0)
+      map[ch].count += 1
+    })
+    return Object.entries(map).map(([key, v]) => ({
+      key,
+      ...(channelMeta[key] || { label: key, icon: Store, iconColor: 'text-gray-500' }),
+      avg: Math.round(v.total / v.count),
+      count: v.count
+    })).sort((a, b) => b.avg - a.avg)
+  }, [validOrders])
+
   // Donut chart payment data
   const paymentDonutData = useMemo(() => {
     const totals = {};
@@ -209,21 +243,6 @@ const ReportsView = () => {
       })
     };
   }, [cm, cy, mRev, mOrd, mNetRev, mFees, cancellationRate, cancelledCount, peakHour, topProducts, paymentDonutData, ticketByChannel, days]);
-  const ticketByChannel = useMemo(() => {
-    const map = {}
-    validOrders.forEach(o => {
-      const ch = o.delivery_type === 'delivery' ? 'delivery' : (o.order_type || 'other')
-      if (!map[ch]) map[ch] = { total: 0, count: 0 }
-      map[ch].total += Number(o.total || 0)
-      map[ch].count += 1
-    })
-    return Object.entries(map).map(([key, v]) => ({
-      key,
-      ...(channelMeta[key] || { label: key, icon: Store, iconColor: 'text-gray-500' }),
-      avg: Math.round(v.total / v.count),
-      count: v.count
-    })).sort((a, b) => b.avg - a.avg)
-  }, [validOrders])
 
   const annualStats = useMemo(() => {
     if (!annual) return null
@@ -262,23 +281,6 @@ const ReportsView = () => {
         {Math.abs(value).toFixed(1)}%
       </span>
     )
-  }
-
-  const calcDay = (orders) => {
-    const rev = orders.reduce((s, o) => s + Number(o.total || 0), 0)
-    const cnt = orders.length
-    const avg = cnt > 0 ? Math.round(rev / cnt) : 0
-    const payments = {}; const channels = {}; let fees = 0
-    orders.forEach(o => {
-      const ch = o.delivery_type === 'delivery' ? 'delivery' : (o.order_type || 'other')
-      channels[ch] = (channels[ch] || 0) + 1
-      fees += Number(o.delivery_fee || 0)
-      if (o.payments) o.payments.filter(p => p.status === 'paid').forEach(p => {
-        const m = p.method || 'other'
-        payments[m] = (payments[m] || 0) + Number(p.amount || 0)
-      })
-    })
-    return { rev, cnt, avg, payments, channels, fees }
   }
 
   const buildDayRows = (data) => {
