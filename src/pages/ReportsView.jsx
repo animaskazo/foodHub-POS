@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/AuthContext'
 import PageHeader from '../components/ui/PageHeader'
 import SalesAreaChart from '../components/charts/SalesAreaChart'
-import { ChevronLeft, ChevronRight, Loader2, FileDown, CalendarDays, FileText, FileSpreadsheet, Store, ShoppingBag, Globe, MessageCircle, Van, LineChart, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, FileDown, CalendarDays, FileText, FileSpreadsheet, Store, ShoppingBag, Globe, MessageCircle, Van, LineChart, TrendingUp, TrendingDown, Minus, Trophy, Clock, Ban, Wallet } from 'lucide-react'
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DAYS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado']
@@ -38,6 +38,8 @@ const ReportsView = () => {
   const [cy, setCy] = useState(() => today.getFullYear())
   const [shifts, setShifts] = useState([])
   const [orders, setOrders] = useState([])
+  const [cancelledCount, setCancelledCount] = useState(0)
+  const [totalOrderCount, setTotalOrderCount] = useState(0)
   const [selected, setSelected] = useState('resumen')
   const [openDropdown, setOpenDropdown] = useState(null)
   const [annualYear, setAnnualYear] = useState(() => today.getFullYear())
@@ -64,13 +66,16 @@ const ReportsView = () => {
       try {
         const [sr, or] = await Promise.all([
           supabase.from('shifts').select('*').eq('organization_id', organization.id).gte('start_time', s.toISOString()).lte('start_time', e.toISOString()).order('start_time', { ascending: false }),
-          supabase.from('orders').select('id, order_number, order_type, delivery_type, status, total, delivery_fee, created_at, payments ( method, amount, status )').eq('organization_id', organization.id).gte('created_at', s.toISOString()).lte('created_at', e.toISOString()).order('created_at', { ascending: false }),
+          supabase.from('orders').select('id, order_number, order_type, delivery_type, status, total, delivery_fee, created_at, payments ( method, amount, status ), order_items ( product_name, quantity, unit_price )').eq('organization_id', organization.id).gte('created_at', s.toISOString()).lte('created_at', e.toISOString()).order('created_at', { ascending: false }),
         ])
         if (sr.error) throw sr.error
         if (or.error) throw or.error
         setShifts(sr.data || [])
+        const allOrders = or.data || []
+        setTotalOrderCount(allOrders.length)
+        setCancelledCount(allOrders.filter(o => o.status === 'cancelled').length)
         // Solo incluir órdenes que tengan al menos un pago completado (status 'paid')
-        setOrders((or.data || []).filter(o => o.status !== 'cancelled' && o.status !== 'refunded' && o.payments?.some(p => p.status === 'paid')))
+        setOrders(allOrders.filter(o => o.status !== 'cancelled' && o.status !== 'refunded' && o.payments?.some(p => p.status === 'paid')))
       } catch (err) { console.error(err); setError('Error al cargar los datos.') }
       finally { setLoading(false) }
     })()
@@ -129,6 +134,52 @@ const ReportsView = () => {
   const mRev = validOrders.reduce((s, o) => s + Number(o.total || 0), 0)
   const mOrd = validOrders.length
   const mFees = validOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0)
+  const mNetRev = mRev - mFees
+
+  // KPI: Top productos del mes
+  const topProducts = useMemo(() => {
+    const map = {}
+    validOrders.forEach(o => {
+      if (o.order_items) o.order_items.forEach(item => {
+        const name = item.product_name || 'Sin nombre'
+        if (!map[name]) map[name] = { name, qty: 0, revenue: 0 }
+        map[name].qty += Number(item.quantity || 1)
+        map[name].revenue += Number(item.unit_price || 0) * Number(item.quantity || 1)
+      })
+    })
+    return Object.values(map).sort((a, b) => b.qty - a.qty).slice(0, 5)
+  }, [validOrders])
+
+  // KPI: Hora pico
+  const peakHour = useMemo(() => {
+    const hours = Array.from({ length: 24 }, () => 0)
+    validOrders.forEach(o => {
+      const h = new Date(o.created_at).getHours()
+      hours[h]++
+    })
+    const maxH = hours.indexOf(Math.max(...hours))
+    return { hour: maxH, count: hours[maxH], distribution: hours }
+  }, [validOrders])
+
+  // KPI: Tasa de cancelación
+  const cancellationRate = totalOrderCount > 0 ? (cancelledCount / totalOrderCount) * 100 : 0
+
+  // KPI: Ticket promedio por canal
+  const ticketByChannel = useMemo(() => {
+    const map = {}
+    validOrders.forEach(o => {
+      const ch = o.delivery_type === 'delivery' ? 'delivery' : (o.order_type || 'other')
+      if (!map[ch]) map[ch] = { total: 0, count: 0 }
+      map[ch].total += Number(o.total || 0)
+      map[ch].count += 1
+    })
+    return Object.entries(map).map(([key, v]) => ({
+      key,
+      ...(channelMeta[key] || { label: key, icon: Store, iconColor: 'text-gray-500' }),
+      avg: Math.round(v.total / v.count),
+      count: v.count
+    })).sort((a, b) => b.avg - a.avg)
+  }, [validOrders])
 
   const annualStats = useMemo(() => {
     if (!annual) return null
@@ -632,7 +683,7 @@ const ReportsView = () => {
                   <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
                     <h2 className="text-lg font-bold text-gray-900 mb-1">Resumen de {MONTHS[cm]} {cy}</h2>
                     <p className="text-sm text-gray-500 mb-5">{mOrd} órdenes en {days.length} días con actividad</p>
-                    <div className="grid grid-cols-3 gap-4 sm:gap-8">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
                       <div>
                         <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{fmt(mRev)}</div>
                         <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Ventas totales</div>
@@ -645,8 +696,101 @@ const ReportsView = () => {
                         <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{fmt(mOrd > 0 ? Math.round(mRev / mOrd) : 0)}</div>
                         <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Ticket promedio</div>
                       </div>
+                      <div>
+                        <div className="text-2xl sm:text-3xl font-bold text-emerald-600 tracking-tight">{fmt(mNetRev)}</div>
+                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1 flex items-center gap-1"><Wallet className="h-3 w-3" />Ingreso neto</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{peakHour.count > 0 ? `${String(peakHour.hour).padStart(2,'0')}:00` : '—'}</div>
+                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1 flex items-center gap-1"><Clock className="h-3 w-3" />Hora pico</div>
+                        {peakHour.count > 0 && <div className="text-[11px] text-gray-400 mt-0.5">{peakHour.count} órdenes</div>}
+                      </div>
+                      <div>
+                        <div className={`text-2xl sm:text-3xl font-bold tracking-tight ${cancellationRate > 5 ? 'text-red-500' : 'text-gray-900'}`}>{cancellationRate.toFixed(1)}%</div>
+                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1 flex items-center gap-1"><Ban className="h-3 w-3" />Cancelaciones</div>
+                        {cancelledCount > 0 && <div className="text-[11px] text-gray-400 mt-0.5">{cancelledCount} de {totalOrderCount}</div>}
+                      </div>
                     </div>
                   </div>
+
+                  {/* Top Products */}
+                  {topProducts.length > 0 && (
+                    <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Trophy className="h-4 w-4 text-amber-500" />
+                        <h3 className="text-sm font-semibold text-gray-900">Productos más vendidos</h3>
+                      </div>
+                      <div className="space-y-2.5">
+                        {topProducts.map((p, i) => {
+                          const maxQty = topProducts[0].qty
+                          const pct = maxQty > 0 ? (p.qty / maxQty) * 100 : 0
+                          return (
+                            <div key={p.name} className="flex items-center gap-3">
+                              <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                                i === 0 ? 'bg-amber-100 text-amber-700' : i === 1 ? 'bg-gray-200 text-gray-600' : i === 2 ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-500'
+                              }`}>{i + 1}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-0.5">
+                                  <span className="text-sm font-medium text-gray-900 truncate">{p.name}</span>
+                                  <span className="text-sm font-semibold text-gray-900 ml-2 shrink-0">{p.qty} uds</span>
+                                </div>
+                                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                  <div className={`h-full rounded-full transition-all ${i === 0 ? 'bg-amber-400' : 'bg-gray-300'}`} style={{ width: `${pct}%` }} />
+                                </div>
+                              </div>
+                              <span className="text-xs text-gray-400 shrink-0 w-16 text-right">{fmt(p.revenue)}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Ticket promedio por canal */}
+                  {ticketByChannel.length > 1 && (
+                    <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-4">Ticket promedio por canal</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                        {ticketByChannel.map(ch => (
+                          <div key={ch.key} className="flex items-center gap-2.5 px-3.5 py-2.5 bg-gray-50 rounded-xl">
+                            {React.createElement(ch.icon, { className: `h-4 w-4 ${ch.iconColor}` })}
+                            <div>
+                              <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{ch.label}</div>
+                              <div className="text-sm font-bold text-gray-900">{fmt(ch.avg)}</div>
+                              <div className="text-[10px] text-gray-400">{ch.count} orden{ch.count !== 1 ? 'es' : ''}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hora pico distribution */}
+                  {peakHour.count > 0 && (
+                    <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Clock className="h-4 w-4 text-blue-500" />
+                        <h3 className="text-sm font-semibold text-gray-900">Distribución por hora</h3>
+                      </div>
+                      <div className="flex items-end gap-[3px] h-20">
+                        {peakHour.distribution.map((count, h) => {
+                          const maxC = Math.max(...peakHour.distribution)
+                          const pct = maxC > 0 ? (count / maxC) * 100 : 0
+                          const isPeak = h === peakHour.hour
+                          return (
+                            <div key={h} className="flex-1 flex flex-col items-center gap-0.5 group relative">
+                              <div
+                                className={`w-full rounded-t transition-all ${isPeak ? 'bg-blue-500' : count > 0 ? 'bg-blue-200' : 'bg-gray-100'}`}
+                                style={{ height: `${Math.max(pct, count > 0 ? 8 : 2)}%`, minHeight: count > 0 ? '4px' : '1px' }}
+                                title={`${String(h).padStart(2,'0')}:00 — ${count} órdenes`}
+                              />
+                              {h % 3 === 0 && <span className="text-[8px] text-gray-400 leading-none mt-0.5">{String(h).padStart(2,'0')}</span>}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Month payments */}
                   <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
