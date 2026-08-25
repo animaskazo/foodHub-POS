@@ -1,5 +1,5 @@
-import React from 'react';
-import { CreditCard, Timer, User, Van, PaperBag, CalendarClock, ShoppingBag, CheckCircle2, Printer, XCircle, Info } from 'lucide-react';
+import React, { useState } from 'react';
+import { CreditCard, Timer, User, Van, PaperBag, CalendarClock, ShoppingBag, CheckCircle2, Printer, XCircle, Info, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Modal from '../ui/Modal';
@@ -18,6 +18,8 @@ const OrderDetailModal = ({
   onConfirmPayment,
   onReschedule,
 }) => {
+  const [isPrinting, setIsPrinting] = useState(false);
+
   if (!order) return null;
 
   return (
@@ -37,9 +39,22 @@ const OrderDetailModal = ({
               </Button>
             )}
             {onPrint && (
-              <Button size="sm" variant="outline" onClick={onPrint} aria-label="Imprimir Ticket">
-                <Printer className="w-4 h-4" />
-                <span className="hidden md:inline ml-2">Imprimir Ticket</span>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={async () => {
+                  setIsPrinting(true);
+                  try {
+                    await onPrint();
+                  } finally {
+                    setIsPrinting(false);
+                  }
+                }} 
+                disabled={isPrinting}
+                aria-label="Imprimir Ticket"
+              >
+                {isPrinting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
+                <span className="hidden md:inline ml-2">{isPrinting ? 'Preparando...' : 'Imprimir Ticket'}</span>
               </Button>
             )}
           </div>

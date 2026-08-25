@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useKitchenOrders } from '../../hooks/useKitchenOrders';
-import { ChefHat, X, Receipt, Printer } from 'lucide-react';
+import { ChefHat, X, Receipt, Printer, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import PrintableReceipt from '../pos/PrintableReceipt';
@@ -12,6 +12,7 @@ const NewOrderAlert = () => {
   const { organization } = useAuth();
   const [isVisible, setIsVisible] = useState(false);
   const [autoPrintOrder, setAutoPrintOrder] = useState(null);
+  const [isPrinting, setIsPrinting] = useState(false);
   
   const audioCtxRef = useRef(null);
   const processedOrdersRef = useRef(new Set());
@@ -137,6 +138,7 @@ const NewOrderAlert = () => {
   }, [autoPrintOrder, organization]);
 
   const handleManualPrint = async () => {
+    setIsPrinting(true);
     let orderToPrint = latestNewOrder;
     
     if (orderToPrint && !orderToPrint.receipt_joke) {
@@ -176,6 +178,7 @@ const NewOrderAlert = () => {
         setTimeout(() => setAutoPrintOrder(null), 1000);
       }, 150);
     }
+    setIsPrinting(false);
   };
 
   if (!latestNewOrder && !isVisible && !autoPrintOrder) return null;
@@ -251,10 +254,11 @@ const NewOrderAlert = () => {
             <div className="flex gap-2">
               <button
                 onClick={handleManualPrint}
-                className="bg-white/10 text-white font-bold py-2 md:py-2.5 px-4 rounded-xl hover:bg-white/20 transition-colors flex items-center justify-center gap-2 text-sm"
+                disabled={isPrinting}
+                className="bg-white/10 text-white font-bold py-2 md:py-2.5 px-4 rounded-xl hover:bg-white/20 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50"
                 title="Imprimir Ticket"
               >
-                <Printer className="h-4 w-4" />
+                {isPrinting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
               </button>
               <button
                 onClick={() => {
