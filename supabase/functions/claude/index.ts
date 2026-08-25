@@ -162,8 +162,13 @@ La descripción debe sonar natural, tentar al cliente y no superar las 2 líneas
 
     } else if (action === 'generate_joke') {
       const prompt = `
-Eres un comediante familiar. Genera un chiste blanco muy corto (máximo 2 líneas) relacionado con comida, restaurantes, o clientes. 
-Debe ser apto para todo público y amable. No incluyas introducciones ni comillas, solo devuelve el chiste directo.
+Eres un maestro de la comedia stand-up familiar. Tu objetivo es hacer sonreír al cliente que acaba de hacer un pedido de comida.
+Genera un chiste corto (máximo 2 líneas) relacionado EXCLUSIVAMENTE con comida, restaurantes, cocineros o delivery.
+Reglas:
+1. DEBE ser realmente ingenioso, divertido o tener un juego de palabras inteligente.
+2. NO repitas chistes clásicos aburridos (ej: "qué le dijo una uva a otra"). Sé original.
+3. Totalmente blanco y apto para todo público.
+4. Devuelve SOLO el chiste directo, sin comillas, sin introducciones ni emoticones.
       `;
 
       const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -174,8 +179,9 @@ Debe ser apto para todo público y amable. No incluyas introducciones ni comilla
           "content-type": "application/json"
         },
         body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
+          model: "claude-3-5-haiku-20241022",
           max_tokens: 150,
+          temperature: 0.9,
           messages: [
             {
               role: "user",
