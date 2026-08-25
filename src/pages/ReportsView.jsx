@@ -69,7 +69,8 @@ const ReportsView = () => {
         if (sr.error) throw sr.error
         if (or.error) throw or.error
         setShifts(sr.data || [])
-        setOrders((or.data || []).filter(o => o.status !== 'cancelled' && o.status !== 'refunded'))
+        // Solo incluir órdenes que tengan al menos un pago completado (status 'paid')
+        setOrders((or.data || []).filter(o => o.status !== 'cancelled' && o.status !== 'refunded' && o.payments?.some(p => p.status === 'paid')))
       } catch (err) { console.error(err); setError('Error al cargar los datos.') }
       finally { setLoading(false) }
     })()
@@ -82,7 +83,7 @@ const ReportsView = () => {
     const end = new Date(annualYear + 1, 0, 0, 23, 59, 59, 999)
     const pStart = new Date(annualYear - 1, 0, 1)
     const pEnd = new Date(annualYear - 1, 11, 31, 23, 59, 59, 999)
-    const sel = 'id, total, status, created_at'
+    const sel = 'id, total, status, created_at, payments ( status )'
     ;(async () => {
       try {
         const [cr, pr] = await Promise.all([
@@ -91,7 +92,8 @@ const ReportsView = () => {
         ])
         if (cr.error) throw cr.error
         if (pr.error) throw pr.error
-        const clean = (rows) => (rows || []).filter(o => o.status !== 'cancelled' && o.status !== 'refunded')
+        // Solo incluir órdenes pagadas (no canceladas/reembolsadas y con al menos un pago 'paid')
+        const clean = (rows) => (rows || []).filter(o => o.status !== 'cancelled' && o.status !== 'refunded' && o.payments?.some(p => p.status === 'paid'))
         const bucket = (rows) => {
           const m = Array.from({ length: 12 }, () => ({ sales: 0, orders: 0 }))
           ;(rows || []).forEach(o => {
@@ -116,14 +118,14 @@ const ReportsView = () => {
     for (let d = 1; d <= dc; d++) {
       const ds = `${cy}-${String(cm + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
       const ss = shifts.filter(s => new Date(s.start_time).toISOString().slice(0, 10) === ds)
-      const os = orders.filter(o => new Date(o.created_at).toISOString().slice(0, 10) === ds && o.status !== 'cancelled' && o.status !== 'refunded')
+      const os = orders.filter(o => new Date(o.created_at).toISOString().slice(0, 10) === ds)
       if (ss.length > 0 || os.length > 0) r.push({ date: ds, shifts: ss, orders: os })
     }
     return r.reverse()
   }, [shifts, orders, cm, cy])
 
   const isCm = cm === today.getMonth() && cy === today.getFullYear()
-  const validOrders = useMemo(() => orders.filter(o => o.status !== 'cancelled' && o.status !== 'refunded'), [orders])
+  const validOrders = orders // ya filtrados al cargar (solo pagados, no cancelados/reembolsados)
   const mRev = validOrders.reduce((s, o) => s + Number(o.total || 0), 0)
   const mOrd = validOrders.length
   const mFees = validOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0)
@@ -176,7 +178,7 @@ const ReportsView = () => {
       const ch = o.delivery_type === 'delivery' ? 'delivery' : (o.order_type || 'other')
       channels[ch] = (channels[ch] || 0) + 1
       fees += Number(o.delivery_fee || 0)
-      if (o.payments) o.payments.forEach(p => {
+      if (o.payments) o.payments.filter(p => p.status === 'paid').forEach(p => {
         const m = p.method || 'other'
         payments[m] = (payments[m] || 0) + Number(p.amount || 0)
       })
@@ -710,6 +712,7 @@ const ReportsView = () => {
                             <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Ticket</th>
                             <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Efectivo</th>
                             <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Tarjeta</th>
+                            <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Transfer.</th>
                             <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Online</th>
                           </tr>
                         </thead>
@@ -725,6 +728,7 @@ const ReportsView = () => {
                                 <td className="px-5 py-3 text-right text-gray-600">{fmt(avg)}</td>
                                 <td className="px-5 py-3 text-right text-gray-600">{fmt(payments.cash || 0)}</td>
                                 <td className="px-5 py-3 text-right text-gray-600">{fmt(payments.card || 0)}</td>
+                                <td className="px-5 py-3 text-right text-gray-600">{fmt(payments.transfer || 0)}</td>
                                 <td className="px-5 py-3 text-right text-gray-600">{fmt(payments.online_gateway || 0)}</td>
                               </tr>
                             )
@@ -738,6 +742,7 @@ const ReportsView = () => {
                             <td className="px-5 py-3 text-right font-bold text-gray-900">{fmt(mOrd > 0 ? Math.round(mRev / mOrd) : 0)}</td>
                             <td className="px-5 py-3 text-right font-bold text-gray-900">{fmt(days.reduce((s, d) => s + (calcDay(d.orders).payments.cash || 0), 0))}</td>
                             <td className="px-5 py-3 text-right font-bold text-gray-900">{fmt(days.reduce((s, d) => s + (calcDay(d.orders).payments.card || 0), 0))}</td>
+                            <td className="px-5 py-3 text-right font-bold text-gray-900">{fmt(days.reduce((s, d) => s + (calcDay(d.orders).payments.transfer || 0), 0))}</td>
                             <td className="px-5 py-3 text-right font-bold text-gray-900">{fmt(days.reduce((s, d) => s + (calcDay(d.orders).payments.online_gateway || 0), 0))}</td>
                           </tr>
                         </tfoot>
