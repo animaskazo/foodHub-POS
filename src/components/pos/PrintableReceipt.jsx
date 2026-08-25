@@ -162,6 +162,9 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
           <div className="text-center mb-6">
             <div className="receipt-section-title">Medio de Pago</div>
             <p className="font-bold text-sm uppercase">{getPaymentMethod(order)}</p>
+            {order.payments?.[0]?.reference_code && (
+              <p className="text-xs text-gray-800 mt-1 uppercase">ID: {order.payments[0].reference_code}</p>
+            )}
           </div>
         )}
 
