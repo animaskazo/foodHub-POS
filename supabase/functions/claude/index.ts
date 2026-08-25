@@ -221,6 +221,76 @@ Reglas:
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
 
+    } else if (action === 'analyze_sales') {
+      const { question, summaryData, chatHistory } = payload || {};
+      if (!question || !summaryData) {
+        return new Response(JSON.stringify({ success: false, error: "Faltan parámetros question o summaryData" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const systemPrompt = `
+Eres "FoodHub BI", un asistente experto en análisis financiero y consultor de inteligencia de negocios para restaurantes y locales de comida.
+Tu trabajo es responder las preguntas del administrador utilizando los datos reales del reporte del mes actual que se te proveen en formato JSON.
+
+REGLAS DE RESPUESTA:
+1. Responde de forma concisa, clara, profesional y entusiasta, con un tono ejecutivo.
+2. Utiliza siempre formato Markdown (negrita, viñetas, tablas cortas si aplica) para que la respuesta sea fácil de leer.
+3. Formatea los montos en pesos chilenos ($XX.XXX).
+4. Si la pregunta solicita recomendaciones, da consejos prácticos basados en los datos (ej: impulsar ciertos canales, promociones en horas valle).
+5. Si los datos no contienen la información solicitada para responder exactamente la pregunta, indícalo amablemente.
+      `;
+
+      const userContent = `
+DATOS DEL REPORTE MENSUAL EN CURSO:
+\`\`\`json
+${JSON.stringify(summaryData, null, 2)}
+\`\`\`
+
+PREGUNTA DEL ADMINISTRADOR:
+"${question}"
+      `;
+
+      const formattedMessages = [
+        ...(Array.isArray(chatHistory) ? chatHistory.map(msg => ({
+          role: msg.role === 'user' ? 'user' : 'assistant',
+          content: msg.text
+        })) : []),
+        { role: 'user', content: userContent }
+      ];
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 600,
+          temperature: 0.7,
+          system: systemPrompt,
+          messages: formattedMessages
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return new Response(JSON.stringify({ success: false, error: `Anthropic API error: ${response.status} - ${errorText}` }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const resData = await response.json();
+      const answer = resData.content[0].text.trim();
+
+      return new Response(JSON.stringify({ success: true, answer }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+
     } else if (action === 'generate_image') {
       const { productName, description, comboItems, geminiApiKey, imageDetails } = payload;
       if (!productName) {
