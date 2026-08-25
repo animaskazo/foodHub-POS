@@ -495,8 +495,8 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
               if (joke) {
                 orderToPrint = { ...orderToPrint, receipt_joke: joke };
                 setSelectedOrder(orderToPrint);
-                // Esperar a que el DOM se actualice con el nuevo estado antes de imprimir
-                await new Promise(r => setTimeout(r, 200));
+                // Esperar a que el DOM se actualice completamente con React 18 (batching)
+                await new Promise(r => setTimeout(r, 800));
               }
             } catch (e) {
               console.error('Failed to fetch joke for print', e);

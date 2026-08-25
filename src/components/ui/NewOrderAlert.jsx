@@ -145,11 +145,10 @@ const NewOrderAlert = () => {
         const joke = await generateJoke();
         if (joke) {
           orderToPrint = { ...orderToPrint, receipt_joke: joke };
-          // Esto actualizará el estado de latestNewOrder
+          // Esto actualizará el estado de la alerta
           if (orderToPrint.id === latestNewOrder.id) {
-             // asumiendo que setLatestNewOrder no existe aquí, busquemos qué estado usar. 
-             // Espera, handleManualPrint usa latestNewOrder. Si setLatestNewOrder existe, lo usamos.
-             // revisaremos eso.
+             setAutoPrintOrder(orderToPrint);
+             await new Promise(r => setTimeout(r, 800));
           }
         }
       } catch (e) {
