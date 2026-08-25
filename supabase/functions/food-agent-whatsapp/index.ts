@@ -466,8 +466,11 @@ async function processMessage(
       const emailText = userText.trim().toLowerCase();
       const isNo = emailText.includes("no");
       
+      const joke = await getJoke();
+      const jokeText = joke ? `\n\n🍽️ *El chiste del chef:*\n_${joke}_` : "";
+      
       if (isNo) {
-        replyText = "¡Entendido! Te avisaremos por aquí cuando tu pedido esté listo.";
+        replyText = `¡Entendido! Te avisaremos por aquí cuando tu pedido esté listo.${jokeText}`;
         collect.active = false;
         collect.step = null;
         collect.data = {};
@@ -478,7 +481,7 @@ async function processMessage(
         if (orgData) {
             await supabase.from("customers").update({ email: emailText }).eq("organization_id", orgData.id).eq("phone", userPhone);
         }
-        replyText = "¡Correo guardado! Te avisaremos por aquí cuando tu pedido esté listo.";
+        replyText = `¡Correo guardado! Te avisaremos por aquí cuando tu pedido esté listo.${jokeText}`;
         collect.active = false;
         collect.step = null;
         collect.data = {};
@@ -562,19 +565,14 @@ async function processMessage(
           const totalAmount = confirmData.total;
           const total = money(totalAmount);
 
-          // Get a joke asynchronously
-          const joke = await getJoke();
-          const jokeText = joke ? `\n\n🍽️ *El chiste del chef:*\n_${joke}_\n` : "";
-
           replyText =
             `✅ *Pedido confirmado*\n` +
             `Número: *${confirmData.order_number}*\n\n` +
             `${itemLines}\n\n` +
             `Total: *${total}*\n` +
             `\nA nombre de: *${session.customer_name || "Cliente WhatsApp"}*\n` +
-            `El local te contactará pronto para coordinar 🙌` +
-            jokeText +
-            `\n\nPara enviarte el comprobante de venta, ¿cuál es tu *correo electrónico*? (Si no lo deseas, simplemente escribe 'no')`;
+            `El local te contactará pronto para coordinar 🙌\n\n` +
+            `Para enviarte el comprobante de venta, ¿cuál es tu *correo electrónico*? (Si no lo deseas, simplemente escribe 'no')`;
 
           // Limpiar el carrito y mover a pedir correo
           session.cart = [];

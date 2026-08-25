@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2, Clock, MapPin, ChevronRight, Loader2, ExternalLink, CalendarClock } from 'lucide-react';
 import { getPublicOrderById } from '../../services/publicOrderService';
+import { generateJoke } from '../../services/aiService';
 
 const fmt = (n) => n ? n.toLocaleString('es-CL') : '0';
 
@@ -8,6 +9,7 @@ const OrderConfirmation = ({ order, org }) => {
   const [visible, setVisible] = useState(false);
   const [dbOrder, setDbOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [joke, setJoke] = useState(null);
 
   useEffect(() => {
     setTimeout(() => setVisible(true), 50);
@@ -28,6 +30,11 @@ const OrderConfirmation = ({ order, org }) => {
     };
     
     fetchOrderDetails();
+
+    // Fetch joke independently so it doesn't block loading
+    generateJoke().then(j => {
+      if (j) setJoke(j);
+    });
   }, [order?.id]);
 
   if (loading) {
@@ -258,6 +265,14 @@ const OrderConfirmation = ({ order, org }) => {
               )}
             </div>
           </div>
+
+          {/* Joke Section */}
+          {joke && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center mt-4">
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">🍽️ El chiste del chef</p>
+              <p className="text-sm text-gray-700 italic">"{joke}"</p>
+            </div>
+          )}
 
           {/* New order CTA */}
           <button
