@@ -1,5 +1,32 @@
 import { supabase } from '../lib/supabase';
 
+export const parseBundleLimits = (description) => {
+  if (!description) return { cleanDescription: '', bundleMinTotal: null, bundleMaxTotal: null };
+  const match = description.match(/<!--BUNDLE_LIMITS:(.*?)-->/);
+  let bundleMinTotal = null;
+  let bundleMaxTotal = null;
+  if (match) {
+    try {
+      const parsed = JSON.parse(match[1]);
+      bundleMinTotal = parsed.min !== undefined && parsed.min !== null ? Number(parsed.min) : null;
+      bundleMaxTotal = parsed.max !== undefined && parsed.max !== null ? Number(parsed.max) : null;
+    } catch (e) {}
+  }
+  const cleanDescription = description.replace(/<!--BUNDLE_LIMITS:.*?-->/g, '').trim();
+  return { cleanDescription, bundleMinTotal, bundleMaxTotal };
+};
+
+export const formatDescriptionWithLimits = (description, minTotal, maxTotal) => {
+  const baseDesc = (description || '').replace(/<!--BUNDLE_LIMITS:.*?-->/g, '').trim();
+  const minVal = minTotal !== '' && minTotal !== null && minTotal !== undefined && !isNaN(minTotal) ? Number(minTotal) : null;
+  const maxVal = maxTotal !== '' && maxTotal !== null && maxTotal !== undefined && !isNaN(maxTotal) ? Number(maxTotal) : null;
+  if (minVal !== null || maxVal !== null) {
+    const tag = `<!--BUNDLE_LIMITS:${JSON.stringify({ min: minVal, max: maxVal })}-->`;
+    return baseDesc ? `${baseDesc} ${tag}` : tag;
+  }
+  return baseDesc;
+};
+
 // Deduplica filas de product_ingredients por ingrediente: el PK es (product_id, ingredient_id),
 // así que un mismo ingrediente no puede repetirse (ej. seleccionado como base Y extra, o con
 // entradas por variante). Se priorizan las entradas a nivel de producto (variant_option_id null).
@@ -209,12 +236,15 @@ export const getProducts = async (organizationId, filters = {}) => {
     const variantGroup = product.variant_groups && product.variant_groups.length > 0 
       ? product.variant_groups[product.variant_groups.length - 1] 
       : null;
+    const { cleanDescription, bundleMinTotal, bundleMaxTotal } = parseBundleLimits(product.description);
 
     return {
       id: product.id,
       name: product.name,
       price: product.base_price,
-      description: product.description,
+      description: cleanDescription,
+      bundleMinTotal,
+      bundleMaxTotal,
       type: product.type || 'physical',
       sortOrder: product.sort_order ?? Number.MAX_SAFE_INTEGER,
       category: categoryInfo?.name || 'General',
@@ -345,7 +375,7 @@ export const createProduct = async (organizationId, productData) => {
       {
         organization_id: organizationId,
         name: productData.name,
-        description: productData.description || '',
+        description: formatDescriptionWithLimits(productData.description, productData.bundleMinTotal, productData.bundleMaxTotal),
         base_price: productData.price || 0,
         sku: productData.sku || null,
         gtin: productData.gtin || null,
@@ -575,6 +605,11 @@ export const getProductById = async (id) => {
   if (error) throw error;
   
   if (data) {
+    const { cleanDescription, bundleMinTotal, bundleMaxTotal } = parseBundleLimits(data.description);
+    data.rawDescription = data.description;
+    data.description = cleanDescription;
+    data.bundleMinTotal = bundleMinTotal;
+    data.bundleMaxTotal = bundleMaxTotal;
     data.categoryId = data.product_categories?.[0]?.category_id || 'none';
     data.imageUrl = data.product_images?.[0]?.url || '';
     
@@ -623,7 +658,7 @@ export const getProductById = async (id) => {
 export const updateProduct = async (id, productData) => {
   const updatePayload = {
     name: productData.name,
-    description: productData.description || '',
+    description: formatDescriptionWithLimits(productData.description, productData.bundleMinTotal, productData.bundleMaxTotal),
     base_price: productData.price || 0,
     sku: productData.sku || null,
     gtin: productData.gtin || null,
@@ -961,6 +996,8 @@ export const duplicateProduct = async (id) => {
   const newProductData = {
     name: `DUPLICADO de "${prod.name}"`,
     description: prod.description,
+    bundleMinTotal: prod.bundleMinTotal,
+    bundleMaxTotal: prod.bundleMaxTotal,
     price: prod.base_price,
     sku: prod.sku,
     gtin: prod.gtin,

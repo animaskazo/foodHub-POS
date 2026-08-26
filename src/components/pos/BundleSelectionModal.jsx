@@ -33,6 +33,16 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
 
   if (!product) return null;
 
+  const totalSelectedCount = Object.values(selections).reduce((sum, slotSelections) => {
+    return sum + (slotSelections || []).reduce((acc, s) => acc + (s.quantity || 1), 0);
+  }, 0);
+
+  const hasMaxTotal = product.bundleMaxTotal !== null && product.bundleMaxTotal !== undefined && product.bundleMaxTotal > 0;
+  const isMaxTotalReached = hasMaxTotal && totalSelectedCount >= product.bundleMaxTotal;
+
+  const hasMinTotal = product.bundleMinTotal !== null && product.bundleMinTotal !== undefined && product.bundleMinTotal > 0;
+  const isMinTotalSatisfied = !hasMinTotal || totalSelectedCount >= product.bundleMinTotal;
+
   const handleSelectOption = (slotId, option) => {
     setSelections(prev => {
       const current = prev[slotId] || [];
@@ -45,9 +55,9 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
         return { ...prev, [slotId]: current.filter((_, i) => i !== existingIndex) };
       }
 
-      if (count >= max) {
-        // Comportamiento radio para max = 1: reemplazar en vez de ignorar
-        if (max === 1 && current.length === 1) {
+      if (count >= max || isMaxTotalReached) {
+        // Comportamiento radio para max = 1: reemplazar en vez de ignorar (siempre que no haya max global alcanzado)
+        if (max === 1 && current.length === 1 && !isMaxTotalReached) {
           return { ...prev, [slotId]: [buildSelection(option)] };
         }
         return prev;
@@ -67,7 +77,7 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
       const max = slot?.maxSelections > 0 ? slot.maxSelections : 1;
       const count = current.reduce((acc, s) => acc + (s.quantity || 1), 0);
 
-      if (count >= max) return prev;
+      if (count >= max || isMaxTotalReached) return prev;
 
       return {
         ...prev,
@@ -151,15 +161,22 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
     return totalGross;
   };
 
-  const slotsComplete = !product.bundleSlots?.some(slot => {
-    const count = (selections[slot.id] || []).length;
+  const slotsComplete = isMinTotalSatisfied && !product.bundleSlots?.some(slot => {
+    const current = selections[slot.id] || [];
+    const count = current.reduce((acc, s) => acc + (s.quantity || 1), 0);
     return slot.minSelections > 0 && count < slot.minSelections;
   });
 
   const handleConfirmClick = () => {
+    if (hasMinTotal && totalSelectedCount < product.bundleMinTotal) {
+      alert(`Este combo requiere seleccionar al menos ${product.bundleMinTotal} opciones en total. Has seleccionado ${totalSelectedCount}.`);
+      return;
+    }
+
     // Validar que todos los slots obligatorios cumplan el mínimo de selecciones
     const missingSlot = product.bundleSlots?.find(slot => {
-      const count = (selections[slot.id] || []).length;
+      const current = selections[slot.id] || [];
+      const count = current.reduce((acc, s) => acc + (s.quantity || 1), 0);
       return slot.minSelections > 0 && count < slot.minSelections;
     });
     if (missingSlot) {
@@ -248,12 +265,22 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
       }
     >
       <div className="flex-1 p-4 sm:p-6">
+        {hasMaxTotal && (
+          <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-700">Límite Total del Combo:</span>
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+              isMaxTotalReached ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            }`}>
+              Seleccionados: {totalSelectedCount} / {product.bundleMaxTotal} máx
+            </span>
+          </div>
+        )}
         
         {product.bundleSlots?.map(slot => {
           const currentSelection = selections[slot.id] || [];
           const max = slot.maxSelections > 0 ? slot.maxSelections : 1;
           const count = currentSelection.reduce((acc, s) => acc + (s.quantity || 1), 0);
-          const atMax = count >= max;
+          const atMax = count >= max || isMaxTotalReached;
 
           return (
             <div key={slot.id} className="mb-6 last:mb-0">

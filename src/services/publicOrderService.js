@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { parseBundleLimits } from './catalogService';
 import { checkInventoryStock, deductInventoryForOrder } from './inventoryService';
 import { findCustomerByPhone, upsertCustomerForOrder } from './customerService';
 
@@ -137,11 +138,15 @@ export const getPublicCatalog = async (organizationId) => {
         })).sort((a,b) => (a.sort_order || 0) - (b.sort_order || 0))
       : [];
 
+    const { cleanDescription, bundleMinTotal, bundleMaxTotal } = parseBundleLimits(p.description);
+
     return {
       id: p.id,
       name: p.name,
       price: p.base_price,
-      description: p.description,
+      description: cleanDescription,
+      bundleMinTotal,
+      bundleMaxTotal,
       type: p.type || 'physical',
       sortOrder: p.sort_order ?? Number.MAX_SAFE_INTEGER,
       category: catInfo?.name || 'General',

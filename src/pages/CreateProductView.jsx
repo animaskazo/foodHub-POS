@@ -68,6 +68,8 @@ const CreateProductView = () => {
   const [extraIngSearch, setExtraIngSearch] = useState('');
   const [allProducts, setAllProducts] = useState([]);
   const [bundleSlots, setBundleSlots] = useState([]);
+  const [bundleMinTotal, setBundleMinTotal] = useState('');
+  const [bundleMaxTotal, setBundleMaxTotal] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
@@ -157,6 +159,12 @@ const CreateProductView = () => {
           }
           if (product.extraIngredients) {
             setExtraIngredients(product.extraIngredients);
+          }
+          if (product.bundleMinTotal !== undefined && product.bundleMinTotal !== null) {
+            setBundleMinTotal(product.bundleMinTotal.toString());
+          }
+          if (product.bundleMaxTotal !== undefined && product.bundleMaxTotal !== null) {
+            setBundleMaxTotal(product.bundleMaxTotal.toString());
           }
           if (product.bundleSlots) {
             // Mapeamos de vuelta al formato del componente
@@ -329,6 +337,8 @@ const CreateProductView = () => {
         name: formData.name,
         price: finalPrice,
         description: formData.description,
+        bundleMinTotal: bundleMinTotal !== '' ? parseInt(bundleMinTotal) : null,
+        bundleMaxTotal: bundleMaxTotal !== '' ? parseInt(bundleMaxTotal) : null,
         sku: formData.sku,
         gtin: formData.gtin,
         type: formData.type,
@@ -883,7 +893,7 @@ const CreateProductView = () => {
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex-1 min-w-0">
                       <h4 className="font-semibold text-[15px] text-gray-900">Configuración de Combo / Paquete</h4>
-                      <p className="text-sm text-gray-500 leading-relaxed">Define los slots de elección y los productos disponibles para este combo.</p>
+                      <p className="text-sm text-gray-500 leading-relaxed">Define los slots de elección, límites globales y los productos disponibles para este combo.</p>
                     </div>
                     <Button
                       type="button"
@@ -901,6 +911,44 @@ const CreateProductView = () => {
                     >
                       <Plus className="h-4 w-4" /> Agregar Slot
                     </Button>
+                  </div>
+
+                  {/* Límites globales del combo */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-3.5 bg-gray-50/80 rounded-xl border border-gray-200/80">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-700 mb-1 block">
+                        Mínimo total de selecciones (Todos los slots)
+                      </label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="Opcional (Ej: 2)"
+                        value={bundleMinTotal}
+                        onChange={(e) => {
+                          setBundleMinTotal(e.target.value);
+                          setHasChanges(true);
+                        }}
+                        className="bg-white rounded-lg text-sm"
+                      />
+                      <span className="text-[11px] text-gray-400 mt-0.5 block">Suma requerida acumulando todos los slots.</span>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-700 mb-1 block">
+                        Máximo total de selecciones (Todos los slots)
+                      </label>
+                      <Input
+                        type="number"
+                        min="1"
+                        placeholder="Opcional (Ej: 5)"
+                        value={bundleMaxTotal}
+                        onChange={(e) => {
+                          setBundleMaxTotal(e.target.value);
+                          setHasChanges(true);
+                        }}
+                        className="bg-white rounded-lg text-sm"
+                      />
+                      <span className="text-[11px] text-gray-400 mt-0.5 block">Límite máximo permitido sumando todos los slots.</span>
+                    </div>
                   </div>
 
                   {bundleSlots.length === 0 ? (
