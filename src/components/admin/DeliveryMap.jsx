@@ -21,7 +21,7 @@ const MapEvents = ({ onLocationSelect }) => {
   return null;
 };
 
-const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, isDrawingMode = false, onLocationChange, onPolygonChange }) => {
+const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, activeZoneColor = null, isDrawingMode = false, onLocationChange, onPolygonChange }) => {
   const [center, setCenter] = useState([lat || -33.4489, lng || -70.6693]);
   const [mode, setMode] = useState(isDrawingMode ? 'polygon' : 'marker');
   const mapRef = useRef(null);
@@ -44,7 +44,7 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, isDra
   const handleLocationSelect = (latlng) => {
     if (mode === 'marker' && !isDrawingMode) {
       onLocationChange?.(latlng.lat, latlng.lng);
-    } else {
+    } else if (isDrawingMode) {
       const newPolygon = [...(polygon || []), { lat: latlng.lat, lng: latlng.lng }];
       onPolygonChange?.(newPolygon);
     }
@@ -64,17 +64,19 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, isDra
             <MapPin className="w-4 h-4" />
             Fijar Local
           </button>
-          <button
-            type="button"
-            onClick={() => setMode('polygon')}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold transition-colors ${mode === 'polygon' ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-700'}`}
-          >
-            <MousePointer2 className="w-4 h-4" />
-            Dibujar Zona
-          </button>
+          {isDrawingMode && (
+            <button
+              type="button"
+              onClick={() => setMode('polygon')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold bg-amber-500 text-black transition-colors"
+            >
+              <MousePointer2 className="w-4 h-4" />
+              Dibujando Zona
+            </button>
+          )}
         </div>
 
-        {mode === 'polygon' && (polygon?.length > 0) && (
+        {isDrawingMode && (polygon?.length > 0) && (
           <button
             type="button"
             onClick={() => onPolygonChange?.([])}
@@ -88,7 +90,7 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, isDra
       
       <div className="absolute top-4 left-16 z-[1000] bg-white/95 backdrop-blur-sm px-3 py-2 rounded-lg shadow-md border border-gray-100 flex items-center gap-2 pointer-events-none">
         <span className="text-xs font-semibold text-gray-800">
-          {mode === 'marker' ? '📍 Haz clic para ubicar tu local' : '🖊️ Haz clics sucesivos para delimitar el área'}
+          {isDrawingMode ? '🖊️ Haz clics sucesivos en el mapa para delimitar el perímetro' : '📍 Haz clic para ubicar tu local'}
         </span>
       </div>
 
@@ -111,7 +113,8 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, isDra
         {/* Existing Zones */}
         {zones.map((zone) => {
           if (!zone.is_active) return null;
-          const isCurrent = zone.id === activeZoneId;
+          // Hide static shape of zone if it is currently being drawn
+          if (zone.id === activeZoneId && isDrawingMode) return null;
 
           if (zone.type === 'radius' && zone.radius_km > 0 && lat && lng) {
             return (
@@ -122,8 +125,8 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, isDra
                 pathOptions={{
                   fillColor: zone.color || '#10b981',
                   color: zone.color || '#059669',
-                  weight: isCurrent ? 3 : 2,
-                  fillOpacity: isCurrent ? 0.35 : 0.2
+                  weight: 2,
+                  fillOpacity: 0.2
                 }}
               >
                 <Tooltip sticky font-bold>
@@ -141,8 +144,8 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, isDra
                 pathOptions={{
                   fillColor: zone.color || '#3b82f6',
                   color: zone.color || '#2563eb',
-                  weight: isCurrent ? 3 : 2,
-                  fillOpacity: isCurrent ? 0.4 : 0.25
+                  weight: 2,
+                  fillOpacity: 0.25
                 }}
               >
                 <Tooltip sticky font-bold>
@@ -154,11 +157,16 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, isDra
           return null;
         })}
 
-        {/* Currently Drawing Polygon */}
-        {polyPositions.length > 0 && (
+        {/* Polygon currently being drawn with chosen zone color */}
+        {polyPositions.length > 0 && isDrawingMode && (
           <Polygon 
             positions={polyPositions}
-            pathOptions={{ fillColor: '#3b82f6', color: '#2563eb', weight: 2, fillOpacity: 0.3 }}
+            pathOptions={{
+              fillColor: activeZoneColor || '#10b981',
+              color: activeZoneColor || '#059669',
+              weight: 3,
+              fillOpacity: 0.4
+            }}
           />
         )}
 

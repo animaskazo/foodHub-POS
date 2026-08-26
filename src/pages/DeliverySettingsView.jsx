@@ -549,9 +549,10 @@ const DeliverySettingsView = () => {
                     <DeliveryMap
                       lat={deliveryData.store_lat}
                       lng={deliveryData.store_lng}
-                      polygon={drawingZoneId ? (deliveryZones.find(z => z.id === drawingZoneId)?.polygon || []) : (editingZone?.type === 'polygon' ? editingZone.polygon : deliveryData.delivery_polygon)}
+                      polygon={drawingZoneId ? (deliveryZones.find(z => z.id === drawingZoneId)?.polygon || []) : (editingZone?.type === 'polygon' ? editingZone.polygon : [])}
                       zones={deliveryZones}
                       activeZoneId={drawingZoneId || editingZone?.id}
+                      activeZoneColor={drawingZoneId ? deliveryZones.find(z => z.id === drawingZoneId)?.color : (editingZone?.color || null)}
                       isDrawingMode={!!drawingZoneId}
                       onLocationChange={(lat, lng) => {
                         setDeliveryData({ ...deliveryData, store_lat: lat, store_lng: lng });
@@ -563,9 +564,6 @@ const DeliverySettingsView = () => {
                           setHasChanges(true);
                         } else if (editingZone && editingZone.type === 'polygon') {
                           setEditingZone({ ...editingZone, polygon });
-                          setHasChanges(true);
-                        } else {
-                          setDeliveryData({ ...deliveryData, delivery_polygon: polygon });
                           setHasChanges(true);
                         }
                       }}
