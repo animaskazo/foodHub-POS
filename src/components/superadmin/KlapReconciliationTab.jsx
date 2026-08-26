@@ -60,6 +60,32 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
       return o.order_number.toString().includes(q) || ref.includes(q);
     });
 
+      // Helper para flexibilizar el formato de fecha (Excel, DD/MM/YYYY, etc)
+      const parseDateFuzzy = (dateStr) => {
+        if (!dateStr) return null;
+        const str = String(dateStr).trim();
+        if (!isNaN(Number(str)) && str.length >= 5) {
+           const excelEpoch = new Date(1900, 0, -1);
+           return new Date(excelEpoch.getTime() + Number(str) * 86400000);
+        }
+        const parts = str.match(/(\d+)/g);
+        if (parts && parts.length >= 3) {
+          let y, m, d;
+          if (Number(parts[0]) > 31) {
+            y = parts[0]; m = parts[1]; d = parts[2];
+          } else {
+            d = parts[0]; m = parts[1]; y = parts[2];
+          }
+          if (y.length === 2) y = '20' + y;
+          let h = parts[3] || '00';
+          let min = parts[4] || '00';
+          let sec = parts[5] || '00';
+          const parsed = new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T${h.padStart(2, '0')}:${min.padStart(2, '0')}:${sec.padStart(2, '0')}`);
+          if (!isNaN(parsed.getTime())) return parsed;
+        }
+        return null;
+      };
+
     matched = filteredKlapOrders.map(order => {
       const refCode = order.payments?.[0]?.reference_code;
       let match = null;
@@ -69,56 +95,50 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
         if (refCode) {
           match = csvData.find(row => {
             if (row._used) return false;
-            const csvAuth = row['codigo_autorizacion'] || row['codigo autorizacion'];
+            const csvAuth = row['codigo_autorizacion'] || row['codigo autorizacion'] || row['cod_autorizacion'];
             return csvAuth && String(csvAuth).trim().toLowerCase() === String(refCode).trim().toLowerCase();
           });
         }
 
-        // Pass 2. Match by Amount AND Date
+        // Pass 2. Smart Match by Amount and Date Proximity
         if (!match) {
-          match = csvData.find(row => {
-            if (row._used) return false;
+          const orderDate = new Date(order.created_at);
+          let bestMatch = null;
+          let minDiff = Infinity;
+
+          csvData.forEach(row => {
+            if (row._used) return;
             
-            let rawMonto = String(row['monto_venta(+)'] || row['total'] || '0');
-            rawMonto = rawMonto.replace(/\./g, '').split(',')[0]; 
+            // Flexibilizar parsing de monto
+            let rawMonto = String(row['monto_venta(+)'] || row['total'] || row['monto'] || '0');
+            rawMonto = rawMonto.replace(/[^0-9.,-]/g, '');
+            if (rawMonto.includes('.') && rawMonto.includes(',')) {
+               rawMonto = rawMonto.replace(/\./g, '').replace(',', '.');
+            } else if (rawMonto.includes(',')) {
+               rawMonto = rawMonto.replace(',', '.');
+            }
+            
             const csvMonto = parseFloat(rawMonto);
             
-            if (csvMonto !== Number(order.total)) return false;
-
-            let csvFecha = String(row['fecha_venta'] || row['fecha venta'] || '');
-            
-            // Si la fecha de Excel viene como número de serie (ej: 45200)
-            if (!isNaN(Number(csvFecha)) && csvFecha.length === 5) {
-               const excelEpoch = new Date(1900, 0, -1);
-               const jsDate = new Date(excelEpoch.getTime() + Number(csvFecha) * 86400000);
-               csvFecha = jsDate.toISOString();
+            if (csvMonto === Number(order.total)) {
+               let csvFecha = row['fecha_venta'] || row['fecha venta'] || row['fecha'] || '';
+               const parsedDate = parseDateFuzzy(csvFecha);
+               
+               if (parsedDate) {
+                  const diffHours = Math.abs(parsedDate.getTime() - orderDate.getTime()) / (1000 * 60 * 60);
+                  // Si la diferencia es menor a 72 horas (por desfases de fin de semana), es candidato
+                  if (diffHours <= 72 && diffHours < minDiff) {
+                     minDiff = diffHours;
+                     bestMatch = row;
+                  }
+               }
             }
-
-            const orderDate = new Date(order.created_at);
-            const d = String(orderDate.getDate()).padStart(2, '0');
-            const m = String(orderDate.getMonth() + 1).padStart(2, '0');
-            const yyyy = orderDate.getFullYear();
-            const yy = String(yyyy).slice(2);
-            
-            const d1 = String(orderDate.getDate());
-            const m1 = String(orderDate.getMonth() + 1);
-
-            const formats = [
-              `${yyyy}-${m}-${d}`,
-              `${d}-${m}-${yyyy}`,
-              `${d}/${m}/${yyyy}`,
-              `${m}/${d}/${yyyy}`,
-              `${m}/${d}/${yy}`,
-              `${d}-${m}-${yy}`,
-              `${m1}/${d1}/${yy}`,
-              `${m1}/${d1}/${yyyy}`
-            ];
-            
-            return formats.some(f => csvFecha.includes(f));
           });
+          
+          if (bestMatch) {
+            match = bestMatch;
+          }
         }
-        
-        // Pass 3 (Monto solamente) fue eliminada a petición del usuario para ser más estrictos.
       }
 
       if (match) {
