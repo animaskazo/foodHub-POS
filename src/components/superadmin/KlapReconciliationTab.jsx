@@ -118,17 +118,7 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
           });
         }
         
-        // Pass 3. Fallback: Match by EXACT Amount ONLY
-        // Si no coincidió la fecha por problemas de formato u horas, pero el monto es exacto
-        if (!match) {
-          match = csvData.find(row => {
-            if (row._used) return false;
-            let rawMonto = String(row['monto_venta(+)'] || row['total'] || '0');
-            rawMonto = rawMonto.replace(/\./g, '').split(',')[0]; 
-            const csvMonto = parseFloat(rawMonto);
-            return csvMonto === Number(order.total);
-          });
-        }
+        // Pass 3 (Monto solamente) fue eliminada a petición del usuario para ser más estrictos.
       }
 
       if (match) {
@@ -159,10 +149,14 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
       };
     });
 
-    // Clean up _used flag for subsequent searches (so changing search input works correctly)
-    if (csvData) {
-       csvData.forEach(row => delete row._used);
-    }
+      // Clean up _used flag for subsequent searches (so changing search input works correctly)
+      // but keep a copy for the UI
+      if (csvData) {
+         csvData.forEach(row => {
+           row._used_in_ui = row._used;
+           delete row._used;
+         });
+      }
 
     return { matchedOrders: matched, totalBruto: bruto, totalLiquidado: liquidado, totalComision: comision };
   }, [orders, csvData, search]);
@@ -393,6 +387,44 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
           </table>
         </div>
       </div>
+
+      {csvData && csvData.some(row => !row._used_in_ui) && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-5 shadow-sm mt-6">
+          <h4 className="font-bold text-orange-800 mb-2 flex items-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            Transacciones de Klap sin coincidencia en el POS
+          </h4>
+          <p className="text-sm text-orange-700 mb-4">
+            Las siguientes filas del archivo de Klap no encontraron ningún pedido correspondiente en el POS. Verifica si los montos coinciden o si el pedido fue eliminado.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-orange-200">
+                  <th className="px-4 py-2 font-semibold text-orange-800">Cód. Autorización</th>
+                  <th className="px-4 py-2 font-semibold text-orange-800">Monto</th>
+                  <th className="px-4 py-2 font-semibold text-orange-800">Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                {csvData.filter(row => !row._used_in_ui).map((row, idx) => (
+                  <tr key={idx} className="border-b border-orange-100 last:border-0">
+                    <td className="px-4 py-2 text-orange-900 font-mono">
+                      {row['codigo_autorizacion'] || row['codigo autorizacion'] || 'N/A'}
+                    </td>
+                    <td className="px-4 py-2 text-orange-900 font-bold">
+                      ${Number(String(row['monto_venta(+)'] || row['total'] || '0').replace(/\./g, '').split(',')[0]).toLocaleString('es-CL')}
+                    </td>
+                    <td className="px-4 py-2 text-orange-900">
+                      {row['fecha_venta'] || row['fecha venta'] || 'N/A'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
