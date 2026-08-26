@@ -21,10 +21,16 @@ const MapEvents = ({ onLocationSelect }) => {
   return null;
 };
 
-const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, onLocationChange, onPolygonChange }) => {
+const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, isDrawingMode = false, onLocationChange, onPolygonChange }) => {
   const [center, setCenter] = useState([lat || -33.4489, lng || -70.6693]);
-  const [mode, setMode] = useState('marker'); // 'marker' or 'polygon'
+  const [mode, setMode] = useState(isDrawingMode ? 'polygon' : 'marker');
   const mapRef = useRef(null);
+
+  useEffect(() => {
+    if (isDrawingMode) {
+      setMode('polygon');
+    }
+  }, [isDrawingMode]);
 
   useEffect(() => {
     if (lat && lng) {
@@ -36,7 +42,7 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, onLoc
   }, [lat, lng]);
 
   const handleLocationSelect = (latlng) => {
-    if (mode === 'marker') {
+    if (mode === 'marker' && !isDrawingMode) {
       onLocationChange?.(latlng.lat, latlng.lng);
     } else {
       const newPolygon = [...(polygon || []), { lat: latlng.lat, lng: latlng.lng }];

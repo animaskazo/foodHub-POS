@@ -46,6 +46,7 @@ const DeliverySettingsView = () => {
   const [deliveryZones, setDeliveryZones] = useState([]);
   const [showZoneModal, setShowZoneModal] = useState(false);
   const [editingZone, setEditingZone] = useState(null);
+  const [drawingZoneId, setDrawingZoneId] = useState(null);
 
   const [testResult, setTestResult] = useState(null);
   const [testing, setTesting] = useState(false);
@@ -101,7 +102,22 @@ const DeliverySettingsView = () => {
           uber_customer_id: orgData.uber_customer_id || '',
         });
 
-        setDeliveryZones(orgData.delivery_zones || []);
+        let loadedZones = orgData.delivery_zones || [];
+        // Si el usuario ya tenía una zona/polígono o tarifa configurada previamente, migrarlo como Zona 1
+        if (loadedZones.length === 0 && (orgData.delivery_polygon?.length > 0 || orgData.delivery_fee > 0)) {
+          loadedZones = [{
+            id: 'zone-legacy-1',
+            name: 'Zona 1 - Principal',
+            fee: orgData.delivery_fee || 0,
+            min_order: orgData.delivery_min_order || 0,
+            color: '#10B981',
+            type: orgData.delivery_polygon?.length >= 3 ? 'polygon' : 'radius',
+            radius_km: 5,
+            polygon: orgData.delivery_polygon || [],
+            is_active: true
+          }];
+        }
+        setDeliveryZones(loadedZones);
 
         setHasChanges(didAutoCenter);
       }
@@ -440,29 +456,46 @@ const DeliverySettingsView = () => {
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                  setEditingZone({ ...zone });
-                                  setShowZoneModal(true);
-                                }}
-                                className="text-xs font-bold px-3 py-1.5 h-auto rounded-lg"
-                              >
-                                Editar
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                  setDeliveryZones(deliveryZones.filter(z => z.id !== zone.id));
-                                  setHasChanges(true);
-                                }}
-                                className="text-xs font-bold px-3 py-1.5 h-auto rounded-lg text-red-600 border-red-100 hover:bg-red-50"
-                              >
-                                Eliminar
-                              </Button>
+                            <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-gray-100">
+                              {zone.type === 'polygon' && (
+                                <Button
+                                  type="button"
+                                  onClick={() => {
+                                    setDrawingZoneId(zone.id);
+                                    document.getElementById('delivery-map-section')?.scrollIntoView({ behavior: 'smooth' });
+                                  }}
+                                  className={`text-xs font-bold px-3 py-1.5 h-auto rounded-lg flex items-center gap-1 ${
+                                    drawingZoneId === zone.id ? 'bg-amber-500 text-black font-extrabold' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                                  }`}
+                                >
+                                  🖊️ {drawingZoneId === zone.id ? 'Dibujando...' : 'Dibujar en mapa'}
+                                </Button>
+                              )}
+                              <div className="flex items-center gap-2 ml-auto">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditingZone({ ...zone });
+                                    setShowZoneModal(true);
+                                  }}
+                                  className="text-xs font-bold px-3 py-1.5 h-auto rounded-lg"
+                                >
+                                  Editar
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => {
+                                    if (drawingZoneId === zone.id) setDrawingZoneId(null);
+                                    setDeliveryZones(deliveryZones.filter(z => z.id !== zone.id));
+                                    setHasChanges(true);
+                                  }}
+                                  className="text-xs font-bold px-3 py-1.5 h-auto rounded-lg text-red-600 border-red-100 hover:bg-red-50"
+                                >
+                                  Eliminar
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -505,50 +538,69 @@ const DeliverySettingsView = () => {
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-gray-100">
+                  <div id="delivery-map-section" className="pt-4 border-t border-gray-100">
                     <div className="mb-4">
                       <h4 className="text-sm font-semibold text-gray-800">Ubicación de tu Local y Mapa de Zonas</h4>
-                      <div className="text-xs text-gray-500 mt-2 max-w-2xl leading-relaxed space-y-2">
-                        <p>Las zonas creadas se dibujarán con su color correspondiente en el mapa:</p>
-                        <div className="flex items-center gap-3">
-                          <span><strong>1.</strong> Fija la ubicación de tu local en el centro del mapa.</span>
-                          {generalAddress && (
-                            <Button
-                              onClick={async () => {
-                                const coords = await geocodeAddress(generalAddress);
-                                if (coords) {
-                                  setDeliveryData({ ...deliveryData, store_lat: coords.lat, store_lng: coords.lng });
-                                  setHasChanges(true);
-                                } else {
-                                  alert('No se pudo encontrar la dirección general en el mapa. Por favor, haz clic manualmente.');
-                                }
-                              }}
-                              className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-[11px] font-bold text-blue-600 hover:bg-blue-100 transition-colors"
-                            >
-                              <Search className="h-3 w-3" />
-                              Buscar mi local
-                            </Button>
-                          )}
-                        </div>
-                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Las zonas se pintarán en el mapa en tiempo real según su color.
+                      </p>
                     </div>
+
+                    {/* Banner de dibujo interactivo */}
+                    {drawingZoneId && (() => {
+                      const activeZone = deliveryZones.find(z => z.id === drawingZoneId);
+                      if (!activeZone) return null;
+                      return (
+                        <div className="mb-3 p-3.5 bg-amber-400 text-black rounded-2xl shadow-md flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
+                          <div className="flex items-center gap-2 font-black text-sm">
+                            <span className="w-3.5 h-3.5 rounded-full border border-black/30 shrink-0" style={{ backgroundColor: activeZone.color || '#3b82f6' }} />
+                            <span>Modo Dibujo Activo: "{activeZone.name}" ({activeZone.polygon?.length || 0} puntos)</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                setDeliveryZones(deliveryZones.map(z => z.id === drawingZoneId ? { ...z, polygon: [] } : z));
+                                setHasChanges(true);
+                              }}
+                              className="bg-white/80 text-black hover:bg-white text-xs font-bold px-3 py-1.5 rounded-xl border border-black/10"
+                            >
+                              🗑️ Limpiar puntos
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={() => setDrawingZoneId(null)}
+                              className="bg-black text-white hover:bg-gray-900 text-xs font-bold px-4 py-1.5 rounded-xl shadow-sm"
+                            >
+                              ✅ Finalizar Trazo
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     <DeliveryMap
                       lat={deliveryData.store_lat}
                       lng={deliveryData.store_lng}
-                      polygon={editingZone?.type === 'polygon' ? editingZone.polygon : deliveryData.delivery_polygon}
+                      polygon={drawingZoneId ? (deliveryZones.find(z => z.id === drawingZoneId)?.polygon || []) : (editingZone?.type === 'polygon' ? editingZone.polygon : deliveryData.delivery_polygon)}
                       zones={deliveryZones}
-                      activeZoneId={editingZone?.id}
+                      activeZoneId={drawingZoneId || editingZone?.id}
+                      isDrawingMode={!!drawingZoneId}
                       onLocationChange={(lat, lng) => {
                         setDeliveryData({ ...deliveryData, store_lat: lat, store_lng: lng });
                         setHasChanges(true);
                       }}
                       onPolygonChange={(polygon) => {
-                        if (editingZone && editingZone.type === 'polygon') {
+                        if (drawingZoneId) {
+                          setDeliveryZones(deliveryZones.map(z => z.id === drawingZoneId ? { ...z, polygon } : z));
+                          setHasChanges(true);
+                        } else if (editingZone && editingZone.type === 'polygon') {
                           setEditingZone({ ...editingZone, polygon });
+                          setHasChanges(true);
                         } else {
                           setDeliveryData({ ...deliveryData, delivery_polygon: polygon });
+                          setHasChanges(true);
                         }
-                        setHasChanges(true);
                       }}
                     />
                   </div>
@@ -651,9 +703,29 @@ const DeliverySettingsView = () => {
                           )}
 
                           {editingZone.type === 'polygon' && (
-                            <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-xl text-xs text-blue-800 leading-relaxed">
-                              <p className="font-bold mb-1">🗺️ Dibujar Polígono en el Mapa:</p>
-                              <p>Haz clic en "Dibujar Zona" en el mapa de fondo para trazar los vértices de esta zona. (Vértices actuales: {editingZone.polygon?.length || 0})</p>
+                            <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl space-y-2">
+                              <p className="text-xs font-bold text-blue-900">🗺️ Trazado de Polígono en el Mapa</p>
+                              <p className="text-xs text-blue-700 leading-relaxed">
+                                Puntos marcados actualmente: <strong>{editingZone.polygon?.length || 0}</strong>.
+                              </p>
+                              <Button
+                                type="button"
+                                onClick={() => {
+                                  // Guardar la zona provisionalmente y activar el mapa
+                                  const exists = deliveryZones.some(z => z.id === editingZone.id);
+                                  if (exists) {
+                                    setDeliveryZones(deliveryZones.map(z => z.id === editingZone.id ? editingZone : z));
+                                  } else {
+                                    setDeliveryZones([...deliveryZones, editingZone]);
+                                  }
+                                  setDrawingZoneId(editingZone.id);
+                                  setShowZoneModal(false);
+                                  document.getElementById('delivery-map-section')?.scrollIntoView({ behavior: 'smooth' });
+                                }}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 mt-1"
+                              >
+                                🖊️ Ir al Mapa para Dibujar Puntos
+                              </Button>
                             </div>
                           )}
 
