@@ -35,10 +35,15 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
     // (Handled automatically by database trigger `set_order_number_trigger`)
 
     // 3. Insert order
+    const validOrderTypes = ['table', 'pickup', 'online', 'whatsapp'];
+    const dbOrderType = validOrderTypes.includes(orderType) ? orderType : 'pickup';
+    const deliveryType = orderType === 'delivery' || (deliveryInfo && (deliveryInfo.deliveryAddress || deliveryInfo.customerName)) ? 'delivery' : (orderType === 'table' ? 'pickup' : 'pickup');
+
     const orderPayload = {
       organization_id: organizationId,
       branch_id: branchId,
-      order_type: orderType,
+      order_type: dbOrderType,
+      delivery_type: deliveryType,
       status: 'confirmed', 
       subtotal: subtotal,
       tax_amount: tax,
