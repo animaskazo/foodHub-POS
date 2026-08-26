@@ -230,25 +230,6 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
-          {csvData && (
-            <Button 
-              onClick={downloadReport}
-              variant="outline"
-              className="flex items-center gap-2 font-medium"
-            >
-              Descargar Reporte
-            </Button>
-          )}
-          {pendingToReconcile.length > 0 && (
-            <Button 
-              onClick={handleMarkAsReconciled}
-              disabled={isSaving}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-2 shadow-sm"
-            >
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Marcar {pendingToReconcile.length} como Abonados
-            </Button>
-          )}
           <input 
             type="file" 
             accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
@@ -263,15 +244,29 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
             <Upload className="h-4 w-4" />
             {csvData ? 'Cambiar Archivo' : 'Subir Liquidación'}
           </Button>
+
+          {csvData && (
+            <Button 
+              onClick={downloadReport}
+              variant="outline"
+              className="flex items-center gap-2 font-medium"
+            >
+              Descargar Reporte
+            </Button>
+          )}
+
+          {pendingToReconcile.length > 0 && (
+            <Button 
+              onClick={handleMarkAsReconciled}
+              disabled={isSaving}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-2 shadow-sm ml-auto"
+            >
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Marcar {pendingToReconcile.length} como Abonados
+            </Button>
+          )}
         </div>
       </div>
-      
-      {csvData && csvData.length > 0 && (
-        <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-800">
-          <strong>Info de diagnóstico:</strong> Columnas detectadas en el archivo: {Object.keys(csvData[0]).join(', ')}. 
-          Total filas leídas: {csvData.length}.
-        </div>
-      )}
 
       {csvData && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -332,7 +327,7 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
                     <td className="px-6 py-3 font-semibold text-gray-900">#{order.order_number}</td>
                     <td className="px-6 py-3 text-sm text-gray-500">{date}</td>
                     <td className="px-6 py-3 text-sm font-medium text-gray-700">
-                      {refCode || <span className="text-gray-400 italic">Sin ID</span>}
+                      {refCode ? `****${String(refCode).slice(-4)}` : <span className="text-gray-400 italic">Sin ID</span>}
                     </td>
                     <td className="px-6 py-3 text-sm font-bold text-gray-900">
                       ${Number(order.total).toLocaleString('es-CL')}
