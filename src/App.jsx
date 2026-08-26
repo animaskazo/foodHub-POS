@@ -32,6 +32,30 @@ import { getTenantSlug } from './utils/tenant';
 function App() {
   const tenantSlug = useMemo(() => getTenantSlug(), []);
 
+  React.useEffect(() => {
+    const handleGlobalFocus = (e) => {
+      const target = e.target;
+      if (!target || target.tagName !== 'INPUT') return;
+
+      const isNumeric =
+        target.type === 'number' ||
+        target.inputMode === 'numeric' ||
+        target.inputMode === 'decimal' ||
+        target.getAttribute('type') === 'number';
+
+      if (isNumeric) {
+        setTimeout(() => {
+          if (document.activeElement === target) {
+            target.select?.();
+          }
+        }, 10);
+      }
+    };
+
+    document.addEventListener('focusin', handleGlobalFocus);
+    return () => document.removeEventListener('focusin', handleGlobalFocus);
+  }, []);
+
   if (tenantSlug) {
     // Subdominio de tienda (ej. sushiwok.foodhub.work): solo el storefront.
     return (
