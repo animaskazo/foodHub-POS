@@ -42,9 +42,7 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, activ
   }, [lat, lng]);
 
   const handleLocationSelect = (latlng) => {
-    if (mode === 'marker' && !isDrawingMode) {
-      onLocationChange?.(latlng.lat, latlng.lng);
-    } else if (isDrawingMode) {
+    if (isDrawingMode) {
       const newPolygon = [...(polygon || []), { lat: latlng.lat, lng: latlng.lng }];
       onPolygonChange?.(newPolygon);
     }
@@ -55,42 +53,29 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, activ
   return (
     <div className="relative w-full h-[420px] rounded-xl overflow-hidden border-2 border-gray-200 flex flex-col">
       <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2 pointer-events-none items-end">
-        <div className="pointer-events-auto bg-white rounded-lg shadow-md border border-gray-100 p-1 flex gap-1">
-          <button
-            type="button"
-            onClick={() => setMode('marker')}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold transition-colors ${mode === 'marker' ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-700'}`}
-          >
-            <MapPin className="w-4 h-4" />
-            Fijar Local
-          </button>
-          {isDrawingMode && (
-            <button
-              type="button"
-              onClick={() => setMode('polygon')}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-bold bg-amber-500 text-black transition-colors"
-            >
-              <MousePointer2 className="w-4 h-4" />
+        {isDrawingMode && (
+          <div className="pointer-events-auto bg-white rounded-lg shadow-md border border-gray-100 p-1 flex gap-1">
+            <span className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-black bg-amber-400 text-black">
+              <MousePointer2 className="w-3.5 h-3.5" />
               Dibujando Zona
-            </button>
-          )}
-        </div>
-
-        {isDrawingMode && (polygon?.length > 0) && (
-          <button
-            type="button"
-            onClick={() => onPolygonChange?.([])}
-            className="pointer-events-auto flex items-center gap-1.5 px-3 py-2 bg-white text-red-600 rounded-lg shadow-md border border-red-100 text-sm font-bold hover:bg-red-50 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-            Limpiar Puntos
-          </button>
+            </span>
+            {polygon?.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onPolygonChange?.([])}
+                className="flex items-center gap-1.5 px-3 py-2 bg-white text-red-600 rounded-md text-xs font-bold hover:bg-red-50 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Limpiar Puntos
+              </button>
+            )}
+          </div>
         )}
       </div>
       
-      <div className="absolute top-4 left-16 z-[1000] bg-white/95 backdrop-blur-sm px-3 py-2 rounded-lg shadow-md border border-gray-100 flex items-center gap-2 pointer-events-none">
+      <div className="absolute top-4 left-16 z-[1000] bg-white/95 backdrop-blur-sm px-3.5 py-2 rounded-lg shadow-md border border-gray-100 flex items-center gap-2 pointer-events-none">
         <span className="text-xs font-semibold text-gray-800">
-          {isDrawingMode ? '🖊️ Haz clics sucesivos en el mapa para delimitar el perímetro' : '📍 Haz clic para ubicar tu local'}
+          {isDrawingMode ? '🖊️ Haz clics en el mapa para trazar los vértices del perímetro' : '🏪 Ubicación del local fija según configuración general'}
         </span>
       </div>
 
@@ -107,7 +92,11 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, activ
         />
         
         {lat && lng && (
-          <Marker position={[lat, lng]} />
+          <Marker position={[lat, lng]}>
+            <Tooltip permanent font-bold direction="top" offset={[0, -20]}>
+              🏪 Tu Local
+            </Tooltip>
+          </Marker>
         )}
 
         {/* Existing Zones */}
