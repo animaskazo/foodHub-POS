@@ -570,10 +570,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           const matchedZone = findDeliveryZoneForLocation(
             coords,
             storeCoords,
-            org.delivery_zones || [],
-            org.delivery_polygon || [],
-            org.delivery_fee || 0,
-            org.delivery_min_order || 0
+            org.delivery_zones || []
           );
 
           if (!matchedZone) {

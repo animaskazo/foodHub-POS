@@ -288,15 +288,12 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
                             try {
                               const coords = await geocodeAddress(deliveryAddress);
                               if (coords) {
-                                const storeCoords = { lat: organization.store_lat, lng: organization.store_lng };
-                                const matchedZone = findDeliveryZoneForLocation(
-                                  coords,
-                                  storeCoords,
-                                  organization.delivery_zones || [],
-                                  organization.delivery_polygon || [],
-                                  organization.delivery_fee || 0,
-                                  organization.delivery_min_order || 0
-                                );
+                                 const storeCoords = { lat: organization.store_lat, lng: organization.store_lng };
+                                 const matchedZone = findDeliveryZoneForLocation(
+                                   coords,
+                                   storeCoords,
+                                   organization.delivery_zones || []
+                                 );
 
                                 if (!matchedZone) {
                                   alert('La dirección ingresada está fuera de la zona de cobertura.');

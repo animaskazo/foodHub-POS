@@ -503,40 +503,7 @@ const DeliverySettingsView = () => {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Costo de Envío General / Base ($)</label>
-                      <div className="form-field flex items-center px-4">
-                        <input
-                          type="number"
-                          value={deliveryData.delivery_fee}
-                          onChange={(e) => {
-                            setDeliveryData({ ...deliveryData, delivery_fee: Number(e.target.value) });
-                            setHasChanges(true);
-                          }}
-                          className="flex-1 h-12 bg-transparent outline-none text-[15px]"
-                          placeholder="Ej: 2000"
-                        />
-                      </div>
-                      <span className="text-[11px] text-gray-400 mt-1 block">Tarifa por defecto si no se especifican zonas.</span>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Pedido Mínimo General ($)</label>
-                      <div className="form-field flex items-center px-4">
-                        <input
-                          type="number"
-                          value={deliveryData.delivery_min_order}
-                          onChange={(e) => {
-                            setDeliveryData({ ...deliveryData, delivery_min_order: Number(e.target.value) });
-                            setHasChanges(true);
-                          }}
-                          className="flex-1 h-12 bg-transparent outline-none text-[15px]"
-                          placeholder="Ej: 5000"
-                        />
-                      </div>
-                      <span className="text-[11px] text-gray-400 mt-1 block">Pedido mínimo base si no hay zona aplicable.</span>
-                    </div>
-                  </div>
+
 
                   <div id="delivery-map-section" className="pt-4 border-t border-gray-100">
                     <div className="mb-4">
