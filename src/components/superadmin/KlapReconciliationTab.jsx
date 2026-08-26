@@ -60,7 +60,7 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
       return o.order_number.toString().includes(q) || ref.includes(q);
     });
 
-      // Helper para flexibilizar el formato de fecha (Excel, DD/MM/YYYY, etc)
+      // Helper para flexibilizar el formato de fecha (Excel, DD/MM/YYYY, MM/DD/YYYY, etc)
       const parseDateFuzzy = (dateStr) => {
         if (!dateStr) return null;
         const str = String(dateStr).trim();
@@ -68,13 +68,24 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
            const excelEpoch = new Date(1900, 0, -1);
            return new Date(excelEpoch.getTime() + Number(str) * 86400000);
         }
+        
+        // Try native parsing first (works for YYYY-MM-DD and MM/DD/YYYY)
+        const nativeDate = new Date(str);
+        if (!isNaN(nativeDate.getTime())) return nativeDate;
+
         const parts = str.match(/(\d+)/g);
         if (parts && parts.length >= 3) {
           let y, m, d;
           if (Number(parts[0]) > 31) {
             y = parts[0]; m = parts[1]; d = parts[2];
           } else {
-            d = parts[0]; m = parts[1]; y = parts[2];
+            if (Number(parts[0]) > 12) {
+               d = parts[0]; m = parts[1]; y = parts[2];
+            } else if (Number(parts[1]) > 12) {
+               m = parts[0]; d = parts[1]; y = parts[2];
+            } else {
+               d = parts[0]; m = parts[1]; y = parts[2];
+            }
           }
           if (y.length === 2) y = '20' + y;
           let h = parts[3] || '00';
