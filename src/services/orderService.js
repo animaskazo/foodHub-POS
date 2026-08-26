@@ -231,27 +231,43 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
   }
 };
 
+let cachedUserBranchId = null;
+
+const getUserBranchId = async () => {
+  if (cachedUserBranchId) return cachedUserBranchId;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return null;
+
+  const { data: staffData } = await supabase
+    .from('staff')
+    .select('organization_id')
+    .eq('id', session.user.id)
+    .single();
+
+  if (!staffData) return null;
+
+  const { data: branchData } = await supabase
+    .from('branches')
+    .select('id')
+    .eq('organization_id', staffData.organization_id)
+    .limit(1)
+    .single();
+
+  if (branchData?.id) {
+    cachedUserBranchId = branchData.id;
+  }
+  return cachedUserBranchId;
+};
+
+// Reset cache on auth state changes
+supabase.auth.onAuthStateChange(() => {
+  cachedUserBranchId = null;
+});
+
 export const getOrders = async () => {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return [];
-
-    const { data: staffData } = await supabase
-      .from('staff')
-      .select('organization_id')
-      .eq('id', session.user.id)
-      .single();
-
-    if (!staffData) return [];
-
-    const { data: branchData } = await supabase
-      .from('branches')
-      .select('id')
-      .eq('organization_id', staffData.organization_id)
-      .limit(1)
-      .single();
-      
-    if (!branchData) return [];
+    const branchId = await getUserBranchId();
+    if (!branchId) return [];
     
     const { data, error } = await supabase
       .from('orders')
@@ -260,7 +276,7 @@ export const getOrders = async () => {
         payments(*),
         order_items(*, order_item_variants(*), order_item_ingredients(*))
       `)
-      .eq('branch_id', branchData.id)
+      .eq('branch_id', branchId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -273,25 +289,8 @@ export const getOrders = async () => {
 
 export const getKitchenOrders = async () => {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return [];
-
-    const { data: staffData } = await supabase
-      .from('staff')
-      .select('organization_id')
-      .eq('id', session.user.id)
-      .single();
-
-    if (!staffData) return [];
-
-    const { data: branchData } = await supabase
-      .from('branches')
-      .select('id')
-      .eq('organization_id', staffData.organization_id)
-      .limit(1)
-      .single();
-      
-    if (!branchData) return [];
+    const branchId = await getUserBranchId();
+    if (!branchId) return [];
     
     const { data, error } = await supabase
       .from('orders')
@@ -299,9 +298,9 @@ export const getKitchenOrders = async () => {
         *,
         payments(*),
         restaurant_tables(name, table_zones(name)),
-        order_items(*, products(description, product_images(url)), order_item_variants(variant_option_name), order_item_ingredients(ingredient_name))
+        order_items(*, order_item_variants(variant_option_name), order_item_ingredients(ingredient_name))
       `)
-      .eq('branch_id', branchData.id)
+      .eq('branch_id', branchId)
       .in('status', ['scheduled', 'pending', 'confirmed', 'preparing'])
       .order('created_at', { ascending: true });
 

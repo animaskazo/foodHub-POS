@@ -17,10 +17,10 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
 
   useEffect(() => {
     fetchOrders();
-    // Auto-refresh cada 10 segundos en segundo plano (sin blinking)
+    // Auto-refresh cada 30 segundos en segundo plano (sin blinking)
     const interval = setInterval(() => {
       fetchOrders(true);
-    }, 10000);
+    }, 30000);
 
     const handleReload = () => fetchOrders(true);
     window.addEventListener('reload-orders', handleReload);

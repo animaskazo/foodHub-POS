@@ -115,10 +115,10 @@ const KitchenView = () => {
 
   useEffect(() => {
     fetchOrders(true);
-    // Auto refresh every 5 seconds silently
+    // Auto refresh every 15 seconds silently
     const interval = setInterval(() => {
       fetchOrders(true);
-    }, 5000);
+    }, 15000);
 
     return () => clearInterval(interval);
   }, []);

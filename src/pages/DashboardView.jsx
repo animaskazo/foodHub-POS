@@ -170,7 +170,7 @@ const DashboardView = () => {
       const interval = setInterval(() => {
         fetchOrders(true);
         loadShiftData();
-      }, 5000);
+      }, 30000);
       return () => clearInterval(interval);
     } else {
       setLoading(false);
