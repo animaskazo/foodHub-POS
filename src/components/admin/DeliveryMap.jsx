@@ -54,7 +54,7 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, activ
     <div className="relative w-full h-[420px] rounded-xl overflow-hidden border-2 border-gray-200 flex flex-col">
       <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2 pointer-events-none items-end">
         {isDrawingMode && (
-          <div className="pointer-events-auto bg-white rounded-lg shadow-md border border-gray-100 p-1 flex gap-1">
+          <div className="pointer-events-auto bg-white rounded-lg border border-gray-200 p-1 flex gap-1">
             <span className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-black bg-amber-400 text-black">
               <MousePointer2 className="w-3.5 h-3.5" />
               Dibujando Zona
@@ -73,9 +73,9 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, activ
         )}
       </div>
       
-      <div className="absolute top-4 left-16 z-[1000] bg-white/95 backdrop-blur-sm px-3.5 py-2 rounded-lg shadow-md border border-gray-100 flex items-center gap-2 pointer-events-none">
+      <div className="absolute top-4 left-16 z-[1000] bg-white/95 backdrop-blur-sm px-3.5 py-2 rounded-lg border border-gray-200 flex items-center gap-2 pointer-events-none">
         <span className="text-xs font-semibold text-gray-800">
-          {isDrawingMode ? '🖊️ Haz clics en el mapa para trazar los vértices del perímetro' : '🏪 Ubicación del local fija según configuración general'}
+          {isDrawingMode ? 'Haz clics en el mapa para trazar los vértices del perímetro' : 'Ubicación del local fija según configuración general'}
         </span>
       </div>
 
@@ -94,7 +94,7 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, activ
         {lat && lng && (
           <Marker position={[lat, lng]}>
             <Tooltip permanent font-bold direction="top" offset={[0, -20]}>
-              🏪 Tu Local
+              Tu Local
             </Tooltip>
           </Marker>
         )}

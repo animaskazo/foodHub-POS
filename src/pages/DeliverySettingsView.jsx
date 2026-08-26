@@ -6,7 +6,7 @@ import {
   updateOrganizationDetails
 } from '../services/organizationService';
 import { getAccessToken, createQuote, createDelivery, getDelivery, cancelDelivery, checkMode, TEST_LOCATIONS } from '../services/uberDirectService';
-import { Loader2, Save, Search, Truck, Globe, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
+import { Loader2, Save, Search, Truck, Globe, CheckCircle2, XCircle, ExternalLink, Edit2, Trash2, Plus, MousePointer2, MapPin } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import DeliveryMap from '../components/admin/DeliveryMap';
 import { geocodeAddress } from '../utils/geo';
@@ -418,7 +418,8 @@ const DeliverySettingsView = () => {
                           }}
                           className="bg-black text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 shrink-0"
                         >
-                          + Nueva Zona
+                          <Plus className="w-3.5 h-3.5" />
+                          Nueva Zona
                         </Button>
                       </div>
 
@@ -434,14 +435,14 @@ const DeliverySettingsView = () => {
                             <div
                               key={zone.id}
                               className={`p-4 rounded-2xl border transition-all flex flex-col justify-between ${
-                                zone.is_active ? 'bg-white border-gray-200 shadow-sm' : 'bg-gray-50 border-gray-200 opacity-60'
+                                zone.is_active ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-200 opacity-60'
                               }`}
                             >
                               <div>
                                 <div className="flex items-center justify-between mb-2">
                                   <div className="flex items-center gap-2">
                                     <span
-                                      className="w-3.5 h-3.5 rounded-full shrink-0 shadow-sm"
+                                      className="w-3.5 h-3.5 rounded-full shrink-0 border border-black/10"
                                       style={{ backgroundColor: zone.color || '#3b82f6' }}
                                     />
                                     <h5 className="font-extrabold text-sm text-gray-900">{zone.name}</h5>
@@ -465,7 +466,7 @@ const DeliverySettingsView = () => {
                                     </span>
                                   )}
                                   <span className="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg">
-                                    {zone.type === 'radius' ? `📏 Radio ${zone.radius_km || 0} km` : `🗺️ Polígono (${zone.polygon?.length || 0} ptos)`}
+                                    {zone.type === 'radius' ? `Radio ${zone.radius_km || 0} km` : `Polígono (${zone.polygon?.length || 0} ptos)`}
                                   </span>
                                 </div>
                               </div>
@@ -475,11 +476,12 @@ const DeliverySettingsView = () => {
                                   <Button
                                     type="button"
                                     onClick={() => setDrawingZoneId(zone.id)}
-                                    className={`text-xs font-bold px-3 py-1.5 h-auto rounded-lg flex items-center gap-1 ${
+                                    className={`text-xs font-bold px-3 py-1.5 h-auto rounded-lg flex items-center gap-1.5 ${
                                       drawingZoneId === zone.id ? 'bg-amber-500 text-black font-extrabold' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
                                     }`}
                                   >
-                                    🖊️ {drawingZoneId === zone.id ? 'Dibujando...' : 'Dibujar en mapa'}
+                                    <MousePointer2 className="w-3.5 h-3.5" />
+                                    {drawingZoneId === zone.id ? 'Dibujando...' : 'Dibujar en mapa'}
                                   </Button>
                                 )}
                                 <div className="flex items-center gap-2 ml-auto">
@@ -528,10 +530,10 @@ const DeliverySettingsView = () => {
                         const activeZone = deliveryZones.find(z => z.id === drawingZoneId);
                         if (!activeZone) return null;
                         return (
-                          <div className="p-3.5 bg-amber-400 text-black rounded-2xl shadow-md flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
+                          <div className="p-3.5 bg-amber-400 text-black rounded-2xl border border-amber-300 flex flex-wrap items-center justify-between gap-3 animate-in fade-in">
                             <div className="flex items-center gap-2 font-black text-sm">
                               <span className="w-3.5 h-3.5 rounded-full border border-black/30 shrink-0" style={{ backgroundColor: activeZone.color || '#3b82f6' }} />
-                              <span>Dibujando: "{activeZone.name}" ({activeZone.polygon?.length || 0} ptos)</span>
+                              <span>Modo Dibujo: "{activeZone.name}" ({activeZone.polygon?.length || 0} ptos)</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <Button
@@ -540,16 +542,18 @@ const DeliverySettingsView = () => {
                                   setDeliveryZones(deliveryZones.map(z => z.id === drawingZoneId ? { ...z, polygon: [] } : z));
                                   setHasChanges(true);
                                 }}
-                                className="bg-white/80 text-black hover:bg-white text-xs font-bold px-3 py-1.5 rounded-xl border border-black/10"
+                                className="bg-white/80 text-black hover:bg-white text-xs font-bold px-3 py-1.5 rounded-xl border border-black/10 flex items-center gap-1"
                               >
-                                🗑️ Limpiar
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Limpiar
                               </Button>
                               <Button
                                 type="button"
                                 onClick={() => setDrawingZoneId(null)}
-                                className="bg-black text-white hover:bg-gray-900 text-xs font-bold px-4 py-1.5 rounded-xl shadow-sm"
+                                className="bg-black text-white hover:bg-gray-900 text-xs font-bold px-4 py-1.5 rounded-xl flex items-center gap-1"
                               >
-                                ✅ Listo
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                Finalizar
                               </Button>
                             </div>
                           </div>
@@ -649,7 +653,7 @@ const DeliverySettingsView = () => {
                                 editingZone.type === 'radius' ? 'bg-black text-white border-black' : 'bg-gray-50 border-gray-200 text-gray-700'
                               }`}
                             >
-                              📏 Radio en KM
+                              Radio en KM
                             </button>
                             <button
                               type="button"
@@ -658,7 +662,7 @@ const DeliverySettingsView = () => {
                                 editingZone.type === 'polygon' ? 'bg-black text-white border-black' : 'bg-gray-50 border-gray-200 text-gray-700'
                               }`}
                             >
-                              🗺️ Polígono Dibujado
+                              Polígono Dibujado
                             </button>
                           </div>
                         </div>
@@ -681,7 +685,7 @@ const DeliverySettingsView = () => {
 
                         {editingZone.type === 'polygon' && (
                           <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl space-y-2">
-                            <p className="text-xs font-bold text-blue-900">🗺️ Trazado de Polígono en el Mapa</p>
+                            <p className="text-xs font-bold text-blue-900">Trazado de Polígono en el Mapa</p>
                             <p className="text-xs text-blue-700 leading-relaxed">
                               Puntos marcados actualmente: <strong>{editingZone.polygon?.length || 0}</strong>.
                             </p>
@@ -700,7 +704,8 @@ const DeliverySettingsView = () => {
                               }}
                               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 mt-1"
                             >
-                              🖊️ Ir al Mapa para Dibujar Puntos
+                              <MousePointer2 className="w-3.5 h-3.5" />
+                              Ir al mapa para dibujar
                             </Button>
                           </div>
                         )}
