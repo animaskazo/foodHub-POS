@@ -248,17 +248,6 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
               Descargar Reporte
             </Button>
           )}
-
-          {pendingToReconcile.length > 0 && (
-            <Button 
-              onClick={handleMarkAsReconciled}
-              disabled={isSaving}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-2 shadow-sm ml-auto"
-            >
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Marcar {pendingToReconcile.length} como Abonados
-            </Button>
-          )}
         </div>
       </div>
 
@@ -386,6 +375,19 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
             </tbody>
           </table>
         </div>
+        
+        {pendingToReconcile.length > 0 && (
+          <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+            <Button 
+              onClick={handleMarkAsReconciled}
+              disabled={isSaving}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-2 shadow-sm"
+            >
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Marcar {pendingToReconcile.length} como Abonados
+            </Button>
+          </div>
+        )}
       </div>
 
       {csvData && csvData.some(row => !row._used_in_ui) && (
