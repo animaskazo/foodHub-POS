@@ -410,7 +410,10 @@ export const createProduct = async (organizationId, productData) => {
         console.error('Error creating variant options:', optionsError);
       } else {
         (productData.variants || []).forEach((v, i) => {
-          if (createdOptions && createdOptions[i]) variantIdMap[v.uiId] = createdOptions[i].id;
+          if (createdOptions && createdOptions[i]) {
+            if (v.uiId) variantIdMap[v.uiId] = createdOptions[i].id;
+            if (v.id) variantIdMap[v.id] = createdOptions[i].id;
+          }
         });
       }
     }
@@ -956,17 +959,19 @@ export const bulkUpdateProductStatus = async (ids, status) => {
 export const duplicateProduct = async (id) => {
   const prod = await getProductById(id);
   const newProductData = {
-    name: `Copia de ${prod.name}`,
+    name: `DUPLICADO de "${prod.name}"`,
     description: prod.description,
     price: prod.base_price,
     sku: prod.sku,
     gtin: prod.gtin,
-    type: prod.type === 'service' ? 'Servicio' : 'Producto físico',
+    type: prod.type === 'service' ? 'Servicio' : (prod.type === 'bundle' ? 'bundle' : 'physical'),
+    status: prod.status || 'available',
     categoryId: prod.categoryId,
     imageUrl: prod.imageUrl,
     variants: prod.variants,
     baseIngredients: prod.baseIngredients,
-    extraIngredients: prod.extraIngredients
+    extraIngredients: prod.extraIngredients,
+    bundleSlots: prod.bundleSlots
   };
   return await createProduct(prod.organization_id, newProductData);
 };
