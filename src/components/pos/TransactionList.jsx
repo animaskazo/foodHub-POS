@@ -255,14 +255,13 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                     <td className="px-8 py-5">
                       {(() => {
                         const channelMap = {
-                          table: { label: 'Local', Icon: Store },
-                          takeaway: { label: 'Llevar', Icon: ShoppingBag },
-                          pickup: { label: 'Retiro', Icon: ShoppingBag },
+                          table: { label: 'Mesa', Icon: Store },
+                          pickup: { label: 'POS', Icon: Store },
                           online: { label: 'Online', Icon: Globe },
                           whatsapp: { label: 'WhatsApp', Icon: MessageCircle },
+                          delivery: { label: 'POS', Icon: Store },
                         };
-                        const ch = channelMap[order.order_type];
-                        if (!ch) return <span className="text-gray-400 text-xs">{order.order_type}</span>;
+                        const ch = channelMap[order.order_type] || { label: 'POS', Icon: Store };
                         return (
                           <Badge variant="grayOutline">
                             <ch.Icon className="h-3.5 w-3.5" />
