@@ -86,6 +86,7 @@ const DeliverySettingsView = () => {
           }
         }
 
+        const rawSettings = orgData.settings || {};
         const uberAllowed = orgData.uber_enabled !== false;
         setUberEnabled(uberAllowed);
 
@@ -97,12 +98,13 @@ const DeliverySettingsView = () => {
           delivery_polygon: orgData.delivery_polygon || [],
           delivery_fee: orgData.delivery_fee || 0,
           delivery_min_order: orgData.delivery_min_order || 0,
+          raw_settings: rawSettings,
           uber_client_id: orgData.uber_client_id || '',
           uber_client_secret: orgData.uber_client_secret || '',
           uber_customer_id: orgData.uber_customer_id || '',
         });
 
-        let loadedZones = orgData.delivery_zones || [];
+        let loadedZones = orgData.delivery_zones || rawSettings.delivery_zones || [];
         // Si el usuario ya tenía una zona/polígono o tarifa configurada previamente, migrarlo como Zona 1
         if (loadedZones.length === 0 && (orgData.delivery_polygon?.length > 0 || orgData.delivery_fee > 0)) {
           loadedZones = [{
@@ -132,7 +134,12 @@ const DeliverySettingsView = () => {
     if (!orgId) return;
     setSaving(true);
     try {
-      const payload = {
+      const updatedSettings = {
+        ...(deliveryData.raw_settings || {}),
+        delivery_zones: deliveryZones,
+      };
+
+      const basePayload = {
         delivery_enabled: deliveryData.delivery_enabled,
         delivery_mode: deliveryData.delivery_mode,
         store_lat: deliveryData.store_lat,
@@ -140,18 +147,25 @@ const DeliverySettingsView = () => {
         delivery_polygon: deliveryData.delivery_polygon,
         delivery_fee: deliveryData.delivery_fee,
         delivery_min_order: deliveryData.delivery_min_order,
-        delivery_zones: deliveryZones,
+        settings: updatedSettings,
         uber_client_id: deliveryData.uber_client_id,
         uber_client_secret: deliveryData.uber_client_secret,
         uber_customer_id: deliveryData.uber_customer_id,
       };
-      await updateOrganizationDetails(orgId, payload);
+
+      try {
+        await updateOrganizationDetails(orgId, { ...basePayload, delivery_zones: deliveryZones });
+      } catch (colErr) {
+        // Fallback: Si la columna delivery_zones aún no existe en DB, guardar en la columna settings
+        await updateOrganizationDetails(orgId, basePayload);
+      }
+
       alert('Configuración de delivery guardada exitosamente.');
       setHasChanges(false);
       setTestResult(null);
     } catch (error) {
-      console.error(error);
-      alert('Error al guardar. Asegúrate de ejecutar la migración SQL 029.');
+      console.error('Error al guardar:', error);
+      alert(`Error al guardar: ${error.message || error}`);
     } finally {
       setSaving(false);
     }
