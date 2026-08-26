@@ -46,7 +46,7 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
 
         {/* Order Info */}
         <div className="text-center mt-2 mb-4">
-          <div className="receipt-order-number">#{order.order_number}</div>
+          <div className="receipt-order-number">{order.order_number?.includes('#') ? '' : '#'}{order.order_number}</div>
           <div className="receipt-order-date">{formattedDate} - {formattedTime}</div>
         </div>
 

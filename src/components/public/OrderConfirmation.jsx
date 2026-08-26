@@ -76,7 +76,9 @@ const OrderConfirmation = ({ order, org }) => {
           className={`text-center transition-all duration-500 delay-300 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
         >
           <h1 className="text-2xl font-black text-gray-900 mb-0.5">¡Pedido enviado!</h1>
-          <p className="text-sm text-gray-500 font-medium mb-2.5">Orden #{dbOrder?.order_number || order?.order_number}</p>
+          <p className="text-sm text-gray-500 font-medium mb-2.5">
+            Orden {(dbOrder?.order_number || order?.order_number)?.includes('#') ? '' : '#'}{dbOrder?.order_number || order?.order_number}
+          </p>
           <div className="inline-block bg-green-50 text-green-700 px-3.5 py-1 rounded-full font-black text-lg border border-green-200">
             ${fmt(displayTotal)}
           </div>

@@ -107,7 +107,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
         </h2>
         {orderNumber && (
           <p className="text-blue-600 font-bold text-xl mb-1" style={{ animation: 'fadeUp 0.5s ease-out 0.5s both' }}>
-            Orden #{orderNumber}
+            Orden {orderNumber?.includes('#') ? '' : '#'}{orderNumber}
           </p>
         )}
         <p className="text-gray-500 font-medium text-center text-lg" style={{ animation: 'fadeUp 0.5s ease-out 0.6s both' }}>
