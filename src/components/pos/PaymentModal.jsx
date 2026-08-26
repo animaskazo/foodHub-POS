@@ -3,7 +3,7 @@ import { Banknote, CreditCard, CheckCircle2, Coffee, Package, Loader2, Truck, Ma
 import Modal from '../ui/Modal';
 import { Button } from '../ui/button';
 import { useAuth } from '../AuthContext';
-import { geocodeAddress, calculateDistance, isPointInPolygon } from '../../utils/geo';
+import { geocodeAddress, calculateDistance, isPointInPolygon, findDeliveryZoneForLocation } from '../../utils/geo';
 
 const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, confirmOnly = false, confirmTotal = null }) => {
   const { organization } = useAuth();
@@ -288,21 +288,23 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
                             try {
                               const coords = await geocodeAddress(deliveryAddress);
                               if (coords) {
-                                let isInside = false;
-                                if (organization.delivery_polygon && organization.delivery_polygon.length > 0) {
-                                  isInside = isPointInPolygon(coords, organization.delivery_polygon);
-                                } else {
-                                  const distance = calculateDistance(organization.store_lat, organization.store_lng, coords.lat, coords.lng);
-                                  isInside = distance <= (organization.delivery_radius_km || 5);
-                                }
+                                const storeCoords = { lat: organization.store_lat, lng: organization.store_lng };
+                                const matchedZone = findDeliveryZoneForLocation(
+                                  coords,
+                                  storeCoords,
+                                  organization.delivery_zones || [],
+                                  organization.delivery_polygon || [],
+                                  organization.delivery_fee || 0,
+                                  organization.delivery_min_order || 0
+                                );
 
-                                if (!isInside) {
-                                  alert('Tu dirección está fuera de la zona de cobertura.');
+                                if (!matchedZone) {
+                                  alert('La dirección ingresada está fuera de la zona de cobertura.');
                                   setIsAddressValid(false);
                                   setDeliveryFee(0);
                                 } else {
                                   setIsAddressValid(true);
-                                  setDeliveryFee(organization.delivery_fee || 0);
+                                  setDeliveryFee(matchedZone.fee || 0);
                                 }
                               } else {
                                 alert('No pudimos encontrar la dirección. Asegúrate de incluir tu comuna o ciudad.');

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard, PaperBag, Info, CalendarClock, Clock, ChefHat } from 'lucide-react';
 import { getCustomerByPhone } from '../../services/publicOrderService';
-import { geocodeAddress, calculateDistance, isPointInPolygon } from '../../utils/geo';
+import { geocodeAddress, calculateDistance, isPointInPolygon, findDeliveryZoneForLocation } from '../../utils/geo';
 import { getAccessToken, createQuote } from '../../services/uberDirectService';
 import { MapPin } from 'lucide-react';
 import { X } from 'lucide-react';
@@ -566,23 +566,26 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             setIsQuoting(false);
           }
         } else {
-          let isInside = false;
+          const storeCoords = { lat: org.store_lat, lng: org.store_lng };
+          const matchedZone = findDeliveryZoneForLocation(
+            coords,
+            storeCoords,
+            org.delivery_zones || [],
+            org.delivery_polygon || [],
+            org.delivery_fee || 0,
+            org.delivery_min_order || 0
+          );
 
-          if (org.delivery_polygon && org.delivery_polygon.length > 0) {
-            isInside = isPointInPolygon(coords, org.delivery_polygon);
-          } else {
-            const distance = calculateDistance(org.store_lat, org.store_lng, coords.lat, coords.lng);
-            isInside = distance <= (org.delivery_radius_km || 5);
-          }
-
-          if (!isInside) {
-            setDistanceError('Tu dirección está fuera de nuestra zona de cobertura.');
+          if (!matchedZone) {
+            setDistanceError('Tu dirección está fuera de nuestra zona de cobertura de delivery propio.');
             setIsValidatedAddress(false);
-            update('deliveryFee', 0);
+            setForm(f => f.deliveryType === 'pickup' ? f : { ...f, deliveryFee: 0, matchedZone: null });
           } else {
             setDistanceError(null);
             setIsValidatedAddress(true);
-            update('deliveryFee', org.delivery_fee || 0);
+            update('deliveryCoords', coords);
+            update('deliveryFee', matchedZone.fee || 0);
+            update('matchedZone', matchedZone);
           }
         }
       } else {

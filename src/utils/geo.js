@@ -50,3 +50,56 @@ export const isPointInPolygon = (point, vs) => {
   
   return inside;
 };
+
+// Encuentra la zona de entrega que corresponde a una ubicación dada
+export const findDeliveryZoneForLocation = (point, storePoint, zones = [], defaultPolygon = [], defaultFee = 0, defaultMinOrder = 0) => {
+  if (!point || point.lat === undefined || point.lng === undefined) return null;
+
+  const activeZones = (zones || []).filter(z => z.is_active !== false);
+
+  if (activeZones.length > 0) {
+    // 1. Priorizar zonas de polígono
+    for (const zone of activeZones) {
+      if (zone.type === 'polygon' && zone.polygon?.length >= 3) {
+        if (isPointInPolygon(point, zone.polygon)) {
+          return zone;
+        }
+      }
+    }
+
+    // 2. Verificar zonas por radio
+    if (storePoint && storePoint.lat && storePoint.lng) {
+      const dist = calculateDistance(storePoint.lat, storePoint.lng, point.lat, point.lng);
+      for (const zone of activeZones) {
+        if (zone.type === 'radius' && zone.radius_km > 0) {
+          if (dist <= zone.radius_km) {
+            return zone;
+          }
+        }
+      }
+    }
+  }
+
+  // Fallback a polígono/tarifa por defecto legacy
+  if (defaultPolygon && defaultPolygon.length >= 3) {
+    if (isPointInPolygon(point, defaultPolygon)) {
+      return {
+        id: 'default',
+        name: 'Zona General',
+        fee: defaultFee || 0,
+        min_order: defaultMinOrder || 0,
+        is_active: true
+      };
+    }
+    return null; // Cobertura no disponible
+  }
+
+  return {
+    id: 'default',
+    name: 'Zona General',
+    fee: defaultFee || 0,
+    min_order: defaultMinOrder || 0,
+    is_active: true
+  };
+};
+
