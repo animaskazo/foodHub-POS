@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, Search, Loader2 } from 'lucide-react';
 
-const AddressAutocomplete = ({ value, onChange, onSelectAddress, error, required }) => {
+const AddressAutocomplete = ({ value, onChange, onSelectAddress, onBlur, error, required }) => {
   const [query, setQuery] = useState(value || '');
   const [suggestions, setSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -112,6 +112,7 @@ const AddressAutocomplete = ({ value, onChange, onSelectAddress, error, required
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
+          onBlur={onBlur}
           placeholder="Ej: Av Providencia 1234"
           className={`w-full pl-11 pr-10 py-3.5 bg-gray-50 border rounded-xl text-[15px] font-medium text-gray-900 focus:outline-none focus:ring-2 transition-all ${
             error 

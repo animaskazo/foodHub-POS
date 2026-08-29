@@ -384,7 +384,14 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   const handleAddressBlur = async (preFetchedCoords = null) => {
     if (!form.deliveryAddress?.trim() && !preFetchedCoords) return;
     if (isValidatedAddress && !preFetchedCoords) return;
-    if (deliveryMode !== 'uber_direct' && (!org?.store_lat || !org?.store_lng)) return;
+    // Para modo 'own': necesita store_lat/lng solo si no hay ninguna zona de polígono activa
+    if (deliveryMode !== 'uber_direct') {
+      const allZones = org?.delivery_zones || org?.settings?.delivery_zones || [];
+      const activeZones = allZones.filter(z => z.is_active !== false);
+      const hasPolygonZone = activeZones.some(z => z.type === 'polygon' && z.polygon?.length >= 3);
+      const needsStoreCoords = !hasPolygonZone;
+      if (needsStoreCoords && (!org?.store_lat || !org?.store_lng)) return;
+    }
 
     setIsGeocoding(true);
     setDistanceError(null);
@@ -566,15 +573,14 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             setIsQuoting(false);
           }
         } else {
-          const storeCoords = { lat: org.store_lat, lng: org.store_lng };
-          const matchedZone = findDeliveryZoneForLocation(
-            coords,
-            storeCoords,
-            org.delivery_zones || []
-          );
+          const storeCoords = (org.store_lat && org.store_lng)
+            ? { lat: org.store_lat, lng: org.store_lng }
+            : null;
+          const zones = org.delivery_zones || org.settings?.delivery_zones || [];
+          const matchedZone = findDeliveryZoneForLocation(coords, storeCoords, zones);
 
           if (!matchedZone) {
-            setDistanceError('Tu dirección está fuera de nuestra zona de cobertura de delivery propio.');
+            setDistanceError('Tu dirección está fuera de nuestra zona de cobertura.');
             setIsValidatedAddress(false);
             setForm(f => f.deliveryType === 'pickup' ? f : { ...f, deliveryFee: 0, matchedZone: null });
           } else {
@@ -740,6 +746,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                         };
                         handleAddressBlur(mappedCoords);
                       }}
+                      onBlur={() => handleAddressBlur()}
                       error={distanceError}
                       required={true}
                     />

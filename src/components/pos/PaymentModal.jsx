@@ -277,8 +277,12 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
                         onClick={async () => {
                           if (deliveryAddress.length > 5) {
                             setIsValidatingAddress(true);
-                            if (!organization?.store_lat || !organization?.store_lng) {
-                              // If no store config, just accept it and use default fee
+                            const activeZones = (organization?.delivery_zones || []).filter(z => z.is_active !== false);
+                            const hasPolygonZone = activeZones.some(z => z.type === 'polygon' && z.polygon?.length >= 3);
+                            const hasStoreCoords = !!(organization?.store_lat && organization?.store_lng);
+
+                            // Fallback: sin zonas configuradas y sin coords del local → aceptar con tarifa por defecto
+                            if (activeZones.length === 0 && !hasStoreCoords) {
                               setIsAddressValid(true);
                               setDeliveryFee(organization?.delivery_fee || 0);
                               setIsValidatingAddress(false);
@@ -288,7 +292,9 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
                             try {
                               const coords = await geocodeAddress(deliveryAddress);
                               if (coords) {
-                                 const storeCoords = { lat: organization.store_lat, lng: organization.store_lng };
+                                 const storeCoords = hasStoreCoords
+                                   ? { lat: organization.store_lat, lng: organization.store_lng }
+                                   : null;
                                  const matchedZone = findDeliveryZoneForLocation(
                                    coords,
                                    storeCoords,
