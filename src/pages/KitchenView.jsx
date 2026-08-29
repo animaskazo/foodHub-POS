@@ -143,6 +143,8 @@ const KitchenView = () => {
         });
       }, 400);
     } else {
+      // Optimistic update: only change the order's status in local state
+      // Then confirm from DB to avoid race conditions with auto-refresh interval
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
     }
 
@@ -152,6 +154,12 @@ const KitchenView = () => {
         await updateOrderItemsStatus(itemIds, newStatus, orderId);
       } else {
         await updateOrderStatus(orderId, newStatus);
+      }
+      // After a successful DB write for 'preparing', re-fetch to ensure
+      // the local state is consistent (avoids ticket disappearing due to
+      // race conditions between optimistic update and the 15s auto-refresh)
+      if (newStatus === 'preparing') {
+        setTimeout(() => fetchOrders(true), 300);
       }
     } catch (error) {
       // Revert on error by refetching
