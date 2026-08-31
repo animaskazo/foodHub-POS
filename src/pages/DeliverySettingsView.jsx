@@ -563,6 +563,7 @@ const DeliverySettingsView = () => {
                       <DeliveryMap
                         lat={deliveryData.store_lat}
                         lng={deliveryData.store_lng}
+                        storeAddress={generalAddress}
                         polygon={drawingZoneId ? (deliveryZones.find(z => z.id === drawingZoneId)?.polygon || []) : (editingZone?.type === 'polygon' ? editingZone.polygon : [])}
                         zones={deliveryZones}
                         activeZoneId={drawingZoneId || editingZone?.id}

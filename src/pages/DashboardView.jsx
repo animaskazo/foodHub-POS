@@ -373,7 +373,7 @@ const DashboardView = () => {
         <PageHeader
           title={
             <div className="flex items-center justify-between w-full gap-3 flex-wrap">
-              <span>{organization ? organization.name : 'Cargando Negocio...'}</span>
+              <span>Dashboard</span>
               {renderShiftButton(true)}
             </div>
           }

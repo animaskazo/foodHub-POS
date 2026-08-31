@@ -21,7 +21,7 @@ const MapEvents = ({ onLocationSelect }) => {
   return null;
 };
 
-const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, activeZoneColor = null, isDrawingMode = false, onLocationChange, onPolygonChange }) => {
+const DeliveryMap = ({ lat, lng, storeAddress = '', polygon, zones = [], activeZoneId = null, activeZoneColor = null, isDrawingMode = false, onLocationChange, onPolygonChange }) => {
   const [center, setCenter] = useState([lat || -33.4489, lng || -70.6693]);
   const [mode, setMode] = useState(isDrawingMode ? 'polygon' : 'marker');
   const mapRef = useRef(null);
@@ -51,10 +51,10 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, activ
   const polyPositions = (polygon || []).map(p => [p.lat, p.lng]);
 
   return (
-    <div className="relative w-full h-[420px] rounded-xl overflow-hidden border-2 border-gray-200 flex flex-col">
+    <div className="relative w-full h-[420px] rounded-xl overflow-hidden border-2 border-gray-200 flex flex-col shadow-sm">
       <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2 pointer-events-none items-end">
         {isDrawingMode && (
-          <div className="pointer-events-auto bg-white rounded-lg border border-gray-200 p-1 flex gap-1">
+          <div className="pointer-events-auto bg-white rounded-lg border border-gray-200 p-1 flex gap-1 shadow-md">
             <span className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-black bg-amber-400 text-black">
               <MousePointer2 className="w-3.5 h-3.5" />
               Dibujando Zona
@@ -73,9 +73,12 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, activ
         )}
       </div>
       
-      <div className="absolute top-4 left-16 z-[1000] bg-white/95 backdrop-blur-sm px-3.5 py-2 rounded-lg border border-gray-200 flex items-center gap-2 pointer-events-none">
-        <span className="text-xs font-semibold text-gray-800">
-          {isDrawingMode ? 'Haz clics en el mapa para trazar los vértices del perímetro' : 'Ubicación del local fija según configuración general'}
+      <div className="absolute top-4 left-16 z-[1000] bg-white/95 backdrop-blur-sm px-3.5 py-2 rounded-xl border border-gray-200 flex items-center gap-2 pointer-events-none shadow-md max-w-sm">
+        <MapPin className="w-4 h-4 text-red-500 shrink-0" />
+        <span className="text-xs font-semibold text-gray-800 truncate">
+          {isDrawingMode 
+            ? 'Haz clics en el mapa para trazar el perímetro' 
+            : (storeAddress ? `Local: ${storeAddress}` : 'Ubicación fija del local')}
         </span>
       </div>
 
@@ -94,7 +97,10 @@ const DeliveryMap = ({ lat, lng, polygon, zones = [], activeZoneId = null, activ
         {lat && lng && (
           <Marker position={[lat, lng]}>
             <Tooltip permanent font-bold direction="top" offset={[0, -20]}>
-              Tu Local
+              <div className="text-center">
+                <span className="font-extrabold text-xs text-gray-900 block">🏠 Tu Local</span>
+                {storeAddress && <span className="text-[10px] text-gray-600 block max-w-[150px] truncate">{storeAddress}</span>}
+              </div>
             </Tooltip>
           </Marker>
         )}

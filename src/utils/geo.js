@@ -32,6 +32,43 @@ export const geocodeAddress = async (address) => {
   }
 };
 
+// Obtiene sugerencias de autocompletado para una búsqueda de dirección
+export const searchAddressSuggestions = async (query) => {
+  if (!query || query.trim().length < 3) return [];
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(query)}`);
+    const data = await response.json();
+    return (data || []).map(r => ({
+      lat: parseFloat(r.lat),
+      lng: parseFloat(r.lon),
+      displayName: r.display_name,
+      address: r.address || {},
+    }));
+  } catch (error) {
+    console.error('Address search error:', error);
+    return [];
+  }
+};
+
+// Obtiene la dirección legible a partir de latitud y longitud (Reverse Geocoding)
+export const reverseGeocode = async (lat, lng) => {
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&addressdetails=1&lat=${lat}&lon=${lng}`);
+    const data = await response.json();
+    if (data && data.display_name) {
+      return {
+        displayName: data.display_name,
+        address: data.address || {},
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Reverse geocoding error:', error);
+    return null;
+  }
+};
+
+
 // Verifica si un punto (lat, lng) está dentro de un polígono usando Ray-Casting
 export const isPointInPolygon = (point, vs) => {
   // point: {lat, lng}

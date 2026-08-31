@@ -8,11 +8,12 @@ import {
   getStaff 
 } from '../services/organizationService';
 import { uploadImage } from '../services/storageService';
-import { Store, User, Clock, CalendarClock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2, Timer } from 'lucide-react';
+import { Store, User, Clock, CalendarClock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2, Timer, CreditCard, Image as ImageIcon, Sparkles, Globe, QrCode } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { getPrinters } from '../services/printerService';
+import StoreLocationPicker from '../components/admin/StoreLocationPicker';
 const daysTranslations = {
   mon: 'Lunes',
   tue: 'Martes',
@@ -53,6 +54,8 @@ const SettingsView = () => {
     phone: '',
     email: '',
     address: '',
+    store_lat: null,
+    store_lng: null,
     accepts_online_payments: true,
     online_payments_allowed: false,
     accepts_local_payments: true,
@@ -182,6 +185,8 @@ const SettingsView = () => {
           phone: orgData.phone || '',
           email: orgData.email || '',
           address: orgData.address || '',
+          store_lat: orgData.store_lat || null,
+          store_lng: orgData.store_lng || null,
           accepts_online_payments: orgData.accepts_online_payments !== false,
           online_payments_allowed: orgData.online_payments_allowed === true,
           accepts_local_payments: orgData.accepts_local_payments !== false,
@@ -277,6 +282,8 @@ const SettingsView = () => {
         phone: formData.phone,
         email: formData.email,
         address: formData.address,
+        store_lat: formData.store_lat,
+        store_lng: formData.store_lng,
         accepts_online_payments: formData.accepts_online_payments,
         accepts_local_payments: formData.accepts_local_payments !== false,
         hide_cancelled_orders: formData.hide_cancelled_orders === true
@@ -433,292 +440,368 @@ const SettingsView = () => {
         />
 
         <div className="pb-24">
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          <div className={activeTab === 'general' ? 'space-y-6' : 'bg-white rounded-2xl border border-gray-200 overflow-hidden'}>
             {activeTab === 'general' && (
-              <div className="p-6 md:p-8 space-y-6">
+              <div className="space-y-6">
                 
-                {/* Logo & Cover Image Uploaders */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Logotipo */}
-                  <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 flex flex-col items-center">
-                    <p className="font-semibold text-sm text-gray-700 mb-3 text-left w-full">Logotipo de la Empresa</p>
-                    <div 
-                      className="w-24 h-24 bg-white border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden relative group"
-                      style={formData.logo_url ? { backgroundImage: `url(${formData.logo_url})` } : {}}
-                    >
-                      {!formData.logo_url && <span className="text-3xl">🏬</span>}
-                      {isUploadingLogo && (
-                        <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-                          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                        </div>
-                      )}
+                {/* BLOQUE 1: Identidad y Marca */}
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-6">
+                  <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                    <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl">
+                      <Sparkles className="w-5 h-5" />
                     </div>
-                    <label className="mt-4 px-4 py-1.5 bg-white border border-gray-200 text-xs font-bold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors">
-                      {formData.logo_url ? 'Cambiar Logo' : 'Subir Logo'}
-                      <input 
-                        type="file" 
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload(e, 'logo')}
-                        disabled={isUploadingLogo}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-
-                  {/* Portada */}
-                  <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 flex flex-col items-center">
-                    <p className="font-semibold text-sm text-gray-700 mb-3 text-left w-full">Portada (foto o video)</p>
-                    <div 
-                      className="w-full h-24 rounded-xl bg-white border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden relative"
-                      style={!formData.cover_is_video && formData.cover_url ? { backgroundImage: `url(${formData.cover_url})` } : {}}
-                    >
-                      {formData.cover_is_video && formData.cover_url ? (
-                        <video src={formData.cover_url} autoPlay muted loop playsInline className="w-full h-full object-cover" />
-                      ) : !formData.cover_url ? (
-                        <span className="text-3xl">🎞️</span>
-                      ) : null}
-                      {isUploadingCover && (
-                        <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-                          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                        </div>
-                      )}
-                    </div>
-                    <label className="mt-4 px-4 py-1.5 bg-white border border-gray-200 text-xs font-bold text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors">
-                      {formData.cover_url ? 'Cambiar Portada' : 'Subir Portada'}
-                      <input 
-                        type="file" 
-                        accept="image/*,video/*"
-                        onChange={(e) => handleImageUpload(e, 'cover')}
-                        disabled={isUploadingCover}
-                        className="hidden"
-                      />
-                    </label>
-                    <p className="mt-2 text-[11px] text-gray-400 text-center">Videos: máx. 10MB y 15 segundos</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre del Negocio</label>
-                    <div className="form-field flex items-center px-4">
-                      <input
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                        className="flex-1 h-12 bg-transparent outline-none text-[15px]"
-                        placeholder="Ej: Pizza Nostra"
-                        required
-                      />
+                    <div>
+                      <h3 className="text-base font-bold text-gray-900">Identidad y Marca</h3>
+                      <p className="text-xs text-gray-500">Personaliza el logotipo y la imagen o video de portada de tu negocio.</p>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Slug de la Tienda (URL)</label>
-                    <div className="form-field flex items-center px-4">
-                      <input
-                        type="text"
-                        value={formData.slug}
-                        onChange={(e) => {
-                          const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-                          setFormData({...formData, slug: val});
-                        }}
-                        className="flex-1 h-12 bg-transparent outline-none text-[15px]"
-                        placeholder="ej: pizza-nostra"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Descripción Corta</label>
-                  <div className="form-field px-4 py-3">
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData({...formData, description: e.target.value})}
-                      className="w-full h-20 bg-transparent outline-none text-[15px] resize-none"
-                      placeholder="Cuéntale a tus clientes de qué se trata tu negocio..."
-                    />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Teléfono</label>
-                    <div className="form-field flex items-center px-4">
-                      <input
-                        type="text"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                        className="flex-1 h-12 bg-transparent outline-none text-[15px]"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
-                    <div className="form-field flex items-center px-4">
-                      <input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                        className="flex-1 h-12 bg-transparent outline-none text-[15px]"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Dirección</label>
-                  <div className="form-field flex items-center px-4">
-                    <input
-                      type="text"
-                      value={formData.address}
-                      onChange={(e) => setFormData({...formData, address: e.target.value})}
-                      className="flex-1 h-12 bg-transparent outline-none text-[15px]"
-                    />
-                  </div>
-                </div>
-
-                {/* Switch para habilitar/deshabilitar pago en caja */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl">
-                  <div>
-                    <p className="font-bold text-sm text-gray-800">Habilitar Pago en Caja</p>
-                    <p className="text-xs text-gray-500 max-w-sm mt-0.5">
-                      Permite que tus clientes paguen con efectivo o tarjeta al retirar o recibir su pedido.
-                    </p>
-                  </div>
-                  <Switch
-                    checked={formData.accepts_local_payments !== false}
-                    onCheckedChange={(checked) => setFormData({...formData, accepts_local_payments: checked})}
-                  />
-                </div>
-
-                {/* Switch para habilitar/deshabilitar pago online */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-bold text-sm text-gray-800">Habilitar Pago en Línea (Klap)</p>
-                      {!formData.online_payments_allowed && (
-                        <span className="text-[10px] bg-gray-200 text-gray-600 font-bold px-2 py-0.5   uppercase tracking-wider">
-                          Pronto
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 max-w-sm mt-0.5">
-                      {!formData.online_payments_allowed 
-                        ? 'Esta característica estará disponible próximamente en tu cuenta.' 
-                        : 'Permite que tus clientes paguen con tarjetas de crédito o débito a través de la web.'}
-                    </p>
-                  </div>
-                  <Switch 
-                    checked={formData.accepts_online_payments !== false}
-                    onCheckedChange={(checked) => setFormData({...formData, accepts_online_payments: checked})}
-                  />
-                </div>
-
-                {/* Switch para ocultar pedidos cancelados */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl">
-                  <div>
-                    <p className="font-bold text-sm text-gray-800">Ocultar Pedidos Cancelados</p>
-                    <p className="text-xs text-gray-500 max-w-sm mt-0.5">
-                      Oculta los pedidos cancelados del registro diario y del historial de ventas.
-                    </p>
-                  </div>
-                  <Switch
-                    checked={formData.hide_cancelled_orders === true}
-                    onCheckedChange={(checked) => setFormData({...formData, hide_cancelled_orders: checked})}
-                  />
-                </div>
-
-                {/* Public store link */}
-                {formData.slug && (
-                  <div className="bg-gray-50 rounded-2xl border border-gray-200 p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Link className="h-4 w-4 text-gray-500" />
-                      <p className="text-sm font-bold text-gray-700">Tu tienda pública</p>
-                    </div>
-                    <p className="text-xs text-gray-500 mb-3">Comparte este enlace con tus clientes para que puedan hacer pedidos en línea.</p>
-                    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5 mb-4">
-                      <span className="text-sm text-gray-600 flex-1 truncate">
-                        {storeUrl}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigator.clipboard.writeText(storeUrl)}
-                        className="h-8 w-8 text-gray-500 hover:text-gray-900 shrink-0 cursor-pointer"
-                        title="Copiar enlace"
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Logotipo */}
+                    <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 flex flex-col items-center">
+                      <p className="font-semibold text-sm text-gray-700 mb-3 text-left w-full">Logotipo de la Empresa</p>
+                      <div 
+                        className="w-24 h-24 bg-white border-2 border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden relative group rounded-full shadow-md"
+                        style={formData.logo_url ? { backgroundImage: `url(${formData.logo_url})` } : {}}
                       >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <a
-                        href={storeUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors shrink-0 cursor-pointer"
-                        title="Abrir tienda"
+                        {!formData.logo_url && <span className="text-3xl">🏬</span>}
+                        {isUploadingLogo && (
+                          <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                          </div>
+                        )}
+                      </div>
+                      <label className="mt-4 px-4 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors shadow-sm">
+                        {formData.logo_url ? 'Cambiar Logo' : 'Subir Logo'}
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          onChange={(e) => handleImageUpload(e, 'logo')}
+                          disabled={isUploadingLogo}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+
+                    {/* Portada */}
+                    <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 flex flex-col items-center">
+                      <p className="font-semibold text-sm text-gray-700 mb-3 text-left w-full">Portada (foto o video)</p>
+                      <div 
+                        className="w-full h-24 rounded-xl bg-white border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden relative"
+                        style={!formData.cover_is_video && formData.cover_url ? { backgroundImage: `url(${formData.cover_url})` } : {}}
                       >
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
+                        {formData.cover_is_video && formData.cover_url ? (
+                          <video src={formData.cover_url} autoPlay muted loop playsInline className="w-full h-full object-cover" />
+                        ) : !formData.cover_url ? (
+                          <span className="text-3xl">🎞️</span>
+                        ) : null}
+                        {isUploadingCover && (
+                          <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                          </div>
+                        )}
+                      </div>
+                      <label className="mt-4 px-4 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors shadow-sm">
+                        {formData.cover_url ? 'Cambiar Portada' : 'Subir Portada'}
+                        <input 
+                          type="file" 
+                          accept="image/*,video/*"
+                          onChange={(e) => handleImageUpload(e, 'cover')}
+                          disabled={isUploadingCover}
+                          className="hidden"
+                        />
+                      </label>
+                      <p className="mt-2 text-[11px] text-gray-400 text-center">Videos: máx. 10MB y 15 segundos</p>
                     </div>
+                  </div>
+                </div>
 
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5 mb-4">
-                      <p className="text-xs text-blue-700 font-medium mb-1">📱 Compartir en redes sociales</p>
-                      <p className="text-xs text-blue-600">Al compartir este link en WhatsApp, Telegram, etc. se mostrará la foto y nombre de tu tienda automáticamente.</p>
+                {/* BLOQUE 2: Información Principal */}
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-6">
+                  <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                    <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                      <Store className="w-5 h-5" />
                     </div>
+                    <div>
+                      <h3 className="text-base font-bold text-gray-900">Información Principal</h3>
+                      <p className="text-xs text-gray-500">Nombre comercial, enlace web personalizado y presentación del negocio.</p>
+                    </div>
+                  </div>
 
-                    {/* QR Code Section */}
-                    <div className="border-t border-gray-200 pt-4 flex flex-col sm:flex-row items-center gap-4">
-                      <div className="p-3 bg-white border border-gray-200 rounded-2xl shrink-0">
-                        <img 
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(storeUrl)}`}
-                          alt="Código QR de la tienda"
-                          className="w-28 h-28 md:w-32 md:h-32 object-contain"
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Nombre del Negocio</label>
+                      <div className="form-field flex items-center px-4 bg-white border border-gray-300 rounded-xl focus-within:ring-2 focus-within:ring-black">
+                        <input
+                          type="text"
+                          value={formData.name}
+                          onChange={(e) => setFormData({...formData, name: e.target.value})}
+                          className="flex-1 h-12 bg-transparent outline-none text-[15px]"
+                          placeholder="Ej: Pizza Nostra"
+                          required
                         />
                       </div>
-                      <div className="text-center sm:text-left space-y-2">
-                        <p className="font-bold text-sm text-gray-800">Código QR de tu Menú</p>
-                        <p className="text-xs text-gray-500 leading-relaxed max-w-sm">
-                          Imprime este código y colócalo en las mesas o vitrina de tu local. Tus clientes podrán escanearlo para ver la carta y pedir directamente.
-                        </p>
-                        <Button
-                          onClick={async () => {
-                            const url = storeUrl;
-                            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(url)}`;
-                            try {
-                              const response = await fetch(qrApiUrl);
-                              const blob = await response.blob();
-                              const blobUrl = URL.createObjectURL(blob);
-                              const link = document.createElement('a');
-                              link.href = blobUrl;
-                              link.download = `qr-${formData.slug}.png`;
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                              URL.revokeObjectURL(blobUrl);
-                            } catch (e) {
-                              window.open(qrApiUrl, '_blank');
-                            }
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Slug de la Tienda (URL)</label>
+                      <div className="form-field flex items-center px-4 bg-white border border-gray-300 rounded-xl focus-within:ring-2 focus-within:ring-black">
+                        <input
+                          type="text"
+                          value={formData.slug}
+                          onChange={(e) => {
+                            const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                            setFormData({...formData, slug: val});
                           }}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-black hover:bg-gray-850 text-white text-xs font-bold   transition-colors cursor-pointer"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          Descargar código QR (PNG)
-                        </Button>
+                          className="flex-1 h-12 bg-transparent outline-none text-[15px]"
+                          placeholder="ej: pizza-nostra"
+                          required
+                        />
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Previsualización rápida y acciones de la URL de la tienda */}
+                  {formData.slug && (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-blue-50/70 border border-blue-200 rounded-xl p-3.5">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <Globe className="w-4 h-4 text-blue-600 shrink-0" />
+                        <span className="text-xs font-semibold text-blue-950 truncate">
+                          {storeUrl}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigator.clipboard.writeText(storeUrl)}
+                          className="h-8 px-3 text-xs text-blue-700 hover:text-blue-950 hover:bg-blue-100/80 flex items-center gap-1.5 cursor-pointer font-bold rounded-lg"
+                          title="Copiar enlace"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                          Copiar
+                        </Button>
+                        <a
+                          href={storeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="h-8 px-3 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                          title="Abrir tienda"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Ver Tienda
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Descripción Corta</label>
+                    <div className="form-field px-4 py-3 bg-white border border-gray-300 rounded-xl focus-within:ring-2 focus-within:ring-black">
+                      <textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                        className="w-full h-20 bg-transparent outline-none text-[15px] resize-none"
+                        placeholder="Cuéntale a tus clientes de qué se trata tu negocio..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* BLOQUE 3: Contacto y Geolocalización */}
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-6">
+                  <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                    <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                      <MapPin className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-gray-900">Contacto y Geolocalización</h3>
+                      <p className="text-xs text-gray-500">Teléfono, correo electrónico de contacto y punto de ubicación en el mapa.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Teléfono de Contacto</label>
+                      <div className="form-field flex items-center px-4 bg-white border border-gray-300 rounded-xl focus-within:ring-2 focus-within:ring-black">
+                        <input
+                          type="text"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                          className="flex-1 h-12 bg-transparent outline-none text-[15px]"
+                          placeholder="Ej: +56 9 1234 5678"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Email del Negocio</label>
+                      <div className="form-field flex items-center px-4 bg-white border border-gray-300 rounded-xl focus-within:ring-2 focus-within:ring-black">
+                        <input
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({...formData, email: e.target.value})}
+                          className="flex-1 h-12 bg-transparent outline-none text-[15px]"
+                          placeholder="contacto@tunegocio.cl"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <StoreLocationPicker
+                    address={formData.address}
+                    lat={formData.store_lat}
+                    lng={formData.store_lng}
+                    onChange={({ address, lat, lng }) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        address,
+                        store_lat: lat,
+                        store_lng: lng
+                      }));
+                    }}
+                  />
+                </div>
+
+                {/* BLOQUE 4: Operación y Métodos de Pago */}
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-6">
+                  <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                    <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-gray-900">Operación y Métodos de Pago</h3>
+                      <p className="text-xs text-gray-500">Gestión de pagos en caja, pasarela online y preferencias del historial.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Switch para habilitar/deshabilitar pago en caja */}
+                    <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl hover:border-gray-300 transition-colors">
+                      <div>
+                        <p className="font-bold text-sm text-gray-800">Habilitar Pago en Caja</p>
+                        <p className="text-xs text-gray-500 max-w-sm mt-0.5">
+                          Permite que tus clientes paguen con efectivo o tarjeta al retirar o recibir su pedido.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.accepts_local_payments !== false}
+                        onCheckedChange={(checked) => setFormData({...formData, accepts_local_payments: checked})}
+                      />
+                    </div>
+
+                    {/* Switch para habilitar/deshabilitar pago online */}
+                    <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl hover:border-gray-300 transition-colors">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-sm text-gray-800">Habilitar Pago en Línea (Klap)</p>
+                          {!formData.online_payments_allowed && (
+                            <span className="text-[10px] bg-gray-200 text-gray-600 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                              Pronto
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 max-w-sm mt-0.5">
+                          {!formData.online_payments_allowed 
+                            ? 'Esta característica estará disponible próximamente en tu cuenta.' 
+                            : 'Permite que tus clientes paguen con tarjetas de crédito o débito a través de la web.'}
+                        </p>
+                      </div>
+                      <Switch 
+                        checked={formData.accepts_online_payments !== false}
+                        onCheckedChange={(checked) => setFormData({...formData, accepts_online_payments: checked})}
+                      />
+                    </div>
+
+                    {/* Switch para ocultar pedidos cancelados */}
+                    <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl hover:border-gray-300 transition-colors">
+                      <div>
+                        <p className="font-bold text-sm text-gray-800">Ocultar Pedidos Cancelados</p>
+                        <p className="text-xs text-gray-500 max-w-sm mt-0.5">
+                          Oculta los pedidos cancelados del registro diario y del historial de ventas.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={formData.hide_cancelled_orders === true}
+                        onCheckedChange={(checked) => setFormData({...formData, hide_cancelled_orders: checked})}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* BLOQUE 5: Código QR del Menú */}
+                {formData.slug && (
+                  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-4">
+                    <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                      <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                        <QrCode className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-bold text-gray-900">Código QR del Menú</h3>
+                        <p className="text-xs text-gray-500">Descarga e imprime tu QR para mesas o vitrina.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-2">
+                      <div className="flex items-center gap-4">
+                        <div className="p-2 bg-white border border-gray-200 rounded-2xl shrink-0 shadow-xs">
+                          <img 
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(storeUrl)}`}
+                            alt="Código QR de la tienda"
+                            className="w-20 h-20 object-contain"
+                          />
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm text-gray-800">QR Oficial de tu Menú</p>
+                          <p className="text-xs text-gray-500 max-w-xs mt-0.5">
+                            Escaneo directo desde el celular para ver la carta y hacer pedidos.
+                          </p>
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={async () => {
+                          const url = storeUrl;
+                          const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(url)}`;
+                          try {
+                            const response = await fetch(qrApiUrl);
+                            const blob = await response.blob();
+                            const blobUrl = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = blobUrl;
+                            link.download = `qr-${formData.slug}.png`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(blobUrl);
+                          } catch (e) {
+                            window.open(qrApiUrl, '_blank');
+                          }
+                        }}
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-black hover:bg-gray-850 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer shrink-0 shadow-xs"
+                      >
+                        <Download className="h-4 w-4" />
+                        Descargar QR (PNG)
+                      </Button>
                     </div>
                   </div>
                 )}
 
-                <div className="pt-6 border-t border-gray-100 flex justify-end">
+                {/* Barra inferior de guardar cambios */}
+                <div className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                  <div className="flex items-center gap-2 text-xs text-gray-500 font-medium text-center sm:text-left">
+                    <Info className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span>Recuerda guardar los cambios para actualizar la información de tu negocio.</span>
+                  </div>
                   <Button
                     onClick={handleSaveGeneral}
                     disabled={saving}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-black text-white   font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-black text-white font-bold rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer shrink-0 shadow-sm"
                   >
                     {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
                     Guardar Cambios
                   </Button>
                 </div>
+
               </div>
             )}
 
