@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Banknote, CreditCard, CheckCircle2, Coffee, Package, Loader2, Truck, MapPin } from 'lucide-react';
+import { Banknote, CreditCard, CheckCircle2, Store, ShoppingBag, Package, Loader2, Truck, MapPin } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/button';
 import { useAuth } from '../AuthContext';
@@ -83,7 +83,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
     } catch (e) {
       setProcessingMethod(null);
     }
-  };
+  };  if (!isOpen) return null;
 
   if (status === 'success') {
     return (
@@ -193,63 +193,74 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
       onClose={onClose} 
       title={confirmOnly ? 'Confirmar Pago en Caja' : 'Confirmar Pago'}
       maxWidth="max-w-lg"
+      fullScreenOnMobile={true}
     >
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-        <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
-          <span className="text-sm text-gray-500 font-medium mb-1">
-            {confirmOnly ? 'Total del Pedido Online' : 'Total a Pagar'}
+      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
+        {/* Total a Pagar centrado verticalmente entre header y tipo de pedido */}
+        <div className="py-6 md:py-8 my-auto flex flex-col items-center justify-center text-center border-b border-gray-100 shrink-0">
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+            {confirmOnly ? 'Total Pedido Online' : 'Total a Pagar'}
           </span>
-          <span className="text-4xl font-black text-gray-900">${fmt(confirmOnly ? (confirmTotal ?? 0) : total)}</span>
-          {!confirmOnly && orderType === 'delivery' && deliveryFee > 0 && (
-            <span className="text-sm font-semibold text-blue-600 mt-2 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-              Incluye despacho: ${fmt(deliveryFee)}
+          <span className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight">
+            ${fmt(confirmOnly ? (confirmTotal ?? 0) : total)}
+          </span>
+          {confirmOnly && (
+            <span className="text-[11px] text-amber-600 font-semibold mt-1.5">
+              Selecciona el método recibido en caja
             </span>
           )}
-          {confirmOnly && (
-            <span className="text-xs text-amber-600 font-semibold mt-1.5 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-              Selecciona el método recibido en caja
+          {!confirmOnly && orderType === 'delivery' && deliveryFee > 0 && (
+            <span className="text-xs font-medium text-blue-600 mt-1.5">
+              Incluye despacho ${fmt(deliveryFee)}
             </span>
           )}
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {!confirmOnly && (
             <>
-              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider ml-1">Tipo de Pedido</h3>
-              <div className="grid grid-cols-3 gap-2 md:gap-3 mb-6">
-                <button
-                  onClick={() => setOrderType('table')}
-                  className={`flex items-center justify-center p-2.5 md:p-3 rounded-xl md:rounded-full border-2 transition-all flex-col md:flex-row text-center md:text-left ${
-                    orderType === 'table'
-                      ? 'border-black bg-black text-white shadow-md'
-                      : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <Coffee className={`h-5 w-5 mb-1 md:mb-0 md:mr-2 ${orderType === 'table' ? 'text-white' : 'text-gray-500'}`} />
-                  <span className="font-bold text-xs md:text-sm whitespace-nowrap">Para Servir</span>
-                </button>
-                <button
-                  onClick={() => setOrderType('pickup')}
-                  className={`flex items-center justify-center p-2.5 md:p-3 rounded-xl md:rounded-full border-2 transition-all flex-col md:flex-row text-center md:text-left ${
-                    orderType === 'pickup'
-                      ? 'border-black bg-black text-white shadow-md'
-                      : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <Package className={`h-5 w-5 mb-1 md:mb-0 md:mr-2 ${orderType === 'pickup' ? 'text-white' : 'text-gray-500'}`} />
-                  <span className="font-bold text-xs md:text-sm whitespace-nowrap">Para Llevar</span>
-                </button>
-                <button
-                  onClick={() => setOrderType('delivery')}
-                  className={`flex items-center justify-center p-2.5 md:p-3 rounded-xl md:rounded-full border-2 transition-all flex-col md:flex-row text-center md:text-left ${
-                    orderType === 'delivery'
-                      ? 'border-black bg-black text-white shadow-md'
-                      : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <Truck className={`h-5 w-5 mb-1 md:mb-0 md:mr-2 ${orderType === 'delivery' ? 'text-white' : 'text-gray-500'}`} />
-                  <span className="font-bold text-xs md:text-sm whitespace-nowrap">Delivery</span>
-                </button>
+              <div>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tipo de Pedido</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setOrderType('table')}
+                    className={`flex items-center justify-center py-2.5 px-3 rounded-xl border transition-all cursor-pointer font-bold text-xs ${
+                      orderType === 'table'
+                        ? 'border-black bg-black text-white shadow-sm'
+                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Store className="h-4 w-4 mr-1.5 shrink-0" />
+                    <span>Local</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setOrderType('pickup')}
+                    className={`flex items-center justify-center py-2.5 px-3 rounded-xl border transition-all cursor-pointer font-bold text-xs ${
+                      orderType === 'pickup'
+                        ? 'border-black bg-black text-white shadow-sm'
+                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <ShoppingBag className="h-4 w-4 mr-1.5 shrink-0" />
+                    <span>Pickup</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setOrderType('delivery')}
+                    className={`flex items-center justify-center py-2.5 px-3 rounded-xl border transition-all cursor-pointer font-bold text-xs ${
+                      orderType === 'delivery'
+                        ? 'border-black bg-black text-white shadow-sm'
+                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Truck className="h-4 w-4 mr-1.5 shrink-0" />
+                    <span>Delivery</span>
+                  </button>
+                </div>
               </div>
 
               {orderType === 'delivery' && (
@@ -263,7 +274,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
                       <input 
                         type="text" 
                         placeholder="Dirección completa *" 
-                        className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-black focus:ring-black focus:outline-none text-sm transition-colors"
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-black focus:ring-black focus:outline-none text-sm transition-colors bg-white"
                         value={deliveryAddress}
                         onChange={(e) => {
                           setDeliveryAddress(e.target.value);
@@ -338,14 +349,14 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
                       <input 
                         type="text" 
                         placeholder="Nombre *" 
-                        className="w-1/2 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-black focus:ring-black focus:outline-none text-sm transition-colors"
+                        className="w-1/2 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-black focus:ring-black focus:outline-none text-sm transition-colors bg-white"
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                       />
                       <input 
                         type="tel" 
                         placeholder="Teléfono *" 
-                        className="w-1/2 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-black focus:ring-black focus:outline-none text-sm transition-colors"
+                        className="w-1/2 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-black focus:ring-black focus:outline-none text-sm transition-colors bg-white"
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
                       />
@@ -354,11 +365,11 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
                 </div>
               )}
 
-              <div className="mb-6">
+              <div className="mb-4">
                 <input 
                   type="text"
                   placeholder="Comentarios (Opcional)" 
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-black focus:ring-black focus:outline-none text-sm transition-colors"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-black focus:ring-black focus:outline-none text-sm transition-colors bg-white"
                   value={orderNotes}
                   onChange={(e) => setOrderNotes(e.target.value)}
                 />
@@ -366,7 +377,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
             </>
           )}
 
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider ml-1">Método de Pago</h3>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Método de Pago</h3>
           <div className="grid grid-cols-1 gap-3">
             {paymentMethods.map((method) => {
               const isDeliveryFormIncomplete = orderType === 'delivery' && (!customerName || !customerPhone || !deliveryAddress || !isAddressValid);
@@ -379,7 +390,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
                 key={method.id}
                 onClick={() => handlePayment(method.id)}
                 disabled={isDisabled}
-                className={`flex items-center p-4 border-2 rounded-2xl md:rounded-full transition-all text-left ${
+                className={`flex items-center p-4 border-2 rounded-2xl md:rounded-full transition-all text-left cursor-pointer ${
                   isProcessingThis
                     ? 'border-black bg-black shadow-md opacity-100 cursor-wait'
                     : isDisabled
@@ -395,7 +406,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
                       : 'text-gray-700 group-hover:text-black'
                 }`} />
                 <div className="flex-1 min-w-0">
-                  <span className={`font-bold text-lg truncate block transition-colors ${
+                  <span className={`font-bold text-base md:text-lg truncate block transition-colors ${
                     isProcessingThis 
                       ? 'text-white' 
                       : processingMethod 

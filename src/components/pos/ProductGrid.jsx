@@ -62,29 +62,9 @@ const ProductGrid = ({
   const [hasDraggedCats, setHasDraggedCats] = useState(false);
   const [catDragStart, setCatDragStart] = useState({ x: 0, scrollLeft: 0 });
 
-  const [catScrollProgress, setCatScrollProgress] = useState(0);
-
-  const checkCatScroll = () => {
-    // We can just rely on categories length or always show it
-  };
-
-  useEffect(() => {
-    // Keeping this for resize events if needed, but dots will always render
-  }, [categories]);
-
-  const handleCatScroll = (e) => {
-    const { scrollLeft, scrollWidth, clientWidth } = e.target;
-    const maxScroll = scrollWidth - clientWidth;
-    if (maxScroll > 0) {
-      setCatScrollProgress(scrollLeft / maxScroll);
-    } else {
-      setCatScrollProgress(0);
-    }
-  };
-
   const scrollCats = (direction) => {
     if (categoryScrollRef.current) {
-      categoryScrollRef.current.scrollBy({ left: direction === 'left' ? -200 : 200, behavior: 'smooth' });
+      categoryScrollRef.current.scrollBy({ left: direction === 'left' ? -220 : 220, behavior: 'smooth' });
     }
   };
 
@@ -376,78 +356,63 @@ const ProductGrid = ({
             <div className="h-10 w-20 bg-gray-200 rounded-full animate-pulse shrink-0"></div>
           </div>
         ) : (
-          <div className="flex flex-col mb-2">
-            <div className="relative flex items-center group w-full overflow-hidden">
-              {/* Left Button */}
-              <button 
-                onClick={() => scrollCats('left')}
-                className="hidden md:flex absolute left-0 z-10 bg-gradient-to-r from-white via-white/80 to-transparent h-full w-14 items-center justify-start pl-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto"
-              >
-                <div className="bg-white rounded-full shadow-sm border border-gray-200 p-1 text-gray-500 hover:text-black hover:shadow cursor-pointer pointer-events-auto">
-                  <ChevronLeft className="h-5 w-5" />
-                </div>
-              </button>
+          <div className="flex items-center px-2 md:px-4 gap-1">
+            {/* Left Button */}
+            <button 
+              type="button"
+              onClick={() => scrollCats('left')}
+              className="flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0 cursor-pointer select-none"
+              title="Categorías anteriores"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
 
-              <div 
-                ref={categoryScrollRef}
-                className={`flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory relative select-none ${isDraggingCats ? 'cursor-grabbing' : 'cursor-grab'} w-full`}
-                onPointerDown={handleCatPointerDown}
-                onPointerMove={handleCatPointerMove}
-                onPointerUp={handleCatPointerUp}
-                onPointerLeave={handleCatPointerUp}
-                onWheel={handleCatWheel}
-                onScroll={handleCatScroll}
-              >
-                {categories.map((cat, index) => (
-                  <div 
-                    key={cat.id} 
-                    className={`snap-start shrink-0 flex ${index === 0 ? 'pl-5' : ''} ${index === categories.length - 1 ? 'pr-5' : ''}`}
+            {/* Categories Scroll Track */}
+            <div 
+              ref={categoryScrollRef}
+              className={`flex gap-2 overflow-x-auto no-scrollbar snap-x snap-mandatory relative select-none ${isDraggingCats ? 'cursor-grabbing' : 'cursor-grab'} flex-1 py-1`}
+              onPointerDown={handleCatPointerDown}
+              onPointerMove={handleCatPointerMove}
+              onPointerUp={handleCatPointerUp}
+              onPointerLeave={handleCatPointerUp}
+              onWheel={handleCatWheel}
+            >
+              {categories.map((cat) => (
+                <div key={cat.id} className="snap-start shrink-0">
+                  <button
+                    onClick={(e) => {
+                      if (hasDraggedCats) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                      }
+                      setActiveCategory(cat.id);
+                    }}
+                    className={`
+                      px-5 py-2 rounded-full font-bold text-[14px] whitespace-nowrap transition-colors select-none cursor-pointer
+                      ${activeCategory === cat.id 
+                        ? 'bg-black text-white shadow-md' 
+                        : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 active:bg-gray-100'}
+                    `}
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
-                    <button
-                      onClick={(e) => {
-                        if (hasDraggedCats) {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          return;
-                        }
-                        setActiveCategory(cat.id);
-                      }}
-                      className={`
-                        px-6 py-2.5 rounded-full font-bold text-[14px] whitespace-nowrap transition-colors select-none
-                        ${activeCategory === cat.id 
-                          ? 'bg-black text-white shadow-md' 
-                          : 'bg-white text-gray-700 border border-gray-200 active:bg-gray-100'}
-                      `}
-                      style={{ WebkitTapHighlightColor: 'transparent' }}
-                    >
-                      {cat.name}
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Right Button */}
-              <button 
-                onClick={() => scrollCats('right')}
-                className="hidden md:flex absolute right-0 z-10 bg-gradient-to-l from-white via-white/80 to-transparent h-full w-14 items-center justify-end pr-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto"
-              >
-                <div className="bg-white rounded-full shadow-sm border border-gray-200 p-1 text-gray-500 hover:text-black hover:shadow cursor-pointer pointer-events-auto">
-                  <ChevronRight className="h-5 w-5" />
+                    {cat.name}
+                  </button>
                 </div>
-              </button>
-            </div>
-            
-            {/* Scroll Indicator Dots */}
-            <div className="flex justify-center items-center gap-1.5 mt-2 mb-2 min-h-[10px]">
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    Math.round(catScrollProgress * 2) === i ? 'w-4 bg-gray-800' : 'w-1.5 bg-gray-300'
-                  }`}
-                />
               ))}
             </div>
+
+            {/* Right Button */}
+            <button 
+              type="button"
+              onClick={() => scrollCats('right')}
+              className="flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0 cursor-pointer select-none"
+              title="Siguientes categorías"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
           </div>
         )}
       </div>
