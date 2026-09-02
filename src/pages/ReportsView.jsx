@@ -497,46 +497,6 @@ const ReportsView = () => {
                 <Sparkles className="h-4 w-4" /> Asistente IA
               </button>
 
-              {/* Semanal dropdown */}
-              <div className="relative">
-                <button onClick={() => setOpenDropdown(openDropdown === 'weekly' ? null : 'weekly')}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-white rounded-xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
-                  <FileDown className="h-4 w-4" /> Semanal
-                </button>
-                {openDropdown === 'weekly' && (
-                  <div className="absolute right-0 top-full mt-1.5 w-36 bg-white rounded-xl shadow-lg border border-gray-200/80 py-1 z-50 overflow-hidden">
-                    <button onClick={() => { exportExcel(days.slice(0, 7), 'Semanal'); setOpenDropdown(null) }}
-                      className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                      <FileSpreadsheet className="h-4 w-4 text-emerald-600" /> XLS
-                    </button>
-                    <button onClick={() => { exportCSV(days.slice(0, 7), 'Semanal'); setOpenDropdown(null) }}
-                      className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                      <FileText className="h-4 w-4 text-blue-500" /> CSV
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Mensual dropdown */}
-              <div className="relative">
-                <button onClick={() => setOpenDropdown(openDropdown === 'monthly' ? null : 'monthly')}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-gray-900 rounded-xl text-sm font-semibold text-white hover:bg-gray-800 transition-colors">
-                  <FileDown className="h-4 w-4" /> Mensual
-                </button>
-                {openDropdown === 'monthly' && (
-                  <div className="absolute right-0 top-full mt-1.5 w-36 bg-white rounded-xl shadow-lg border border-gray-200/80 py-1 z-50 overflow-hidden">
-                    <button onClick={() => { exportExcel(days, 'Mensual'); setOpenDropdown(null) }}
-                      className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                      <FileSpreadsheet className="h-4 w-4 text-emerald-600" /> XLS
-                    </button>
-                    <button onClick={() => { exportCSV(days, 'Mensual'); setOpenDropdown(null) }}
-                      className="flex items-center gap-2.5 w-full text-left px-3.5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                      <FileText className="h-4 w-4 text-blue-500" /> CSV
-                    </button>
-                  </div>
-                )}
-              </div>
-
               <div className="flex items-center gap-2 bg-white rounded-xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 px-2 py-1.5">
                 <button onClick={prev} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><ChevronLeft className="h-4 w-4 text-gray-500" /></button>
                 <span className="text-sm font-semibold text-gray-900 min-w-[130px] text-center select-none">{MONTHS[cm]} {cy}</span>
