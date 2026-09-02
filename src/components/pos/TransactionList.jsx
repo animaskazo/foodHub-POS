@@ -10,7 +10,7 @@ import { useAuth } from '../AuthContext';
 import { supabase } from '../../lib/supabase';
 import { updateOrderStatus, deleteOrder, bulkDeleteOrders, bulkCancelOrders } from '../../services/orderService';
 import { printReceipt } from '../../services/printerService';
-import { fmt, getKitchenTime, getPaymentMethod, getStatusTag } from '../../utils/orderUtils';
+import { fmt, getKitchenTime, getPaymentMethod, getStatusTag, formatDateSeparator, getOrderDateKey } from '../../utils/orderUtils';
 import UberDeliveryCard from './UberDeliveryCard';
 import OrderDetailModal from './OrderDetailModal';
 
@@ -194,134 +194,154 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                   />
                 </th>
               )}
-              <th className="px-6 py-3 w-44 text-xs font-semibold text-gray-500 uppercase tracking-wider">Orden</th>
-              <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
-              <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Hora</th>
-              <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
-              <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Canal</th>
-              <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Envío</th>
-              <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Total</th>
-              <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Acción</th>
+              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Orden</th>
+              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
+              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Hora</th>
+              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
+              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Canal</th>
+              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Envío</th>
+              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Total</th>
+              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Acción</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={canCancel ? 9 : 8} className="px-6 py-12 text-center text-gray-500">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
                   Cargando ventas...
                 </td>
               </tr>
             ) : orders.length > 0 ? (
-              orders.map((order) => {
-                const date = new Date(order.created_at);
-                const day = String(date.getDate()).padStart(2, '0');
-                const month = date.toLocaleDateString('es-CL', { month: 'long' });
-                const monthCapitalized = month.charAt(0).toUpperCase() + month.slice(1);
-                const hours = String(date.getHours()).padStart(2, '0');
-                const minutes = String(date.getMinutes()).padStart(2, '0');
-                const formattedDate = `${day}/${monthCapitalized} ${hours}:${minutes}`;
-                const isChecked = selectedOrderIds.includes(order.id);
-                return (
-                  <tr
-                    key={order.id}
-                    onClick={() => handleOpenModal(order)}
-                    className={`border-b border-gray-50 hover:bg-gray-50 transition-colors text-sm cursor-pointer active:bg-gray-100 group ${isChecked ? 'bg-amber-50/40 hover:bg-amber-50/70' : ''}`}
-                  >
-                    {canCancel && (
-                      <td className="pl-6 pr-2 py-5 text-center" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={(e) => toggleSelectOrder(e, order.id)}
-                          className="w-4 h-4 rounded text-black border-gray-300 focus:ring-black cursor-pointer"
-                        />
-                      </td>
-                    )}
-                    <td className="px-6 py-5 text-base font-bold text-gray-900">
-                      <span>{order.order_number}</span>
-                    </td>
-                    <td className="px-8 py-5">
-                      {order.customer_name ? (
-                        <span className="font-medium text-gray-900 leading-tight">{order.customer_name}</span>
-                      ) : (
-                        <span className="text-gray-400 text-xs">—</span>
+              (() => {
+                let lastDateKey = null;
+                return orders.map((order) => {
+                  const dateKey = getOrderDateKey(order.created_at);
+                  const isNewDate = dateKey !== lastDateKey;
+                  if (isNewDate) {
+                    lastDateKey = dateKey;
+                  }
+
+                  const date = new Date(order.created_at);
+                  const day = String(date.getDate()).padStart(2, '0');
+                  const month = date.toLocaleDateString('es-CL', { month: 'long' });
+                  const monthCapitalized = month.charAt(0).toUpperCase() + month.slice(1);
+                  const hours = String(date.getHours()).padStart(2, '0');
+                  const minutes = String(date.getMinutes()).padStart(2, '0');
+                  const formattedDate = `${day}/${monthCapitalized} ${hours}:${minutes}`;
+                  const isChecked = selectedOrderIds.includes(order.id);
+                  return (
+                    <React.Fragment key={order.id}>
+                      {isNewDate && (
+                        <tr key={`date-header-${dateKey}`} className="bg-gray-100/90 border-y border-gray-200">
+                          <td colSpan={canCancel ? 9 : 8} className="px-6 py-3 text-xs font-bold text-gray-700 tracking-wide uppercase bg-gray-100/90">
+                            <div className="flex items-center gap-2">
+                              <CalendarClock className="h-4 w-4 text-gray-600 shrink-0" />
+                              <span>{formatDateSeparator(order.created_at)}</span>
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </td>
-                    <td className="px-8 py-5 text-gray-600">{formattedDate}</td>
-                    <td className="px-8 py-5">
-                      {getStatusTag(order)}
-                    </td>
-                    <td className="px-8 py-5">
-                      {(() => {
-                        const channelMap = {
-                          table: { label: 'Mesa', Icon: Store },
-                          pickup: { label: 'POS', Icon: Store },
-                          online: { label: 'Online', Icon: Globe },
-                          whatsapp: { label: 'WhatsApp', Icon: MessageCircle },
-                          delivery: { label: 'POS', Icon: Store },
-                        };
-                        const ch = channelMap[order.order_type] || { label: 'POS', Icon: Store };
-                        return (
-                          <Badge variant="grayOutline">
-                            <ch.Icon className="h-3.5 w-3.5" />
-                            {ch.label}
-                          </Badge>
-                        );
-                      })()}
-                    </td>
-                    <td className="px-8 py-5">
-                      {order.order_type !== 'table' ? (
-                        order.delivery_type === 'delivery' ? (
-                          <span className="text-[11px] px-2 py-1 rounded font-black uppercase tracking-wider bg-amber-500 text-black flex items-center gap-1 w-fit">
-                            <Van className="h-3.5 w-3.5 shrink-0" /> Delivery
-                          </span>
-                        ) : (
-                          <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1 w-fit">
-                            <ShoppingBag className="h-3.5 w-3.5 shrink-0" /> Retiro
-                          </span>
-                        )
-                      ) : (
-                        <span className="text-gray-400 text-xs">—</span>
-                      )}
-                    </td>
-                    <td className="px-8 py-5 text-right font-bold text-gray-900">${fmt(order.total || 0)}</td>
-                    <td className="px-8 py-5 text-center">
-                      {(() => {
-                        const hasPending = order.payments?.some(p => p.status === 'pending');
-                        const isConfirmed = order.payments?.some(p => p.status === 'paid');
-                        if (isConfirmed) return (
-                          <Badge variant="success">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Pagado
-                          </Badge>
-                        );
-                        if (hasPending) return (
-                          <div className="flex flex-col items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold w-fit">
-                              <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-60" />
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                      <tr
+                        onClick={() => handleOpenModal(order)}
+                        className={`border-b border-gray-50 hover:bg-gray-50 transition-colors text-sm cursor-pointer active:bg-gray-100 group ${isChecked ? 'bg-amber-50/40 hover:bg-amber-50/70' : ''}`}
+                      >
+                        {canCancel && (
+                          <td className="pl-6 pr-2 py-6 text-center" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => toggleSelectOrder(e, order.id)}
+                              className="w-4 h-4 rounded text-black border-gray-300 focus:ring-black cursor-pointer"
+                            />
+                          </td>
+                        )}
+                        <td className="px-6 py-6 text-base font-bold text-gray-900">
+                          <span>{order.order_number}</span>
+                        </td>
+                        <td className="px-6 py-6">
+                          {order.customer_name ? (
+                            <span className="font-medium text-gray-900 leading-tight">{order.customer_name}</span>
+                          ) : (
+                            <span className="text-gray-400 text-xs">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-6 text-gray-600">{formattedDate}</td>
+                        <td className="px-6 py-6">
+                          {getStatusTag(order)}
+                        </td>
+                        <td className="px-6 py-6">
+                          {(() => {
+                            const channelMap = {
+                              table: { label: 'Mesa', Icon: Store },
+                              pickup: { label: 'POS', Icon: Store },
+                              online: { label: 'Online', Icon: Globe },
+                              whatsapp: { label: 'WhatsApp', Icon: MessageCircle },
+                              delivery: { label: 'POS', Icon: Store },
+                            };
+                            const ch = channelMap[order.order_type] || { label: 'POS', Icon: Store };
+                            return (
+                              <Badge variant="grayOutline">
+                                <ch.Icon className="h-3.5 w-3.5" />
+                                {ch.label}
+                              </Badge>
+                            );
+                          })()}
+                        </td>
+                        <td className="px-6 py-6">
+                          {order.order_type !== 'table' ? (
+                            order.delivery_type === 'delivery' ? (
+                              <span className="text-[11px] px-2 py-1 rounded font-black uppercase tracking-wider bg-amber-500 text-black flex items-center gap-1 w-fit">
+                                <Van className="h-3.5 w-3.5 shrink-0" /> Delivery
                               </span>
-                              Pago pendiente
-                            </span>
-                            <Button
-                              variant="secondary"
-                              size="xs"
-                              onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
-                            >
-                              Confirmar pago
-                            </Button>
-                          </div>
-                        );
-                        return null;
-                      })()}
-                    </td>
-                  </tr>
-                );
-              })
+                            ) : (
+                              <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1 w-fit">
+                                <ShoppingBag className="h-3.5 w-3.5 shrink-0" /> Retiro
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-gray-400 text-xs">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-6 text-right font-bold text-gray-900">${fmt(order.total || 0)}</td>
+                        <td className="px-6 py-6 text-center">
+                          {(() => {
+                            const hasPending = order.payments?.some(p => p.status === 'pending');
+                            const isConfirmed = order.payments?.some(p => p.status === 'paid');
+                            if (isConfirmed) return (
+                              <Badge variant="success">
+                                <CheckCircle2 className="w-3.5 h-3.5" /> Pagado
+                              </Badge>
+                            );
+                            if (hasPending) return (
+                              <div className="flex flex-col items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-bold w-fit">
+                                  <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-60" />
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                                  </span>
+                                  Pago pendiente
+                                </span>
+                                <Button
+                                  variant="secondary"
+                                  size="xs"
+                                  onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
+                                >
+                                  Confirmar pago
+                                </Button>
+                              </div>
+                            );
+                            return null;
+                          })()}
+                        </td>
+                      </tr>
+                    </React.Fragment>
+                  );
+                });
+              })()
             ) : (
               <tr>
-                <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={canCancel ? 9 : 8} className="px-6 py-12 text-center text-gray-500">
                   No hay órdenes para los filtros seleccionados.
                 </td>
               </tr>
@@ -338,136 +358,151 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
             Cargando ventas...
           </div>
         ) : orders.length > 0 ? (
-          orders.map((order) => {
-            const date = new Date(order.created_at);
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = date.toLocaleDateString('es-CL', { month: 'long' });
-            const monthCapitalized = month.charAt(0).toUpperCase() + month.slice(1);
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            const formattedDate = `${day}/${monthCapitalized} ${hours}:${minutes}`;
-            return (
-              <div
-                key={order.id}
-                onClick={() => handleOpenModal(order)}
-                className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl p-5 flex flex-col gap-4.5 cursor-pointer"
-                style={{ WebkitTapHighlightColor: 'transparent' }}
-              >
-                {/* Header: Order Number & Status */}
-                <div className="flex justify-between items-start">
-                  <div className="flex flex-col gap-1.5">
-                    {order.order_type !== 'table' && (
-                      <div className="flex items-center gap-2 mb-2">
-                        {order.delivery_type === 'delivery' ? (
-                          <span className="text-[11px] px-2 py-1 rounded font-black uppercase tracking-wider bg-amber-500 text-black flex items-center gap-1">
-                            <Van className="h-3.5 w-3.5 shrink-0" /> Delivery
-                          </span>
-                        ) : (
-                          <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1">
-                            <PaperBag className="h-3.5 w-3.5 shrink-0" /> Retiro
+          (() => {
+            let lastDateKeyMobile = null;
+            return orders.map((order) => {
+              const dateKey = getOrderDateKey(order.created_at);
+              const isNewDate = dateKey !== lastDateKeyMobile;
+              if (isNewDate) {
+                lastDateKeyMobile = dateKey;
+              }
+
+              const date = new Date(order.created_at);
+              const day = String(date.getDate()).padStart(2, '0');
+              const month = date.toLocaleDateString('es-CL', { month: 'long' });
+              const monthCapitalized = month.charAt(0).toUpperCase() + month.slice(1);
+              const hours = String(date.getHours()).padStart(2, '0');
+              const minutes = String(date.getMinutes()).padStart(2, '0');
+              const formattedDate = `${day}/${monthCapitalized} ${hours}:${minutes}`;
+              return (
+                <React.Fragment key={order.id}>
+                  {isNewDate && (
+                    <div key={`mobile-date-header-${dateKey}`} className="pt-3 pb-1 px-1 flex items-center gap-2 text-xs font-extrabold text-gray-800 uppercase tracking-wider">
+                      <CalendarClock className="h-4 w-4 text-gray-600 shrink-0" />
+                      <span>{formatDateSeparator(order.created_at)}</span>
+                      <div className="flex-1 border-b border-gray-200 ml-2"></div>
+                    </div>
+                  )}
+                  <div
+                    onClick={() => handleOpenModal(order)}
+                    className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl p-5 flex flex-col gap-4.5 cursor-pointer"
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                  >
+                    {/* Header: Order Number & Status */}
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-col gap-1.5">
+                        {order.order_type !== 'table' && (
+                          <div className="flex items-center gap-2 mb-2">
+                            {order.delivery_type === 'delivery' ? (
+                              <span className="text-[11px] px-2 py-1 rounded font-black uppercase tracking-wider bg-amber-500 text-black flex items-center gap-1">
+                                <Van className="h-3.5 w-3.5 shrink-0" /> Delivery
+                              </span>
+                            ) : (
+                              <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1">
+                                <PaperBag className="h-3.5 w-3.5 shrink-0" /> Retiro
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        <span className="font-black text-gray-900 text-2xl leading-none">{order.order_number}</span>
+                        {order.customer_name && (
+                          <span className="text-base font-bold text-gray-900 truncate max-w-[180px]">
+                            {order.customer_name}
                           </span>
                         )}
                       </div>
-                    )}
-                    <span className="font-black text-gray-900 text-2xl leading-none">{order.order_number}</span>
-                    {order.customer_name && (
-                      <span className="text-base font-bold text-gray-900 truncate max-w-[180px]">
-                        {order.customer_name}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end">
-                    {getStatusTag(order)}
-                  </div>
-                </div>
-
-                {/* Middle: Order Details (Time, Payment, Kitchen) */}
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1.5 text-xs text-gray-700">
-                    <Clock className="w-3.5 h-3.5 shrink-0" />
-                    {formattedDate}
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs text-gray-700">
-                    <CreditCard className="w-3.5 h-3.5 shrink-0" />
-                    {getPaymentMethod(order)}
-                  </div>
-                  {order.payments?.find(p => p.reference_code)?.reference_code && (
-                    <div
-                      title="ID de transacción Klap (clic para copiar)"
-                      onClick={(e) => { e.stopPropagation(); navigator.clipboard?.writeText(order.payments.find(p => p.reference_code).reference_code); }}
-                      className="flex items-center gap-1.5 text-xs text-blue-700 cursor-pointer hover:underline w-fit"
-                    >
-                      <span className="font-bold">Klap:</span>
-                      <span className="font-mono truncate max-w-[180px]">{order.payments.find(p => p.reference_code).reference_code}</span>
+                      <div className="flex flex-col items-end">
+                        {getStatusTag(order)}
+                      </div>
                     </div>
-                  )}
-                  {order.scheduled_at && (
-                    <div className="flex items-center gap-1.5 text-xs text-gray-700">
-                      <CalendarClock className="w-3.5 h-3.5 shrink-0" />
-                      {(() => {
-                        const d = new Date(order.scheduled_at);
-                        const month = d.toLocaleDateString('es-CL', { month: 'long' });
-                        return `Pedido programado para el ${d.getDate()} de ${month.charAt(0).toUpperCase() + month.slice(1)}`;
-                      })()}
-                    </div>
-                  )}
-                  {order.ready_at && (
-                    <div className="flex items-center gap-1.5 text-xs text-gray-700">
-                      <Timer className="w-3.5 h-3.5 shrink-0" />
-                      Cocina: {getKitchenTime(order)}
-                    </div>
-                  )}
-                </div>
 
-                {/* Divider */}
-                <div className="h-px bg-gray-100 w-full my-2.5"></div>
-
-                {/* Bottom: Total & Actions */}
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-col">
-                    <div className="flex items-center mb-1">
-                      {['online', 'whatsapp'].includes(order.order_type) && order.payments?.some(p => p.status === 'pending') ? (
-                        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
-                          <span className="relative flex h-1.5 w-1.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-60" />
-                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
-                          </span>
-                          Pago pendiente
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Total</span>
+                    {/* Middle: Order Details (Time, Payment, Kitchen) */}
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-1.5 text-xs text-gray-700">
+                        <Clock className="w-3.5 h-3.5 shrink-0" />
+                        {formattedDate}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-700">
+                        <CreditCard className="w-3.5 h-3.5 shrink-0" />
+                        {getPaymentMethod(order)}
+                      </div>
+                      {order.payments?.find(p => p.reference_code)?.reference_code && (
+                        <div
+                          title="ID de transacción Klap (clic para copiar)"
+                          onClick={(e) => { e.stopPropagation(); navigator.clipboard?.writeText(order.payments.find(p => p.reference_code).reference_code); }}
+                          className="flex items-center gap-1.5 text-xs text-blue-700 cursor-pointer hover:underline w-fit"
+                        >
+                          <span className="font-bold">Klap:</span>
+                          <span className="font-mono truncate max-w-[180px]">{order.payments.find(p => p.reference_code).reference_code}</span>
+                        </div>
+                      )}
+                      {order.scheduled_at && (
+                        <div className="flex items-center gap-1.5 text-xs text-gray-700">
+                          <CalendarClock className="w-3.5 h-3.5 shrink-0" />
+                          {(() => {
+                            const d = new Date(order.scheduled_at);
+                            const month = d.toLocaleDateString('es-CL', { month: 'long' });
+                            return `Pedido programado para el ${d.getDate()} de ${month.charAt(0).toUpperCase() + month.slice(1)}`;
+                          })()}
+                        </div>
+                      )}
+                      {order.ready_at && (
+                        <div className="flex items-center gap-1.5 text-xs text-gray-700">
+                          <Timer className="w-3.5 h-3.5 shrink-0" />
+                          Cocina: {getKitchenTime(order)}
+                        </div>
                       )}
                     </div>
-                    <span className="font-black text-xl leading-none text-gray-900">
-                      ${fmt(order.total || 0)}
-                    </span>
-                  </div>
 
-                  <div>
-                    {['online', 'whatsapp'].includes(order.order_type) && (() => {
-                      const hasPending = order.payments?.some(p => p.status === 'pending');
-                      const isConfirmed = order.payments?.some(p => p.status === 'paid');
-                      if (isConfirmed) return (
-                        <Badge variant="success">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Pagado
-                        </Badge>
-                      );
-                      if (hasPending) return (
-                        <Button
-                          variant="secondary"
-                          size="xs"
-                          onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
-                        >
-                          Confirmar pago
-                        </Button>
-                      );
-                      return null;
-                    })()}
+                    {/* Divider */}
+                    <div className="h-px bg-gray-100 w-full my-2.5"></div>
+
+                    {/* Bottom: Total & Actions */}
+                    <div className="flex justify-between items-center">
+                      <div className="flex flex-col">
+                        <div className="flex items-center mb-1">
+                          {['online', 'whatsapp'].includes(order.order_type) && order.payments?.some(p => p.status === 'pending') ? (
+                            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-60" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+                              </span>
+                              Pago pendiente
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400 font-medium">Total</span>
+                          )}
+                        </div>
+                        <span className="font-extrabold text-xl text-gray-900">${fmt(order.total || 0)}</span>
+                      </div>
+
+                      <div>
+                        {['online', 'whatsapp'].includes(order.order_type) && (() => {
+                          const hasPending = order.payments?.some(p => p.status === 'pending');
+                          const isConfirmed = order.payments?.some(p => p.status === 'paid');
+                          if (isConfirmed) return (
+                            <Badge variant="success">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Pagado
+                            </Badge>
+                          );
+                          if (hasPending) return (
+                            <Button
+                              variant="secondary"
+                              size="xs"
+                              onClick={(e) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
+                            >
+                              Confirmar pago
+                            </Button>
+                          );
+                          return null;
+                        })()}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            );
-          })
+                </React.Fragment>
+              );
+            });
+          })()
         ) : (
           <div className="text-center py-12 text-gray-400 font-medium bg-white rounded-xl border border-gray-100">
             No hay órdenes registradas.

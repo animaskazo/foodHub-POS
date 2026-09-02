@@ -58,16 +58,29 @@ export const getStatusTag = (statusOrOrder) => {
   };
 
   const mapped = statusMap[status] || { label: status, variant: 'grayOutline', icon: Filter };
-
-  const badge = (
-    <Badge variant={mapped.variant}>
-      {mapped.icon && <mapped.icon className="w-3.5 h-3.5" />}
-      {mapped.label}
-    </Badge>
+  return (
+    <Tooltip text={scheduledLabel ? `Para: ${scheduledLabel}` : null}>
+      <Badge variant={mapped.variant}>
+        <mapped.icon className="h-3.5 w-3.5" />
+        {mapped.label}
+      </Badge>
+    </Tooltip>
   );
+};
 
-  if (scheduledLabel) {
-    return <Tooltip text={`Programado · ${scheduledLabel}`}>{badge}</Tooltip>;
-  }
-  return badge;
+export const formatDateSeparator = (dateInput) => {
+  if (!dateInput) return '';
+  const date = new Date(dateInput);
+  const weekday = date.toLocaleDateString('es-CL', { weekday: 'long' });
+  const weekdayCap = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+  const day = date.getDate();
+  const month = date.toLocaleDateString('es-CL', { month: 'long' });
+  const monthCap = month.charAt(0).toUpperCase() + month.slice(1);
+  return `${weekdayCap} ${day} de ${monthCap}`;
+};
+
+export const getOrderDateKey = (dateInput) => {
+  if (!dateInput) return '';
+  const d = new Date(dateInput);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
