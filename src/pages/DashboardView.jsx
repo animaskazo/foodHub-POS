@@ -102,63 +102,91 @@ const DashboardView = () => {
   useEffect(() => {
     if (!organization?.id) return;
     const fetchSparklines = async () => {
-      const startOfRange = new Date();
-      startOfRange.setDate(startOfRange.getDate() - 6);
-      startOfRange.setHours(0, 0, 0, 0);
-      
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+
+      let startOfRange = new Date();
+      let numPoints = 7;
+
+      if (dateRange === 'today') {
+        startOfRange.setHours(0, 0, 0, 0);
+        numPoints = 24;
+      } else if (dateRange === '7days') {
+        startOfRange.setDate(startOfRange.getDate() - 6);
+        startOfRange.setHours(0, 0, 0, 0);
+        numPoints = 7;
+      } else if (dateRange === '30days') {
+        startOfRange.setDate(startOfRange.getDate() - 29);
+        startOfRange.setHours(0, 0, 0, 0);
+        numPoints = 30;
+      }
+
       const { data } = await supabase
         .from('orders')
-        .select('created_at, total')
+        .select('created_at, total, status')
         .eq('organization_id', organization.id)
         .gte('created_at', startOfRange.toISOString())
+        .lte('created_at', endOfDay.toISOString())
         .order('created_at', { ascending: true });
-        
-      if (data) {
-        // Group by day (0 to 6)
-        const dailyRevenue = new Array(7).fill(0);
-        const dailyOrders = new Array(7).fill(0);
-        
-        data.forEach(order => {
-          const orderDate = new Date(order.created_at);
+
+      const validOrdersData = (data || []).filter(o => o.status !== 'cancelled');
+
+      const dailyRevenue = new Array(numPoints).fill(0);
+      const dailyOrders = new Array(numPoints).fill(0);
+
+      validOrdersData.forEach(order => {
+        const orderDate = new Date(order.created_at);
+        let pointIndex = 0;
+
+        if (dateRange === 'today') {
+          pointIndex = orderDate.getHours();
+        } else {
           orderDate.setHours(0, 0, 0, 0);
-          const dayIndex = Math.floor((orderDate.getTime() - startOfRange.getTime()) / (1000 * 60 * 60 * 24));
-          if (dayIndex >= 0 && dayIndex < 7) {
-            dailyRevenue[dayIndex] += Number(order.total) || 0;
-            dailyOrders[dayIndex] += 1;
+          pointIndex = Math.floor((orderDate.getTime() - startOfRange.getTime()) / (1000 * 60 * 60 * 24));
+        }
+
+        if (pointIndex >= 0 && pointIndex < numPoints) {
+          dailyRevenue[pointIndex] += Number(order.total) || 0;
+          dailyOrders[pointIndex] += 1;
+        }
+      });
+
+      const dailyTicket = dailyRevenue.map((rev, i) => dailyOrders[i] > 0 ? Math.round(rev / dailyOrders[i]) : 0);
+
+      // Fetch visits for sparkline
+      const { data: visitsData } = await supabase
+        .from('store_visits')
+        .select('date, visit_count')
+        .eq('organization_id', organization.id)
+        .gte('date', startOfRange.toISOString().split('T')[0])
+        .lte('date', endOfDay.toISOString().split('T')[0]);
+
+      const dailyVisits = new Array(numPoints).fill(0);
+      if (visitsData) {
+        visitsData.forEach(visit => {
+          const visitDate = new Date(visit.date + 'T00:00:00');
+          let pointIndex = 0;
+          if (dateRange === 'today') {
+            pointIndex = 12;
+          } else {
+            pointIndex = Math.floor((visitDate.getTime() - startOfRange.getTime()) / (1000 * 60 * 60 * 24));
+          }
+          if (pointIndex >= 0 && pointIndex < numPoints) {
+            dailyVisits[pointIndex] += visit.visit_count;
           }
         });
-        
-        const dailyTicket = dailyRevenue.map((rev, i) => dailyOrders[i] > 0 ? rev / dailyOrders[i] : 0);
-
-        // Fetch visits for sparkline
-        const { data: visitsData } = await supabase
-          .from('store_visits')
-          .select('date, visit_count')
-          .eq('organization_id', organization.id)
-          .gte('date', startOfRange.toISOString().split('T')[0])
-          .order('date', { ascending: true });
-
-        const dailyVisits = new Array(7).fill(0);
-        if (visitsData) {
-          visitsData.forEach(visit => {
-            const visitDate = new Date(visit.date + 'T00:00:00');
-            const dayIndex = Math.floor((visitDate.getTime() - startOfRange.getTime()) / (1000 * 60 * 60 * 24));
-            if (dayIndex >= 0 && dayIndex < 7) {
-              dailyVisits[dayIndex] += visit.visit_count;
-            }
-          });
-        }
-        
-        setWeeklySparklines({
-          revenue: dailyRevenue,
-          orders: dailyOrders,
-          ticket: dailyTicket,
-          visits: dailyVisits
-        });
       }
+
+      setWeeklySparklines({
+        revenue: dailyRevenue,
+        orders: dailyOrders,
+        ticket: dailyTicket,
+        visits: dailyVisits
+      });
     };
+
     fetchSparklines();
-  }, [organization?.id]);
+  }, [organization?.id, dateRange]);
 
 
   useEffect(() => {
@@ -322,19 +350,28 @@ const DashboardView = () => {
   const sparklineDateRangeText = useMemo(() => {
     const end = new Date();
     const start = new Date();
-    start.setDate(start.getDate() - 6);
+
+    if (dateRange === 'today') {
+      return `Hoy, ${end.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`;
+    }
+
+    if (dateRange === '7days') {
+      start.setDate(start.getDate() - 6);
+    } else {
+      start.setDate(start.getDate() - 29);
+    }
 
     const startMonth = start.toLocaleDateString('es-ES', { month: 'long' });
     const endMonth = end.toLocaleDateString('es-ES', { month: 'long' });
-    const startDay = start.toLocaleDateString('es-ES', { day: '2-digit' });
-    const endDay = end.toLocaleDateString('es-ES', { day: '2-digit' });
+    const startDay = start.toLocaleDateString('es-ES', { day: 'numeric' });
+    const endDay = end.toLocaleDateString('es-ES', { day: 'numeric' });
 
     if (startMonth === endMonth) {
-      return `Desde el ${startDay} al ${endDay} de ${endMonth}`;
+      return `Del ${startDay} al ${endDay} de ${endMonth}`;
     } else {
-      return `Desde el ${startDay} de ${startMonth} al ${endDay} de ${endMonth}`;
+      return `Del ${startDay} de ${startMonth} al ${endDay} de ${endMonth}`;
     }
-  }, []);
+  }, [dateRange]);
 
   useDocumentTitle('Dashboard');
 
@@ -399,64 +436,92 @@ const DashboardView = () => {
           </div>
         )}
 
+        {/* Top Filters & Period Selector */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
+            <Button
+              size="sm"
+              variant={channelFilter === 'all' && !showScheduled ? 'default' : 'secondary'}
+              onClick={() => { setChannelFilter('all'); setShowScheduled(false); }}
+            >
+              Todos
+            </Button>
+            <Button
+              size="sm"
+              variant={channelFilter === 'table' ? 'default' : 'secondary'}
+              onClick={() => { setChannelFilter('table'); setShowScheduled(false); }}
+            >
+              <Store className="h-3.5 w-3.5 mr-1" /> Local
+            </Button>
+            <Button
+              size="sm"
+              variant={channelFilter === 'pickup' ? 'default' : 'secondary'}
+              onClick={() => { setChannelFilter('pickup'); setShowScheduled(false); }}
+            >
+              <PaperBag className="h-3.5 w-3.5 mr-1" /> Retiro
+            </Button>
+            <Button
+              size="sm"
+              variant={channelFilter === 'delivery' ? 'default' : 'secondary'}
+              onClick={() => { setChannelFilter('delivery'); setShowScheduled(false); }}
+            >
+              <Van className="h-3.5 w-3.5 mr-1" /> Delivery
+            </Button>
+            <Button
+              size="sm"
+              variant={channelFilter === 'online' ? 'default' : 'secondary'}
+              onClick={() => { setChannelFilter('online'); setShowScheduled(false); }}
+            >
+              <Globe className="h-3.5 w-3.5 mr-1" /> Online
+            </Button>
+            <Button
+              size="sm"
+              variant={channelFilter === 'whatsapp' ? 'default' : 'secondary'}
+              onClick={() => { setChannelFilter('whatsapp'); setShowScheduled(false); }}
+            >
+              <MessageCircle className="h-3.5 w-3.5 mr-1" /> WhatsApp
+            </Button>
+            <Button
+              size="sm"
+              variant={showScheduled ? 'default' : 'secondary'}
+              onClick={() => { setShowScheduled(!showScheduled); setChannelFilter('all'); }}
+            >
+              <CalendarClock className="h-3.5 w-3.5 mr-1" /> Programados
+              {scheduledCount > 0 && (
+                <span className={`ml-1.5 text-[11px] font-bold px-1.5 py-0.5 rounded-full ${showScheduled ? 'bg-white/20 text-white' : 'bg-amber-400 text-black'}`}>
+                  {scheduledCount}
+                </span>
+              )}
+            </Button>
+          </div>
 
-
-        {/* Filters */}
-        <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar mb-6">
-          <Button
-            size="sm"
-            variant={channelFilter === 'all' && !showScheduled ? 'default' : 'secondary'}
-            onClick={() => { setChannelFilter('all'); setShowScheduled(false); }}
-          >
-            Todos
-          </Button>
-          <Button
-            size="sm"
-            variant={channelFilter === 'table' ? 'default' : 'secondary'}
-            onClick={() => { setChannelFilter('table'); setShowScheduled(false); }}
-          >
-            <Store className="h-3.5 w-3.5 mr-1" /> Local
-          </Button>
-          <Button
-            size="sm"
-            variant={channelFilter === 'pickup' ? 'default' : 'secondary'}
-            onClick={() => { setChannelFilter('pickup'); setShowScheduled(false); }}
-          >
-            <PaperBag className="h-3.5 w-3.5 mr-1" /> Retiro
-          </Button>
-          <Button
-            size="sm"
-            variant={channelFilter === 'delivery' ? 'default' : 'secondary'}
-            onClick={() => { setChannelFilter('delivery'); setShowScheduled(false); }}
-          >
-            <Van className="h-3.5 w-3.5 mr-1" /> Delivery
-          </Button>
-          <Button
-            size="sm"
-            variant={channelFilter === 'online' ? 'default' : 'secondary'}
-            onClick={() => { setChannelFilter('online'); setShowScheduled(false); }}
-          >
-            <Globe className="h-3.5 w-3.5 mr-1" /> Online
-          </Button>
-          <Button
-            size="sm"
-            variant={channelFilter === 'whatsapp' ? 'default' : 'secondary'}
-            onClick={() => { setChannelFilter('whatsapp'); setShowScheduled(false); }}
-          >
-            <MessageCircle className="h-3.5 w-3.5 mr-1" /> WhatsApp
-          </Button>
-          <Button
-            size="sm"
-            variant={showScheduled ? 'default' : 'secondary'}
-            onClick={() => { setShowScheduled(!showScheduled); setChannelFilter('all'); }}
-          >
-            <CalendarClock className="h-3.5 w-3.5 mr-1" /> Programados
-            {scheduledCount > 0 && (
-              <span className={`ml-1.5 text-[11px] font-bold px-1.5 py-0.5 rounded-full ${showScheduled ? 'bg-white/20 text-white' : 'bg-amber-400 text-black'}`}>
-                {scheduledCount}
-              </span>
-            )}
-          </Button>
+          {/* Selector de Período (Hoy | 7 días | 30 días) */}
+          <div className="flex items-center gap-1 bg-gray-200/80 p-1 rounded-xl shrink-0 self-start sm:self-auto shadow-inner">
+            <button
+              onClick={() => setDateRange('today')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
+                dateRange === 'today' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Hoy
+            </button>
+            <button
+              onClick={() => setDateRange('7days')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
+                dateRange === '7days' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              7 días
+            </button>
+            <button
+              onClick={() => setDateRange('30days')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
+                dateRange === '30days' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              30 días
+            </button>
+          </div>
         </div>
 
         {/* Metrics Cards (Slider on Mobile, Grid on Desktop) */}
