@@ -3,7 +3,6 @@ import ReactDOMServer from 'react-dom/server';
 import React from 'react';
 import PrintableReceipt from '../components/pos/PrintableReceipt';
 import { getQzCertificate } from '../utils/qzCert';
-import { generateJoke } from './aiService';
 
 let isConnected = false;
 let isConnecting = false;
@@ -243,16 +242,6 @@ export const printReceipt = async (order, organization, printerName, _retry = fa
   // Asegurar conexión
   if (!isConnected) {
     await ensureConnection();
-  }
-
-  // Fetch a joke dynamically for the receipt
-  try {
-    const joke = await generateJoke();
-    if (joke) {
-      order = { ...order, receipt_joke: joke };
-    }
-  } catch (e) {
-    console.error('Failed to fetch joke for receipt:', e);
   }
 
   const fullHtml = buildReceiptHtml(order, organization);

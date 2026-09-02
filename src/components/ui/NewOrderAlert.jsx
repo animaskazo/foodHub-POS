@@ -140,23 +140,6 @@ const NewOrderAlert = () => {
   const handleManualPrint = async () => {
     setIsPrinting(true);
     let orderToPrint = latestNewOrder;
-    
-    if (orderToPrint && !orderToPrint.receipt_joke) {
-      try {
-        const { generateJoke } = await import('../../services/aiService');
-        const joke = await generateJoke();
-        if (joke) {
-          orderToPrint = { ...orderToPrint, receipt_joke: joke };
-          // Esto actualizará el estado de la alerta
-          if (orderToPrint.id === latestNewOrder.id) {
-             setAutoPrintOrder(orderToPrint);
-             await new Promise(r => setTimeout(r, 800));
-          }
-        }
-      } catch (e) {
-        console.error('Failed to fetch joke for print', e);
-      }
-    }
 
     const qzPrinter = localStorage.getItem('qz_default_printer');
     if (qzPrinter && orderToPrint) {

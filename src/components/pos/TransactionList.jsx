@@ -485,22 +485,6 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
         onCancel={() => setIsCancelConfirmOpen(true)}
         onPrint={async () => {
           let orderToPrint = selectedOrder;
-          
-          // Obtener un chiste para el ticket si no lo tiene
-          if (!orderToPrint.receipt_joke) {
-            try {
-              const { generateJoke } = await import('../../services/aiService');
-              const joke = await generateJoke();
-              if (joke) {
-                orderToPrint = { ...orderToPrint, receipt_joke: joke };
-                setSelectedOrder(orderToPrint);
-                // Esperar a que el DOM se actualice completamente con React 18 (batching)
-                await new Promise(r => setTimeout(r, 800));
-              }
-            } catch (e) {
-              console.error('Failed to fetch joke for print', e);
-            }
-          }
 
           const qzPrinter = localStorage.getItem('qz_default_printer');
           if (qzPrinter && orderToPrint) {
