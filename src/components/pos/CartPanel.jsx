@@ -243,7 +243,13 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                         ))}
                       </div>
                     )}
-                    <p className="text-xs text-gray-400 mt-1">${fmt(Math.round(item.price))} c/u</p>
+                    <p className="text-xs text-gray-400 mt-1">${fmt((() => {
+                      let uPrice = Math.round(item.price);
+                      if (item.selectedIngredients) {
+                        uPrice += item.selectedIngredients.reduce((s, ing) => s + (ing.price || 0), 0);
+                      }
+                      return uPrice;
+                    })())} c/u</p>
 
                     {/* Qty Controls */}
                     <div className={`inline-flex items-center bg-gray-100/80 rounded-full mt-2.5 ${item.isSaved ? 'opacity-50 pointer-events-none' : ''}`}>

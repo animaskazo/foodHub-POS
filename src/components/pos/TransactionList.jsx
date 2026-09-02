@@ -273,11 +273,11 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                         <td className="px-6 py-6">
                           {(() => {
                             const channelMap = {
-                              table: { label: 'Mesa', Icon: Store },
+                              table: { label: 'POS', Icon: Store },
                               pickup: { label: 'POS', Icon: Store },
+                              delivery: { label: 'POS', Icon: Store },
                               online: { label: 'Online', Icon: Globe },
                               whatsapp: { label: 'WhatsApp', Icon: MessageCircle },
-                              delivery: { label: 'POS', Icon: Store },
                             };
                             const ch = channelMap[order.order_type] || { label: 'POS', Icon: Store };
                             return (
@@ -289,18 +289,18 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                           })()}
                         </td>
                         <td className="px-6 py-6">
-                          {order.order_type !== 'table' ? (
-                            order.delivery_type === 'delivery' ? (
-                              <span className="text-[11px] px-2 py-1 rounded font-black uppercase tracking-wider bg-amber-500 text-black flex items-center gap-1 w-fit">
-                                <Van className="h-3.5 w-3.5 shrink-0" /> Delivery
-                              </span>
-                            ) : (
-                              <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1 w-fit">
-                                <ShoppingBag className="h-3.5 w-3.5 shrink-0" /> Retiro
-                              </span>
-                            )
+                          {order.order_type === 'table' ? (
+                            <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1 w-fit">
+                              <Store className="h-3.5 w-3.5 shrink-0" /> Local
+                            </span>
+                          ) : order.delivery_type === 'delivery' ? (
+                            <span className="text-[11px] px-2 py-1 rounded font-black uppercase tracking-wider bg-amber-500 text-black flex items-center gap-1 w-fit">
+                              <Van className="h-3.5 w-3.5 shrink-0" /> Delivery
+                            </span>
                           ) : (
-                            <span className="text-gray-400 text-xs">—</span>
+                            <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1 w-fit">
+                              <ShoppingBag className="h-3.5 w-3.5 shrink-0" /> Retiro
+                            </span>
                           )}
                         </td>
                         <td className="px-6 py-6 text-right font-bold text-gray-900">${fmt(order.total || 0)}</td>
@@ -391,19 +391,21 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                     {/* Header: Order Number & Status */}
                     <div className="flex justify-between items-start">
                       <div className="flex flex-col gap-1.5">
-                        {order.order_type !== 'table' && (
-                          <div className="flex items-center gap-2 mb-2">
-                            {order.delivery_type === 'delivery' ? (
-                              <span className="text-[11px] px-2 py-1 rounded font-black uppercase tracking-wider bg-amber-500 text-black flex items-center gap-1">
-                                <Van className="h-3.5 w-3.5 shrink-0" /> Delivery
-                              </span>
-                            ) : (
-                              <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1">
-                                <PaperBag className="h-3.5 w-3.5 shrink-0" /> Retiro
-                              </span>
-                            )}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 mb-2">
+                          {order.order_type === 'table' ? (
+                            <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1">
+                              <Store className="h-3.5 w-3.5 shrink-0" /> Local
+                            </span>
+                          ) : order.delivery_type === 'delivery' ? (
+                            <span className="text-[11px] px-2 py-1 rounded font-black uppercase tracking-wider bg-amber-500 text-black flex items-center gap-1">
+                              <Van className="h-3.5 w-3.5 shrink-0" /> Delivery
+                            </span>
+                          ) : (
+                            <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1">
+                              <PaperBag className="h-3.5 w-3.5 shrink-0" /> Retiro
+                            </span>
+                          )}
+                        </div>
                         <span className="font-black text-gray-900 text-2xl leading-none">{order.order_number}</span>
                         {order.customer_name && (
                           <span className="text-base font-bold text-gray-900 truncate max-w-[180px]">

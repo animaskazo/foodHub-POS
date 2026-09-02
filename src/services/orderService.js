@@ -74,6 +74,7 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
 
     // 4. Insert order items & their variants/ingredients
     for (const item of cartItems) {
+      const lineUnitPrice = Math.round(item.price) + (item.selectedIngredients || []).reduce((s, ing) => s + (ing.price || 0), 0);
       // Insert parent item
       const { data: insertedItem, error: itemError } = await supabase
         .from('order_items')
@@ -82,8 +83,8 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
           product_id: item.productId || item.id,
           product_name: item.name,
           quantity: item.quantity,
-          unit_price: item.price,
-          total_price: item.price * item.quantity,
+          unit_price: lineUnitPrice,
+          total_price: lineUnitPrice * item.quantity,
         })
         .select()
         .single();
@@ -577,6 +578,7 @@ export const appendItemsToOrder = async (orderId, newCartItems, additionalTotal,
 
     // 2. Insert new order items
     for (const item of newCartItems) {
+      const lineUnitPrice = Math.round(item.price) + (item.selectedIngredients || []).reduce((s, ing) => s + (ing.price || 0), 0);
       const { data: insertedItem, error: itemError } = await supabase
         .from('order_items')
         .insert({
@@ -584,8 +586,8 @@ export const appendItemsToOrder = async (orderId, newCartItems, additionalTotal,
           product_id: item.productId || item.id,
           product_name: item.name,
           quantity: item.quantity,
-          unit_price: item.price,
-          total_price: item.price * item.quantity,
+          unit_price: lineUnitPrice,
+          total_price: lineUnitPrice * item.quantity,
         })
         .select()
         .single();

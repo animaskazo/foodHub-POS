@@ -24,9 +24,7 @@ const paymentMeta = {
 }
 
 const channelMeta = {
-  table:    { label: 'Local',    icon: Store,        bg: 'bg-orange-50',   iconColor: 'text-orange-600' },
-  pickup:   { label: 'Retiro',   icon: ShoppingBag,  bg: 'bg-teal-50',     iconColor: 'text-teal-600' },
-  delivery: { label: 'Delivery', icon: Van,           bg: 'bg-amber-50',   iconColor: 'text-amber-600' },
+  pos:      { label: 'POS',      icon: Store,         bg: 'bg-orange-50',   iconColor: 'text-orange-600' },
   online:   { label: 'Online',   icon: Globe,         bg: 'bg-indigo-50',   iconColor: 'text-indigo-600' },
   whatsapp: { label: 'WhatsApp', icon: MessageCircle, bg: 'bg-emerald-50', iconColor: 'text-emerald-600' },
 }
@@ -37,7 +35,7 @@ const calcDay = (orders) => {
   const avg = cnt > 0 ? Math.round(rev / cnt) : 0
   const payments = {}; const channels = {}; let fees = 0
   orders.forEach(o => {
-    const ch = o.delivery_type === 'delivery' ? 'delivery' : (o.order_type || 'other')
+    const ch = ['online', 'whatsapp'].includes(o.order_type) ? o.order_type : 'pos'
     channels[ch] = (channels[ch] || 0) + 1
     fees += Number(o.delivery_fee || 0)
     if (o.payments) o.payments.filter(p => p.status === 'paid').forEach(p => {
@@ -219,7 +217,7 @@ const ReportsView = () => {
   const ticketByChannel = useMemo(() => {
     const map = {}
     validOrders.forEach(o => {
-      const ch = o.delivery_type === 'delivery' ? 'delivery' : (o.order_type || 'other')
+      const ch = ['online', 'whatsapp'].includes(o.order_type) ? o.order_type : 'pos'
       if (!map[ch]) map[ch] = { total: 0, count: 0 }
       map[ch].total += Number(o.total || 0)
       map[ch].count += 1

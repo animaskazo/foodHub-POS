@@ -99,9 +99,7 @@ const PosView = () => {
 
     const baseNet = variant ? basePrice + (variant.price_modifier || 0) : basePrice;
     const baseGross = Math.round(baseNet);
-    const ingredientsGross = ingredients.reduce((sum, i) => sum + (i.price || 0), 0);
-    const totalGross = baseGross + ingredientsGross;
-    const itemPrice = totalGross;
+    const itemPrice = baseGross;
     
     const itemName = variant ? `${originalName} (${variant.name})` : originalName;
     
@@ -202,9 +200,7 @@ const PosView = () => {
       
       const baseNet = variant ? basePrice + (variant.price_modifier || 0) : basePrice;
       const baseGross = Math.round(baseNet);
-      const ingredientsGross = ingredients.reduce((sum, i) => sum + (i.price || 0), 0);
-      const totalGross = baseGross + ingredientsGross;
-      const itemPrice = totalGross;
+      const itemPrice = baseGross;
       const itemName = variant ? `${originalName} (${variant.name})` : originalName;
 
       setCartItems(prev => {
