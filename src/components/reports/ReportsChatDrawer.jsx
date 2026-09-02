@@ -4,6 +4,7 @@ import { analyzeReportWithAI } from '../../services/aiService';
 
 const SUGGESTED_PROMPTS = [
   '¿Cuál es el resumen ejecutivo de este mes?',
+  '¿Cuáles fueron las ventas de los últimos 15 días?',
   '¿Cuál fue mi mejor día en ventas?',
   '¿Qué canal de venta genera más ingresos?',
   '¿Cuáles son mis productos estrella?',

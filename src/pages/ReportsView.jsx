@@ -6,7 +6,7 @@ import PageHeader from '../components/ui/PageHeader'
 import SalesAreaChart from '../components/charts/SalesAreaChart'
 import DonutChart from '../components/charts/DonutChart'
 import ReportsChatDrawer from '../components/reports/ReportsChatDrawer'
-import { ChevronLeft, ChevronRight, Loader2, FileDown, CalendarDays, FileText, FileSpreadsheet, Store, ShoppingBag, Globe, MessageCircle, Van, LineChart, TrendingUp, TrendingDown, Minus, Trophy, Clock, Ban, Wallet, Sparkles, Send } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, FileDown, CalendarDays, FileText, FileSpreadsheet, Store, ShoppingBag, Globe, MessageCircle, Van, LineChart, TrendingUp, TrendingDown, Minus, Trophy, Clock, Ban, Wallet, Sparkles, Send, Receipt } from 'lucide-react'
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DAYS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado']
@@ -57,6 +57,7 @@ const ReportsView = () => {
   const [cy, setCy] = useState(() => today.getFullYear())
   const [shifts, setShifts] = useState([])
   const [orders, setOrders] = useState([])
+  const [recentRollingOrders, setRecentRollingOrders] = useState([])
   const [cancelledCount, setCancelledCount] = useState(0)
   const [totalOrderCount, setTotalOrderCount] = useState(0)
   const [selected, setSelected] = useState('resumen')
@@ -82,20 +83,36 @@ const ReportsView = () => {
     setLoading(true); setError(null)
     const s = new Date(cy, cm, 1)
     const e = new Date(cy, cm + 1, 0, 23, 59, 59, 999)
+
+    // Asegurar 90 días móviles hacia atrás (3 meses completos) para la IA BI
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+    const queryStart = new Date(Math.min(s.getTime(), ninetyDaysAgo.getTime()))
+
     ;(async () => {
       try {
         const [sr, or] = await Promise.all([
-          supabase.from('shifts').select('*').eq('organization_id', organization.id).gte('start_time', s.toISOString()).lte('start_time', e.toISOString()).order('start_time', { ascending: false }),
-          supabase.from('orders').select('id, order_number, order_type, delivery_type, status, total, delivery_fee, created_at, payments ( method, amount, status ), order_items ( product_name, quantity, unit_price )').eq('organization_id', organization.id).gte('created_at', s.toISOString()).lte('created_at', e.toISOString()).order('created_at', { ascending: false }),
+          supabase.from('shifts').select('*').eq('organization_id', organization.id).gte('start_time', queryStart.toISOString()).lte('start_time', e.toISOString()).order('start_time', { ascending: false }),
+          supabase.from('orders').select('id, order_number, order_type, delivery_type, status, total, delivery_fee, created_at, payments ( method, amount, status ), order_items ( product_name, quantity, unit_price )').eq('organization_id', organization.id).gte('created_at', queryStart.toISOString()).lte('created_at', e.toISOString()).order('created_at', { ascending: false }),
         ])
         if (sr.error) throw sr.error
         if (or.error) throw or.error
         setShifts(sr.data || [])
-        const allOrders = or.data || []
-        setTotalOrderCount(allOrders.length)
-        setCancelledCount(allOrders.filter(o => o.status === 'cancelled').length)
-        // Solo incluir órdenes que tengan al menos un pago completado (status 'paid')
-        setOrders(allOrders.filter(o => o.status !== 'cancelled' && o.status !== 'refunded' && o.payments?.some(p => p.status === 'paid')))
+        const allFetched = or.data || []
+
+        // Guardar órdenes pagadas de los últimos 90 días para la IA BI
+        const cleanFetched = allFetched.filter(o => o.status !== 'cancelled' && o.status !== 'refunded' && o.payments?.some(p => p.status === 'paid'))
+        setRecentRollingOrders(cleanFetched)
+
+        // Filtrar órdenes del mes seleccionado para la vista UI
+        const monthOrders = allFetched.filter(o => {
+          const t = new Date(o.created_at).getTime()
+          return t >= s.getTime() && t <= e.getTime()
+        })
+
+        setTotalOrderCount(monthOrders.length)
+        setCancelledCount(monthOrders.filter(o => o.status === 'cancelled').length)
+        // Solo incluir órdenes pagadas en el mes
+        setOrders(monthOrders.filter(o => o.status !== 'cancelled' && o.status !== 'refunded' && o.payments?.some(p => p.status === 'paid')))
       } catch (err) { console.error(err); setError('Error al cargar los datos.') }
       finally { setLoading(false) }
     })()
@@ -148,6 +165,20 @@ const ReportsView = () => {
     }
     return r.reverse()
   }, [shifts, orders, cm, cy])
+
+  // Desglose móvil de los últimos 90 días consecutivos para la IA BI (cubre 30, 60 y 90 días)
+  const ultimos90Dias = useMemo(() => {
+    const r = []
+    const now = new Date()
+    for (let i = 0; i < 90; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)
+      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      const dayOrders = recentRollingOrders.filter(o => o.created_at?.slice(0, 10) === ds)
+      const { rev, cnt, avg } = calcDay(dayOrders)
+      r.push({ fecha: ds, ventas: rev, ordenes: cnt, ticketPromedio: avg })
+    }
+    return r
+  }, [recentRollingOrders])
 
   const isCm = cm === today.getMonth() && cy === today.getFullYear()
   const validOrders = orders // ya filtrados al cargar (solo pagados, no cancelados/reembolsados)
@@ -221,27 +252,34 @@ const ReportsView = () => {
       .filter((item) => item.value > 0);
   }, [days]);
 
-  // Payload para el chat de IA BI
+  // Payload para el chat de IA BI con visibilidad completa de registros
   const summaryReportPayload = useMemo(() => {
     return {
       periodo: `${MONTHS[cm]} ${cy}`,
-      ventasTotales: mRev,
-      totalOrdenes: mOrd,
-      ticketPromedio: mOrd > 0 ? Math.round(mRev / mOrd) : 0,
-      ingresoNeto: mNetRev,
-      totalDeliveryFees: mFees,
-      tasaCancelacion: `${cancellationRate.toFixed(1)}%`,
-      ordenesCanceladas: cancelledCount,
+      ventasTotalesMes: mRev,
+      totalOrdenesMes: mOrd,
+      ticketPromedioMes: mOrd > 0 ? Math.round(mRev / mOrd) : 0,
+      ingresoNetoMes: mNetRev,
+      totalDeliveryFeesMes: mFees,
+      tasaCancelacionMes: `${cancellationRate.toFixed(1)}%`,
+      ordenesCanceladasMes: cancelledCount,
       horaPico: peakHour.count > 0 ? `${String(peakHour.hour).padStart(2, '0')}:00 (${peakHour.count} órdenes)` : 'N/A',
-      productosMasVendidos: topProducts.map(p => ({ producto: p.name, cantidadVendida: p.qty, ingresosGenerados: p.revenue })),
+      productosMasVendidosMes: topProducts.map(p => ({ producto: p.name, cantidadVendida: p.qty, ingresosGenerados: p.revenue })),
       metodosDePago: paymentDonutData.map(p => ({ metodo: p.label, montoTotal: p.value })),
       ticketPorCanal: ticketByChannel.map(c => ({ canal: c.label, ordenes: c.count, ticketPromedio: c.avg })),
-      resumenDiario: days.map(d => {
+      resumenDiarioDelMes: days.map(d => {
         const { rev, cnt, avg } = calcDay(d.orders);
         return { fecha: d.date, ventas: rev, ordenes: cnt, ticketPromedio: avg };
-      })
+      }),
+      ventasUltimos90DiasConsecutivos: ultimos90Dias,
+      tendenciaAnual: annual ? annual.current.map((m, idx) => ({
+        mes: MONTHS[idx],
+        ventas: m.sales,
+        ordenes: m.orders,
+        ventasAnoAnterior: annual.previous[idx]?.sales || 0
+      })) : []
     };
-  }, [cm, cy, mRev, mOrd, mNetRev, mFees, cancellationRate, cancelledCount, peakHour, topProducts, paymentDonutData, ticketByChannel, days]);
+  }, [cm, cy, mRev, mOrd, mNetRev, mFees, cancellationRate, cancelledCount, peakHour, topProducts, paymentDonutData, ticketByChannel, days, ultimos90Dias, annual]);
 
   const annualStats = useMemo(() => {
     if (!annual) return null
@@ -732,36 +770,89 @@ const ReportsView = () => {
                 <div className="text-center py-32"><p className="text-gray-400 font-medium">No hay ventas en este período.</p></div>
               ) : selected === 'resumen' ? (
                 <>
-                  {/* Month hero */}
-                  <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
-                    <h2 className="text-lg font-bold text-gray-900 mb-1">Resumen de {MONTHS[cm]} {cy}</h2>
-                    <p className="text-sm text-gray-500 mb-5">{mOrd} órdenes en {days.length} días con actividad</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
+                  {/* Month hero summary cards */}
+                  <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-6 sm:p-7">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
                       <div>
-                        <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{fmt(mRev)}</div>
-                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Ventas totales</div>
+                        <h2 className="text-xl font-black text-gray-900 tracking-tight">Resumen de {MONTHS[cm]} {cy}</h2>
+                        <p className="text-sm font-medium text-gray-500 mt-1 flex items-center gap-2">
+                          <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                          {mOrd} {mOrd === 1 ? 'orden registrada' : 'órdenes registradas'} en {days.length} {days.length === 1 ? 'día' : 'días'} con actividad
+                        </p>
                       </div>
-                      <div>
-                        <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{mOrd}</div>
-                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Órdenes</div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5">
+                      {/* Ventas Totales */}
+                      <div className="bg-gray-50/70 hover:bg-gray-50 border border-gray-100 rounded-2xl p-5 transition-all flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ventas totales</span>
+                          <TrendingUp className="h-4 w-4 text-gray-900" />
+                        </div>
+                        <div className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">{fmt(mRev)}</div>
                       </div>
-                      <div>
-                        <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{fmt(mOrd > 0 ? Math.round(mRev / mOrd) : 0)}</div>
-                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Ticket promedio</div>
+
+                      {/* Órdenes */}
+                      <div className="bg-gray-50/70 hover:bg-gray-50 border border-gray-100 rounded-2xl p-5 transition-all flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Órdenes</span>
+                          <ShoppingBag className="h-4 w-4 text-gray-900" />
+                        </div>
+                        <div className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">{mOrd}</div>
                       </div>
-                      <div>
-                        <div className="text-2xl sm:text-3xl font-bold text-emerald-600 tracking-tight">{fmt(mNetRev)}</div>
-                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1 flex items-center gap-1"><Wallet className="h-3 w-3" />Ingreso neto</div>
+
+                      {/* Ticket Promedio */}
+                      <div className="bg-gray-50/70 hover:bg-gray-50 border border-gray-100 rounded-2xl p-5 transition-all flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ticket promedio</span>
+                          <Receipt className="h-4 w-4 text-gray-900" />
+                        </div>
+                        <div className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+                          {fmt(mOrd > 0 ? Math.round(mRev / mOrd) : 0)}
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{peakHour.count > 0 ? `${String(peakHour.hour).padStart(2,'0')}:00` : '—'}</div>
-                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1 flex items-center gap-1"><Clock className="h-3 w-3" />Hora pico</div>
-                        {peakHour.count > 0 && <div className="text-[11px] text-gray-400 mt-0.5">{peakHour.count} órdenes</div>}
+
+                      {/* Ingreso Neto */}
+                      <div className="bg-gray-50/70 hover:bg-gray-50 border border-gray-100 rounded-2xl p-5 transition-all flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ingreso neto</span>
+                          <Wallet className="h-4 w-4 text-gray-900" />
+                        </div>
+                        <div className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight">{fmt(mNetRev)}</div>
                       </div>
-                      <div>
-                        <div className={`text-2xl sm:text-3xl font-bold tracking-tight ${cancellationRate > 5 ? 'text-red-500' : 'text-gray-900'}`}>{cancellationRate.toFixed(1)}%</div>
-                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1 flex items-center gap-1"><Ban className="h-3 w-3" />Cancelaciones</div>
-                        {cancelledCount > 0 && <div className="text-[11px] text-gray-400 mt-0.5">{cancelledCount} de {totalOrderCount}</div>}
+
+                      {/* Hora Pico */}
+                      <div className="bg-gray-50/70 hover:bg-gray-50 border border-gray-100 rounded-2xl p-5 transition-all flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Hora pico</span>
+                          <Clock className="h-4 w-4 text-gray-900" />
+                        </div>
+                        <div>
+                          <div className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+                            {peakHour.count > 0 ? `${String(peakHour.hour).padStart(2, '0')}:00` : '—'}
+                          </div>
+                          {peakHour.count > 0 && (
+                            <span className="text-xs font-semibold text-gray-500 mt-1 block">
+                              {peakHour.count} {peakHour.count === 1 ? 'orden' : 'órdenes'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Cancelaciones */}
+                      <div className="bg-gray-50/70 hover:bg-gray-50 border border-gray-100 rounded-2xl p-5 transition-all flex flex-col justify-between">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Cancelaciones</span>
+                          <Ban className="h-4 w-4 text-gray-900" />
+                        </div>
+                        <div>
+                          <div className={`text-2xl sm:text-3xl font-black tracking-tight ${cancellationRate > 5 ? 'text-rose-600' : 'text-gray-900'}`}>
+                            {cancellationRate.toFixed(1)}%
+                          </div>
+                          <span className="text-xs font-semibold text-gray-500 mt-1 block">
+                            {cancelledCount} de {totalOrderCount} órdenes
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
