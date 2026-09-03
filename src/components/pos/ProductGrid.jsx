@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, ScanLine, X, Menu, ChefHat, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { Search, Keyboard as KeyboardIcon, X, Menu, ChefHat, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useKitchenOrders } from '../../hooks/useKitchenOrders';
 import Keyboard from 'react-simple-keyboard';
@@ -54,6 +54,7 @@ const ProductGrid = ({
   const keyboardRef = useRef(null);
   const overlayRef = useRef(null);
   const searchBarRef = useRef(null);
+  const inputRef = useRef(null);
   const navigate = useNavigate();
   const { pendingCount, newOrderFlag } = useKitchenOrders();
 
@@ -273,18 +274,23 @@ const ProductGrid = ({
           <div className="relative flex-1">
             <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-gray-400 pointer-events-none" />
             
-            {/* Desktop Virtual Keyboard Trigger */}
-            <div
-              onClick={() => setShowKeyboard(true)}
-              className={`hidden md:flex w-full h-12 pl-12 pr-12 bg-gray-100 rounded-xl text-base items-center cursor-pointer select-none transition-all ${
-                showKeyboard ? 'ring-2 ring-blue-500 bg-white' : ''
-              }`}
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-            >
-              <span className={search ? 'text-gray-900' : 'text-gray-400'}>
-                {search || 'Buscar artículo...'}
-              </span>
-            </div>
+            {/* Desktop Input */}
+            <input
+              ref={inputRef}
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                keyboardRef.current?.setInput(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.target.value.trim()) {
+                  e.preventDefault();
+                }
+              }}
+              placeholder="Buscar artículo..."
+              className="hidden md:flex w-full h-12 pl-12 pr-12 bg-gray-100 rounded-xl text-base items-center transition-all focus:outline-none focus:bg-white"
+            />
 
             {/* Mobile Native Input */}
             <input
@@ -293,6 +299,11 @@ const ProductGrid = ({
               onChange={(e) => {
                 setSearch(e.target.value);
                 keyboardRef.current?.setInput(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.target.value.trim()) {
+                  e.preventDefault();
+                }
               }}
               placeholder="Buscar..."
               className="md:hidden flex w-full h-10 pl-9 pr-9 bg-gray-100 rounded-lg text-sm items-center transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
@@ -307,10 +318,13 @@ const ProductGrid = ({
               </button>
             ) : (
               <button
-                onClick={() => setShowKeyboard(true)}
-                className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 p-1"
+                onClick={() => {
+                  setShowKeyboard(true);
+                  setTimeout(() => inputRef.current?.focus(), 100);
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 p-1"
               >
-                <ScanLine className="h-5 w-5" />
+                <KeyboardIcon className="h-5 w-5" />
               </button>
             )}
           </div>
