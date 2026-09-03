@@ -86,22 +86,19 @@ const NewOrderAlert = () => {
       if (!isCreatedByMe) {
         setIsVisible(true);
         playBellSound();
-      }
-      
-      if (localStorage.getItem('pos_auto_print_enabled') === 'true') {
-        setAutoPrintOrder(latestNewOrder);
-      }
-
-      // Solo limpiamos si mostramos la alerta visual o si auto-imprimimos.
-      // Si fue creada por mi y no hay auto-print, igual limpiamos el order global para no dejar basura.
-      if (isCreatedByMe) {
-        setTimeout(clearLatestNewOrder, 1000);
-      } else {
+        
+        if (localStorage.getItem('pos_auto_print_enabled') === 'true') {
+          setAutoPrintOrder(latestNewOrder);
+        }
+        
         const timer = setTimeout(() => {
           setIsVisible(false);
           setTimeout(clearLatestNewOrder, 300); // Wait for transition
         }, 10000);
         return () => clearTimeout(timer);
+      } else {
+        // Pedido creado por mi POS local -> ignorar por completo, PosView ya lo imprimió
+        setTimeout(clearLatestNewOrder, 1000);
       }
     } else {
       setIsVisible(false);

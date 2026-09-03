@@ -23,6 +23,8 @@ import { useAuth } from '../components/AuthContext';
 import { getShiftSettings, getCurrentShift } from '../services/shiftService';
 import { PosSkeleton } from '../components/ui/Skeleton';
 import { defaultSelectionsForSlot, bundleHasChoices } from '../utils/bundleSelections';
+import PrintableReceipt from '../components/pos/PrintableReceipt';
+import { printReceipt } from '../services/printerService';
 
 
 const PosView = () => {
@@ -31,6 +33,7 @@ const PosView = () => {
 
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
+  const [posPrintOrder, setPosPrintOrder] = useState(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('pago');
   const [activeTable, setActiveTable] = useState(null);
@@ -424,6 +427,42 @@ const PosView = () => {
       setIsMobileCartOpen(false);
       setActiveTable(null);
       setActiveOrder(null);
+      
+      // Auto-impresión (QZ Tray o ventana nativa PDF)
+      if (localStorage.getItem('pos_auto_print_enabled') === 'true') {
+        // Refetch de la orden completa para obtener order_items y payments necesarios para el ticket
+        const { data: fullOrder } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            payments(method, status),
+            order_items(*, order_item_variants(variant_option_name), order_item_ingredients(ingredient_name))
+          `)
+          .eq('id', finalOrder.id)
+          .single();
+          
+        const printData = fullOrder || finalOrder;
+
+        const qzPrinter = localStorage.getItem('qz_default_printer');
+        if (qzPrinter) {
+          import('sonner').then(({ toast }) => toast.info('Generando ticket...'));
+          printReceipt(printData, organization, qzPrinter).catch(e => {
+             console.error('QZ Print failed', e);
+             import('sonner').then(({ toast }) => toast.error('Error imprimiendo en QZ Tray'));
+          });
+        } else {
+          setPosPrintOrder(printData);
+          setTimeout(() => {
+            const originalTitle = document.title;
+            document.title = `Orden_#${printData?.order_number || printData?.id?.slice(0,4)}`;
+            window.focus();
+            window.print();
+            document.title = originalTitle;
+            setTimeout(() => setPosPrintOrder(null), 1000);
+          }, 150);
+        }
+      }
+
       return finalOrder;
     } catch (error) {
       console.error('Error creating order:', error);
@@ -745,6 +784,7 @@ const PosView = () => {
           </div>
         </div>
       )}
+      <PrintableReceipt order={posPrintOrder} organization={organization} />
     </div>
   );
 };

@@ -7,7 +7,6 @@ import { getQzCertificate } from '../utils/qzCert';
 let isConnected = false;
 let isConnecting = false;
 let connectPromise = null;
-let certReady = false;
 
 // Detectar cuando QZ Tray se desconecta y resetear estado
 const setupDisconnectDetection = () => {
@@ -23,46 +22,18 @@ const setupDisconnectDetection = () => {
 
 setupDisconnectDetection();
 
-// Configurar certificado para que QZ Tray recuerde la decisión de confiar
-const setupCertificate = async () => {
-  if (certReady) return;
+// Configuración de seguridad con certificado demo de QZ Tray
+// El certificado demo está firmado por QZ Industries root CA, por lo que QZ Tray lo confía
+const setupSecurity = () => {
   try {
-    const { certPem, privateKey } = await getQzCertificate();
+    const { certPem } = getQzCertificate();
 
-    qz.security.setCertificatePromise((resolve, reject) => {
-      try {
-        resolve(certPem);
-      } catch (e) {
-        reject(e);
-      }
-    });
+    qz.security.setCertificatePromise((resolve) => resolve(certPem));
 
-    // QZ Tray 2.1+ requires setting the algorithm if not using the default.
-    // Our WebCrypto key uses SHA-512.
-    try {
-      qz.security.setSignatureAlgorithm("SHA512");
-    } catch (e) {
-      console.warn("No se pudo configurar algoritmo SHA512 en QZ Tray:", e);
-    }
-
-    qz.security.setSignaturePromise((toSign) => {
-      return (resolve, reject) => {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(toSign);
-        crypto.subtle.sign(
-          { name: 'RSASSA-PKCS1-v1_5' },
-          privateKey,
-          data
-        ).then((sig) => {
-          resolve(btoa(String.fromCharCode(...new Uint8Array(sig))));
-        }).catch(reject);
-      };
-    });
-
-    certReady = true;
-    console.log('Certificado QZ Tray configurado correctamente.');
+    // Método demo: sin firma de mensajes (resolve sin argumento)
+    qz.security.setSignaturePromise((toSign) => (resolve) => resolve());
   } catch (e) {
-    console.error('Error configurando certificado QZ Tray:', e);
+    console.error('Error configurando seguridad QZ Tray:', e);
   }
 };
 
@@ -70,8 +41,8 @@ const setupCertificate = async () => {
 const ensureConnection = async () => {
   if (isConnected) return;
 
-  // Configurar certificado antes de conectar
-  await setupCertificate();
+  // Configurar seguridad antes de conectar (async - genera/carga certificado)
+  await setupSecurity();
 
   // Si ya hay una conexión en progreso, esperar a que termine
   if (isConnecting && connectPromise) {

@@ -1043,6 +1043,24 @@ const SettingsView = () => {
                         </p>
                       </div>
                     )}
+
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <button
+                        onClick={() => {
+                          localStorage.removeItem('qz_cert_v8');
+                          localStorage.removeItem('qz_key_v8');
+                          localStorage.removeItem('qz_cert_v7');
+                          localStorage.removeItem('qz_key_v7');
+                          localStorage.removeItem('qz_cert_v6');
+                          localStorage.removeItem('qz_key_v6');
+                          alert('Caché de QZ Tray limpiada. Recarga la página para generar un nuevo certificado.');
+                        }}
+                        className="text-xs text-red-600 hover:text-red-800 font-semibold"
+                      >
+                        Limpiar caché QZ
+                      </button>
+                      <p className="text-xs text-gray-400 mt-1">Si la impresión no funciona, limpia la caché y vuelve a aceptar el certificado.</p>
+                    </div>
                   </div>
                 </div>
 

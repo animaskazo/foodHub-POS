@@ -1,103 +1,72 @@
-// qzCert.js — Certificate helpers for QZ Tray "Remember this decision"
-// Generates a self-signed X.509 certificate persisted in localStorage
-// so QZ Tray trusts the site permanently after first approval.
+// qzCert.js — Certificate helpers for QZ Tray
+// Uses QZ Tray's demo certificate (trusted by QZ Industries root CA)
+// so "Remember this decision" works permanently.
 
-const KC = 'qz_cert_v2';
-const KK = 'qz_key_v2';
+const KC = 'qz_cert_v8';
+const KK = 'qz_key_v8';
 
-// ASN.1 DER helpers
-const aLen = (n) => n < 0x80 ? [n] : n < 0x100 ? [0x80, n] : [0x81, n >> 8, n & 0xff];
-const tlv = (t, c) => [t, ...aLen(c.length), ...c];
-const dInt = (b) => { if (b[0] & 0x80) b = [0, ...b]; return tlv(0x02, b); };
-const dOid = (o) => tlv(0x06, o);
-const dBit = (b) => tlv(0x03, [0, ...b]);
-const dSeq = (...i) => tlv(0x30, i.flat());
-const dNull = () => [0x05, 0x00];
-const dPrintStr = (s) => tlv(0x13, [...new TextEncoder().encode(s)]);
-const dExplicitCtx = (n, inner) => tlv(0xa0 | n, inner);
-const dUtc = (d) => {
-  const p = (n) => String(n).padStart(2, '0');
-  const s = `${String(d.getUTCFullYear()).slice(-2)}${p(d.getUTCMonth()+1)}${p(d.getUTCDate())}${p(d.getUTCHours())}${p(d.getUTCMinutes())}${p(d.getUTCSeconds())}Z`;
-  return tlv(0x17, [...new TextEncoder().encode(s)]);
-};
+// QZ Tray demo certificate + intermediate (signed by QZ Industries root CA)
+const QZ_DEMO_CERT = `-----BEGIN CERTIFICATE-----
+MIIE9TCCAt2gAwIBAgIQNzkyMDI0MTIyMDE5MDI0NDANBgkqhkiG9w0BAQsFADCB
+mDELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAk5ZMRswGQYDVQQKDBJRWiBJbmR1c3Ry
+aWVzLCBMTEMxGzAZBgNVBAsMElFaIEluZHVzdHJpZXMsIExMQzEZMBcGA1UEAwwQ
+cXppbmR1c3RyaWVzLmNvbTEnMCUGCSqGSIb3DQEJARYYc3VwcG9ydEBxemluZHVz
+dHJpZXMuY29tMB4XDTI0MTIyMDE5MDI0NFoXDTI5MTIyMDE4NTMxOVowga4xFjAU
+BgNVBAYMDVVuaXRlZCBTdGF0ZXMxCzAJBgNVBAgMAk5ZMRIwEAYDVQQHDAlDYW5h
+c3RvdGExGzAZBgNVBAoMElFaIEluZHVzdHJpZXMsIExMQzEbMBkGA1UECwwSUVog
+SW5kdXN0cmllcywgTExDMRswGQYDVQQDDBJRWiBJbmR1c3RyaWVzLCBMTEMxHDAa
+BgkqhkiG9w0BCQEMDXN1cHBvcnRAcXouaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IB
+DwAwggEKAoIBAQC+j6ewVhtLHbY3uBNgqNB5DSz+QX9Pz5Dm46bI9vt/Q1Q6BL8I
+dhaxT2PA1AY0fqQgkzlSrwqNCjWZcrNZRw/e54FGM8zf3azbHrQif6d7Wo1JK5oN
+kI3jdB54YVwHIAt6i3BcLIvyOHsPnrKjlpROz72Kx1kK5g0gLDuH5RYVM9KFK+HR
+fBc3JSfeg8nUkTqYJVzlT5AGRWPXeDWloqQqSyuB1t8DihNBReWyJHQ7a4yerLOI
+J6N0jAlLDx9yt9UznAxnoO+7tKBfxCbNJerGfePMOwRKq0gx+r8M/FTrAoj+yc+T
+SOYtuY/VZ79HCTP/vLgm1pGyrta1we24fVezAgMBAAGjIzAhMB8GA1UdIwQYMBaA
+FJCmULeE1LnqX/IFhBN4ReipdVRcMA0GCSqGSIb3DQEBCwUAA4ICAQAMvfp931Zt
+PgfqGXSrsM+GAVBxcRVm14MyldWfRr+MVaFZ6cH7c+fSs8hUt2qNPwHrnpK9eev5
+MPUL27hjfiTPwv1ojLJ180aMO0ZAfPfnKeLO8uTzY7GiPQeGK7Qh39kX9XxEOidG
+rMwfllZ6jJReS0ZGaX8LUXhh9RHGSYJhxgyUV7clB/dJch8Bbcd+DOxwc1POUHx1
+wWExKkoWzHCCYNvqxLC9p1eO2Elz9J9ynDjXtCBl7lssnoSUKtahBCKgN5tYmZZK
+NErKPQpbYk5yTEK1gybxhup8i2sGEJXZ9HRJLAl0UxB+eCu1ExWv7eGbcbIZJbeh
+bwRf03fatsqzCQbGboLWtMQfcxHrEu+5MdZwOFx8i+c0c2WYad2MkkzGYHBVHPtY
+o+PR61uIwJC2mNkPpX94CIFxSHyZumttyVKF4AhIPm9IMGTHaIr5M39zesQpVc7N
+VIgxmMuePBrLyh6vKvuqD7W3S2HWA/8IUX703tdhoXhv5lNo1j0oywSrrUkCvUvJ
+FjPS8+VUtVZNl7SVetQTexdcUwoADj6c1UwL9QWItskJ5Myesco3ZY0O+3QbgCuQ
+SRqN5D0qdaLNMdEwh1YekUp4i1jm0jzPzia+WvJrW1k1ZafV6ep+YkMBkC1SFYFw
+1Mdy+fYGyXlSn/Mvou//SSb0fUMIpXE9NA==
+-----END CERTIFICATE-----
+--START INTERMEDIATE CERT--
+-----BEGIN CERTIFICATE-----
+MIIFEjCCA/qgAwIBAgICEAAwDQYJKoZIhvcNAQELBQAwgawxCzAJBgNVBAYTAlVT
+MQswCQYDVQQIDAJOWTESMBAGA1UEBwwJQ2FuYXN0b3RhMRswGQYDVQQKDBJRWiBJ
+bmR1c3RyaWVzLCBMTEMxGzAZBgNVBAsMElFaIEluZHVzdHJpZXMsIExMQzEZMBcG
+A1UEAwwQcXppbmR1c3RyaWVzLmNvbTEnMCUGCSqGSIb3DQEJARYYc3VwcG9ydEBx
+emluZHVzdHJpZXMuY29tMB4XDTE1MDMwMjAwNTAxOFoXDTM1MDMwMjAwNTAxOFow
+gZgxCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJOWTEbMBkGA1UECgwSUVogSW5kdXN0
+cmllcywgTExDMRswGQYDVQQLDBJRWiBJbmR1c3RyaWVzLCBMTEMxGTAXBgNVBAMM
+EHF6aW5kdXN0cmllcy5jb20xJzAlBgkqhkiG9w0BCQEWGHN1cHBvcnRAcXppbmR1
+c3RyaWVzLmNvbTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBANTDgNLU
+iohl/rQoZ2bTMHVEk1mA020LYhgfWjO0+GsLlbg5SvWVFWkv4ZgffuVRXLHrwz1H
+YpMyo+Zh8ksJF9ssJWCwQGO5ciM6dmoryyB0VZHGY1blewdMuxieXP7Kr6XD3GRM
+GAhEwTxjUzI3ksuRunX4IcnRXKYkg5pjs4nLEhXtIZWDLiXPUsyUAEq1U1qdL1AH
+EtdK/L3zLATnhPB6ZiM+HzNG4aAPynSA38fpeeZ4R0tINMpFThwNgGUsxYKsP9kh
+0gxGl8YHL6ZzC7BC8FXIB/0Wteng0+XLAVto56Pyxt7BdxtNVuVNNXgkCi9tMqVX
+xOk3oIvODDt0UoQUZ/umUuoMuOLekYUpZVk4utCqXXlB4mVfS5/zWB6nVxFX8Io1
+9FOiDLTwZVtBmzmeikzb6o1QLp9F2TAvlf8+DIGDOo0DpPQUtOUyLPCh5hBaDGFE
+ZhE56qPCBiQIc4T2klWX/80C5NZnd/tJNxjyUyk7bjdDzhzT10CGRAsqxAnsjvMD
+2KcMf3oXN4PNgyfpbfq2ipxJ1u777Gpbzyf0xoKwH9FYigmqfRH2N2pEdiYawKrX
+6pyXzGM4cvQ5X1Yxf2x/+xdTLdVaLnZgwrdqwFYmDejGAldXlYDl3jbBHVM1v+uY
+5ItGTjk+3vLrxmvGy5XFVG+8fF/xaVfo5TW5AgMBAAGjUDBOMB0GA1UdDgQWBBSQ
+plC3hNS56l/yBYQTeEXoqXVUXDAfBgNVHSMEGDAWgBQDRcZNwPqOqQvagw9BpW0S
+BkOpXjAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAJIO8SiNr9jpLQ
+eUsFUmbueoxyI5L+P5eV92ceVOJ2tAlBA13vzF1NWlpSlrMmQcVUE/K4D01qtr0k
+gDs6LUHvj2XXLpyEogitbBgipkQpwCTJVfC9bWYBwEotC7Y8mVjjEV7uXAT71GKT
+x8XlB9maf+BTZGgyoulA5pTYJ++7s/xX9gzSWCa+eXGcjguBtYYXaAjjAqFGRAvu
+pz1yrDWcA6H94HeErJKUXBakS0Jm/V33JDuVXY+aZ8EQi2kV82aZbNdXll/R6iGw
+2ur4rDErnHsiphBgZB71C5FD4cdfSONTsYxmPmyUb5T+KLUouxZ9B0Wh28ucc1Lp
+rbO7BnjW
+-----END CERTIFICATE-----`;
 
-const toPem = (der, label) => {
-  const b = btoa(String.fromCharCode(...der));
-  const lines = b.match(/.{1,64}/g) || [];
-  return `-----BEGIN ${label}-----\n${lines.join('\n')}\n-----END ${label}-----`;
-};
-
-const fromPem = (pem) => {
-  const b = pem.replace(/-----.*?-----/g, '').replace(/\s/g, '');
-  return [...atob(b)].map((c) => c.charCodeAt(0));
-};
-
-const OID = {
-  RSA:        [42, 134, 72, 134, 247, 13, 1, 1, 11],  // rsaEncryption
-  SHA512_RSA: [42, 134, 72, 134, 247, 13, 1, 1, 13],  // sha512WithRSAEncryption
-};
-
-// Build self-signed X.509 certificate using raw SPKI from WebCrypto
-export async function getQzCertificate() {
-  // Try loading from localStorage
-  try {
-    const certPem = localStorage.getItem(KC);
-    const keyPem = localStorage.getItem(KK);
-    if (certPem && keyPem) {
-      const keyBytes = fromPem(keyPem);
-      const privateKey = await crypto.subtle.importKey(
-        'pkcs8', new Uint8Array(keyBytes),
-        { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-512' },
-        false, ['sign']
-      );
-      return { certPem, privateKey };
-    }
-  } catch { /* regenerate */ }
-
-  // Generate RSA 2048 key pair
-  const kp = await crypto.subtle.generateKey(
-    { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-512' },
-    true, ['sign', 'verify']
-  );
-
-  const pubSpki = new Uint8Array(await crypto.subtle.exportKey('spki', kp.publicKey));
-  const privPkcs8 = new Uint8Array(await crypto.subtle.exportKey('pkcs8', kp.privateKey));
-
-  // Build TBSCertificate using the raw SPKI as subjectPublicKeyInfo
-  const now = new Date();
-  const notBefore = new Date(now.getTime() - 60000);
-  const notAfter = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
-
-  const tbsCert = dSeq(
-    dExplicitCtx(0, dInt([0x02])),          // [0] EXPLICIT version v3
-    dInt([1]),                                // serial number
-    dSeq(dOid(OID.SHA512_RSA), dNull()),     // signature algorithm
-    dSeq(dPrintStr('FoodHubPOS')),            // issuer (PrintableString)
-    dSeq(dUtc(notBefore), dUtc(notAfter)),   // validity
-    dSeq(dPrintStr('FoodHubPOS')),            // subject (PrintableString)
-    pubSpki                                   // subjectPublicKeyInfo (raw SPKI bytes)
-  );
-
-  // Sign the TBSCertificate with SHA-512
-  const signature = new Uint8Array(await crypto.subtle.sign(
-    { name: 'RSASSA-PKCS1-v1_5' }, kp.privateKey, new Uint8Array(tbsCert)
-  ));
-
-  // Build the final certificate
-  const certDer = dSeq(
-    tbsCert,
-    dSeq(dOid(OID.SHA512_RSA), dNull()),
-    dBit([...signature])
-  );
-
-  const certPem = toPem(certDer, 'CERTIFICATE');
-  const keyPem = toPem([...privPkcs8], 'PRIVATE KEY');
-
-  // Persist in localStorage
-  try {
-    localStorage.setItem(KC, certPem);
-    localStorage.setItem(KK, keyPem);
-  } catch { /* storage full */ }
-
-  return { certPem, privateKey: kp.privateKey };
+export function getQzCertificate() {
+  return { certPem: QZ_DEMO_CERT };
 }
