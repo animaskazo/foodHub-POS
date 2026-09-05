@@ -24,7 +24,7 @@ import { getShiftSettings, getCurrentShift } from '../services/shiftService';
 import { PosSkeleton } from '../components/ui/Skeleton';
 import { defaultSelectionsForSlot, bundleHasChoices } from '../utils/bundleSelections';
 import PrintableReceipt from '../components/pos/PrintableReceipt';
-import { printReceipt } from '../services/printerService';
+import { printReceipt, printReceiptAsPDF } from '../services/printerService';
 
 
 const PosView = () => {
@@ -428,7 +428,7 @@ const PosView = () => {
       setActiveTable(null);
       setActiveOrder(null);
       
-      // Auto-impresión (QZ Tray o ventana nativa PDF)
+      // Auto-impresión (servidor Python)
       if (localStorage.getItem('pos_auto_print_enabled') === 'true') {
         // Refetch de la orden completa para obtener order_items y payments necesarios para el ticket
         const { data: fullOrder } = await supabase
@@ -443,24 +443,19 @@ const PosView = () => {
           
         const printData = fullOrder || finalOrder;
 
-        const qzPrinter = localStorage.getItem('qz_default_printer');
-        if (qzPrinter) {
+const pythonPrinter = localStorage.getItem('python_default_printer');
+if (pythonPrinter) {
           import('sonner').then(({ toast }) => toast.info('Generando ticket...'));
-          printReceipt(printData, organization, qzPrinter).catch(e => {
-             console.error('QZ Print failed', e);
-             import('sonner').then(({ toast }) => toast.error('Error imprimiendo en QZ Tray'));
+          return printReceipt(printData, organization, pythonPrinter).catch(e => {
+             console.error('Python Print failed', e);
+             import('sonner').then(({ toast }) => toast.error('Error imprimiendo'));
           });
-        } else {
-          setPosPrintOrder(printData);
-          setTimeout(() => {
-            const originalTitle = document.title;
-            document.title = `Orden_#${printData?.order_number || printData?.id?.slice(0,4)}`;
-            window.focus();
-            window.print();
-            document.title = originalTitle;
-            setTimeout(() => setPosPrintOrder(null), 1000);
-          }, 150);
         }
+        import('sonner').then(({ toast }) => toast.info('Generando PDF...'));
+        return printReceiptAsPDF(printData, organization).catch(e => {
+          console.error('PDF generation failed', e);
+          import('sonner').then(({ toast }) => toast.error('Error generando PDF'));
+        });
       }
 
       return finalOrder;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -19,7 +19,8 @@ import {
   CalendarClock,
   ChevronDown,
   ChevronUp,
-  Info
+  Info,
+  Volume2
 } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,8 @@ import TransactionList from '../components/pos/TransactionList';
 import PrintableReceipt from '../components/pos/PrintableReceipt';
 import Sparkline from '../components/ui/Sparkline';
 import Tooltip from '../components/ui/tooltip';
+import { useKitchenOrders } from '../hooks/useKitchenOrders';
+import { testAlertSound, unlockAudio } from '../utils/soundAlerts';
 
 const MobileMetricsSlider = ({ children }) => {
   const [active, setActive] = useState(0);
@@ -98,96 +101,104 @@ const DashboardView = () => {
   const [shiftModalType, setShiftModalType] = useState('open'); // 'open' or 'close'
 
   const [weeklySparklines, setWeeklySparklines] = useState({ revenue: [], orders: [], ticket: [], visits: [] });
+  const { latestNewOrder } = useKitchenOrders();
 
-  useEffect(() => {
+  const fetchSparklines = useCallback(async () => {
     if (!organization?.id) return;
-    const fetchSparklines = async () => {
-      const endOfDay = new Date();
-      endOfDay.setHours(23, 59, 59, 999);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
 
-      let startOfRange = new Date();
-      let numPoints = 7;
+    let startOfRange = new Date();
+    let numPoints = 7;
+
+    if (dateRange === 'today') {
+      startOfRange.setHours(0, 0, 0, 0);
+      numPoints = 24;
+    } else if (dateRange === '7days') {
+      startOfRange.setDate(startOfRange.getDate() - 6);
+      startOfRange.setHours(0, 0, 0, 0);
+      numPoints = 7;
+    } else if (dateRange === '30days') {
+      startOfRange.setDate(startOfRange.getDate() - 29);
+      startOfRange.setHours(0, 0, 0, 0);
+      numPoints = 30;
+    }
+
+    const { data } = await supabase
+      .from('orders')
+      .select('created_at, total, status')
+      .eq('organization_id', organization.id)
+      .gte('created_at', startOfRange.toISOString())
+      .lte('created_at', endOfDay.toISOString())
+      .order('created_at', { ascending: true });
+
+    const validOrdersData = (data || []).filter(o => o.status !== 'cancelled');
+
+    const dailyRevenue = new Array(numPoints).fill(0);
+    const dailyOrders = new Array(numPoints).fill(0);
+
+    validOrdersData.forEach(order => {
+      const orderDate = new Date(order.created_at);
+      let pointIndex = 0;
 
       if (dateRange === 'today') {
-        startOfRange.setHours(0, 0, 0, 0);
-        numPoints = 24;
-      } else if (dateRange === '7days') {
-        startOfRange.setDate(startOfRange.getDate() - 6);
-        startOfRange.setHours(0, 0, 0, 0);
-        numPoints = 7;
-      } else if (dateRange === '30days') {
-        startOfRange.setDate(startOfRange.getDate() - 29);
-        startOfRange.setHours(0, 0, 0, 0);
-        numPoints = 30;
+        pointIndex = orderDate.getHours();
+      } else {
+        orderDate.setHours(0, 0, 0, 0);
+        pointIndex = Math.floor((orderDate.getTime() - startOfRange.getTime()) / (1000 * 60 * 60 * 24));
       }
 
-      const { data } = await supabase
-        .from('orders')
-        .select('created_at, total, status')
-        .eq('organization_id', organization.id)
-        .gte('created_at', startOfRange.toISOString())
-        .lte('created_at', endOfDay.toISOString())
-        .order('created_at', { ascending: true });
+      if (pointIndex >= 0 && pointIndex < numPoints) {
+        dailyRevenue[pointIndex] += Number(order.total) || 0;
+        dailyOrders[pointIndex] += 1;
+      }
+    });
 
-      const validOrdersData = (data || []).filter(o => o.status !== 'cancelled');
+    const dailyTicket = dailyRevenue.map((rev, i) => dailyOrders[i] > 0 ? Math.round(rev / dailyOrders[i]) : 0);
 
-      const dailyRevenue = new Array(numPoints).fill(0);
-      const dailyOrders = new Array(numPoints).fill(0);
+    // Fetch visits for sparkline
+    const { data: visitsData } = await supabase
+      .from('store_visits')
+      .select('date, visit_count')
+      .eq('organization_id', organization.id)
+      .gte('date', startOfRange.toISOString().split('T')[0])
+      .lte('date', endOfDay.toISOString().split('T')[0]);
 
-      validOrdersData.forEach(order => {
-        const orderDate = new Date(order.created_at);
+    const dailyVisits = new Array(numPoints).fill(0);
+    if (visitsData) {
+      visitsData.forEach(visit => {
+        const visitDate = new Date(visit.date + 'T00:00:00');
         let pointIndex = 0;
-
         if (dateRange === 'today') {
-          pointIndex = orderDate.getHours();
+          pointIndex = 12;
         } else {
-          orderDate.setHours(0, 0, 0, 0);
-          pointIndex = Math.floor((orderDate.getTime() - startOfRange.getTime()) / (1000 * 60 * 60 * 24));
+          pointIndex = Math.floor((visitDate.getTime() - startOfRange.getTime()) / (1000 * 60 * 60 * 24));
         }
-
         if (pointIndex >= 0 && pointIndex < numPoints) {
-          dailyRevenue[pointIndex] += Number(order.total) || 0;
-          dailyOrders[pointIndex] += 1;
+          dailyVisits[pointIndex] += visit.visit_count;
         }
       });
+    }
 
-      const dailyTicket = dailyRevenue.map((rev, i) => dailyOrders[i] > 0 ? Math.round(rev / dailyOrders[i]) : 0);
-
-      // Fetch visits for sparkline
-      const { data: visitsData } = await supabase
-        .from('store_visits')
-        .select('date, visit_count')
-        .eq('organization_id', organization.id)
-        .gte('date', startOfRange.toISOString().split('T')[0])
-        .lte('date', endOfDay.toISOString().split('T')[0]);
-
-      const dailyVisits = new Array(numPoints).fill(0);
-      if (visitsData) {
-        visitsData.forEach(visit => {
-          const visitDate = new Date(visit.date + 'T00:00:00');
-          let pointIndex = 0;
-          if (dateRange === 'today') {
-            pointIndex = 12;
-          } else {
-            pointIndex = Math.floor((visitDate.getTime() - startOfRange.getTime()) / (1000 * 60 * 60 * 24));
-          }
-          if (pointIndex >= 0 && pointIndex < numPoints) {
-            dailyVisits[pointIndex] += visit.visit_count;
-          }
-        });
-      }
-
-      setWeeklySparklines({
-        revenue: dailyRevenue,
-        orders: dailyOrders,
-        ticket: dailyTicket,
-        visits: dailyVisits
-      });
-    };
-
-    fetchSparklines();
+    setWeeklySparklines({
+      revenue: dailyRevenue,
+      orders: dailyOrders,
+      ticket: dailyTicket,
+      visits: dailyVisits
+    });
   }, [organization?.id, dateRange]);
 
+  useEffect(() => {
+    fetchSparklines();
+  }, [fetchSparklines]);
+
+  // Instant refresh when a new order arrives from online/WhatsApp or POS
+  useEffect(() => {
+    if (latestNewOrder) {
+      fetchOrders(true);
+      fetchSparklines();
+    }
+  }, [latestNewOrder, fetchSparklines]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -195,16 +206,34 @@ const DashboardView = () => {
     if (organization?.id) {
       loadShiftData();
       fetchOrders();
+
+      // Supabase Realtime subscription for instant updates on the dashboard
+      const channel = supabase
+        .channel('dashboard-orders-realtime')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'orders' },
+          () => {
+            fetchOrders(true);
+            fetchSparklines();
+          }
+        )
+        .subscribe();
+
       const interval = setInterval(() => {
         fetchOrders(true);
         loadShiftData();
-      }, 30000);
-      return () => clearInterval(interval);
+      }, 20000);
+
+      return () => {
+        supabase.removeChannel(channel);
+        clearInterval(interval);
+      };
     } else {
       setLoading(false);
       setError('No tienes una organización asignada.');
     }
-  }, [organization?.id, authLoading, dateRange]);
+  }, [organization?.id, authLoading, dateRange, fetchSparklines]);
 
   const loadShiftData = async () => {
     try {
@@ -422,6 +451,17 @@ const DashboardView = () => {
           actions={
             <div className="flex items-center gap-3">
               <div className="hidden md:flex items-center gap-3">
+                <button
+                  onClick={async () => {
+                    await unlockAudio();
+                    testAlertSound(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-xs font-semibold shadow-xs transition-colors"
+                  title="Probar sonido de alertas online"
+                >
+                  <Volume2 className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Probar Alerta</span>
+                </button>
                 <PrepTimeSelector />
                 <StockNotifications />
               </div>

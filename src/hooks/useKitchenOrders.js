@@ -1,33 +1,41 @@
 import { useEffect, useState, useCallback } from 'react';
 import { getKitchenOrders } from '../services/orderService';
+import { supabase } from '../lib/supabase';
 
 // Shared module-level state & subscribers
 let prevOrders = [];
+let isInitialized = false;
 let globalPendingCount = 0;
 let globalNewOrderFlag = false;
 let globalLatestNewOrder = null;
 const subscribers = new Set();
 let timerId = null;
+let realtimeChannel = null;
 
 const notifySubscribers = () => {
   subscribers.forEach((callback) => callback());
 };
 
-const fetchOrders = async () => {
+export const fetchOrders = async () => {
   try {
     const data = await getKitchenOrders();
 
-    if (prevOrders.length > 0) {
-      const prevIds = prevOrders.map((o) => o.id);
-      const added = data.filter((o) => !prevIds.includes(o.id));
+    if (isInitialized) {
+      const prevIds = new Set(prevOrders.map((o) => o.id));
+      // Detect newly arrived orders in pending/confirmed/scheduled status
+      const added = data.filter(
+        (o) => !prevIds.has(o.id) && (o.status === 'confirmed' || o.status === 'pending' || o.status === 'scheduled')
+      );
       if (added.length > 0) {
         globalNewOrderFlag = true;
         globalLatestNewOrder = added[added.length - 1];
         setTimeout(() => {
           globalNewOrderFlag = false;
           notifySubscribers();
-        }, 1500);
+        }, 3000);
       }
+    } else {
+      isInitialized = true;
     }
 
     prevOrders = data;
@@ -38,17 +46,46 @@ const fetchOrders = async () => {
   }
 };
 
-const startGlobalTimer = () => {
-  if (!timerId) {
-    fetchOrders();
-    timerId = setInterval(fetchOrders, 15000); // Shared 15-second polling timer
+const startRealtime = () => {
+  if (!realtimeChannel) {
+    realtimeChannel = supabase
+      .channel('global-kitchen-orders')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => {
+          // Immediately fetch when any order is created or updated
+          fetchOrders();
+        }
+      )
+      .subscribe();
   }
 };
 
+const stopRealtime = () => {
+  if (subscribers.size === 0 && realtimeChannel) {
+    supabase.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+};
+
+const startGlobalTimer = () => {
+  if (!timerId) {
+    fetchOrders();
+    timerId = setInterval(fetchOrders, 12000); // 12-second polling fallback
+  }
+  startRealtime();
+};
+
 const stopGlobalTimer = () => {
-  if (subscribers.size === 0 && timerId) {
-    clearInterval(timerId);
-    timerId = null;
+  if (subscribers.size === 0) {
+    if (timerId) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+    stopRealtime();
+    isInitialized = false;
+    prevOrders = [];
   }
 };
 
@@ -76,6 +113,7 @@ export const useKitchenOrders = () => {
     newOrderFlag: globalNewOrderFlag,
     latestNewOrder: globalLatestNewOrder,
     clearLatestNewOrder,
+    refetch: fetchOrders,
   };
 };
 

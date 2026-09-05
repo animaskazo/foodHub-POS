@@ -9,7 +9,7 @@ import PrintableReceipt from './PrintableReceipt';
 import { useAuth } from '../AuthContext';
 import { supabase } from '../../lib/supabase';
 import { updateOrderStatus, deleteOrder, bulkDeleteOrders, bulkCancelOrders } from '../../services/orderService';
-import { printReceipt } from '../../services/printerService';
+import { printReceipt, printReceiptAsPDF } from '../../services/printerService';
 import { fmt, getKitchenTime, getPaymentMethod, getStatusTag, formatDateSeparator, getOrderDateKey } from '../../utils/orderUtils';
 import UberDeliveryCard from './UberDeliveryCard';
 import OrderDetailModal from './OrderDetailModal';
@@ -523,27 +523,23 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
         onPrint={async () => {
           let orderToPrint = selectedOrder;
 
-          const qzPrinter = localStorage.getItem('qz_default_printer');
-          if (qzPrinter && orderToPrint) {
-            try {
-              const { toast } = await import('sonner');
-              toast.info('Imprimiendo ticket...');
-              await printReceipt(orderToPrint, organization, qzPrinter);
-            } catch (e) {
-              console.error('QZ Print failed, usando impresión nativa', e);
-              const { toast } = await import('sonner');
-              toast.error('Error con QZ Tray, usando impresión del navegador');
-              const originalTitle = document.title;
-              document.title = `Orden_#${orderToPrint.order_number}`;
-              window.print();
-              document.title = originalTitle;
-            }
-          } else {
-            const originalTitle = document.title;
-            document.title = `Orden_#${orderToPrint.order_number}`;
-            window.print();
-            document.title = originalTitle;
-          }
+const pythonPrinter = localStorage.getItem('python_default_printer');
+           if (pythonPrinter && orderToPrint) {
+             try {
+               const { toast } = await import('sonner');
+               toast.info('Imprimiendo ticket...');
+               await printReceipt(orderToPrint, organization, pythonPrinter);
+             } catch (e) {
+               console.error('Python Print failed, usando PDF', e);
+               const { toast } = await import('sonner');
+               toast.error('Error imprimiendo, generando PDF');
+               await import('../../services/printerService').then(m => m.printReceiptAsPDF(orderToPrint, organization)).catch(() => {});
+             }
+           } else {
+             const { toast } = await import('sonner');
+             toast.info('Generando PDF...');
+             await import('../../services/printerService').then(m => m.printReceiptAsPDF(orderToPrint, organization)).catch(() => {});
+           }
         }}
         onConfirmPayment={(e, order) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
       />

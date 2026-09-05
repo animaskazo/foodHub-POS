@@ -1,50 +1,145 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { Clock, ChefHat, CheckCircle2, Play, RefreshCw, Volume2, Store, ShoppingBag, ShoppingCart, Globe, MessageCircle, User, ArrowLeft, Home, Van } from 'lucide-react';
+import { 
+  Clock, 
+  ChefHat, 
+  CheckCircle2, 
+  Play, 
+  RefreshCw, 
+  Volume2, 
+  VolumeX, 
+  Store, 
+  ShoppingBag, 
+  ShoppingCart, 
+  Globe, 
+  MessageCircle, 
+  User, 
+  ArrowLeft, 
+  Home, 
+  Van 
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getKitchenOrders, updateOrderStatus, activateDueScheduledOrders, updateOrderItemsStatus } from '../services/orderService';
 import { useAuth } from '../components/AuthContext';
 import { Button } from '@/components/ui/button';
+import { supabase } from '../lib/supabase';
+import {
+  playKitchenChime,
+  playOnlineOrderAlert,
+  testAlertSound,
+  unlockAudio,
+  isAudioUnlocked,
+  startTitleFlash,
+  stopTitleFlash,
+  getIsMuted,
+  setIsMuted
+} from '../utils/soundAlerts';
 
 const KitchenView = () => {
   const navigate = useNavigate();
   const { organization } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
-  const audioCtxRef = useRef(null);
+  const [muted, setMutedState] = useState(getIsMuted());
+  const [audioReady, setAudioReady] = useState(isAudioUnlocked());
   const prevOrdersRef = useRef([]);
+  const isInitialLoadRef = useRef(true);
+  const scrollContainerRef = useRef(null);
   const [leavingOrders, setLeavingOrders] = useState(new Set());
   const [newOrderIds, setNewOrderIds] = useState(new Set());
 
-  // Fetch kitchen orders and track newly arrived orders for blink animation
-  const fetchOrders = async (isBackground = false) => {
+  // Smoothly scroll the container to make the newest / target ticket visible
+  const scrollToNewOrder = useCallback((ticketId) => {
+    setTimeout(() => {
+      const el = ticketId 
+        ? document.getElementById(`ticket-${ticketId}`) 
+        : (document.querySelector('.ticket-enter-new') || scrollContainerRef.current?.lastElementChild);
+
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'end' });
+      } else if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTo({
+          left: scrollContainerRef.current.scrollWidth,
+          behavior: 'smooth'
+        });
+      }
+    }, 200);
+  }, []);
+
+  // Trigger visual and audible alerts for new orders with 10s duration and auto-scroll
+  const triggerNewOrderAlert = useCallback((ordersList, playSound = true) => {
+    if (!ordersList || ordersList.length === 0) return;
+    setNewOrderIds(prev => {
+      const next = new Set(prev);
+      ordersList.forEach(o => {
+        next.add(o.id);
+        next.add(`${o.id}-round-0`);
+        next.add(`${o.id}-round-1`);
+      });
+      return next;
+    });
+
+    // Automatically scroll to the latest incoming order
+    const latestOrder = ordersList[ordersList.length - 1];
+    if (latestOrder) {
+      scrollToNewOrder(latestOrder.id);
+    }
+
+    // Keep animation active for 10 seconds
+    setTimeout(() => {
+      setNewOrderIds(prev => {
+        const next = new Set(prev);
+        ordersList.forEach(o => {
+          next.delete(o.id);
+          next.delete(`${o.id}-round-0`);
+          next.delete(`${o.id}-round-1`);
+        });
+        return next;
+      });
+    }, 10000);
+
+    if (playSound) {
+      const hasOnline = ordersList.some(o => o.order_type === 'online' || o.order_type === 'whatsapp');
+      if (hasOnline) {
+        playOnlineOrderAlert();
+        startTitleFlash('🔔 ¡NUEVO PEDIDO ONLINE!');
+      } else {
+        playKitchenChime();
+        startTitleFlash('🔔 ¡NUEVA ORDEN EN COCINA!');
+      }
+    }
+  }, [scrollToNewOrder]);
+
+  // Fetch kitchen orders and track newly arrived orders for sound & animation
+  const fetchOrders = useCallback(async (isBackground = false) => {
     if (!isBackground) setLoading(true);
     try {
       // Activar pedidos programados cuya hora ya llegó
       await activateDueScheduledOrders();
       const data = await getKitchenOrders();
-      // Determine newly added orders (status pending or confirmed)
-      const prevIds = prevOrdersRef.current.map(o => o.id);
-      const added = data.filter(o => !prevIds.includes(o.id) && (o.status === 'scheduled' || o.status === 'pending' || o.status === 'confirmed'));
-      if (added.length > 0) {
-        // Add their IDs to the blink set
-        setNewOrderIds(prev => {
-          const next = new Set(prev);
-          added.forEach(o => next.add(o.id));
-          return next;
-        });
-        // Remove after animation duration (1.5s)
-        setTimeout(() => {
-          setNewOrderIds(prev => {
-            const next = new Set(prev);
-            added.forEach(o => next.delete(o.id));
-            return next;
-          });
-        }, 1500);
-        initAudio();
-        playBellSound();
+
+      if (!isInitialLoadRef.current) {
+        const prevIds = new Set(prevOrdersRef.current.map(o => o.id));
+        const added = data.filter(o => 
+          !prevIds.has(o.id) && (o.status === 'scheduled' || o.status === 'pending' || o.status === 'confirmed')
+        );
+
+        if (added.length > 0) {
+          triggerNewOrderAlert(added, true);
+        }
+      } else {
+        isInitialLoadRef.current = false;
+        // On initial mount/navigation, if an order was created in the last 60 seconds, animate and scroll to it!
+        const recentOrders = data.filter(o => 
+          (o.status === 'pending' || o.status === 'confirmed') &&
+          o.created_at &&
+          (Date.now() - new Date(o.created_at).getTime()) < 60000
+        );
+        if (recentOrders.length > 0) {
+          triggerNewOrderAlert(recentOrders, false);
+        }
       }
-      // Update orders and previous reference
+
       setOrders(data);
       prevOrdersRef.current = data;
     } catch (e) {
@@ -53,75 +148,59 @@ const KitchenView = () => {
     } finally {
       if (!isBackground) setLoading(false);
     }
-  };
+  }, [triggerNewOrderAlert]);
 
-  // Audio Context must be resumed after user interaction
-  const initAudio = () => {
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-    } else if (audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
+  const handleToggleSound = async () => {
+    const ready = await unlockAudio();
+    setAudioReady(ready);
+    if (muted) {
+      setIsMuted(false);
+      setMutedState(false);
+    }
+    testAlertSound(true);
+
+    // Trigger 10-second inverse blink on the latest order and scroll to it!
+    if (orders.length > 0) {
+      const latest = orders[orders.length - 1];
+      triggerNewOrderAlert([latest], false);
     }
   };
 
-  const playBellSound = () => {
-    try {
-      const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
-      if (!audioCtxRef.current) audioCtxRef.current = ctx;
-      if (ctx.state === 'suspended') ctx.resume();
-
-      const playNote = (freq, startTime, duration) => {
-        const osc = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, startTime);
-        gainNode.gain.setValueAtTime(0.5, startTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-        osc.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        osc.start(startTime);
-        osc.stop(startTime + duration);
-      };
-      playNote(880, ctx.currentTime, 1);
-      playNote(1108.73, ctx.currentTime + 0.15, 1); // C#6
-    } catch (e) {
-      console.error("Audio error", e);
-    }
+  const handleMuteToggle = (e) => {
+    e.stopPropagation();
+    const newMuted = !muted;
+    setIsMuted(newMuted);
+    setMutedState(newMuted);
   };
-
-  useEffect(() => {
-    const unlockAudio = () => {
-      initAudio();
-      if (audioCtxRef.current?.state === 'running') {
-        window.removeEventListener('click', unlockAudio);
-        window.removeEventListener('touchstart', unlockAudio);
-        window.removeEventListener('keydown', unlockAudio);
-      }
-    };
-
-    window.addEventListener('click', unlockAudio);
-    window.addEventListener('touchstart', unlockAudio);
-    window.addEventListener('keydown', unlockAudio);
-
-    return () => {
-      window.removeEventListener('click', unlockAudio);
-      window.removeEventListener('touchstart', unlockAudio);
-      window.removeEventListener('keydown', unlockAudio);
-    };
-  }, []);
-
 
   useDocumentTitle('Cocina');
 
   useEffect(() => {
     fetchOrders(true);
-    // Auto refresh every 15 seconds silently
+
+    // Supabase Realtime subscription for instant new orders (<500ms)
+    const channel = supabase
+      .channel('kitchen-view-channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => {
+          fetchOrders(true);
+        }
+      )
+      .subscribe();
+
+    // Auto refresh every 12 seconds as a fallback
     const interval = setInterval(() => {
       fetchOrders(true);
-    }, 15000);
+    }, 12000);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+      stopTitleFlash();
+    };
+  }, [fetchOrders]);
 
   const handleUpdateStatus = async (orderId, newStatus, ticket = null) => {
     if (newStatus === 'ready') {
@@ -188,7 +267,7 @@ const KitchenView = () => {
   const preparingCount = orders.filter(o => o.status === 'preparing').length;
 
   return (
-    <div className="flex flex-col h-screen bg-black text-gray-100 overflow-hidden font-sans" onClick={initAudio}>
+    <div className="flex flex-col h-screen bg-black text-gray-100 overflow-hidden font-sans" onClick={unlockAudio}>
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 bg-[#111] border-b border-[#222]">
         <div className="flex items-center gap-3">
@@ -218,9 +297,34 @@ const KitchenView = () => {
           </div>
         </div>
         <div className="flex items-center gap-2 md:gap-4">
-          <div className="hidden md:flex items-center gap-2 px-3 py-2   text-sm font-semibold bg-green-500/20 text-green-400 border border-green-500/30">
-            <Volume2 className="h-4 w-4" />
-            Sonido Activo
+          {/* Interactive Sound & Alert status button */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleToggleSound}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs md:text-sm font-bold border transition-all shadow-sm ${
+                muted 
+                  ? 'bg-red-500/20 text-red-300 border-red-500/40 hover:bg-red-500/30' 
+                  : !audioReady 
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 animate-pulse'
+                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+              }`}
+              title={muted ? "Sonido silenciado. Clic para activar" : !audioReady ? "Haz clic para permitir audio en el navegador" : "Probar sonido de cocina"}
+            >
+              {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              <span>
+                {muted ? 'Silenciado' : !audioReady ? 'Activar Sonido' : 'Sonido Activo'}
+              </span>
+              <span className="hidden lg:inline text-[10px] opacity-75 font-normal ml-0.5">
+                (Probar)
+              </span>
+            </button>
+            <button
+              onClick={handleMuteToggle}
+              className="p-2 text-zinc-400 hover:text-white bg-[#222] hover:bg-[#333] border border-[#333] rounded-xl transition-colors"
+              title={muted ? "Activar sonido" : "Silenciar sonido"}
+            >
+              {muted ? <VolumeX className="h-4 w-4 text-red-400" /> : <Volume2 className="h-4 w-4 text-emerald-400" />}
+            </button>
           </div>
           <div className="flex items-center justify-center bg-[#222] w-10 h-10 md:w-auto md:px-4 md:py-2 border border-[#333]" title="Actualización en vivo">
             <span className="w-2.5 h-2.5 bg-green-500 animate-pulse"></span>
@@ -251,7 +355,10 @@ const KitchenView = () => {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row md:flex-nowrap gap-4 md:gap-6 w-full items-start pb-20 overflow-x-auto hide-scrollbar">
+        <div 
+          ref={scrollContainerRef}
+          className="flex flex-col md:flex-row md:flex-nowrap gap-4 md:gap-6 w-full items-start pb-20 overflow-x-auto hide-scrollbar scroll-smooth"
+        >
 
           {(() => {
             const allTickets = [];
@@ -357,13 +464,14 @@ const KitchenView = () => {
               };
               const channel = channelConfig[ticket.order_type] || { label: ticket.order_type, Icon: Store };
 
-              const isNew = newOrderIds.has(ticket.id);
+              const isNew = newOrderIds.has(ticket.id) || newOrderIds.has(ticket.ticketId);
               const isLeaving = leavingOrders.has(ticket.ticketId);
 
               return (
                 <div
+                  id={`ticket-${ticket.id}`}
                   key={ticket.ticketId}
-                  className={`order-card transition-all w-full md:w-80 min-w-[300px] flex-shrink-0 flex flex-col rounded-2xl border ${cfg.border} bg-zinc-950 overflow-hidden shadow-lg md:h-[calc(100vh-170px)] ${isLeaving ? 'ticket-leave' : isNew ? 'ticket-enter-new' : (ticket.status === 'scheduled' || ticket.status === 'pending' || ticket.status === 'confirmed') ? 'ticket-enter-pending' : 'ticket-enter'}`}
+                  className={`order-card ${isNew ? '' : 'transition-all'} w-full md:w-80 min-w-[300px] flex-shrink-0 flex flex-col rounded-2xl border ${cfg.border} bg-zinc-950 overflow-hidden shadow-lg md:h-[calc(100vh-170px)] ${isLeaving ? 'ticket-leave' : isNew ? 'ticket-enter-new' : (ticket.status === 'scheduled' || ticket.status === 'pending' || ticket.status === 'confirmed') ? 'ticket-enter-pending' : 'ticket-enter'}`}
                 >
                   {/* ── Header ── */}
                   <div className={`${cfg.headerBg} px-4 pt-4 pb-3.5 border-b border-zinc-900 shrink-0 space-y-3`}>
@@ -594,9 +702,15 @@ const KitchenView = () => {
           from { opacity: 1; transform: translateY(0) scale(1); }
           to   { opacity: 0; transform: translateY(-24px) scale(0.97); }
         }
-        @keyframes blinkBg {
-          0%, 100% { filter: invert(0); }
-          50% { filter: invert(1); }
+        @keyframes blinkInverse {
+          0%, 100% {
+            filter: invert(0);
+            -webkit-filter: invert(0);
+          }
+          50% {
+            filter: invert(1);
+            -webkit-filter: invert(1);
+          }
         }
         .ticket-enter {
           animation: slideInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -605,7 +719,8 @@ const KitchenView = () => {
           animation: slideInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         .ticket-enter-new {
-          animation: slideInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards, blinkBg 0.8s ease-in-out 2;
+          animation: slideInUp 0.35s ease-out, blinkInverse 0.8s ease-in-out 12 !important;
+          will-change: filter, -webkit-filter;
         }
         .ticket-leave {
           animation: slideOutUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;

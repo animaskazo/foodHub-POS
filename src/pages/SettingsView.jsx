@@ -88,27 +88,48 @@ const SettingsView = () => {
     localStorage.setItem('pos_auto_print_enabled', checked.toString());
   };
 
-  const [qzPrinters, setQzPrinters] = useState([]);
-  const [selectedQzPrinter, setSelectedQzPrinter] = useState(
-    localStorage.getItem('qz_default_printer') || ''
+  const [printers, setPrinters] = useState([]);
+  const [serverStatus, setServerStatus] = useState('checking');
+  const [selectedPrinter, setSelectedPrinter] = useState(
+    localStorage.getItem('pos_default_printer') || ''
   );
 
-  const fetchQzPrinters = async () => {
+  const checkServerHealth = async () => {
     try {
-      const printers = await getPrinters();
-      setQzPrinters(printers);
-    } catch (error) {
-      console.error('Error loading printers:', error);
+      const res = await fetch('http://localhost:8088/health');
+      if (res.ok) {
+        const data = await res.json();
+        setServerStatus('connected');
+      } else {
+        setServerStatus('disconnected');
+      }
+    } catch {
+      setServerStatus('disconnected');
     }
   };
 
-  const handleQzPrinterSelect = (e) => {
+  const handleReconnect = async () => {
+    setServerStatus('checking');
+    await checkServerHealth();
+  };
+
+  const fetchPrinters = async () => {
+    try {
+      const printersList = await getPrinters();
+      setPrinters(printersList);
+    } catch (error) {
+      console.error('Error loading printers:', error);
+    }
+    await checkServerHealth();
+  };
+
+  const handlePrinterSelect = (e) => {
     const printer = e.target.value;
-    setSelectedQzPrinter(printer);
+    setSelectedPrinter(printer);
     if (printer) {
-      localStorage.setItem('qz_default_printer', printer);
+      localStorage.setItem('pos_default_printer', printer);
     } else {
-      localStorage.removeItem('qz_default_printer');
+      localStorage.removeItem('pos_default_printer');
     }
   };
 
@@ -209,6 +230,7 @@ const SettingsView = () => {
       console.error('Error loading settings:', error);
     } finally {
       setLoading(false);
+      await fetchPrinters();
     }
   };
 
@@ -997,6 +1019,22 @@ const SettingsView = () => {
             {activeTab === 'printers' && (
               <div className="p-6 md:p-8 space-y-8 animate-in fade-in">
                 
+                {/* Server Status */}
+<div className={`border rounded-xl p-4 flex items-center gap-3 ${serverStatus === 'connected' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                   <div className={`h-3 w-3 rounded-full ${serverStatus === 'connected' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                   <div>
+                     <p className={`font-bold text-sm ${serverStatus === 'connected' ? 'text-green-800' : 'text-red-800'}`}>
+                       {serverStatus === 'checking' ? 'Verificando servidor...' : serverStatus === 'connected' ? 'Servidor de impresión conectado' : 'Servidor de impresión desconectado'}
+                     </p>
+                     <p className="text-xs text-gray-500">http://localhost:8088</p>
+                   </div>
+                   {serverStatus !== 'connected' && (
+                     <button onClick={handleReconnect} className="ml-auto px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-full hover:bg-blue-700">
+                       Reintentar
+                     </button>
+                   )}
+                 </div>
+                
                 {/* Auto Print Setting */}
                 <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 flex items-start gap-4">
                   <div className="h-12 w-12 bg-white rounded-full border border-gray-200 flex items-center justify-center shrink-0">
@@ -1014,55 +1052,41 @@ const SettingsView = () => {
                       />
                     </div>
                     
-                    {autoPrintEnabled && (
-                      <div className="mt-4 pt-4 border-t border-gray-100">
-                        <div className="flex items-center justify-between mb-2">
-                          <label className="text-sm font-semibold text-gray-700">Impresora QZ Tray (Silenciosa)</label>
-                          <button 
-                            onClick={fetchQzPrinters} 
-                            className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
-                          >
-                            Buscar Impresoras
-                          </button>
-                        </div>
-                        <select 
-                          value={selectedQzPrinter}
-                          onChange={handleQzPrinterSelect}
-                          className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                        >
-                          <option value="">Impresión normal (ventana del navegador)</option>
-                          {selectedQzPrinter && !qzPrinters.includes(selectedQzPrinter) && (
-                            <option value={selectedQzPrinter}>{selectedQzPrinter} (Guardada)</option>
-                          )}
-                          {qzPrinters.map(p => (
-                            <option key={p} value={p}>{p}</option>
-                          ))}
-                        </select>
-                        <p className="text-xs text-gray-500 mt-2">
-                          <strong>Importante:</strong> Para que la impresora funcione de forma directa (sin ventanas molestas), debes instalar el programa <strong>QZ Tray</strong> en este computador. Si lo dejas en "Impresión normal", tu navegador te pedirá confirmar cada ticket.
-                        </p>
+                     {autoPrintEnabled && (
+                       <div className="mt-4 pt-4 border-t border-gray-100">
+                         <div className="flex items-center justify-between mb-2">
+                           <label className="text-sm font-semibold text-gray-700">Impresora Python Local (Silenciosa)</label>
+                           <button 
+                             onClick={fetchPrinters} 
+                             className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
+                           >
+                             Buscar Impresoras
+                           </button>
+                         </div>
+                         <select 
+                           value={selectedPrinter}
+                           onChange={handlePrinterSelect}
+                           className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                         >
+                           <option value="">Impresión normal (ventana del navegador)</option>
+                           {selectedPrinter && !printers.includes(selectedPrinter) && (
+                             <option value={selectedPrinter}>{selectedPrinter} (Guardada)</option>
+                           )}
+                           {printers.map(p => (
+                             <option key={p} value={p}>{p}</option>
+                           ))}
+                         </select>
+                         <p className="text-xs text-gray-500 mt-2">
+                           <strong>Importante:</strong> Para que la impresión funcione de forma directa (sin ventanas molestas), debes instalar el programa <strong>Python Print Server</strong> en este computador. Descárgalo desde{' '}
+<a href="https://foodhub.work" target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline">
+                              foodhub.work
+                            </a>
+                           . Si lo dejas en "Impresión normal", tu navegador te pedirá confirmar cada ticket.
+                         </p>
+                         </div>
+                        )}
                       </div>
-                    )}
-
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                      <button
-                        onClick={() => {
-                          localStorage.removeItem('qz_cert_v8');
-                          localStorage.removeItem('qz_key_v8');
-                          localStorage.removeItem('qz_cert_v7');
-                          localStorage.removeItem('qz_key_v7');
-                          localStorage.removeItem('qz_cert_v6');
-                          localStorage.removeItem('qz_key_v6');
-                          alert('Caché de QZ Tray limpiada. Recarga la página para generar un nuevo certificado.');
-                        }}
-                        className="text-xs text-red-600 hover:text-red-800 font-semibold"
-                      >
-                        Limpiar caché QZ
-                      </button>
-                      <p className="text-xs text-gray-400 mt-1">Si la impresión no funciona, limpia la caché y vuelve a aceptar el certificado.</p>
                     </div>
-                  </div>
-                </div>
 
                 {/* Guía de Configuración */}
                 <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 flex items-start gap-4">
@@ -1070,16 +1094,17 @@ const SettingsView = () => {
                     <Info className="h-6 w-6 text-blue-600" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 text-lg mb-4">Guía de instalación (QZ Tray)</h3>
+                    <h3 className="font-bold text-gray-900 text-lg mb-4">Guía de Instalación (Python Print Server)</h3>
                     
                     <div className="space-y-4 text-sm text-gray-700">
                       <p className="font-medium text-gray-900">Pasos para activar la impresión 100% silenciosa:</p>
                       <ol className="list-decimal pl-5 space-y-3">
                         <li>Asegúrate de que tu impresora térmica esté encendida e instalada en el sistema (ej. Epson, Xprinter).</li>
-                        <li>Descarga e instala el programa gratuito <a href="https://qz.io/download/" target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline">QZ Tray</a> en este computador.</li>
-                        <li>Abre QZ Tray (deberías ver un pequeño ícono verde en la barra de tareas o menú de tu computador).</li>
+                        <li>Descarga e instala Python 3.10+ desde <a href="https://python.org" target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline">python.org</a> en este computador.</li>
+                        <li>Instala las dependencias ejecutando: <code className="bg-gray-100 px-1 rounded">pip install -r requirements.txt</code> (está incluido en la carpeta del proyecto).</li>
+                        <li>Ejecuta el servidor: <code className="bg-gray-100 px-1 rounded">python app.py</code>. Debería estar corriendo en segundo plano.</li>
                         <li>En los ajustes de arriba, activa la <strong>Impresión Automática</strong> y dale clic a <strong>Buscar Impresoras</strong>.</li>
-                        <li>Selecciona tu impresora térmica en la lista desplegable. <em>(La primera vez que imprimas, QZ Tray te mostrará una alerta de seguridad; asegúrate de marcar "Remember this decision" y darle a Allow)</em>.</li>
+                        <li>Selecciona tu impresora térmica en la lista desplegable.</li>
                       </ol>
                       <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-lg flex items-start gap-2">
                         <CheckCircle2 className="h-5 w-5 shrink-0" />

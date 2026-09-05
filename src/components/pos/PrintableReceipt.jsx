@@ -68,7 +68,7 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
                 <div className="bg-white p-1 border border-black rounded inline-block">
                   <QRCodeSVG value={waLink} size={50} level="M" />
                 </div>
-                <p className="text-[8px] font-bold mt-1 uppercase tracking-tight text-center leading-none">WhatsApp</p>
+                <p className="text-[6px] font-semibold mt-0.5 uppercase tracking-tight text-center leading-none text-gray-500">WhatsApp</p>
               </div>
             )}
           </div>
@@ -84,7 +84,6 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
 
         {/* Items */}
         <div className="mb-4">
-          <div className="receipt-section-title mb-2">Detalle de Compra</div>
           <table className="w-full text-left receipt-items">
             <thead>
               <tr>
@@ -158,21 +157,16 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
           <div className="receipt-unpaid-warning">
             NO PAGADO<br/>COBRAR AL CLIENTE
           </div>
-        ) : (
-          <div className="text-center mb-6">
-            <div className="receipt-section-title">Medio de Pago</div>
-            <p className="font-bold text-sm uppercase">{getPaymentMethod(order)}</p>
-            {order.payments?.[0]?.reference_code && (
-              <div className="mt-1">
-                <p className="text-xs font-bold uppercase bg-black text-white p-1 rounded inline-block mb-1">¡PAGO LISTO!</p>
-                <p className="text-xs text-gray-800 uppercase">ID Klap: {order.payments[0].reference_code}</p>
-              </div>
-            )}
-          </div>
-        )}
+        ) : null}
 
-        {/* Footer */}
+        {/* Footer con pago simplificado */}
         <div className="text-center flex flex-col items-center">
+          {!order.payments?.some(p => p.status === 'pending') && getPaymentMethod(order) !== '-' && (
+            <p className="text-xs font-bold uppercase mb-1">
+              {getPaymentMethod(order)}
+              {order.payments?.[0]?.reference_code && ` · ID ${order.payments[0].reference_code}`}
+            </p>
+          )}
           <p className="font-bold text-lg mb-1">¡Gracias por preferirnos!</p>
 
           <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-2 border-t border-gray-300 pt-2 inline-block">Powered by FoodHub POS</p>
