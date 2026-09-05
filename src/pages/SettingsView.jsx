@@ -1091,7 +1091,7 @@ const SettingsView = () => {
                           <Monitor className="h-4 w-4 text-blue-600" /> Windows
                         </h4>
                         <a
-                            href="https://foodhub.work/foodhub-printer-windows.zip"
+                            href="https://github.com/animaskazo/foodHub-POS/raw/main/public/foodhub-printer-windows.zip"
                             target="_blank"
                             rel="noreferrer"
                             className="mb-3 inline-flex items-center gap-2 text-blue-600 font-bold hover:underline"
@@ -1117,7 +1117,7 @@ const SettingsView = () => {
                           <Apple className="h-4 w-4 text-gray-700" /> Mac
                         </h4>
                         <a
-                            href="https://foodhub.work/foodhub-printer-mac.zip"
+                            href="https://github.com/animaskazo/foodHub-POS/raw/main/public/foodhub-printer-mac.zip"
                             target="_blank"
                             rel="noreferrer"
                             className="mb-3 inline-flex items-center gap-2 text-blue-600 font-bold hover:underline"
