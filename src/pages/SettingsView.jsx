@@ -8,7 +8,7 @@ import {
   getStaff 
 } from '../services/organizationService';
 import { uploadImage } from '../services/storageService';
-import { Store, User, Clock, CalendarClock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2, Timer, CreditCard, Image as ImageIcon, Sparkles, Globe, QrCode } from 'lucide-react';
+import { Store, User, Clock, CalendarClock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2, Timer, CreditCard, Image as ImageIcon, Sparkles, Globe, QrCode, Apple } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -1035,84 +1035,123 @@ const SettingsView = () => {
                    )}
                  </div>
                 
-                {/* Auto Print Setting */}
-                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 flex items-start gap-4">
-                  <div className="h-12 w-12 bg-white rounded-full border border-gray-200 flex items-center justify-center shrink-0">
-                    <Printer className="h-6 w-6 text-gray-700" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-bold text-gray-900 text-lg">Impresión Automática</h3>
-                        <p className="text-gray-500 text-sm mt-1">Imprime los pedidos apenas llegan. <br/><span className="font-semibold text-blue-600">Nota:</span> Esta opción se guarda solo en este computador.</p>
-                      </div>
-                      <Switch 
-                        checked={autoPrintEnabled}
-                        onCheckedChange={handleAutoPrintToggle}
-                      />
+{/* Auto Print Setting */}
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
+                        <Printer className="h-5 w-5 text-gray-700" /> Impresión Automática
+                      </h3>
+                      <p className="text-gray-500 text-sm mt-1">Imprime los pedidos apenas llegan. <br/><span className="font-semibold text-blue-600">Nota:</span> Esta opción se guarda solo en este computador.</p>
                     </div>
-                    
-                     {autoPrintEnabled && (
-                       <div className="mt-4 pt-4 border-t border-gray-100">
-                         <div className="flex items-center justify-between mb-2">
-                           <label className="text-sm font-semibold text-gray-700">Impresora Python Local (Silenciosa)</label>
-                           <button 
-                             onClick={fetchPrinters} 
-                             className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
-                           >
-                             Buscar Impresoras
-                           </button>
-                         </div>
-                         <select 
-                           value={selectedPrinter}
-                           onChange={handlePrinterSelect}
-                           className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                    <Switch 
+                      checked={autoPrintEnabled}
+                      onCheckedChange={handleAutoPrintToggle}
+                    />
+                  </div>
+                  
+                   {autoPrintEnabled && (
+                     <div className="mt-4 pt-4 border-t border-gray-100">
+                       <div className="flex items-center justify-between mb-2">
+                         <label className="text-sm font-semibold text-gray-700">Impresora Python Local (Silenciosa)</label>
+                         <button 
+                           onClick={fetchPrinters} 
+                           className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
                          >
-                           <option value="">Impresión normal (ventana del navegador)</option>
-                           {selectedPrinter && !printers.includes(selectedPrinter) && (
-                             <option value={selectedPrinter}>{selectedPrinter} (Guardada)</option>
-                           )}
-                           {printers.map(p => (
-                             <option key={p} value={p}>{p}</option>
-                           ))}
-                         </select>
-                         <p className="text-xs text-gray-500 mt-2">
-                           <strong>Importante:</strong> Para que la impresión funcione de forma directa (sin ventanas molestas), debes instalar el programa <strong>Python Print Server</strong> en este computador. Descárgalo desde{' '}
-<a href="https://foodhub.work" target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline">
-                              foodhub.work
-                            </a>
-                           . Si lo dejas en "Impresión normal", tu navegador te pedirá confirmar cada ticket.
-                         </p>
-                         </div>
-                        )}
-                      </div>
-                    </div>
+                           Buscar Impresoras
+                         </button>
+                       </div>
+                       <select 
+                         value={selectedPrinter}
+                         onChange={handlePrinterSelect}
+                         className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                       >
+                         <option value="">Impresión normal (ventana del navegador)</option>
+                         {selectedPrinter && !printers.includes(selectedPrinter) && (
+                           <option value={selectedPrinter}>{selectedPrinter} (Guardada)</option>
+                         )}
+                         {printers.map(p => (
+                           <option key={p} value={p}>{p}</option>
+                         ))}
+                       </select>
+                     </div>
+                   )}
+                 </div>
 
-                {/* Guía de Configuración */}
-                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 flex items-start gap-4">
-                  <div className="h-12 w-12 bg-white rounded-full border border-gray-200 flex items-center justify-center shrink-0">
-                    <Info className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 text-lg mb-4">Guía de Instalación (Python Print Server)</h3>
-                    
-                    <div className="space-y-4 text-sm text-gray-700">
-                      <p className="font-medium text-gray-900">Pasos para activar la impresión 100% silenciosa:</p>
-                      <ol className="list-decimal pl-5 space-y-3">
-                        <li>Asegúrate de que tu impresora térmica esté encendida e instalada en el sistema (ej. Epson, Xprinter).</li>
-                        <li>Descarga e instala Python 3.10+ desde <a href="https://python.org" target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline">python.org</a> en este computador.</li>
-                        <li>Instala las dependencias ejecutando: <code className="bg-gray-100 px-1 rounded">pip install -r requirements.txt</code> (está incluido en la carpeta del proyecto).</li>
-                        <li>Ejecuta el servidor: <code className="bg-gray-100 px-1 rounded">python app.py</code>. Debería estar corriendo en segundo plano.</li>
-                        <li>En los ajustes de arriba, activa la <strong>Impresión Automática</strong> y dale clic a <strong>Buscar Impresoras</strong>.</li>
-                        <li>Selecciona tu impresora térmica en la lista desplegable.</li>
-                      </ol>
-                      <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-lg flex items-start gap-2">
+                  {/* Guía de Configuración */}
+                  <div className="border-t border-gray-200 pt-8">
+                    <h3 className="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
+                      <Info className="h-5 w-5 text-blue-600" /> Guía de Instalación (Python Print Server)
+                    </h3>
+
+                    <div className="space-y-6 text-sm text-gray-700">
+                      {/* Windows */}
+                      <div>
+                        <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+                          <Monitor className="h-4 w-4 text-blue-600" /> Windows
+                        </h4>
+                        <a
+                          href="https://foodhub.work/foodhub-printer-windows.zip"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="group mb-3 flex items-center gap-3 bg-blue-50 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 rounded-xl px-4 py-3 transition-all"
+                        >
+                          <div className="h-10 w-10 bg-white rounded-lg flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                            <Download className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide">Descargar instalador</p>
+                            <p className="font-bold text-blue-700 truncate">foodhub-printer-windows.zip</p>
+                          </div>
+                          <Download className="h-4 w-4 text-blue-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+                        </a>
+                        <ol className="list-decimal pl-5 space-y-2">
+                          <li>Conecta la impresora térmica por USB (Epson, Xprinter).</li>
+                          <li>Extrae el ZIP en una carpeta.</li>
+                          <li>Doble clic en <code className="bg-gray-100 px-1 rounded">start.bat</code> (crea el entorno e instala todo automáticamente).</li>
+                          <li>Verás el icono <strong>FH verde</strong> en la bandeja del sistema.
+                            <span className="text-gray-500"> (menú → Ver estado / Imprimir prueba / Salir)</span>
+                          </li>
+                        </ol>
+                        <p className="mt-2 text-xs">
+                          Para un <strong>.exe</strong> sin Python: ejecuta <code className="bg-gray-100 px-1 rounded">build_win.bat</code> y usa <code className="bg-gray-100 px-1 rounded">dist\FoodHubPrint.exe</code>.
+                        </p>
+                      </div>
+
+                      {/* Mac */}
+                      <div className="border-t border-gray-200 pt-6">
+                        <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+                          <Apple className="h-4 w-4 text-gray-700" /> Mac
+                        </h4>
+                        <a
+                          href="https://foodhub.work/foodhub-printer-mac.zip"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="group mb-3 flex items-center gap-3 bg-blue-50 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 rounded-xl px-4 py-3 transition-all"
+                        >
+                          <div className="h-10 w-10 bg-white rounded-lg flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                            <Download className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide">Descargar app</p>
+                            <p className="font-bold text-blue-700 truncate">foodhub-printer-mac.zip</p>
+                          </div>
+                          <Download className="h-4 w-4 text-blue-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+                        </a>
+                        <ol className="list-decimal pl-5 space-y-2">
+                          <li>Conecta la impresora térmica por USB.</li>
+                          <li>Extrae el ZIP y arrastra <strong>FoodHubPrint.app</strong> a Aplicaciones.</li>
+                          <li>Abre la app: el servidor arranca y verás el icono <strong>FH verde</strong> en la barra de menú arriba a la derecha.</li>
+                          <li>Si el sistema bloquea la app: Clic derecho → Abrir → Abrir (o Ajustes → Privacidad y Seguridad).</li>
+                        </ol>
+                      </div>
+
+                      <div className="p-3 bg-green-50 text-green-800 rounded-lg flex items-start gap-2">
                         <CheckCircle2 className="h-5 w-5 shrink-0" />
-                        <p>¡Listo! A partir de ahora, cada pedido nuevo saldrá mágicamente por la impresora sin que aparezca ninguna ventana molesta de Google Chrome.</p>
+                        <p>En los ajustes de arriba, activa la <strong>Impresión Automática</strong>, dale clic a <strong>Buscar Impresoras</strong> y selecciona tu térmica. ¡Listo, tus pedidos saldrán sin ventanas molestas!</p>
                       </div>
                     </div>
                   </div>
-                </div>
 
               </div>
             )}
