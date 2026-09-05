@@ -1091,20 +1091,13 @@ const SettingsView = () => {
                           <Monitor className="h-4 w-4 text-blue-600" /> Windows
                         </h4>
                         <a
-                          href="https://foodhub.work/foodhub-printer-windows.zip"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="group mb-3 flex items-center gap-3 bg-blue-50 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 rounded-xl px-4 py-3 transition-all"
-                        >
-                          <div className="h-10 w-10 bg-white rounded-lg flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
-                            <Download className="h-5 w-5 text-blue-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide">Descargar instalador</p>
-                            <p className="font-bold text-blue-700 truncate">foodhub-printer-windows.zip</p>
-                          </div>
-                          <Download className="h-4 w-4 text-blue-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
-                        </a>
+                            href="https://foodhub.work/foodhub-printer-windows.zip"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mb-3 inline-flex items-center gap-2 text-blue-600 font-bold hover:underline"
+                          >
+                            <Download className="h-4 w-4 shrink-0" /> foodhub-printer-windows.zip
+                          </a>
                         <ol className="list-decimal pl-5 space-y-2">
                           <li>Conecta la impresora térmica por USB (Epson, Xprinter).</li>
                           <li>Extrae el ZIP en una carpeta.</li>
@@ -1124,20 +1117,13 @@ const SettingsView = () => {
                           <Apple className="h-4 w-4 text-gray-700" /> Mac
                         </h4>
                         <a
-                          href="https://foodhub.work/foodhub-printer-mac.zip"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="group mb-3 flex items-center gap-3 bg-blue-50 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 rounded-xl px-4 py-3 transition-all"
-                        >
-                          <div className="h-10 w-10 bg-white rounded-lg flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
-                            <Download className="h-5 w-5 text-blue-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide">Descargar app</p>
-                            <p className="font-bold text-blue-700 truncate">foodhub-printer-mac.zip</p>
-                          </div>
-                          <Download className="h-4 w-4 text-blue-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
-                        </a>
+                            href="https://foodhub.work/foodhub-printer-mac.zip"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mb-3 inline-flex items-center gap-2 text-blue-600 font-bold hover:underline"
+                          >
+                            <Download className="h-4 w-4 shrink-0" /> foodhub-printer-mac.zip
+                          </a>
                         <ol className="list-decimal pl-5 space-y-2">
                           <li>Conecta la impresora térmica por USB.</li>
                           <li>Extrae el ZIP y arrastra <strong>FoodHubPrint.app</strong> a Aplicaciones.</li>
