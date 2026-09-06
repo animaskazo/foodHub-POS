@@ -91,8 +91,17 @@ const SettingsView = () => {
   const [printers, setPrinters] = useState([]);
   const [serverStatus, setServerStatus] = useState('checking');
   const [selectedPrinter, setSelectedPrinter] = useState(
-    localStorage.getItem('pos_default_printer') || ''
+    localStorage.getItem('python_default_printer') || localStorage.getItem('pos_default_printer') || ''
   );
+
+  useEffect(() => {
+    const python = localStorage.getItem('python_default_printer');
+    const legacy = localStorage.getItem('pos_default_printer');
+    if (!python && legacy) {
+      localStorage.setItem('python_default_printer', legacy);
+      setSelectedPrinter(legacy);
+    }
+  }, []);
 
   const checkServerHealth = async () => {
     try {
@@ -127,8 +136,10 @@ const SettingsView = () => {
     const printer = e.target.value;
     setSelectedPrinter(printer);
     if (printer) {
+      localStorage.setItem('python_default_printer', printer);
       localStorage.setItem('pos_default_printer', printer);
     } else {
+      localStorage.removeItem('python_default_printer');
       localStorage.removeItem('pos_default_printer');
     }
   };
