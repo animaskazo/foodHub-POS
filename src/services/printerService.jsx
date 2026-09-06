@@ -160,8 +160,8 @@ export const printReceipt = async (order, organization, printerName, _retry = fa
     try {
       const canvas = await renderReceiptCanvas(holder);
       const image = canvas.toDataURL('image/png');
-      await sendToPythonPrinter(printerName, order, organization, image);
-      console.log('Ticket impreso (HTML -> raster) en', printerName);
+      const result = await sendToPythonPrinter(printerName, order, organization, image);
+      console.log('Ticket impreso (HTML -> raster) en', printerName, '| modo:', result?.mode);
       return true;
     } finally {
       holder.remove();

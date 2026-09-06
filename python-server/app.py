@@ -282,8 +282,13 @@ def _png_base64_to_raster(png_data_url, width_dots=576):
     return bytes(out)
 
 
+LAST_PRINT_MODE = 'texto'
+
+
 def print_receipt(printer_name, order_data, organization_data, image_data_url=None, image_width=576):
+    global LAST_PRINT_MODE
     if printer_name and printer_name.startswith(SIMULATOR_NAME):
+        LAST_PRINT_MODE = 'simulador'
         return print_simulated(printer_name, order_data, organization_data)
     if image_data_url and PILImage:
         try:
@@ -291,18 +296,21 @@ def print_receipt(printer_name, order_data, organization_data, image_data_url=No
             ok = (print_mac if IS_MAC else print_win)(printer_name, raster)
             if ok:
                 logger.info(f"Raster (HTML -> bit-image) impreso en {printer_name}")
+                LAST_PRINT_MODE = 'raster'
                 return True
             logger.warning("Raster devolvió fallo, usando formato texto")
         except Exception as e:
             logger.warning(f"Raster falló ({str(e)[:120]}) — usando formato texto")
     escpos_data = format_receipt(order_data, organization_data)
     if IS_MAC:
-        return print_mac(printer_name, escpos_data)
+        ok = print_mac(printer_name, escpos_data)
     elif IS_WINDOWS:
-        return print_win(printer_name, escpos_data)
+        ok = print_win(printer_name, escpos_data)
     else:
         logger.error("Unsupported platform")
-        return False
+        ok = False
+    LAST_PRINT_MODE = 'texto' if ok else 'error'
+    return ok
 
 SIMULATOR_NAME = 'FoodHub Simulador (PDF)'
 _last_simulated_pdf = None
@@ -553,7 +561,7 @@ def print_receipt_api():
             return jsonify({'error': 'Print failed'}), 500
 
         simulated = bool(printer_name and printer_name.startswith(SIMULATOR_NAME))
-        response = {'success': True, 'printer': printer_name}
+        response = {'success': True, 'printer': printer_name, 'mode': LAST_PRINT_MODE}
         if simulated and _last_simulated_pdf:
             response['simulated'] = True
             response['pdf_path'] = _last_simulated_pdf
