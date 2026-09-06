@@ -1107,7 +1107,7 @@ const SettingsView = () => {
                           </li>
                         </ol>
                         <p className="mt-2 text-xs">
-                          ¿Ya tenías el servidor? Descarga el código<!-- --> <a href="https://github.com/animaskazo/foodHub-POS/raw/main/public/foodhub-printer-windows.zip" target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline">foodhub-printer-windows.zip</a> para ejecutar desde código.
+                          ¿Ya tenías el servidor? Descarga el código <a href="https://github.com/animaskazo/foodHub-POS/raw/main/public/foodhub-printer-windows.zip" target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline">foodhub-printer-windows.zip</a> para ejecutar desde código.
                         </p>
                       </div>
 
