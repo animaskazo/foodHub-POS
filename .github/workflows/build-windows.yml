@@ -1,0 +1,52 @@
+name: Build Windows EXE
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        working-directory: python-server
+        run: pip install pyinstaller flask waitress fpdf2 pystray Pillow
+
+      - name: Build EXE with PyInstaller
+        working-directory: python-server
+        run: |
+          python -m PyInstaller `
+            --onefile `
+            --windowed `
+            --name "FoodHubPrint" `
+            --add-data "app.py;." `
+            --add-data "printer_service.py;." `
+            --add-data "requirements.txt;." `
+            --hidden-import "flask" `
+            --hidden-import "waitress" `
+            --hidden-import "fpdf" `
+            --collect-submodules "pystray" `
+            app.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FoodHubPrint-exe
+          path: python-server/dist/FoodHubPrint.exe
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: python-server/dist/FoodHubPrint.exe
+          generate_release_notes: true

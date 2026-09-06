@@ -1091,23 +1091,23 @@ const SettingsView = () => {
                           <Monitor className="h-4 w-4 text-blue-600" /> Windows
                         </h4>
                         <a
-                            href="https://github.com/animaskazo/foodHub-POS/raw/main/public/foodhub-printer-windows.zip"
+                            href="https://github.com/animaskazo/foodHub-POS/releases/latest/download/FoodHubPrint.exe"
                             target="_blank"
                             rel="noreferrer"
                             className="mb-3 inline-flex items-center gap-2 text-blue-600 font-bold hover:underline"
                           >
-                            <Download className="h-4 w-4 shrink-0" /> foodhub-printer-windows.zip
+                            <Download className="h-4 w-4 shrink-0" /> Descargar FoodHubPrint.exe
                           </a>
                         <ol className="list-decimal pl-5 space-y-2">
                           <li>Conecta la impresora térmica por USB (Epson, Xprinter).</li>
-                          <li>Extrae el ZIP en una carpeta.</li>
-                          <li>Doble clic en <code className="bg-gray-100 px-1 rounded">start.bat</code> (crea el entorno e instala todo automáticamente).</li>
+                          <li>Descarga <strong>FoodHubPrint.exe</strong> (un solo archivo, no necesita instalar nada).</li>
+                          <li>Ejecútalo con doble clic. Si Windows muestra un aviso: <strong>Más información → Ejecutar de todas formas</strong>.</li>
                           <li>Verás el icono <strong>FH verde</strong> en la bandeja del sistema.
                             <span className="text-gray-500"> (menú → Ver estado / Imprimir prueba / Salir)</span>
                           </li>
                         </ol>
                         <p className="mt-2 text-xs">
-                          Para un <strong>.exe</strong> sin Python: ejecuta <code className="bg-gray-100 px-1 rounded">build_win.bat</code> y usa <code className="bg-gray-100 px-1 rounded">dist\FoodHubPrint.exe</code>.
+                          ¿Ya tenías el servidor? Descarga el código<!-- --> <a href="https://github.com/animaskazo/foodHub-POS/raw/main/public/foodhub-printer-windows.zip" target="_blank" rel="noreferrer" className="text-blue-600 font-bold hover:underline">foodhub-printer-windows.zip</a> para ejecutar desde código.
                         </p>
                       </div>
 
