@@ -91,6 +91,22 @@ const PosView = () => {
     loadShiftData();
   }, [organization?.id]);
 
+  useEffect(() => {
+    if (!posPrintOrder) return;
+    const pythonPrinter = localStorage.getItem('python_default_printer');
+    import('sonner').then(({ toast }) => toast.info(pythonPrinter ? 'Generando ticket...' : 'Generando PDF...'));
+    const doPrint = pythonPrinter
+      ? printReceipt(posPrintOrder, organization, pythonPrinter)
+      : printReceiptAsPDF(posPrintOrder, organization);
+    doPrint
+      .then(() => setPosPrintOrder(null))
+      .catch(e => {
+        console.error(pythonPrinter ? 'Python Print failed' : 'PDF generation failed', e);
+        import('sonner').then(({ toast }) => toast.error(pythonPrinter ? 'Error imprimiendo' : 'Error generando PDF'));
+        setPosPrintOrder(null);
+      });
+  }, [posPrintOrder, organization]);
+
   const isPosBlocked = !loadingShift && shiftSettings?.shifts_enabled && shiftSettings?.block_pos_when_closed && !currentShift;
 
   const addToCart = (product, variant, ingredients = []) => {
@@ -428,8 +444,10 @@ const PosView = () => {
       setActiveTable(null);
       setActiveOrder(null);
       
-      // Auto-impresión (servidor Python)
-      if (localStorage.getItem('pos_auto_print_enabled') === 'true') {
+      // Auto-impresión (servidor Python). Admin/Owner imprimen siempre; el resto depende del toggle.
+      const wantsAutoPrint = localStorage.getItem('pos_auto_print_enabled') === 'true' ||
+        (typeof userRole === 'string' && ['owner', 'admin'].includes(userRole));
+      if (wantsAutoPrint) {
         // Refetch de la orden completa para obtener order_items y payments necesarios para el ticket
         const { data: fullOrder } = await supabase
           .from('orders')
@@ -440,23 +458,8 @@ const PosView = () => {
           `)
           .eq('id', finalOrder.id)
           .single();
-          
-        const printData = fullOrder || finalOrder;
 
-        const pythonPrinter = localStorage.getItem('python_default_printer');
-        if (pythonPrinter) {
-          import('sonner').then(({ toast }) => toast.info('Generando ticket...'));
-          printReceipt(printData, organization, pythonPrinter).catch(e => {
-            console.error('Python Print failed', e);
-            import('sonner').then(({ toast }) => toast.error('Error imprimiendo'));
-          });
-        } else {
-          import('sonner').then(({ toast }) => toast.info('Generando PDF...'));
-          printReceiptAsPDF(printData, organization).catch(e => {
-            console.error('PDF generation failed', e);
-            import('sonner').then(({ toast }) => toast.error('Error generando PDF'));
-          });
-        }
+        setPosPrintOrder(fullOrder || finalOrder);
       }
 
       return finalOrder;

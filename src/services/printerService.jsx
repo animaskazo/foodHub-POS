@@ -15,10 +15,30 @@ const findMountedReceipt = (order) => {
   return els[0] || null;
 };
 
-const captureReceiptCanvas = async (order, width = RASTER_WIDTH) => {
+const buildReceiptNode = async (order, organization) => {
+  const React = (await import('react')).default;
+  const { default: ReactDOMServer } = await import('react-dom/server');
+  const { default: PrintableReceipt } = await import('../components/pos/PrintableReceipt');
+  const html = ReactDOMServer.renderToStaticMarkup(
+    React.createElement(PrintableReceipt, { order, organization })
+  );
+  const holder = document.createElement('div');
+  holder.className = 'print-receipt-container';
+  holder.style.cssText =
+    'position:fixed;left:-10000px;top:0;opacity:1;pointer-events:none;z-index:-1;background:#fff;width:80mm;';
+  holder.innerHTML = html;
+  document.body.appendChild(holder);
+  return holder;
+};
+
+const captureReceiptCanvas = async (order, organization, width = RASTER_WIDTH) => {
   const { default: html2canvas } = await import('html2canvas-pro');
-  const src = findMountedReceipt(order);
-  if (!src) throw new Error('No se encontró el ticket en el DOM');
+  let src = findMountedReceipt(order);
+  let built = null;
+  if (!src) {
+    built = await buildReceiptNode(order, organization);
+    src = built;
+  }
   const hold = src.cloneNode(true);
   hold.id = 'foodhub-print-capture';
   hold.style.cssText =
@@ -35,11 +55,12 @@ const captureReceiptCanvas = async (order, width = RASTER_WIDTH) => {
     });
   } finally {
     hold.remove();
+    if (built) built.remove();
   }
 };
 
 const saveSimulatedPdf = async (order, organization) => {
-  const canvas = await captureReceiptCanvas(order);
+  const canvas = await captureReceiptCanvas(order, organization);
   const jsPdfMod = await import('jspdf');
   const JSPDF = jsPdfMod.default || jsPdfMod;
   const imgW = 76;
@@ -156,7 +177,7 @@ export const printReceipt = async (order, organization, printerName, _retry = fa
       return true;
     }
 
-    const canvas = await captureReceiptCanvas(order);
+    const canvas = await captureReceiptCanvas(order, organization);
     const image = canvas.toDataURL('image/png');
     const result = await sendToPythonPrinter(printerName, order, organization, image);
     console.log('Ticket impreso (HTML -> raster) en', printerName, '| modo:', result?.mode);
