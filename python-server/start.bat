@@ -36,9 +36,10 @@ if not exist "venv\Scripts\python.exe" (
 REM Activate venv and install deps
 call venv\Scripts\activate.bat
 echo Instalando dependencias...
-pip install flask waitress fpdf2 pystray Pillow --quiet
+pip install flask waitress fpdf2 pystray Pillow
 if errorlevel 1 (
     echo ERROR: No se pudieron instalar las dependencias.
+    echo Revisa tu conexion a internet e intenta de nuevo.
     pause
     exit /b 1
 )
@@ -48,7 +49,14 @@ echo ============================================
 echo   TODO LISTO - Iniciando servidor...
 echo   Abre el POS en el navegador.
 echo   Puerto: 8088
+echo   Revisa la bandeja del sistema "FH" (^):
 echo ============================================
 echo.
 
 python app.py
+
+echo.
+echo El servidor se detuvo. Si ves un error arriba, copialo y comparte la
+echo carpeta con el archivo foodhub-print.log.
+echo.
+pause

@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import traceback
 import threading
 import webbrowser
 import platform
@@ -20,6 +21,14 @@ from printer_service import format_receipt
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+try:
+    _LOG_DIR = os.path.dirname(os.path.abspath(__file__))
+    _fh = logging.FileHandler(os.path.join(_LOG_DIR, 'foodhub-print.log'), encoding='utf-8')
+    _fh.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+    logger.addHandler(_fh)
+except Exception as _e:
+    print(f'No se pudo crear el archivo de log: {_e}')
 
 IS_WINDOWS = platform.system() == 'Windows'
 IS_MAC = platform.system() == 'Darwin'
@@ -375,8 +384,12 @@ def _tray_image():
 
 def start_tray():
     global _icon
-    if not TRAY_AVAILABLE or os.environ.get('FOODHUB_NO_TRAY'):
-        logger.info("Icono de barra desactivado")
+    if not TRAY_AVAILABLE:
+        logger.error("ICONO NO DISPONIBLE: falta pystray/Pillow")
+        print('AVISO: No se pudo cargar pystray/Pillow. Instala: pip install pystray Pillow')
+        return
+    if os.environ.get('FOODHUB_NO_TRAY'):
+        logger.info("Icono de barra desactivado (FOODHUB_NO_TRAY=1)")
         return
     try:
         menu = pystray.Menu(
@@ -392,16 +405,28 @@ def start_tray():
             menu,
         )
         logger.info("Icono de barra de tareas iniciado")
+        print('ICONO DE BARRA ACTIVO - revisa la bandeja del sistema (suele estar tras la flecha ^).')
         _icon.run()
     except Exception as e:
         _icon = None
-        logger.warning(f"No se pudo iniciar el icono de barra: {e}")
+        logger.error(f"No se pudo iniciar el icono de barra:\n{traceback.format_exc()}")
+        print(f"ERROR iniciando el icono: {e}")
+        print("El servidor sigue corriendo en segundo plano. Puedes cerrar esta ventana para detenerlo.")
 
 
 if __name__ == '__main__':
     from waitress import create_server
 
-    _server = create_server(app, host='127.0.0.1', port=8088)
+    try:
+        _server = create_server(app, host='127.0.0.1', port=8088)
+    except Exception as e:
+        logger.error(f"No se pudo iniciar el servidor (puerto 8088 ocupado):\n{traceback.format_exc()}")
+        print('ERROR: No se pudo iniciar el servidor en el puerto 8088.')
+        print(f'Detalle: {e}')
+        print('Revisa si ya hay otra instancia abierta ejecutandose.')
+        os.system('pause')
+        sys.exit(1)
+
     threading.Thread(target=_server.run, daemon=True).start()
     logger.info(f"FoodHub POS Print Server ({platform.system()}) en http://localhost:8088")
 
