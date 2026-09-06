@@ -248,6 +248,8 @@ def print_win(printer_name, escpos_data):
         win32print.ClosePrinter(hPrinter)
 
 def print_receipt(printer_name, order_data, organization_data):
+    if printer_name and printer_name.startswith(SIMULATOR_NAME):
+        return print_simulated(printer_name, order_data, organization_data)
     escpos_data = format_receipt(order_data, organization_data)
     if IS_MAC:
         return print_mac(printer_name, escpos_data)
@@ -255,6 +257,120 @@ def print_receipt(printer_name, order_data, organization_data):
         return print_win(printer_name, escpos_data)
     else:
         logger.error("Unsupported platform")
+        return False
+
+SIMULATOR_NAME = 'FoodHub Simulador (PDF)'
+_last_simulated_pdf = None
+
+
+def print_simulated(printer_name, order_data, organization_data):
+    global _last_simulated_pdf
+    try:
+        from fpdf import FPDF
+        pdf = FPDF(unit='mm', format=(80, 190))
+        pdf.set_auto_page_break(False)
+        pdf.add_page()
+        pdf.set_left_margin(4)
+        pdf.set_right_margin(4)
+
+        C = (33, 33, 33)
+        G = (107, 114, 128)
+
+        pdf.set_font('Helvetica', 'B', 12)
+        pdf.set_text_color(*C)
+        pdf.cell(0, 5, str(organization_data.get('name', '')).upper(), ln=1, align='C')
+
+        pdf.set_font('Helvetica', '', 8)
+        pdf.set_text_color(*G)
+        addr = organization_data.get('address', '')
+        phone = organization_data.get('phone', '')
+        if addr:
+            pdf.cell(0, 4, str(addr), ln=1, align='C')
+        if phone:
+            pdf.cell(0, 4, 'Tel: ' + str(phone), ln=1, align='C')
+        if not addr and not phone:
+            pdf.ln(2)
+
+        pdf.ln(1)
+        pdf.line(4, pdf.get_y(), 76, pdf.get_y())
+        pdf.ln(1)
+
+        pdf.set_font('Helvetica', 'B', 10)
+        pdf.set_text_color(*C)
+        pdf.cell(0, 5, "Ticket: #" + str(order_data.get('order_number', '')), ln=1, align='C')
+        pdf.ln(1.5)
+
+        pdf.set_font('Helvetica', '', 8.5)
+        pdf.set_text_color(*C)
+        rows = [
+            ('Fecha', order_data.get('order_date', '')),
+            ('Mesa', order_data.get('table_name', '')),
+            ('Cliente', order_data.get('customer_name', '')),
+        ]
+        for label, value in rows:
+            if value:
+                pdf.cell(22, 4, label + ':', ln=0)
+                pdf.cell(0, 4, str(value), ln=1, align='R')
+
+        pdf.ln(1)
+        pdf.set_font('Helvetica', 'B', 7.5)
+        pdf.set_fill_color(240, 240, 240)
+        pdf.cell(42, 4, 'Articulo', border='B', fill=True, ln=0)
+        pdf.cell(8, 4, 'Cant', border='B', fill=True, ln=0, align='C')
+        pdf.cell(12, 4, 'P.U.', border='B', fill=True, ln=0, align='R')
+        pdf.cell(14, 4, 'SubT', border='B', fill=True, ln=1, align='R')
+
+        pdf.set_font('Helvetica', '', 8.5)
+        total = float(order_data.get('total', 0) or 0)
+        for item in order_data.get('items', []):
+            name = item.get('name', '')
+            qty = item.get('quantity', 1)
+            unit = float(item.get('price', 0) or 0)
+            subt = qty * unit
+            y0 = pdf.get_y()
+            pdf.cell(42, 4, str(name)[:42], ln=0)
+            pdf.cell(8, 4, str(qty), ln=0, align='C')
+            pdf.cell(12, 4, f"{unit:,.0f}", ln=0, align='R')
+            pdf.cell(14, 4, f"{subt:,.0f}", ln=1, align='R')
+
+        pdf.ln(1)
+        pdf.line(4, pdf.get_y(), 76, pdf.get_y())
+        pdf.ln(1)
+
+        subtotal = float(order_data.get('subtotal', 0) or 0)
+        tax = float(order_data.get('tax', 0) or 0)
+        for label, value in (('Subtotal', subtotal), ('IVA', tax), ('TOTAL', total)):
+            bold = label == 'TOTAL'
+            pdf.set_font('Helvetica', 'B' if bold else '', 10 if bold else 8.5)
+            pdf.set_text_color(*C)
+            pdf.cell(50, 5, label, ln=0)
+            pdf.cell(26, 5, f"${value:,.0f}", ln=1, align='R')
+
+        pdf.ln(1)
+        pdf.set_font('Helvetica', 'B', 8)
+        footer = organization_data.get('footer', '')
+        message = organization_data.get('message', '')
+        pdf.set_text_color(*C)
+        if footer:
+            pdf.cell(0, 4, str(footer), ln=1, align='C')
+        if message:
+            pdf.cell(0, 4, str(message), ln=1, align='C')
+        pdf.ln(1)
+        pdf.set_font('Helvetica', '', 6.5)
+        pdf.set_text_color(*G)
+        pdf.cell(0, 3, 'Ticket generado por FoodHub POS', ln=1, align='C')
+
+        ticket_no = str(order_data.get('order_number', ''))
+        safe_no = ''.join(c for c in ticket_no if c.isalnum() or c in '-_') or 'ticket'
+        downloads = os.path.join(os.path.expanduser('~'), 'Downloads')
+        os.makedirs(downloads, exist_ok=True)
+        out_path = os.path.join(downloads, f'FoodHub-Ticket-{safe_no}.pdf')
+        pdf.output(out_path)
+        _last_simulated_pdf = out_path
+        logger.info(f"Simulador: ticket guardado en {out_path}")
+        return True
+    except Exception as e:
+        logger.error(f"Error en simulador: {str(e)}")
         return False
 
 @app.route('/print', methods=['POST'])
@@ -290,7 +406,12 @@ def print_receipt_api():
         if not success:
             return jsonify({'error': 'Print failed'}), 500
 
-        return jsonify({'success': True, 'printer': printer_name})
+        simulated = bool(printer_name and printer_name.startswith(SIMULATOR_NAME))
+        response = {'success': True, 'printer': printer_name}
+        if simulated and _last_simulated_pdf:
+            response['simulated'] = True
+            response['pdf_path'] = _last_simulated_pdf
+        return jsonify(response)
 
     except Exception as e:
         logger.error(f"Print error: {str(e)}")
@@ -300,10 +421,19 @@ def print_receipt_api():
 def list_printers():
     try:
         printers = get_printers()
+        if SIMULATOR_NAME not in printers:
+            printers = [SIMULATOR_NAME] + printers
         return jsonify({'printers': printers})
     except Exception as e:
         logger.error(f"Error listing printers: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/last-ticket', methods=['GET'])
+def last_ticket():
+    if _last_simulated_pdf and os.path.exists(_last_simulated_pdf):
+        return send_file(_last_simulated_pdf, mimetype='application/pdf',
+                         as_attachment=False, download_name=os.path.basename(_last_simulated_pdf))
+    return jsonify({'error': 'Aun no hay un ticket simulado'}), 404
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -331,6 +461,11 @@ def status_page():
         printer_rows = ''.join(
             f'<li>{p} {"<strong>(predeterminada)</strong>" if p == default else ""}</li>' for p in printers
         )
+        if _last_simulated_pdf and os.path.exists(_last_simulated_pdf):
+            LAST_TICKET_LINK = ('<p><a href="/last-ticket" target="_blank" style="color:#2563eb;font-weight:700">'
+                                'Ver &uacute;ltimo ticket simulado (PDF)</a></p>')
+        else:
+            LAST_TICKET_LINK = '<p style="color:#9ca3af">Sin tickets simulados aun</p>'
         STATUS_JS = '''<script>
   fetch('/autostart').then(function(r){return r.json();}).then(function(d){document.getElementById('autostart').checked=d.enabled;});
   document.getElementById('autostart').addEventListener('change', async function(){
@@ -353,6 +488,7 @@ def status_page():
   <h1><span class="dot"></span>FoodHub POS Print Server</h1>
   <p class="ok">Conectado correctamente</p>
   <p>Sistema: <strong>{platform.system()}</strong> &middot; Puerto <strong>8088</strong></p>
+  {LAST_TICKET_LINK}
   <p>Impresora predeterminada: <strong>{default or 'No detectada'}</strong></p>
   <p>Impresoras detectadas:</p><ul>{printer_rows or '<li>Ninguna</li>'}</ul>
   <p style="margin-top:16px;padding:10px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;display:flex;align-items:center;gap:10px">
