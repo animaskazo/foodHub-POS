@@ -33,6 +33,90 @@ except Exception as _e:
 IS_WINDOWS = platform.system() == 'Windows'
 IS_MAC = platform.system() == 'Darwin'
 
+AUTOSTART_LABEL = 'FoodHubPrint'
+MAC_LAUNCH_AGENT = os.path.expanduser('~/Library/LaunchAgents/com.foodhub.print.plist')
+
+
+def is_autostart_enabled():
+    try:
+        if IS_WINDOWS:
+            import winreg
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                                 r'Software\Microsoft\Windows\CurrentVersion\Run',
+                                 0, winreg.KEY_READ)
+            try:
+                winreg.QueryValueEx(key, AUTOSTART_LABEL)
+                return True
+            finally:
+                winreg.CloseKey(key)
+        elif IS_MAC:
+            return os.path.exists(MAC_LAUNCH_AGENT)
+    except Exception as e:
+        logger.warning(f"Error leyendo autostart: {e}")
+    return False
+
+
+def set_autostart(enabled):
+    try:
+        if IS_WINDOWS:
+            import winreg
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                                 r'Software\Microsoft\Windows\CurrentVersion\Run',
+                                 0, winreg.KEY_SET_VALUE)
+            try:
+                if enabled:
+                    winreg.SetValueEx(key, AUTOSTART_LABEL, 0, winreg.REG_SZ, f'"{sys.executable}"')
+                else:
+                    try:
+                        winreg.DeleteValue(key, AUTOSTART_LABEL)
+                    except FileNotFoundError:
+                        pass
+            finally:
+                winreg.CloseKey(key)
+        elif IS_MAC:
+            if enabled:
+                os.makedirs(os.path.dirname(MAC_LAUNCH_AGENT), exist_ok=True)
+                python = sys.executable
+                app_py = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app.py')
+                plist_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.foodhub.print</string>
+  <key>ProgramArguments</key><array><string>{python}</string><string>{app_py}</string></array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><false/>
+</dict></plist>'''
+                with open(MAC_LAUNCH_AGENT, 'w', encoding='utf-8') as f:
+                    f.write(plist_content)
+                subprocess.run(['launchctl', 'load', MAC_LAUNCH_AGENT],
+                               capture_output=True, timeout=10)
+            else:
+                if os.path.exists(MAC_LAUNCH_AGENT):
+                    subprocess.run(['launchctl', 'unload', MAC_LAUNCH_AGENT],
+                                   capture_output=True, timeout=10)
+                    os.remove(MAC_LAUNCH_AGENT)
+        logger.info(f"Autostart {'activado' if enabled else 'desactivado'}")
+        return True
+    except Exception as e:
+        logger.error(f"Error cambiando autostart: {e}")
+        return False
+
+
+def _toggle_autostart(icon=None, item=None):
+    set_autostart(not is_autostart_enabled())
+
+
+def _autostart_checked(item):
+    return is_autostart_enabled()
+
+
+def _autostart_label():
+    if IS_WINDOWS:
+        return 'Iniciar con Windows'
+    if IS_MAC:
+        return 'Iniciar con el Mac'
+    return 'Iniciar al encender el PC'
+
 _temp_files = []
 
 def _cleanup_temp_files():
@@ -225,6 +309,16 @@ def list_printers():
 def health():
     return jsonify({'status': 'ok', 'platform': platform.system(), 'printer': get_default_printer()})
 
+@app.route('/autostart', methods=['GET', 'POST'])
+def autostart():
+    if request.method == 'POST':
+        body = request.get_json(silent=True) or {}
+        ok = set_autostart(bool(body.get('enabled')))
+        if not ok:
+            return jsonify({'error': 'No se pudo cambiar el inicio automatico'}), 500
+        return jsonify({'enabled': is_autostart_enabled()})
+    return jsonify({'enabled': is_autostart_enabled()})
+
 @app.route('/', methods=['GET'])
 def status_page():
     try:
@@ -237,6 +331,13 @@ def status_page():
         printer_rows = ''.join(
             f'<li>{p} {"<strong>(predeterminada)</strong>" if p == default else ""}</li>' for p in printers
         )
+        STATUS_JS = '''<script>
+  fetch('/autostart').then(function(r){return r.json();}).then(function(d){document.getElementById('autostart').checked=d.enabled;});
+  document.getElementById('autostart').addEventListener('change', async function(){
+    const d = await fetch('/autostart',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:this.checked})}).then(r=>r.json());
+    document.getElementById('autostart-msg').innerHTML = d.enabled ? 'Se iniciar automáticamente al encender el equipo.' : 'Autostart desactivado.';
+  });
+</script>'''
         return f"""<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><title>FoodHub POS - Print Server</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -254,7 +355,13 @@ def status_page():
   <p>Sistema: <strong>{platform.system()}</strong> &middot; Puerto <strong>8088</strong></p>
   <p>Impresora predeterminada: <strong>{default or 'No detectada'}</strong></p>
   <p>Impresoras detectadas:</p><ul>{printer_rows or '<li>Ninguna</li>'}</ul>
-</div></body></html>"""
+  <p style="margin-top:16px;padding:10px 12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;display:flex;align-items:center;gap:10px">
+    <input type="checkbox" id="autostart" style="width:18px;height:18px">
+    <label for="autostart" style="font-weight:600;cursor:pointer">Iniciar autom&aacute;ticamente al encender el PC</label>
+  </p>
+  <p id="autostart-msg" style="font-size:13px"></p>
+</div>
+{STATUS_JS}</body></html>"""
     except Exception as e:
         logger.error(f"Error en página de estado: {str(e)}")
         return '<p>Error generando estado</p>', 500
@@ -396,6 +503,7 @@ def start_tray():
             pystray.MenuItem('FoodHub POS Print Server', None, enabled=False),
             pystray.MenuItem('Ver estado', _tray_open_status),
             pystray.MenuItem('Imprimir prueba', _tray_test_print),
+            pystray.MenuItem(_autostart_label(), _toggle_autostart, checked=_autostart_checked),
             pystray.MenuItem('Salir', stop_server),
         )
         _icon = pystray.Icon(
