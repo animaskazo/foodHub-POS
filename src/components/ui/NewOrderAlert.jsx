@@ -112,18 +112,17 @@ const NewOrderAlert = () => {
       
 const timer = setTimeout(async () => {
          const pythonPrinter = localStorage.getItem('python_default_printer');
-         
-         if (pythonPrinter) {
-           try {
-             await printReceipt(autoPrintOrder, organization, pythonPrinter);
-           } catch (e) {
-             console.error('Python Print failed', e);
-             import('sonner').then(({ toast }) => toast.error('Error imprimiendo'));
-           }
-         } else {
-           import('sonner').then(({ toast }) => toast.info('Generando PDF...'));
-           await printReceiptAsPDF(autoPrintOrder, organization).catch(() => {});
-         }
+          if (pythonPrinter) {
+            try {
+              await printReceipt(autoPrintOrder, organization, pythonPrinter);
+            } catch (e) {
+              console.error('Python Print failed', e);
+              import('sonner').then(({ toast }) => toast.error('Error imprimiendo'));
+            }
+          } else {
+            import('sonner').then(({ toast }) => toast.info('Generando PDF...'));
+            await printReceiptAsPDF(autoPrintOrder, organization).catch(() => {});
+          }
          setAutoPrintOrder(null);
        }, 1000);
       
@@ -136,21 +135,23 @@ const timer = setTimeout(async () => {
     let orderToPrint = latestNewOrder;
 
     const pythonPrinter = localStorage.getItem('python_default_printer');
-if (pythonPrinter && orderToPrint) {
-       import('sonner').then(({ toast }) => toast.info('Imprimiendo ticket...'));
-       try {
-         await printReceipt(orderToPrint, organization, pythonPrinter);
-         setIsPrinting(false);
-         return;
-       } catch (e) {
-         console.error('Python Print failed', e);
-         import('sonner').then(({ toast }) => toast.error('Error imprimiendo'));
-       }
-     }
-     import('sonner').then(({ toast }) => toast.info('Generando PDF...'));
-     await printReceiptAsPDF(orderToPrint, organization).catch(() => {});
-     setIsPrinting(false);
-   };
+    if (pythonPrinter && orderToPrint) {
+      import('sonner').then(({ toast }) => toast.info('Imprimiendo ticket...'));
+      try {
+        await printReceipt(orderToPrint, organization, pythonPrinter);
+        setIsPrinting(false);
+        return;
+      } catch (e) {
+        console.error('Python Print failed', e);
+        import('sonner').then(({ toast }) => toast.error('Error imprimiendo'));
+        setIsPrinting(false);
+        return;
+      }
+    }
+    import('sonner').then(({ toast }) => toast.info('Generando PDF...'));
+    await printReceiptAsPDF(orderToPrint, organization).catch(() => {});
+    setIsPrinting(false);
+  };
 
   if (!latestNewOrder && !isVisible && !autoPrintOrder) return null;
 

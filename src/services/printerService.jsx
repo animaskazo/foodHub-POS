@@ -1,45 +1,45 @@
 const PYTHON_API = 'http://localhost:8088';
 const RASTER_WIDTH = 576;
 
-const renderReceiptCanvas = async (receiptEl, width = RASTER_WIDTH) => {
-  const { default: html2canvas } = await import('html2canvas');
-  if (!receiptEl) throw new Error('No se encontró el ticket en el DOM');
-  if (!receiptEl.id) receiptEl.id = 'foodhub-print-ticket';
-  const elW = Math.max(receiptEl.getBoundingClientRect().width || 1, 1);
-  const scale = Math.max(1.5, width / elW);
-  const canvas = await html2canvas(receiptEl, {
-    scale,
-    backgroundColor: '#ffffff',
-    useCORS: true,
-    logging: false,
-  });
-  return canvas;
+const findMountedReceipt = (order) => {
+  const els = Array.from(document.querySelectorAll('.print-receipt-container')) || [];
+  if (els.length <= 1) return els[0] || null;
+  const needle = String(order?.id ?? order?.order_number ?? '').trim();
+  if (needle) {
+    const exact = els.find(el => {
+      const num = el.querySelector('[class*="receipt-order-number"]')?.textContent?.trim() || '';
+      return num.endsWith(needle);
+    });
+    if (exact) return exact;
+  }
+  return els[0] || null;
 };
 
-const buildReceiptNode = async (order, organization) => {
-  const React = (await import('react')).default;
-  const { default: ReactDOMServer } = await import('react-dom/server');
-  const { default: PrintableReceipt } = await import('../components/pos/PrintableReceipt');
-  const html = ReactDOMServer.renderToStaticMarkup(
-    React.createElement(PrintableReceipt, { order, organization })
-  );
-  const holder = document.createElement('div');
-  holder.className = 'print-receipt-container';
-  holder.style.cssText =
+const captureReceiptCanvas = async (order, width = RASTER_WIDTH) => {
+  const { default: html2canvas } = await import('html2canvas');
+  const src = findMountedReceipt(order);
+  if (!src) throw new Error('No se encontró el ticket en el DOM');
+  const hold = src.cloneNode(true);
+  hold.id = 'foodhub-print-capture';
+  hold.style.cssText =
     'position:fixed;left:-10000px;top:0;opacity:1;pointer-events:none;z-index:-1;background:#fff;width:80mm;';
-  holder.innerHTML = html;
-  document.body.appendChild(holder);
-  return holder;
+  document.body.appendChild(hold);
+  try {
+    const elW = Math.max(hold.getBoundingClientRect().width || 1, 1);
+    const scale = Math.max(1.5, width / elW);
+    return await html2canvas(hold, {
+      scale,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      logging: false,
+    });
+  } finally {
+    hold.remove();
+  }
 };
 
 const saveSimulatedPdf = async (order, organization) => {
-  const holder = await buildReceiptNode(order, organization);
-  let canvas;
-  try {
-    canvas = await renderReceiptCanvas(holder);
-  } finally {
-    holder.remove();
-  }
+  const canvas = await captureReceiptCanvas(order);
   const jsPdfMod = await import('jspdf');
   const JSPDF = jsPdfMod.default || jsPdfMod;
   const imgW = 76;
@@ -156,16 +156,11 @@ export const printReceipt = async (order, organization, printerName, _retry = fa
       return true;
     }
 
-    const holder = await buildReceiptNode(order, organization);
-    try {
-      const canvas = await renderReceiptCanvas(holder);
-      const image = canvas.toDataURL('image/png');
-      const result = await sendToPythonPrinter(printerName, order, organization, image);
-      console.log('Ticket impreso (HTML -> raster) en', printerName, '| modo:', result?.mode);
-      return true;
-    } finally {
-      holder.remove();
-    }
+    const canvas = await captureReceiptCanvas(order);
+    const image = canvas.toDataURL('image/png');
+    const result = await sendToPythonPrinter(printerName, order, organization, image);
+    console.log('Ticket impreso (HTML -> raster) en', printerName, '| modo:', result?.mode);
+    return true;
   } catch (error) {
     console.error('Error al imprimir:', error);
 

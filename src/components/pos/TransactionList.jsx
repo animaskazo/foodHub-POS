@@ -524,22 +524,21 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
           let orderToPrint = selectedOrder;
 
 const pythonPrinter = localStorage.getItem('python_default_printer');
-           if (pythonPrinter && orderToPrint) {
-             try {
-               const { toast } = await import('sonner');
-               toast.info('Imprimiendo ticket...');
-               await printReceipt(orderToPrint, organization, pythonPrinter);
-             } catch (e) {
-               console.error('Python Print failed, usando PDF', e);
-               const { toast } = await import('sonner');
-               toast.error('Error imprimiendo, generando PDF');
-               await import('../../services/printerService').then(m => m.printReceiptAsPDF(orderToPrint, organization)).catch(() => {});
-             }
-           } else {
-             const { toast } = await import('sonner');
-             toast.info('Generando PDF...');
-             await import('../../services/printerService').then(m => m.printReceiptAsPDF(orderToPrint, organization)).catch(() => {});
-           }
+            if (pythonPrinter && orderToPrint) {
+              try {
+                const { toast } = await import('sonner');
+                toast.info('Imprimiendo ticket...');
+                await printReceipt(orderToPrint, organization, pythonPrinter);
+              } catch (e) {
+                console.error('Python Print failed', e);
+                const { toast } = await import('sonner');
+                toast.error('Error imprimiendo ticket');
+              }
+            } else {
+              const { toast } = await import('sonner');
+              toast.info('Generando PDF...');
+              await import('../../services/printerService').then(m => m.printReceiptAsPDF(orderToPrint, organization)).catch(() => {});
+            }
         }}
         onConfirmPayment={(e, order) => { e.stopPropagation(); handleOpenPaymentConfirm(e, order); }}
       />
