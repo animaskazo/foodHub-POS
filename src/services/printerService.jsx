@@ -1,9 +1,8 @@
 const PYTHON_API = 'http://localhost:8088';
 const RASTER_WIDTH = 576;
 
-const renderReceiptCanvas = async (width = RASTER_WIDTH) => {
+const renderReceiptCanvas = async (receiptEl, width = RASTER_WIDTH) => {
   const { default: html2canvas } = await import('html2canvas');
-  const receiptEl = document.querySelector('.print-receipt-container');
   if (!receiptEl) throw new Error('No se encontró el ticket en el DOM');
   if (!receiptEl.id) receiptEl.id = 'foodhub-print-ticket';
   const elW = Math.max(receiptEl.getBoundingClientRect().width || 1, 1);
@@ -17,8 +16,30 @@ const renderReceiptCanvas = async (width = RASTER_WIDTH) => {
   return canvas;
 };
 
-const saveSimulatedPdf = async (order) => {
-  const canvas = await renderReceiptCanvas();
+const buildReceiptNode = async (order, organization) => {
+  const React = (await import('react')).default;
+  const { default: ReactDOMServer } = await import('react-dom/server');
+  const { default: PrintableReceipt } = await import('../components/pos/PrintableReceipt');
+  const html = ReactDOMServer.renderToStaticMarkup(
+    React.createElement(PrintableReceipt, { order, organization })
+  );
+  const holder = document.createElement('div');
+  holder.className = 'print-receipt-container';
+  holder.style.cssText =
+    'position:fixed;left:-10000px;top:0;opacity:1;pointer-events:none;z-index:-1;background:#fff;width:80mm;';
+  holder.innerHTML = html;
+  document.body.appendChild(holder);
+  return holder;
+};
+
+const saveSimulatedPdf = async (order, organization) => {
+  const holder = await buildReceiptNode(order, organization);
+  let canvas;
+  try {
+    canvas = await renderReceiptCanvas(holder);
+  } finally {
+    holder.remove();
+  }
   const jsPdfMod = await import('jspdf');
   const JSPDF = jsPdfMod.default || jsPdfMod;
   const imgW = 76;
@@ -131,7 +152,7 @@ export const printReceipt = async (order, organization, printerName, _retry = fa
   try {
     if (isSimulator) {
       try {
-        await saveSimulatedPdf(order);
+        await saveSimulatedPdf(order, organization);
         console.log('Ticket simulado guardado como PDF (misma vista del navegador)');
         return true;
       } catch (pdfError) {
@@ -141,17 +162,15 @@ export const printReceipt = async (order, organization, printerName, _retry = fa
       }
     }
 
+    const holder = await buildReceiptNode(order, organization);
     try {
-      const canvas = await renderReceiptCanvas();
+      const canvas = await renderReceiptCanvas(holder);
       const image = canvas.toDataURL('image/png');
       await sendToPythonPrinter(printerName, order, organization, image);
       console.log('Ticket impreso (HTML -> raster) en', printerName);
       return true;
-    } catch (rasterError) {
-      console.warn('Raster HTML no disponible, usando texto:', rasterError);
-      await sendToPythonPrinter(printerName, order, organization, null);
-      console.log('Ticket impreso (texto) en', printerName);
-      return true;
+    } finally {
+      holder.remove();
     }
   } catch (error) {
     console.error('Error al imprimir con Python Print Server:', error);
