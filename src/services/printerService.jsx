@@ -1,6 +1,24 @@
 const PYTHON_API = 'http://localhost:8088';
 
+const getPaymentMethodFromOrder = (order) => {
+  if (order.payments?.some(p => p.status === 'pending')) return '';
+  const method = (order.payment_method || order.payments?.[0]?.gateway || '')
+    .toString().toLowerCase();
+  if (method.includes('klap')) return 'Online - Klap';
+  if (order.payments?.[0]?.status === 'pending') return 'Pendiente';
+  return order.payment_method || '';
+};
+
 const sendToPythonPrinter = async (printerName, order, organization) => {
+  const created = order?.created_at ? new Date(order.created_at)
+    : (order?.date ? new Date(order.date) : new Date());
+  const formattedDate = created.toLocaleDateString('es-CL');
+  const formattedTime = created.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+
+  const paymentDisplay = getPaymentMethodFromOrder(order);
+  const paymentRef = order?.payments?.[0]?.reference_code;
+  const isPaid = !(order?.payments?.some(p => p.status === 'pending'));
+
   const payload = {
     store_name: organization?.name || '',
     store_address: organization?.address || '',
@@ -8,17 +26,27 @@ const sendToPythonPrinter = async (printerName, order, organization) => {
     store_footer: organization?.footer || '¡Gracias por su compra!',
     store_message: organization?.message || '',
     order_number: order?.id || order?.order_number || '',
-    order_date: order?.created_at || order?.date || new Date().toLocaleString(),
+    order_date: `${formattedDate} - ${formattedTime}`,
+    order_type: order?.order_type || '',
+    delivery_type: order?.delivery_type || '',
     table_name: order?.table_name || order?.table || '',
     customer_name: order?.customer_name || order?.customer || '',
+    customer_phone: order?.customer_phone || '',
+    delivery_address: order?.delivery_address || '',
+    notes: order?.notes || '',
     items: (order?.items || []).map(item => ({
       name: item.name || item.product_name || 'Item',
       quantity: item.quantity || item.qty || 1,
       price: item.price || item.unit_price || 0,
     })),
+    order_items: order?.order_items || order?.items || [],
     subtotal: order?.subtotal || 0,
     tax: order?.tax || 0,
+    delivery_fee: order?.delivery_fee || 0,
     total: order?.total || order?.grand_total || 0,
+    payments: order?.payments || [],
+    is_paid: isPaid,
+    payment_display: isPaid && paymentDisplay ? `${paymentDisplay}${paymentRef ? ` · ID ${paymentRef}` : ''}` : '',
     printer_name: printerName,
   };
 
