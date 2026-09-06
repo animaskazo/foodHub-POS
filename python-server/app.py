@@ -18,6 +18,13 @@ from fpdf import FPDF
 
 from printer_service import format_receipt
 
+try:
+    from PIL import Image as PILImage
+    from PIL import ImageOps as PILImageOps
+except Exception:
+    PILImage = None
+    PILImageOps = None
+
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -247,9 +254,47 @@ def print_win(printer_name, escpos_data):
     finally:
         win32print.ClosePrinter(hPrinter)
 
-def print_receipt(printer_name, order_data, organization_data):
+def _png_base64_to_raster(png_data_url, width_dots=576):
+    raw = base64.b64decode(png_data_url.split(',', 1)[-1])
+    img = PILImage.open(io.BytesIO(raw)).convert('L')
+    if img.width != width_dots:
+        ratio = width_dots / float(img.width)
+        img = img.resize((width_dots, max(1, int(img.height * ratio))), PILImage.LANCZOS)
+    img = img.point(lambda p: 255 if p > 200 else 0).convert('1')
+    width = img.width
+    bytes_per_row = (width + 7) // 8
+    height = img.height
+    px = img.load()
+    rows = bytearray(bytes_per_row * height)
+    for y in range(height):
+        base = y * bytes_per_row
+        for x in range(width):
+            if px[x, y] == 0:
+                rows[base + x // 8] |= 0x80 >> (x % 8)
+    out = bytearray()
+    out += b'\x1b\x40'
+    out += b'\x1d\x76\x30\x30'
+    out += bytes([bytes_per_row & 0xFF, (bytes_per_row >> 8) & 0xFF])
+    out += bytes([height & 0xFF, (height >> 8) & 0xFF])
+    out += bytes(rows)
+    out += b'\x1b\x64' + bytes([3])
+    out += b'\x1bi\x00'
+    return bytes(out)
+
+
+def print_receipt(printer_name, order_data, organization_data, image_data_url=None, image_width=576):
     if printer_name and printer_name.startswith(SIMULATOR_NAME):
         return print_simulated(printer_name, order_data, organization_data)
+    if image_data_url and PILImage:
+        try:
+            raster = _png_base64_to_raster(image_data_url, int(image_width or 576))
+            ok = (print_mac if IS_MAC else print_win)(printer_name, raster)
+            if ok:
+                logger.info(f"Raster (HTML -> bit-image) impreso en {printer_name}")
+                return True
+            logger.warning("Raster devolvió fallo, usando formato texto")
+        except Exception as e:
+            logger.warning(f"Raster falló ({str(e)[:120]}) — usando formato texto")
     escpos_data = format_receipt(order_data, organization_data)
     if IS_MAC:
         return print_mac(printer_name, escpos_data)
@@ -274,7 +319,8 @@ def print_simulated(printer_name, order_data, organization_data):
     global _last_simulated_pdf
     try:
         from fpdf import FPDF
-        pdf = FPDF(unit='mm', format=(80, 210))
+        from fpdf.enums import XPos, YPos
+        pdf = FPDF(unit='mm', format=(80, 230))
         pdf.set_auto_page_break(False)
         pdf.add_page()
         pdf.set_left_margin(4)
@@ -282,52 +328,59 @@ def print_simulated(printer_name, order_data, organization_data):
 
         C = (33, 33, 33)
         G = (107, 114, 128)
-        W = 76.0
+        W = 72.0
+
+        def dashed(y=None):
+            pdf.set_dash_pattern(1.2, 1.2)
+            pdf.line(4, (y if y is not None else pdf.get_y()), 4 + W, (y if y is not None else pdf.get_y()))
+            pdf.set_dash_pattern()
+
+        def solid(y=None):
+            pdf.set_line_width(0.5)
+            pdf.line(4, (y if y is not None else pdf.get_y()), 4 + W, (y if y is not None else pdf.get_y()))
+            pdf.set_line_width(0.2)
 
         ot = str(order_data.get('order_type', '') or '').lower()
         dt = str(order_data.get('delivery_type', '') or '').lower()
         actual = dt if ot in ('online', 'whatsapp') else ot
         type_label = {'delivery': 'DELIVERY', 'pickup': 'RETIRO EN LOCAL', 'table': 'MESA'}.get(actual, actual.upper())
 
+        # ── Tipo de pedido ─────────────────────────────────────
         if type_label:
-            pdf.set_draw_color(*C)
-            pdf.line(4, pdf.get_y(), 76, pdf.get_y())
-            pdf.ln(1)
-            pdf.set_font('Helvetica', 'B', 10)
             pdf.set_text_color(*C)
-            pdf.cell(0, 5, type_label, ln=1, align='C')
-            pdf.line(4, pdf.get_y(), 76, pdf.get_y())
+            pdf.set_font('Helvetica', 'B', 11)
+            y0 = pdf.get_y()
+            pdf.ln(2.5)
+            dashed(y0 + 1.2)
+            pdf.ln(1)
+            pdf.cell(0, 6, type_label, ln=1, align='C')
+            dashed()
             pdf.ln(2)
 
+        # ── Recuadro negro del título (igual que la web) ────
         name = str(organization_data.get('name', '')).upper()
         pdf.set_fill_color(0, 0, 0)
         pdf.set_text_color(255, 255, 255)
         pdf.set_font('Helvetica', 'B', 11)
-        pdf.cell(W, 8, str(name), ln=1, align='C', fill=True)
+        pdf.cell(W, 9, str(name), ln=1, align='C', fill=True)
         pdf.set_text_color(*C)
-        pdf.set_font('Helvetica', '', 8)
-        addr = organization_data.get('address', '')
-        phone = organization_data.get('phone', '')
-        if addr:
-            pdf.cell(0, 4, str(addr), ln=1, align='C')
-        if phone:
-            pdf.cell(0, 4, 'Tel: ' + str(phone), ln=1, align='C')
-        pdf.ln(1)
+        pdf.ln(1.5)
+        solid()
+        pdf.ln(2)
 
-        pdf.set_draw_color(*C)
-        pdf.set_line_width(0.6)
-        pdf.line(4, pdf.get_y(), 76, pdf.get_y())
-        pdf.set_line_width(0.2)
-        pdf.ln(1)
-
-        pdf.set_font('Helvetica', 'B', 18)
-        pdf.cell(0, 7, str(order_data.get('order_number', '')), ln=1, align='C')
+        # ── Número de pedido grande + fecha ─────────────────
+        _num = str(order_data.get('order_number', ''))
+        if _num and not _num.startswith('#'):
+            _num = '#' + _num
+        pdf.set_font('Helvetica', 'B', 30)
+        pdf.cell(0, 13, _num, ln=1, align='C')
         pdf.set_font('Helvetica', '', 9)
+        pdf.set_text_color(*C)
         if order_data.get('order_date'):
             pdf.cell(0, 4, str(order_data.get('order_date', '')), ln=1, align='C')
-        pdf.ln(1)
-        pdf.line(4, pdf.get_y(), 76, pdf.get_y())
-        pdf.ln(1)
+        pdf.ln(1.5)
+        dashed()
+        pdf.ln(2)
 
         pdf.set_font('Helvetica', '', 8.5)
         if order_data.get('customer_name') or order_data.get('customer_phone'):
@@ -335,42 +388,56 @@ def print_simulated(printer_name, order_data, organization_data):
             pdf.cell(0, 4, 'DATOS DEL CLIENTE', ln=1)
             pdf.set_font('Helvetica', '', 8.5)
             if order_data.get('customer_name'):
+                pdf.set_font('Helvetica', 'B', 8.5)
                 pdf.cell(0, 4, str(order_data.get('customer_name', '')).upper(), ln=1)
+                pdf.set_font('Helvetica', '', 8.5)
             if order_data.get('customer_phone'):
                 pdf.cell(0, 4, 'Tel: ' + str(order_data.get('customer_phone', '')), ln=1)
-            pdf.ln(1)
+            pdf.ln(1.5)
 
         if order_data.get('notes'):
             pdf.set_font('Helvetica', 'B', 8)
             pdf.cell(0, 4, 'COMENTARIOS', ln=1)
-            pdf.set_font('Helvetica', '', 8.5)
-            pdf.multi_cell(0, 4, str(order_data.get('notes', '')))
-            pdf.ln(1)
+            pdf.set_font('Helvetica', 'B', 8.5)
+            pdf.set_fill_color(243, 244, 246)
+            pdf.set_text_color(*C)
+            _note_lines = str(order_data.get('notes', '')).upper()
+            pdf.multi_cell(W, 5, _note_lines, fill=True, ln=1)
+            pdf.ln(1.5)
 
+        # ── Ítems ─────────────────────────────────────────────
         raw_items = order_data.get('order_items') or order_data.get('items', [])
         parents = [i for i in raw_items if not i.get('parent_item_id')] if raw_items else raw_items
 
         pdf.set_font('Helvetica', 'B', 8)
         pdf.set_fill_color(240, 240, 240)
         pdf.cell(12, 4, 'Cant', border='B', fill=True, ln=0)
-        pdf.cell(46, 4, 'Descripcion', border='B', fill=True, ln=0)
+        pdf.cell(42, 4, 'Descripción', border='B', fill=True, ln=0)
         pdf.cell(18, 4, 'Total', border='B', fill=True, ln=1, align='R')
 
         pdf.set_font('Helvetica', '', 8.5)
         for item in parents:
             _qty = float(item.get('quantity', 1) or 1)
             _unit = float(item.get('price') or item.get('unit_price') or 0)
+            _name = str(item.get('name') or item.get('product_name') or 'Item')
+            _row_start = pdf.get_y()
+            pdf.set_x(4)
+            pdf.set_font('Helvetica', 'B', 8.5)
             pdf.cell(12, 4, f"{_qty:g}x", ln=0)
-            pdf.cell(46 if len(str(item.get('name') or item.get('product_name'))) <= 30 else 46, 4, str(item.get('name') or item.get('product_name'))[:34], ln=0)
-            pdf.cell(18, 4, f"{_money(_unit * _qty)}", ln=1, align='R')
+            pdf.set_font('Helvetica', 'B', 9)
+            pdf.multi_cell(42, 4, _name, new_x=XPos.RIGHT, new_y=YPos.TOP)
+            _name_bottom = pdf.get_y()
+            pdf.set_font('Helvetica', '', 8.5)
+            pdf.set_xy(58, _row_start)
+            pdf.cell(18, 4, _money(_unit * _qty), ln=0, align='R')
+            pdf.set_xy(4, max(_name_bottom, _row_start + 4))
             for v in item.get('order_item_variants', []) or []:
-                pdf.cell(6, 4, '', ln=0)
                 pdf.cell(0, 4, '- ' + str(v.get('variant_option_name', '')), ln=1)
             for ing in item.get('order_item_ingredients', []) or []:
                 _line = '+ ' + str(ing.get('ingredient_name', ''))
                 if float(ing.get('price', 0) or 0) > 0:
                     _line += f" (+{_money(ing.get('price'))})"
-                pdf.cell(6, 4, '', ln=0)
+                pdf.set_x(4)
                 pdf.multi_cell(W - 6, 4, _line)
             for child in raw_items:
                 if child.get('parent_item_id') != item.get('id'):
@@ -379,49 +446,54 @@ def print_simulated(printer_name, order_data, organization_data):
                 cline = f"    {cq:g}x {str(child.get('product_name', ''))}"
                 for cv in child.get('order_item_variants', []) or []:
                     cline += f" ({str(cv.get('variant_option_name', ''))})"
+                pdf.set_font('Helvetica', '', 8.5)
+                pdf.set_x(4)
                 pdf.multi_cell(0, 4, cline)
 
         pdf.ln(1)
-        pdf.line(4, pdf.get_y(), 76, pdf.get_y())
-        pdf.ln(1)
+        dashed()
+        pdf.ln(2)
 
-        _subtotal = float(order_data.get('subtotal', 0) or 0)
+        # ── Totales (subtotal = total - despacho, como la web) ─
         _dev = float(order_data.get('delivery_fee', 0) or 0)
-        _tax = float(order_data.get('tax', 0) or 0)
         _total = float(order_data.get('total', 0) or 0)
+        _subtotal = max(_total - _dev, 0)
         pdf.set_font('Helvetica', '', 8.5)
-        for label, value in (('Subtotal', _subtotal), ('Despacho', _dev), ('IVA', _tax)):
-            if label in ('Despacho', 'IVA') and value <= 0:
-                continue
-            pdf.cell(50, 5, label, ln=0)
-            pdf.cell(26, 5, _money(value), ln=1, align='R')
-        pdf.set_font('Helvetica', 'B', 11)
-        pdf.set_text_color(255, 255, 255)
-        pdf.set_fill_color(0, 0, 0)
-        pdf.cell(50, 8, 'TOTAL', ln=0, fill=True)
-        pdf.cell(26, 8, _money(_total), ln=1, align='R', fill=True)
-        pdf.set_text_color(*C)
+        pdf.cell(46, 5, 'Subtotal', ln=0)
+        pdf.cell(26, 5, _money(_subtotal), ln=1, align='R')
+        if _dev > 0:
+            pdf.cell(46, 5, 'Despacho', ln=0)
+            pdf.cell(26, 5, _money(_dev), ln=1, align='R')
+        pdf.ln(1)
+        solid()
+        pdf.ln(2)
+        pdf.set_font('Helvetica', 'B', 16)
+        pdf.cell(46, 10, 'TOTAL', ln=0)
+        pdf.cell(26, 10, _money(_total), ln=1, align='R')
 
-        pdf.ln(1.5)
-        pdf.line(4, pdf.get_y(), 76, pdf.get_y())
+        pdf.ln(2)
+        dashed()
         pdf.ln(2)
 
         if not order_data.get('is_paid', True):
             pdf.set_text_color(255, 255, 255)
             pdf.set_fill_color(0, 0, 0)
             pdf.set_font('Helvetica', 'B', 11)
-            pdf.cell(0, 8, 'NO PAGADO - COBRAR AL CLIENTE', ln=1, align='C', fill=True)
+            pdf.cell(0, 7, 'NO PAGADO', ln=1, align='C', fill=True)
+            pdf.cell(0, 7, 'COBRAR AL CLIENTE', ln=1, align='C', fill=True)
             pdf.set_text_color(*C)
-            pdf.ln(1.5)
+            pdf.ln(2)
 
         if order_data.get('payment_display'):
             pdf.set_font('Helvetica', 'B', 8.5)
             pdf.cell(0, 4, str(order_data.get('payment_display', '')), ln=1, align='C')
-        pdf.set_font('Helvetica', 'B', 9)
-        pdf.cell(0, 5, '¡Gracias por preferirnos!', ln=1, align='C')
-        pdf.set_font('Helvetica', '', 7)
+        pdf.set_font('Helvetica', 'B', 12)
+        pdf.cell(0, 6, '¡Gracias por preferirnos!', ln=1, align='C')
+        pdf.set_font('Helvetica', '', 6)
         pdf.set_text_color(*G)
-        pdf.cell(0, 3, 'Powered by FoodHub POS', ln=1, align='C')
+        pdf.cell(0, 2, '', ln=1)
+        pdf.cell(0, 2, '- - - - - - - - - - - - - - - -', ln=1, align='C')
+        pdf.cell(0, 3, 'P O W E R E D   B Y   F O O D H U B   P O S', ln=1, align='C')
 
         ticket_no = str(order_data.get('order_number', ''))
         safe_no = ''.join(c for c in ticket_no if c.isalnum() or c in '-_') or 'ticket'
@@ -475,7 +547,8 @@ def print_receipt_api():
         if not printer_name:
             return jsonify({'error': 'No printer configured'}), 500
 
-        success = print_receipt(printer_name, order_data, organization_data)
+        success = print_receipt(printer_name, order_data, organization_data,
+                                image_data_url=data.get('image'), image_width=data.get('image_width', 576))
         if not success:
             return jsonify({'error': 'Print failed'}), 500
 

@@ -35,6 +35,7 @@ jobs:
             --hidden-import "flask" `
             --hidden-import "waitress" `
             --hidden-import "fpdf" `
+            --hidden-import "PIL" `
             --collect-submodules "pystray" `
             app.py
 

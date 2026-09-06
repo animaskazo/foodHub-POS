@@ -1,4 +1,35 @@
 const PYTHON_API = 'http://localhost:8088';
+const RASTER_WIDTH = 576;
+
+const renderReceiptCanvas = async (width = RASTER_WIDTH) => {
+  const { default: html2canvas } = await import('html2canvas');
+  const receiptEl = document.querySelector('.print-receipt-container');
+  if (!receiptEl) throw new Error('No se encontró el ticket en el DOM');
+  if (!receiptEl.id) receiptEl.id = 'foodhub-print-ticket';
+  const elW = Math.max(receiptEl.getBoundingClientRect().width || 1, 1);
+  const scale = Math.max(1.5, width / elW);
+  const canvas = await html2canvas(receiptEl, {
+    scale,
+    backgroundColor: '#ffffff',
+    useCORS: true,
+    logging: false,
+  });
+  return canvas;
+};
+
+const saveSimulatedPdf = async (order) => {
+  const canvas = await renderReceiptCanvas();
+  const jsPdfMod = await import('jspdf');
+  const JSPDF = jsPdfMod.default || jsPdfMod;
+  const imgW = 76;
+  const imgH = (canvas.height / canvas.width) * imgW;
+  const pdf = new JSPDF({ unit: 'mm', format: [80, imgH + 10], compress: true });
+  pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 2, 5, imgW, imgH);
+  const ticketId = order?.id || order?.order_number || 'ticket';
+  const safeId = String(ticketId).replace(/[^\w-]/g, '') || 'ticket';
+  pdf.save(`FoodHub-Ticket-${safeId}.pdf`);
+  return true;
+};
 
 const getPaymentMethodFromOrder = (order) => {
   if (order.payments?.some(p => p.status === 'pending')) return '';
@@ -9,7 +40,7 @@ const getPaymentMethodFromOrder = (order) => {
   return order.payment_method || '';
 };
 
-const sendToPythonPrinter = async (printerName, order, organization) => {
+const sendToPythonPrinter = async (printerName, order, organization, imageDataUrl = null) => {
   const created = order?.created_at ? new Date(order.created_at)
     : (order?.date ? new Date(order.date) : new Date());
   const formattedDate = created.toLocaleDateString('es-CL');
@@ -49,6 +80,10 @@ const sendToPythonPrinter = async (printerName, order, organization) => {
     payment_display: isPaid && paymentDisplay ? `${paymentDisplay}${paymentRef ? ` · ID ${paymentRef}` : ''}` : '',
     printer_name: printerName,
   };
+  if (imageDataUrl) {
+    payload.image = imageDataUrl;
+    payload.image_width = RASTER_WIDTH;
+  }
 
   const response = await fetch(`${PYTHON_API}/print`, {
     method: 'POST',
@@ -91,18 +126,40 @@ export const getPrinters = async () => {
 
 export const printReceipt = async (order, organization, printerName, _retry = false) => {
   if (!printerName) throw new Error('No hay impresora configurada');
+  const isSimulator = printerName.includes('Simulador');
 
   try {
-    await sendToPythonPrinter(printerName, order, organization);
-    console.log('Ticket impreso exitosamente en', printerName);
-    return true;
+    if (isSimulator) {
+      try {
+        await saveSimulatedPdf(order);
+        console.log('Ticket simulado guardado como PDF (misma vista del navegador)');
+        return true;
+      } catch (pdfError) {
+        console.warn('Simulador local no disponible, usando el servidor:', pdfError);
+        await sendToPythonPrinter(printerName, order, organization, null);
+        return true;
+      }
+    }
+
+    try {
+      const canvas = await renderReceiptCanvas();
+      const image = canvas.toDataURL('image/png');
+      await sendToPythonPrinter(printerName, order, organization, image);
+      console.log('Ticket impreso (HTML -> raster) en', printerName);
+      return true;
+    } catch (rasterError) {
+      console.warn('Raster HTML no disponible, usando texto:', rasterError);
+      await sendToPythonPrinter(printerName, order, organization, null);
+      console.log('Ticket impreso (texto) en', printerName);
+      return true;
+    }
   } catch (error) {
     console.error('Error al imprimir con Python Print Server:', error);
 
     if (!_retry) {
       console.log('Reintentando impresion...');
       try {
-        await sendToPythonPrinter(printerName, order, organization);
+        await sendToPythonPrinter(printerName, order, organization, null);
         console.log('Ticket impreso exitosamente en (reintento)', printerName);
         return true;
       } catch (retryError) {

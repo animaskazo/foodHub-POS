@@ -95,10 +95,6 @@ def format_receipt(order_data, organization_data=None):
     buffer += FEED_LINES(2)
 
     store_name = str(org.get('name', order.get('store_name', 'Tienda'))).upper()
-    store_address = str(org.get('address', order.get('store_address', '')))
-    store_phone = str(org.get('phone', order.get('store_phone', '')))
-    store_footer = str(org.get('footer', order.get('store_footer', '¡Gracias por su compra!')))
-    store_message = str(org.get('message', order.get('store_message', '')))
     number = str(order.get('order_number', ''))
     date_line = str(order.get('order_date', ''))
     customer_name = str(order.get('customer_name', '') or '')
@@ -117,23 +113,19 @@ def format_receipt(order_data, organization_data=None):
         buffer += BOLD_ON + encode_text(order_type) + b'\n' + BOLD_OFF
         buffer += encode_text(DASHED) + b'\n'
 
-    # ── Caja de título (nombre de la tienda) ───────────────
+    # ── Recuadro negro del título (igual que la web) ────────
     buffer += ALIGN_CENTER
     buffer += INVERT_ON
     for line in _wrap(store_name, WIDTH - 2) or ['']:
         buffer += encode_text(' ' + line.ljust(WIDTH - 2) + ' ') + b'\n'
     buffer += INVERT_OFF
 
-    if store_address:
-        buffer += encode_text(_wrap(store_address, WIDTH)[0]) + b'\n'
-    if store_phone:
-        buffer += ALIGN_CENTER + encode_text(f"Tel: {store_phone}") + b'\n'
-
     buffer += ALIGN_CENTER + encode_text(SOLID) + b'\n'
 
-    # ── Número de pedido grande ─────────────────────────────
-    buffer += ALIGN_CENTER
-    buffer += set_text_size(2, 2) + BOLD_ON
+    # ── Número de pedido grande + fecha ─────────────────────
+    if number and not number.startswith('#'):
+        number = '#' + number
+    buffer += ALIGN_CENTER + set_text_size(2, 2) + BOLD_ON
     buffer += encode_text(number) + b'\n'
     buffer += set_text_size(1, 1) + BOLD_OFF
     if date_line:
@@ -147,10 +139,10 @@ def format_receipt(order_data, organization_data=None):
         buffer += ALIGN_LEFT
         buffer += BOLD_ON + encode_text('DATOS DEL CLIENTE') + b'\n' + BOLD_OFF
         if customer_name:
-            buffer += encode_text(customer_name.upper()) + b'\n'
+            buffer += BOLD_ON + encode_text(customer_name.upper()) + b'\n' + BOLD_OFF
         if delivery_address:
             for line in _wrap(delivery_address, WIDTH):
-                buffer += encode_text(' ') + b'\n' if line == '' else encode_text(line) + b'\n'
+                buffer += encode_text(line) + b'\n'
         if customer_phone:
             buffer += encode_text(f"Tel: {customer_phone}") + b'\n'
 
@@ -159,7 +151,7 @@ def format_receipt(order_data, organization_data=None):
         buffer += ALIGN_LEFT
         buffer += BOLD_ON + encode_text('COMENTARIOS') + b'\n' + BOLD_OFF
         for line in _wrap(notes, WIDTH):
-            buffer += encode_text(line) + b'\n'
+            buffer += BOLD_ON + encode_text(line.upper()) + b'\n' + BOLD_OFF
 
     # ── Ítems ───────────────────────────────────────────────
     buffer += ALIGN_LEFT
@@ -169,8 +161,14 @@ def format_receipt(order_data, organization_data=None):
         parents = raw_items
 
     buffer += BOLD_ON
-    buffer += encode_text(f"{'Cant':>4} {'Descripcion':<26} {'Total':>10}") + b'\n'
+    buffer += encode_text(f"{'Cant':>4} {'Descripción':<23} {'Total':>11}") + b'\n'
     buffer += BOLD_OFF
+    buffer += encode_text(SOLID) + b'\n'
+
+    def _tot_row(label, value, size=1):
+        mv = _money(value)
+        pad = max(1, (WIDTH // size) - len(label) - len(mv))
+        return encode_text(label + ' ' * pad + mv) + b'\n'
 
     for item in parents:
         name = str(item.get('name') or item.get('product_name') or 'Item')
@@ -183,12 +181,12 @@ def format_receipt(order_data, organization_data=None):
         head = f"{qty_str} {name}"
         pad = WIDTH - len(head) - len(total_str)
         if pad >= 0:
-            buffer += encode_text(head + ' ' * pad + total_str) + b'\n'
+            buffer += BOLD_ON + encode_text(head + ' ' * pad + total_str) + b'\n' + BOLD_OFF
         else:
             for line in _wrap(head, WIDTH - len(total_str) - 1):
-                buffer += encode_text(line) + b'\n'
-            buffer += encode_text(' ' * (WIDTH - len(total_str)) + total_str) + b'\n'
-        # Extra data: variantes / ingredientes / combinados
+                buffer += BOLD_ON + encode_text(line) + b'\n' + BOLD_OFF
+            buffer += BOLD_ON + encode_text(' ' * max(1, WIDTH - len(total_str)) + total_str) + b'\n' + BOLD_OFF
+        # Variantes / ingredientes / combinados
         for v in item.get('order_item_variants', []) or []:
             buffer += encode_text(f"- {str(v.get('variant_option_name', ''))}") + b'\n'
         for ing in item.get('order_item_ingredients', []) or []:
@@ -206,43 +204,42 @@ def format_receipt(order_data, organization_data=None):
             cline = f"    {cq_str} {str(child.get('product_name', ''))}"
             for cv in child.get('order_item_variants', []) or []:
                 cline += f" ({str(cv.get('variant_option_name', ''))})"
+            cu = float(child.get('unit_price', 0) or 0)
+            if cu > 0:
+                cline += f" (+{_money(cu)})"
             for line in _wrap(cline, WIDTH):
                 buffer += encode_text(line) + b'\n'
 
     buffer += encode_text(DASHED) + b'\n'
 
-    # ── Totales ─────────────────────────────────────────────
-    subtotal = float(order.get('subtotal', 0) or 0)
-    tax = float(order.get('tax', 0) or 0)
-    delivery_fee = float(order.get('delivery_fee', 0) or 0)
+    # ── Totales (subtotal = total − despacho, como la web) ──
     total = float(order.get('total', 0) or 0)
-    for label, value in (('Subtotal', subtotal), ('Despacho', delivery_fee), ('IVA', tax)):
-        if label == 'Despacho' and value <= 0:
-            continue
-        if label == 'IVA' and value <= 0:
-            continue
-        buffer += ALIGN_RIGHT
-        buffer += encode_text(f"{label}: {_money(value)}") + b'\n'
-    buffer += ALIGN_RIGHT
-    buffer += INVERT_ON + BOLD_ON
-    buffer += encode_text(f"TOTAL: {_money(total)}") + b'\n'
-    buffer += INVERT_OFF + BOLD_OFF
+    delivery_fee = float(order.get('delivery_fee', 0) or 0)
+    subtotal = max(total - delivery_fee, 0)
+    buffer += ALIGN_LEFT
+    buffer += _tot_row('Subtotal', subtotal)
+    if delivery_fee > 0:
+        buffer += _tot_row('Despacho', delivery_fee)
+    buffer += encode_text(SOLID) + b'\n'
+    buffer += set_text_size(2, 2) + BOLD_ON
+    buffer += _tot_row('TOTAL', total)
+    buffer += set_text_size(1, 1) + BOLD_OFF
 
     buffer += ALIGN_CENTER + encode_text(DASHED) + b'\n'
 
-    # ── Aviso de no pago ────────────────────────────────────
+    # ── Aviso de no pago (recuadro negro, como la web) ──────
     if not is_paid:
         buffer += ALIGN_CENTER
-        buffer += INVERT_ON + encode_text('NO PAGADO') + b'\n'
+        buffer += INVERT_ON + encode_text('NO PAGADO'.ljust(WIDTH)) + b'\n'
         buffer += INVERT_OFF
-        buffer += ALIGN_CENTER + BOLD_ON + encode_text('COBRAR AL CLIENTE') + b'\n' + BOLD_OFF
-        buffer += ALIGN_CENTER + encode_text(DASHED) + b'\n'
+        buffer += ALIGN_CENTER + INVERT_ON + encode_text('COBRAR AL CLIENTE'.ljust(WIDTH)) + b'\n' + INVERT_OFF
 
     # ── Footer ──────────────────────────────────────────────
     buffer += FEED_LINES(1)
     if payment_display:
         buffer += ALIGN_CENTER + BOLD_ON + encode_text(payment_display) + b'\n' + BOLD_OFF
     buffer += ALIGN_CENTER + BOLD_ON + encode_text('¡Gracias por preferirnos!') + b'\n' + BOLD_OFF
+    buffer += ALIGN_CENTER + encode_text('-' * 24) + b'\n'
     buffer += ALIGN_CENTER + encode_text('Powered by FoodHub POS') + b'\n'
 
     buffer += FEED_LINES(3)
