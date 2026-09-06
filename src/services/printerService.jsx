@@ -151,15 +151,9 @@ export const printReceipt = async (order, organization, printerName, _retry = fa
 
   try {
     if (isSimulator) {
-      try {
-        await saveSimulatedPdf(order, organization);
-        console.log('Ticket simulado guardado como PDF (misma vista del navegador)');
-        return true;
-      } catch (pdfError) {
-        console.warn('Simulador local no disponible, usando el servidor:', pdfError);
-        await sendToPythonPrinter(printerName, order, organization, null);
-        return true;
-      }
+      await saveSimulatedPdf(order, organization);
+      console.log('Ticket simulado guardado como PDF (misma vista del navegador)');
+      return true;
     }
 
     const holder = await buildReceiptNode(order, organization);
@@ -173,10 +167,10 @@ export const printReceipt = async (order, organization, printerName, _retry = fa
       holder.remove();
     }
   } catch (error) {
-    console.error('Error al imprimir con Python Print Server:', error);
+    console.error('Error al imprimir:', error);
 
-    if (!_retry) {
-      console.log('Reintentando impresion...');
+    if (!isSimulator && !_retry) {
+      console.log('Reintentando impresion con formato de texto...');
       try {
         await sendToPythonPrinter(printerName, order, organization, null);
         console.log('Ticket impreso exitosamente en (reintento)', printerName);
