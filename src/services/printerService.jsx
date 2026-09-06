@@ -16,7 +16,7 @@ const findMountedReceipt = (order) => {
 };
 
 const captureReceiptCanvas = async (order, width = RASTER_WIDTH) => {
-  const { default: html2canvas } = await import('html2canvas');
+  const { default: html2canvas } = await import('html2canvas-pro');
   const src = findMountedReceipt(order);
   if (!src) throw new Error('No se encontró el ticket en el DOM');
   const hold = src.cloneNode(true);
