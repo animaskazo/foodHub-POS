@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+__pycache__/
+*.pyc
+.DS_Store
+foodhub-print.log
+python-server/FoodHubPrint.app/
+python-server/.venv/
