@@ -443,19 +443,20 @@ const PosView = () => {
           
         const printData = fullOrder || finalOrder;
 
-const pythonPrinter = localStorage.getItem('python_default_printer');
-if (pythonPrinter) {
+        const pythonPrinter = localStorage.getItem('python_default_printer');
+        if (pythonPrinter) {
           import('sonner').then(({ toast }) => toast.info('Generando ticket...'));
-          return printReceipt(printData, organization, pythonPrinter).catch(e => {
-             console.error('Python Print failed', e);
-             import('sonner').then(({ toast }) => toast.error('Error imprimiendo'));
+          printReceipt(printData, organization, pythonPrinter).catch(e => {
+            console.error('Python Print failed', e);
+            import('sonner').then(({ toast }) => toast.error('Error imprimiendo'));
+          });
+        } else {
+          import('sonner').then(({ toast }) => toast.info('Generando PDF...'));
+          printReceiptAsPDF(printData, organization).catch(e => {
+            console.error('PDF generation failed', e);
+            import('sonner').then(({ toast }) => toast.error('Error generando PDF'));
           });
         }
-        import('sonner').then(({ toast }) => toast.info('Generando PDF...'));
-        return printReceiptAsPDF(printData, organization).catch(e => {
-          console.error('PDF generation failed', e);
-          import('sonner').then(({ toast }) => toast.error('Error generando PDF'));
-        });
       }
 
       return finalOrder;
