@@ -120,6 +120,7 @@ const SettingsView = () => {
   const handleReconnect = async () => {
     setServerStatus('checking');
     await checkServerHealth();
+    await fetchPrinters();
   };
 
   const fetchPrinters = async () => {
@@ -195,6 +196,12 @@ const SettingsView = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'printers') {
+      fetchPrinters();
+    }
+  }, [activeTab]);
 
   const loadData = async () => {
     setLoading(true);
@@ -1045,6 +1052,38 @@ const SettingsView = () => {
                      </button>
                    )}
                  </div>
+
+                 {/* Selector de impresora — siempre visible */}
+                 {serverStatus === 'connected' && (
+                   <div className="border border-gray-200 rounded-xl p-4">
+                     <div className="flex items-center justify-between mb-2">
+                       <label className="text-sm font-semibold text-gray-700">Impresora térmica</label>
+                       <button
+                         onClick={fetchPrinters}
+                         className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
+                       >
+                         Buscar Impresoras
+                       </button>
+                     </div>
+                     {printers.length > 0 ? (
+                       <select
+                         value={selectedPrinter}
+                         onChange={handlePrinterSelect}
+                         className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                       >
+                         <option value="">Impresión normal (ventana del navegador)</option>
+                         {selectedPrinter && !printers.includes(selectedPrinter) && (
+                           <option value={selectedPrinter}>{selectedPrinter} (Guardada)</option>
+                         )}
+                         {printers.map(p => (
+                           <option key={p} value={p}>{p}</option>
+                         ))}
+                       </select>
+                     ) : (
+                       <p className="text-sm text-gray-500">No se encontraron impresoras conectadas. Haz clic en <strong>Buscar Impresoras</strong>.</p>
+                     )}
+                   </div>
+                 )}
                 
 {/* Auto Print Setting */}
                 <div>
@@ -1061,32 +1100,9 @@ const SettingsView = () => {
                     />
                   </div>
                   
-                   {autoPrintEnabled && (
-                     <div className="mt-4 pt-4 border-t border-gray-100">
-                       <div className="flex items-center justify-between mb-2">
-                         <label className="text-sm font-semibold text-gray-700">Impresora Python Local (Silenciosa)</label>
-                         <button 
-                           onClick={fetchPrinters} 
-                           className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
-                         >
-                           Buscar Impresoras
-                         </button>
-                       </div>
-                       <select 
-                         value={selectedPrinter}
-                         onChange={handlePrinterSelect}
-                         className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
-                       >
-                         <option value="">Impresión normal (ventana del navegador)</option>
-                         {selectedPrinter && !printers.includes(selectedPrinter) && (
-                           <option value={selectedPrinter}>{selectedPrinter} (Guardada)</option>
-                         )}
-                         {printers.map(p => (
-                           <option key={p} value={p}>{p}</option>
-                         ))}
-                       </select>
-                     </div>
-                   )}
+{autoPrintEnabled && (<div className="mt-2 p-3 bg-blue-50 text-blue-800 rounded-lg text-sm">
+                       Los pedidos se imprimirán automáticamente en la impresora seleccionada arriba.
+                     </div>)}
                  </div>
 
                   {/* Guía de Configuración */}
