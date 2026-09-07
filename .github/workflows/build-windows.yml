@@ -20,7 +20,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: python-server
-        run: pip install pyinstaller flask waitress fpdf2 pystray Pillow
+        run: pip install pyinstaller flask waitress fpdf2 pystray Pillow pywin32
 
       - name: Build EXE with PyInstaller
         working-directory: python-server
@@ -36,6 +36,7 @@ jobs:
             --hidden-import "waitress" `
             --hidden-import "fpdf" `
             --hidden-import "PIL" `
+            --hidden-import "win32print" `
             --collect-submodules "pystray" `
             app.py
 

@@ -148,25 +148,122 @@ def add_cors_headers(response):
 DEFAULT_PRINTER = None
 
 def get_printers_mac():
+    printers = []
+    # Método 1: lpstat -p (impresoras habilitadas)
     try:
         result = subprocess.run(['lpstat', '-p'], capture_output=True, text=True, timeout=5)
-        printers = []
+        logger.info(f"lpstat -p stdout: {result.stdout!r}  rc={result.returncode}")
         for line in result.stdout.strip().split('\n'):
-            if 'printer' in line and 'is' in line:
-                name = line.split()[1] if line.split() else ''
-                if name:
+            if 'printer' in line.lower():
+                parts = line.split()
+                if len(parts) >= 2:
+                    name = parts[1]
+                    if name and name not in printers:
+                        printers.append(name)
+    except Exception as e:
+        logger.warning(f"lpstat -p failed: {e}")
+
+    # Método 2: lpstat -a (acepta trabajos, incluye impresoras no habilitadas)
+    try:
+        result = subprocess.run(['lpstat', '-a'], capture_output=True, text=True, timeout=5)
+        logger.info(f"lpstat -a stdout: {result.stdout!r}  rc={result.returncode}")
+        for line in result.stdout.strip().split('\n'):
+            parts = line.split()
+            if parts:
+                name = parts[0]
+                if name and name not in printers:
                     printers.append(name)
-        return printers
-    except Exception:
-        return []
+    except Exception as e:
+        logger.warning(f"lpstat -a failed: {e}")
+
+    # Método 3: system_profiler (USB conectadas directamente)
+    if not printers:
+        try:
+            result = subprocess.run(
+                ['system_profiler', 'SPPrintersDataType'],
+                capture_output=True, text=True, timeout=8
+            )
+            logger.info(f"system_profiler output length: {len(result.stdout)}")
+            for line in result.stdout.split('\n'):
+                if ':' in line and not line.startswith(' '):
+                    name = line.split(':')[0].strip()
+                    if name and name not in printers:
+                        printers.append(name)
+        except Exception as e:
+            logger.warning(f"system_profiler failed: {e}")
+
+    logger.info(f"Printers detected on Mac: {printers}")
+    return printers
 
 def get_printers_win():
+    printers = []
+
+    # Método 1: win32print (pywin32)
     try:
         import win32print
         printers = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_SHARED)]
-        return printers
+        logger.info(f"win32print printers: {printers}")
+        if printers:
+            return printers
     except ImportError:
-        return []
+        logger.warning("pywin32 no instalado, usando métodos alternativos")
+    except Exception as e:
+        logger.warning(f"win32print failed: {e}")
+
+    # Método 2: PowerShell Get-Printer
+    try:
+        result = subprocess.run(
+            ['powershell', '-NoProfile', '-Command', 'Get-Printer | Select-Object -ExpandProperty Name'],
+            capture_output=True, text=True, timeout=10
+        )
+        logger.info(f"powershell Get-Printer stdout: {result.stdout!r}  rc={result.returncode}")
+        for line in result.stdout.strip().split('\n'):
+            name = line.strip()
+            if name and name not in printers:
+                printers.append(name)
+        if printers:
+            return printers
+    except Exception as e:
+        logger.warning(f"PowerShell Get-Printer failed: {e}")
+
+    # Método 3: wmic printer
+    try:
+        result = subprocess.run(
+            ['wmic', 'printer', 'get', 'name'],
+            capture_output=True, text=True, timeout=10
+        )
+        logger.info(f"wmic printer stdout: {result.stdout!r}  rc={result.returncode}")
+        for line in result.stdout.strip().split('\n'):
+            name = line.strip()
+            if name and name.lower() != 'name' and name not in printers:
+                printers.append(name)
+        if printers:
+            return printers
+    except Exception as e:
+        logger.warning(f"wmic printer failed: {e}")
+
+    # Método 4: registry de Windows (lectura directa)
+    try:
+        import winreg
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                             r'Software\Microsoft\Windows NT\CurrentVersion\Print\Printers',
+                             0, winreg.KEY_READ | winreg.KEY_ENUMERATE_SUB_KEYS)
+        i = 0
+        while True:
+            try:
+                subkey_name = winreg.EnumKey(key, i)
+                if subkey_name and subkey_name not in printers:
+                    printers.append(subkey_name)
+                i += 1
+            except OSError:
+                break
+        winreg.CloseKey(key)
+        logger.info(f"Registry printers: {printers}")
+    except Exception as e:
+        logger.warning(f"Registry read failed: {e}")
+
+    logger.info(f"Printers detected on Windows: {printers}")
+    return printers
 
 def get_printers():
     if IS_MAC:
@@ -575,12 +672,62 @@ def print_receipt_api():
 def list_printers():
     try:
         printers = get_printers()
+        logger.info(f"/printers returning: {printers}")
         if SIMULATOR_NAME not in printers:
             printers = [SIMULATOR_NAME] + printers
         return jsonify({'printers': printers})
     except Exception as e:
         logger.error(f"Error listing printers: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/debug', methods=['GET'])
+def debug_info():
+    info = {
+        'platform': platform.system(),
+        'is_mac': IS_MAC,
+        'is_windows': IS_WINDOWS,
+    }
+    if IS_MAC:
+        try:
+            r = subprocess.run(['lpstat', '-p'], capture_output=True, text=True, timeout=5)
+            info['lpstat_p'] = r.stdout
+            info['lpstat_p_rc'] = r.returncode
+        except Exception as e:
+            info['lpstat_p_error'] = str(e)
+        try:
+            r = subprocess.run(['lpstat', '-a'], capture_output=True, text=True, timeout=5)
+            info['lpstat_a'] = r.stdout
+            info['lpstat_a_rc'] = r.returncode
+        except Exception as e:
+            info['lpstat_a_error'] = str(e)
+        try:
+            r = subprocess.run(['system_profiler', 'SPPrintersDataType'], capture_output=True, text=True, timeout=8)
+            info['system_profiler'] = r.stdout[:2000]
+        except Exception as e:
+            info['system_profiler_error'] = str(e)
+    if IS_WINDOWS:
+        try:
+            import win32print
+            info['win32print_available'] = True
+            info['win32print_printers'] = [p[2] for p in win32print.EnumPrinters(win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_SHARED)]
+        except ImportError:
+            info['win32print_available'] = False
+            info['win32print_note'] = 'pywin32 no instalado'
+        except Exception as e:
+            info['win32print_error'] = str(e)
+        try:
+            r = subprocess.run(['powershell', '-NoProfile', '-Command', 'Get-Printer | Select-Object -ExpandProperty Name'],
+                               capture_output=True, text=True, timeout=10)
+            info['powershell_printers'] = r.stdout.strip().split('\n')
+        except Exception as e:
+            info['powershell_error'] = str(e)
+        try:
+            r = subprocess.run(['wmic', 'printer', 'get', 'name'], capture_output=True, text=True, timeout=10)
+            info['wmic_printers'] = r.stdout.strip()
+        except Exception as e:
+            info['wmic_error'] = str(e)
+    info['printers'] = get_printers()
+    return jsonify(info)
 
 @app.route('/last-ticket', methods=['GET'])
 def last_ticket():
