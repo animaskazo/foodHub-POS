@@ -398,6 +398,24 @@ def print_receipt(printer_name, order_data, organization_data, image_data_url=No
             logger.warning("Raster devolvió fallo, usando formato texto")
         except Exception as e:
             logger.warning(f"Raster falló ({str(e)[:120]}) — usando formato texto")
+    # ── Fallback con diseño: renderizamos el ticket en Pillow (mismo layout de la web) ──
+    if PILImage:
+        try:
+            from printer_service import render_receipt_image
+            img = render_receipt_image(order_data, organization_data, int(image_width or 576))
+            if img is not None:
+                buf = io.BytesIO()
+                img.save(buf, 'PNG')
+                data_url = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
+                raster = _png_base64_to_raster(data_url, int(image_width or 576))
+                ok = (print_mac if IS_MAC else print_win)(printer_name, raster)
+                if ok:
+                    logger.info(f"Raster (Pillow -> bit-image) impreso en {printer_name}")
+                    LAST_PRINT_MODE = 'raster'
+                    return True
+                logger.warning("Raster Pillow devolvió fallo, usando formato texto")
+        except Exception as e:
+            logger.warning(f"Raster Pillow falló ({str(e)[:120]}) — usando formato texto")
     escpos_data = format_receipt(order_data, organization_data)
     if IS_MAC:
         ok = print_mac(printer_name, escpos_data)
@@ -686,6 +704,8 @@ def debug_info():
         'platform': platform.system(),
         'is_mac': IS_MAC,
         'is_windows': IS_WINDOWS,
+        'pillow_available': PILImage is not None,
+        'pillow_version': getattr(PILImage, '__version__', '') if PILImage else None,
     }
     if IS_MAC:
         try:

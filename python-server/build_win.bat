@@ -28,7 +28,7 @@ if errorlevel 1 (
 
 echo.
 echo Creando .exe con PyInstaller...
-pyinstaller --onefile --name "FoodHubPrint" --console --add-data "app.py;." --add-data "printer_service.py;." --add-data "requirements.txt;." --hidden-import "flask" --hidden-import "waitress" --hidden-import "fpdf" --collect-submodules "pystray" app.py
+pyinstaller --onefile --name "FoodHubPrint" --console --add-data "app.py;." --add-data "printer_service.py;." --add-data "requirements.txt;." --hidden-import "flask" --hidden-import "waitress" --hidden-import "fpdf" --collect-all "PIL" --collect-submodules "pystray" app.py
 if errorlevel 1 (
     echo ERROR: Falló la creacion del .exe.
     pause

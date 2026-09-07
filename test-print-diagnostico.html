@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FoodHub - Diagnóstico de Impresión</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 24px; background: #f3f4f6; color: #111827; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 24px 0 8px; }
+  .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 20px; max-width: 860px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+  button { background: #111827; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; margin: 4px 8px 4px 0; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.secondary { background: #6b7280; }
+  pre { background: #0f172a; color: #a5f3fc; border-radius: 8px; padding: 12px; font-size: 12px; overflow: auto; max-height: 400px; white-space: pre-wrap; }
+  .ok { color: #047857; font-weight: 700; }
+  .bad { color: #b91c1c; font-weight: 700; }
+  .test-receipt { width: 80mm; background: #fff; margin: 12px 0; outline: 1px dashed #9ca3af; }
+  #captureResult img { max-width: 320px; border: 1px solid #d1d5db; border-radius: 6px; margin-top: 8px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+  label { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: 4px 8px 4px 0; }
+  input[type=text] { border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 10px; font-size: 13px; width: 260px; }
+  .mode-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .mode-raster { background: #d1fae5; color: #065f46; }
+  .mode-texto { background: #fee2e2; color: #991b1b; }
+  .mode-simulador { background: #dbeafe; color: #1e40af; }
+  .mode-unknown { background: #f3f4f6; color: #374151; }
+</style>
+</head>
+<body>
+
+<h1>FoodHub POS - Diagnóstico de Impresión / CSS</h1>
+<p class="ok" id="serverStatus">Comprobando servidor...</p>
+
+<div class="card">
+  <h2>1. Estado del servidor (.exe / Python)</h2>
+  <div class="row">
+    <button id="btnHealth">/health</button>
+    <button id="btnPrinters" class="secondary">/printers</button>
+    <button id="btnDebug" class="secondary">/debug</button>
+  </div>
+  <pre id="outServer">-</pre>
+</div>
+
+<div class="card">
+  <h2>2. ¿Se imprime con diseño o solo texto?</h2>
+  <p>Este botón envía <b>una prueba con imagen raster</b> al servidor. Si devuelve <span class="mode-badge mode-raster">raster</span>, el servidor SÍ tiene Pillow y raster; si devuelve <span class="mode-badge mode-texto">texto</span>, el raster está fallando y por eso sale sin diseño.</p>
+  <div class="row">
+    <button id="btnTestRaster">Enviar test con imagen raster</button>
+    <button id="btnTestText" class="secondary">Enviar test texto (foto: 0)</button>
+  </div>
+  <pre id="outPrint">-</pre>
+</div>
+
+<div class="card">
+  <h2>3. Captura de imagen desde el navegador (html2canvas)</h2>
+  <p>Este botón captura una versión de prueba del ticket del DOM (como hace la app) y muestra el PNG generado. Si la imagen se ve bien, el problema NO está en el navegador.</p>
+  <div class="row">
+    <button id="btnCapture">Capturar ticket de prueba</button>
+  </div>
+  <div id="captureResult"></div>
+</div>
+
+<div class="card">
+  <h2>4. Ticket de prueba (renderizado del DOM)</h2>
+  <p>Este es el ticket de referencia. Sus clases CSS se listan abajo para inspección.</p>
+  <div id="testReceipt" class="test-receipt"></div>
+  <pre id="outClasses">-</pre>
+</div>
+
+<script>
+const API = 'http://localhost:8088';
+const btn = id => document.getElementById(id);
+const out = (id, txt, cls = '') => { const el = document.getElementById(id); el.textContent = txt; el.className = cls; };
+const setServer = (ok, msg) => {
+  const el = document.getElementById('serverStatus');
+  el.className = ok ? 'ok' : 'bad';
+  el.textContent = msg;
+};
+
+// ── Ticket de prueba con todas las clases receipt-* y utilidades ──
+const TEST_ORDER = {
+  store_name: 'BURGER HOUSE TEST',
+  order_number: 'TEST-999',
+  order_date: '07/09/2026 - 20:30',
+  order_type: 'delivery',
+  delivery_type: 'delivery',
+  customer_name: 'Juan Perez',
+  customer_phone: '+56912345678',
+  notes: 'Sin cebolla',
+  items: [
+    { name: 'Burger Doble', quantity: 2, price: 12500 },
+    { name: 'Coca Cola 500ml', quantity: 1, price: 1500 },
+  ],
+  delivery_fee: 3000,
+  total: 29500,
+  is_paid: true,
+  payment_display: 'Efectivo',
+};
+
+const RECEIPT_HTML = `
+<div class="print-receipt-container">
+  <div class="receipt-content">
+    <div class="receipt-order-type">DELIVERY</div>
+    <div class="receipt-header">
+      <div class="receipt-title-box"><h1 class="receipt-title">BURGER HOUSE TEST</h1></div>
+    </div>
+    <div class="receipt-divider-solid"></div>
+    <div class="text-center mt-2 mb-4">
+      <div class="receipt-order-number">#999</div>
+      <div class="receipt-order-date">07/09/2026 - 20:30</div>
+    </div>
+    <div class="receipt-divider"></div>
+    <div class="mb-4 flex justify-between items-start gap-2">
+      <div class="flex-1">
+        <div class="receipt-section-title">Datos del Cliente</div>
+        <p class="font-bold text-sm uppercase">Juan Perez</p>
+        <p class="mt-1">Tel: +56912345678</p>
+      </div>
+    </div>
+    <div class="mb-4">
+      <div class="receipt-section-title">Comentarios</div>
+      <p class="font-bold text-sm uppercase leading-tight bg-gray-100 p-2 rounded">Sin cebolla</p>
+    </div>
+    <div class="mb-4">
+      <table class="w-full text-left receipt-items">
+        <thead><tr><th class="w-8">Cant</th><th>Descripción</th><th class="text-right">Total</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="align-top font-bold">2x</td>
+            <td class="align-top">
+              <div class="item-name">Burger Doble</div>
+              <div class="text-xs pl-1 text-gray-800">- Doble carne</div>
+            </td>
+            <td class="text-right align-top font-medium">$25.000</td>
+          </tr>
+          <tr>
+            <td class="align-top font-bold">1x</td>
+            <td class="align-top"><div class="item-name">Coca Cola 500ml</div></td>
+            <td class="text-right align-top font-medium">$1.500</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="receipt-totals">
+      <div class="flex justify-between mb-1"><span>Subtotal</span><span>$26.500</span></div>
+      <div class="flex justify-between mb-1"><span>Despacho</span><span>$3.000</span></div>
+      <div class="receipt-total-row"><span>TOTAL</span><span>$29.500</span></div>
+    </div>
+    <div class="receipt-divider mt-4 mb-4"></div>
+    <div class="text-center flex flex-col items-center">
+      <p class="text-xs font-bold uppercase mb-1">Efectivo</p>
+      <p class="font-bold text-lg mb-1">¡Gracias por preferirnos!</p>
+      <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-2 border-t border-gray-300 pt-2 inline-block">Powered by FoodHub POS</p>
+    </div>
+  </div>
+</div>`;
+
+// Inyectar CSS del ticket (mismos valores que print.css + shims de printerService.jsx)
+const CSS = `
+.print-receipt-container { width: 80mm; background: #fff; display: block; }
+.receipt-content { width: 76mm; margin: 0 auto; padding: 5mm 2mm; }
+.receipt-header { text-align: center; margin-bottom: 5mm; }
+.receipt-title-box { background: black; color: white; padding: 4mm 2mm; margin-bottom: 2mm; border-radius: 4px; }
+.receipt-title { font-size: 20px; font-weight: 900; text-align: center; text-transform: uppercase; letter-spacing: 1px; margin: 0; }
+.receipt-order-type { font-size: 20px; font-weight: 900; text-align: center; text-transform: uppercase; margin-top: 3mm; margin-bottom: 3mm; padding: 2mm 0; border-top: 2px dashed #000; border-bottom: 2px dashed #000; }
+.receipt-order-number { font-size: 40px; font-weight: 900; text-align: center; margin: 4mm 0 0 0; line-height: 1; }
+.receipt-order-date { font-size: 12px; color: #333; text-align: center; margin-bottom: 4mm; }
+.receipt-divider { border-bottom: 1.5px dashed black; margin: 3mm 0; }
+.receipt-divider-solid { border-bottom: 2px solid black; margin: 3mm 0; }
+.receipt-section-title { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1mm; }
+.receipt-items { width: 100%; text-align: left; border-collapse: collapse; }
+.receipt-items th { font-weight: bold; font-size: 12px; border-bottom: 1.5px solid black; padding-bottom: 2mm; }
+.receipt-items td { padding: 2mm 0 1mm 0; border-bottom: 1px dashed #999; }
+.receipt-items tbody tr:last-child td { border-bottom: none; }
+.receipt-items .item-name { font-size: 13px; font-weight: 700; }
+.receipt-total-row { display: flex; justify-content: space-between; font-size: 22px; font-weight: 900; margin-top: 2mm; padding-top: 2mm; border-top: 2px solid black; }
+.receipt-totals { margin-top: 4mm; }
+.text-center { text-align: center; } .text-left { text-align: left; } .text-right { text-align: right; }
+.mt-0\\.5 { margin-top: 2px; } .mt-1 { margin-top: 4px; } .mt-2 { margin-top: 8px; } .mt-4 { margin-top: 16px; }
+.mb-1 { margin-bottom: 4px; } .mb-2 { margin-bottom: 8px; } .mb-4 { margin-bottom: 16px; } .ml-1 { margin-left: 4px; }
+.flex { display: flex; } .flex-col { flex-direction: column; } .flex-1 { flex: 1; }
+.justify-between { justify-content: space-between; } .items-center { align-items: center; } .items-start { align-items: flex-start; }
+.gap-2 { gap: 8px; } .shrink-0 { flex-shrink: 0; }
+.w-full { width: 100%; } .w-8 { width: 32px; } .align-top { vertical-align: top; }
+.font-bold { font-weight: 700; } .font-medium { font-weight: 500; } .font-semibold { font-weight: 600; }
+.text-sm { font-size: 14px; } .text-xs { font-size: 12px; } .text-lg { font-size: 18px; }
+.text-\\[6px\\] { font-size: 6px; } .text-\\[10px\\] { font-size: 10px; }
+.text-gray-800 { color: #1f2937; } .text-gray-500 { color: #6b7280; }
+.uppercase { text-transform: uppercase; } .leading-none { line-height: 1; } .leading-tight { line-height: 1.25; }
+.tracking-tight { letter-spacing: -0.025em; } .tracking-widest { letter-spacing: 0.1em; }
+.pl-1 { padding-left: 4px; } .pl-2 { padding-left: 8px; } .pt-2 { padding-top: 8px; }
+.p-1 { padding: 4px; } .p-2 { padding: 8px; }
+.border { border-width: 1px; border-style: solid; } .border-b { border-bottom-width: 1px; border-bottom-style: solid; }
+.border-t { border-top-width: 1px; border-top-style: solid; } .border-l { border-left-width: 1px; border-left-style: solid; }
+.border-black { border-color: black; } .border-gray-300 { border-color: #d1d5db; } .border-gray-400 { border-color: #9ca3af; }
+.rounded { border-radius: 4px; } .inline-block { display: inline-block; }
+.bg-white { background: #fff; } .bg-black { background: #000; } .bg-gray-100 { background: #f3f4f6; }
+`;
+
+const styleEl = document.createElement('style');
+styleEl.textContent = CSS;
+document.head.appendChild(styleEl);
+
+document.getElementById('testReceipt').innerHTML = RECEIPT_HTML;
+
+// Listar clases usadas
+const classes = RECEIPT_HTML.match(/class="([^"]+)"/g)
+  .flatMap(m => m.replace(/class="/, '').replace(/"/, '').split(/\s+/))
+  .filter((c, i, a) => a.indexOf(c) === i)
+  .sort();
+const defined = classes.filter(c => CSS.includes('.' + c) || c.startsWith('receipt'));
+const missing = classes.filter(c => !CSS.includes('.' + c) && !c.startsWith('receipt') && !['print-receipt-container','receipt-content'].includes(c));
+out('outClasses', `Clases usadas (${classes.length}):\n${classes.join('\n')}\n\n→ Definidas en el CSS de impresión: ${defined.length}\n→ NO definidas (quedarían sin estilo):\n${missing.length ? missing.join('\n') : '(ninguna)'}`);
+
+// ── utilidad de fetch ──
+async function api(path, body) {
+  const opts = { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined };
+  const res = await fetch(API + path, opts);
+  const txt = await res.text();
+  let data; try { data = JSON.parse(txt); } catch { data = txt; }
+  return { status: res.status, data };
+}
+const modeBadge = m => `<span class="mode-badge mode-${m || 'unknown'}">${m || 'sin modo'}</span>`;
+
+// ── 1. Estado ──
+btn('btnHealth').onclick = async () => {
+  try {
+    const { status, data } = await api('/health');
+    out('outServer', `HTTP ${status}\n${JSON.stringify(data, null, 2)}`);
+    setServer(true, 'Servidor respondiendo');
+  } catch (e) { setServer(false, `Servidor NO responde en ${API}`); out('outServer', String(e)); }
+};
+btn('btnPrinters').onclick = async () => {
+  try { const { status, data } = await api('/printers'); out('outServer', `HTTP ${status}\n${JSON.stringify(data, null, 2)}`); }
+  catch (e) { out('outServer', String(e)); }
+};
+btn('btnDebug').onclick = async () => {
+  try { const { status, data } = await api('/debug'); out('outServer', `HTTP ${status}\n${JSON.stringify(data, null, 2)}`); }
+  catch (e) { out('outServer', `Error: ${e}\n(Si el servidor es antiguo, /debug devolverá 404)`); }
+};
+
+// ── 2. Imprimir test con y sin imagen ──
+const buildPayload = (image) => {
+  const items = TEST_ORDER.items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price }));
+  return {
+    store_name: TEST_ORDER.store_name,
+    store_address: '',
+    store_phone: '',
+    store_footer: '¡Gracias por su compra!',
+    store_message: '',
+    order_number: TEST_ORDER.order_number,
+    order_date: TEST_ORDER.order_date,
+    order_type: TEST_ORDER.order_type,
+    delivery_type: TEST_ORDER.delivery_type,
+    customer_name: TEST_ORDER.customer_name,
+    customer_phone: TEST_ORDER.customer_phone,
+    delivery_address: '',
+    notes: TEST_ORDER.notes,
+    items,
+    order_items: items,
+    subtotal: 26500,
+    tax: 0,
+    delivery_fee: TEST_ORDER.delivery_fee,
+    total: TEST_ORDER.total,
+    payments: [],
+    is_paid: true,
+    payment_display: 'Efectivo',
+    printer_name: 'FoodHub Simulador (PDF)',
+    ...(image ? { image, image_width: 576 } : {}),
+  };
+};
+
+const PRINTER = localStorage.getItem('test_printer') || 'FoodHub Simulador (PDF)';
+
+btn('btnTestRaster').onclick = async () => {
+  btn('btnTestRaster').disabled = true;
+  try {
+    const el = document.getElementById('testReceipt');
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' });
+    const image = canvas.toDataURL('image/png');
+    const payload = buildPayload(image);
+    payload.printer_name = PRINTER;
+    out('outPrint', 'Capturado (canvas ' + canvas.width + 'x' + canvas.height + '). Enviando con imagen a /print...\n');
+    const { status, data } = await api('/print', payload);
+    out('outPrint', `Capture width=${canvas.width}px height=${canvas.height}px\n\nHTTP ${status}\nmode → ${modeBadge(data.mode)}\n\n${JSON.stringify(data, null, 2)}`);
+  } catch (e) {
+    out('outPrint', 'ERROR:\n' + String(e));
+  } finally { btn('btnTestRaster').disabled = false; }
+};
+
+btn('btnTestText').onclick = async () => {
+  btn('btnTestText').disabled = true;
+  try {
+    const payload = buildPayload(null);
+    payload.printer_name = PRINTER;
+    const { status, data } = await api('/print', payload);
+    out('outPrint', `HTTP ${status}\nmode → ${modeBadge(data.mode)}\n\n${JSON.stringify(data, null, 2)}`);
+  } catch (e) { out('outPrint', String(e)); } finally { btn('btnTestText').disabled = false; }
+};
+
+// ── 3. Captura ──
+btn('btnCapture').onclick = async () => {
+  const box = document.getElementById('captureResult');
+  box.innerHTML = 'Capturando...';
+  try {
+    const el = document.getElementById('testReceipt');
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' });
+    const img = document.createElement('img');
+    img.src = canvas.toDataURL('image/png');
+    box.innerHTML = '';
+    box.appendChild(img);
+    box.innerHTML += `<p>Canvas: ${canvas.width}px x ${canvas.height}px</p>`;
+    // Upload opcional a /last-ticket no aplica; listo
+  } catch (e) { box.innerHTML = 'ERROR: <pre>' + String(e) + '</pre>'; }
+};
+
+// Cargar estado inicial
+(async () => {
+  try {
+    const { data } = await api('/health');
+    setServer(true, `Servidor OK (${data.platform}) - impresora: ${data.printer || 'no predeterminada'}`);
+    const printers = await api('/printers');
+    out('outServer', 'Servidor conectado.\n\nImpresoras detectadas:\n' + (printers.data.printers || []).join('\n'));
+  } catch (e) {
+    setServer(false, `Servidor NO responde en ${API} - inicia el .exe / python app.py`);
+    out('outServer', String(e));
+  }
+})();
+</script>
+</body>
+</html>

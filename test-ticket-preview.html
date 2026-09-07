@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FoodHub - Test Ticket Preview</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0; padding: 20px;
+      background: #e5e7eb;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      display: flex; flex-direction: column; align-items: center; gap: 30px;
+    }
+
+    h2 { color: #374151; margin: 0; }
+
+    .test-label {
+      font-size: 12px; color: #6b7280; text-transform: uppercase;
+      letter-spacing: 0.1em; margin-bottom: -20px;
+    }
+
+    /* ═══════════════════════════════════════════════
+       TICKET STYLES - Exact copy from print.css
+       ═══════════════════════════════════════════════ */
+
+    .print-receipt-container {
+      width: 80mm;
+      background: white;
+      display: block;
+    }
+
+    .receipt-content {
+      width: 76mm;
+      margin: 0 auto;
+      padding: 5mm 2mm;
+    }
+
+    .receipt-header {
+      text-align: center;
+      margin-bottom: 5mm;
+    }
+
+    .receipt-title-box {
+      background: black;
+      color: white !important;
+      padding: 4mm 2mm;
+      margin-bottom: 2mm;
+      border-radius: 4px;
+    }
+
+    .receipt-title {
+      font-size: 20px;
+      font-weight: 900;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 0;
+    }
+
+    .receipt-order-number {
+      font-size: 40px;
+      font-weight: 900;
+      text-align: center;
+      margin-top: 4mm;
+      margin-bottom: 0;
+      line-height: 1;
+    }
+
+    .receipt-order-type {
+      font-size: 20px;
+      font-weight: 900;
+      text-align: center;
+      text-transform: uppercase;
+      margin-top: 3mm;
+      margin-bottom: 3mm;
+      padding: 2mm 0;
+      border-top: 2px dashed #000;
+      border-bottom: 2px dashed #000;
+    }
+
+    .receipt-order-date {
+      font-size: 12px;
+      color: #333;
+      text-align: center;
+      margin-bottom: 4mm;
+    }
+
+    .receipt-divider {
+      border-bottom: 1.5px dashed black;
+      margin: 3mm 0;
+    }
+
+    .receipt-divider-solid {
+      border-bottom: 2px solid black;
+      margin: 3mm 0;
+    }
+
+    .receipt-section-title {
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 1mm;
+    }
+
+    .receipt-items {
+      width: 100%;
+      text-align: left;
+      border-collapse: collapse;
+    }
+
+    .receipt-items th {
+      font-weight: bold;
+      font-size: 12px;
+      border-bottom: 1.5px solid black;
+      padding-bottom: 2mm;
+    }
+
+    .receipt-items td {
+      padding: 2mm 0 1mm 0;
+      border-bottom: 1px dashed #999;
+    }
+
+    .receipt-items tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .receipt-items .item-name {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .receipt-items tbody tr {
+      page-break-inside: avoid;
+    }
+
+    .receipt-totals {
+      margin-top: 4mm;
+      page-break-inside: avoid;
+    }
+
+    .receipt-total-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 22px;
+      font-weight: 900;
+      margin-top: 2mm;
+      padding-top: 2mm;
+      border-top: 2px solid black;
+    }
+
+    .receipt-unpaid-warning {
+      font-size: 18px;
+      font-weight: 900;
+      text-align: center;
+      text-transform: uppercase;
+      color: #fff;
+      background: #000;
+      margin-top: 4mm;
+      margin-bottom: 4mm;
+      padding: 3mm 0;
+      border: 2px solid #000;
+    }
+
+    /* ═══════════════════════════════════════════════
+       TAILWIND UTILITY SHIMS (from printerService.jsx)
+       ═══════════════════════════════════════════════ */
+
+    .text-center { text-align: center; }
+    .text-left { text-align: left; }
+    .text-right { text-align: right; }
+    .mt-0\.5 { margin-top: 2px; }
+    .mt-1 { margin-top: 4px; }
+    .mt-2 { margin-top: 8px; }
+    .mt-4 { margin-top: 16px; }
+    .mb-1 { margin-bottom: 4px; }
+    .mb-2 { margin-bottom: 8px; }
+    .mb-4 { margin-bottom: 16px; }
+    .ml-1 { margin-left: 4px; }
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .flex-1 { flex: 1; }
+    .justify-between { justify-content: space-between; }
+    .items-center { align-items: center; }
+    .items-start { align-items: flex-start; }
+    .gap-2 { gap: 8px; }
+    .shrink-0 { flex-shrink: 0; }
+    .w-full { width: 100%; }
+    .w-8 { width: 32px; }
+    .align-top { vertical-align: top; }
+    .font-bold { font-weight: 700; }
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+    .text-sm { font-size: 14px; }
+    .text-xs { font-size: 12px; }
+    .text-lg { font-size: 18px; }
+    .text-\[6px\] { font-size: 6px; }
+    .text-\[10px\] { font-size: 10px; }
+    .text-white { color: #fff; }
+    .text-gray-800 { color: #1f2937; }
+    .text-gray-500 { color: #6b7280; }
+    .uppercase { text-transform: uppercase; }
+    .leading-none { line-height: 1; }
+    .leading-tight { line-height: 1.25; }
+    .tracking-tight { letter-spacing: -0.025em; }
+    .tracking-widest { letter-spacing: 0.1em; }
+    .pl-1 { padding-left: 4px; }
+    .pl-2 { padding-left: 8px; }
+    .pt-2 { padding-top: 8px; }
+    .p-1 { padding: 4px; }
+    .p-2 { padding: 8px; }
+    .border { border-width: 1px; border-style: solid; }
+    .border-t { border-top-width: 1px; border-top-style: solid; }
+    .border-l { border-left-width: 1px; border-left-style: solid; }
+    .border-black { border-color: black; }
+    .border-gray-300 { border-color: #d1d5db; }
+    .border-gray-400 { border-color: #9ca3af; }
+    .rounded { border-radius: 4px; }
+    .inline-block { display: inline-block; }
+    .bg-white { background: #fff; }
+    .bg-black { background: #000; }
+    .bg-gray-100 { background: #f3f4f6; }
+  </style>
+</head>
+<body>
+
+  <h2>FoodHub POS - Ticket CSS Test</h2>
+
+  <!-- ─── TEST 1: Delivery con cliente, notas, combos ─── -->
+  <p class="test-label">Test 1 - Delivery con cliente, notas y combos</p>
+  <div class="print-receipt-container">
+    <div class="receipt-content">
+      <div class="receipt-order-type">DELIVERY</div>
+
+      <div class="receipt-header">
+        <div class="receipt-title-box">
+          <h1 class="receipt-title">BURGER HOUSE</h1>
+        </div>
+      </div>
+
+      <div class="receipt-divider-solid"></div>
+
+      <div class="text-center mt-2 mb-4">
+        <div class="receipt-order-number">#1234</div>
+        <div class="receipt-order-date">07/09/2026 - 20:30</div>
+      </div>
+
+      <div class="receipt-divider"></div>
+
+      <div class="mb-4 flex justify-between items-start gap-2">
+        <div class="flex-1">
+          <div class="receipt-section-title">Datos del Cliente</div>
+          <p class="font-bold text-sm uppercase">Juan Perez</p>
+          <p class="mt-1 leading-tight">Av. Libertador 1234, Depto 5B, Santiago</p>
+          <p class="mt-1">Tel: +56912345678</p>
+        </div>
+        <div class="flex flex-col items-center shrink-0">
+          <div class="bg-white p-1 border border-black rounded inline-block">
+            <svg width="50" height="50" viewBox="0 0 50 50"><rect width="50" height="50" fill="#000" rx="4"/><text x="25" y="30" text-anchor="middle" fill="#fff" font-size="10">QR</text></svg>
+          </div>
+          <p class="text-[6px] font-semibold mt-0.5 uppercase tracking-tight text-center leading-none text-gray-500">WhatsApp</p>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="receipt-section-title">Comentarios</div>
+        <p class="font-bold text-sm uppercase leading-tight bg-gray-100 p-2 rounded">Sin cebolla por favor, extra queso</p>
+      </div>
+
+      <div class="mb-4">
+        <table class="w-full text-left receipt-items">
+          <thead>
+            <tr>
+              <th class="w-8">Cant</th>
+              <th>Descripci&oacute;n</th>
+              <th class="text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="align-top font-bold">2x</td>
+              <td class="align-top">
+                <div class="item-name">Burger Doble</div>
+                <div class="text-xs pl-1 text-gray-800">- Doble carne</div>
+                <div class="text-xs pl-1 text-gray-800">- Queso cheddar</div>
+                <div class="text-xs pl-1 text-gray-800">+ Bacon (+$1.500)</div>
+                <div class="text-xs pl-2 mt-0.5 border-l border-gray-400 ml-1">
+                  1x Papas Fritas
+                  <span> (Large)</span>
+                </div>
+                <div class="text-xs pl-2 mt-0.5 border-l border-gray-400 ml-1">
+                  1x Bebida
+                  <span> (Coca-Cola 500ml)</span>
+                </div>
+              </td>
+              <td class="text-right align-top font-medium">$25.000</td>
+            </tr>
+            <tr>
+              <td class="align-top font-bold">1x</td>
+              <td class="align-top">
+                <div class="item-name">Wrap Pollo</div>
+                <div class="text-xs pl-1 text-gray-800">- Sin palta</div>
+              </td>
+              <td class="text-right align-top font-medium">$9.900</td>
+            </tr>
+            <tr>
+              <td class="align-top font-bold">1x</td>
+              <td class="align-top">
+                <div class="item-name">Helado</div>
+              </td>
+              <td class="text-right align-top font-medium">$3.500</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="receipt-totals">
+        <div class="flex justify-between mb-1">
+          <span>Subtotal</span>
+          <span>$36.400</span>
+        </div>
+        <div class="flex justify-between mb-1">
+          <span>Despacho</span>
+          <span>$3.000</span>
+        </div>
+        <div class="receipt-total-row">
+          <span>TOTAL</span>
+          <span>$39.400</span>
+        </div>
+      </div>
+
+      <div class="receipt-divider mt-4 mb-4"></div>
+
+      <div class="text-center flex flex-col items-center">
+        <p class="text-xs font-bold uppercase mb-1">
+          Efectivo
+        </p>
+        <p class="font-bold text-lg mb-1">&iexcl;Gracias por preferirnos!</p>
+        <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-2 border-t border-gray-300 pt-2 inline-block">Powered by FoodHub POS</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── TEST 2: Retiro en local, sin cliente ─── -->
+  <p class="test-label">Test 2 - Retiro en local, sin datos de cliente</p>
+  <div class="print-receipt-container">
+    <div class="receipt-content">
+      <div class="receipt-order-type">RETIRO EN LOCAL</div>
+
+      <div class="receipt-header">
+        <div class="receipt-title-box">
+          <h1 class="receipt-title">BURGER HOUSE</h1>
+        </div>
+      </div>
+
+      <div class="receipt-divider-solid"></div>
+
+      <div class="text-center mt-2 mb-4">
+        <div class="receipt-order-number">#1235</div>
+        <div class="receipt-order-date">07/09/2026 - 20:45</div>
+      </div>
+
+      <div class="receipt-divider"></div>
+
+      <div class="mb-4">
+        <table class="w-full text-left receipt-items">
+          <thead>
+            <tr>
+              <th class="w-8">Cant</th>
+              <th>Descripci&oacute;n</th>
+              <th class="text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="align-top font-bold">3x</td>
+              <td class="align-top">
+                <div class="item-name">Empanadas de Pino</div>
+              </td>
+              <td class="text-right align-top font-medium">$9.000</td>
+            </tr>
+            <tr>
+              <td class="align-top font-bold">1x</td>
+              <td class="align-top">
+                <div class="item-name">Cerveza Artisan</div>
+                <div class="text-xs pl-1 text-gray-800">- IPA 330ml</div>
+              </td>
+              <td class="text-right align-top font-medium">$4.500</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="receipt-totals">
+        <div class="flex justify-between mb-1">
+          <span>Subtotal</span>
+          <span>$13.500</span>
+        </div>
+        <div class="receipt-total-row">
+          <span>TOTAL</span>
+          <span>$13.500</span>
+        </div>
+      </div>
+
+      <div class="receipt-divider mt-4 mb-4"></div>
+
+      <div class="receipt-unpaid-warning">
+        NO PAGADO<br/>COBRAR AL CLIENTE
+      </div>
+
+      <div class="text-center flex flex-col items-center">
+        <p class="font-bold text-lg mb-1">&iexcl;Gracias por preferirnos!</p>
+        <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-2 border-t border-gray-300 pt-2 inline-block">Powered by FoodHub POS</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── TEST 3: Mesa, con logo ─── -->
+  <p class="test-label">Test 3 - Mesa con logo</p>
+  <div class="print-receipt-container">
+    <div class="receipt-content">
+      <div class="receipt-order-type">MESA</div>
+
+      <div class="receipt-header">
+        <img src="https://via.placeholder.com/180x60/000000/FFFFFF?text=LOGO" alt="Logo" class="receipt-logo" />
+      </div>
+
+      <div class="receipt-divider-solid"></div>
+
+      <div class="text-center mt-2 mb-4">
+        <div class="receipt-order-number">#500</div>
+        <div class="receipt-order-date">07/09/2026 - 21:00</div>
+      </div>
+
+      <div class="receipt-divider"></div>
+
+      <div class="mb-4 flex justify-between items-start gap-2">
+        <div class="flex-1">
+          <div class="receipt-section-title">Datos del Cliente</div>
+          <p class="font-bold text-sm uppercase">Mesa 5 - Maria Lopez</p>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <table class="w-full text-left receipt-items">
+          <thead>
+            <tr>
+              <th class="w-8">Cant</th>
+              <th>Descripci&oacute;n</th>
+              <th class="text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="align-top font-bold">1x</td>
+              <td class="align-top">
+                <div class="item-name">Ceviche Mixto</div>
+              </td>
+              <td class="text-right align-top font-medium">$14.900</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="receipt-totals">
+        <div class="receipt-total-row">
+          <span>TOTAL</span>
+          <span>$14.900</span>
+        </div>
+      </div>
+
+      <div class="receipt-divider mt-4 mb-4"></div>
+
+      <div class="text-center flex flex-col items-center">
+        <p class="text-xs font-bold uppercase mb-1">
+          Tarjeta &middot; ID 8742
+        </p>
+        <p class="font-bold text-lg mb-1">&iexcl;Gracias por preferirnos!</p>
+        <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-2 border-t border-gray-300 pt-2 inline-block">Powered by FoodHub POS</p>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,5 +1,6 @@
 import os
 import sys
+import io
 
 # ESC/POS commands for generic thermal printers
 PRINTER_INIT = b'\x1B\x40'
@@ -246,6 +247,347 @@ def format_receipt(order_data, organization_data=None):
     buffer += CUT_PAPER
 
     return bytes(buffer)
+
+
+# ─────────────────────────────────────────────
+# Renderizador de ticket con diseño (Pillow).
+# Genera un PNG del ticket con el MISMO layout de la web
+# (caja negra del título, número grande, tabla de items,
+# totales, aviso NO PAGADO), para que Python pueda imprimir
+# con diseño aunque el navegador no envíe la imagen raster.
+# ─────────────────────────────────────────────
+def _receipt_font(size, bold=False):
+    try:
+        from PIL import ImageFont
+    except Exception:
+        return None
+    candidates = []
+    if sys.platform == 'win32':
+        candidates = [
+            (r'C:\Windows\Fonts\arialbd.ttf' if bold else r'C:\Windows\Fonts\arial.ttf'),
+            r'C:\Windows\Fonts\segoeuib.ttf' if bold else r'C:\Windows\Fonts\segoeui.ttf',
+            r'C:\Windows\Fonts\calibrib.ttf' if bold else r'C:\Windows\Fonts\calibri.ttf',
+        ]
+    else:
+        candidates = [
+            ('/System/Library/Fonts/Supplemental/Arial Bold.ttf' if bold else '/System/Library/Fonts/Supplemental/Arial.ttf'),
+            ('/System/Library/Fonts/Helvetica.ttc' if not bold else '/System/Library/Fonts/Helvetica.ttc'),
+        ]
+    for path in candidates:
+        try:
+            return ImageFont.truetype(path, size)
+        except Exception:
+            continue
+    try:
+        return ImageFont.load_default()
+    except Exception:
+        return None
+
+
+def render_receipt_image(order_data, organization_data=None, width_dots=576):
+    try:
+        from PIL import Image as PILImage
+        from PIL import ImageDraw
+    except Exception as e:
+        logger = sys.modules.get('logging')
+        if logger:
+            logger.warning(f"Pillow no disponible para render: {e}")
+        return None
+
+    org = organization_data or {}
+    order = order_data or {}
+
+    # Escala para calidad: dibujamos a 2x y bajamos a width_dots
+    S = 2
+    W = width_dots * S
+    MARG = 8 * S  # 8px a escala
+    CONTENT = W - 2 * MARG
+    x0 = MARG
+    x1 = W - MARG
+
+    # Título / número / orden
+    type_label = _order_type_label(order)
+    name = str(org.get('name', order.get('store_name', '')) or 'Tienda').upper()
+
+    def font(size, bold=False):
+        return _receipt_font(size, bold)
+
+    def text_w(f, txt):
+        return f.getlength(txt)
+
+    def draw_items(d, f, txt, x, y, color):
+        d.text((x, y), txt, font=f, fill=color)
+
+    # Medir alto total primero de forma manual (layout simple de una sola pasada)
+    # Alturas por sección en pixels @ escala 2x
+    pad_y = 14 * S
+    line_h = 12 * S
+    big_h = 30 * S
+    num_h = 44 * S
+
+    # Dibujamos sobre un alto generoso y al final recortamos al contenido real
+    # (equivalente a @page auto de CSS), evitando cortar contenido.
+    raw_items = order.get('order_items') or order.get('items', [])
+    parents = [i for i in raw_items if not (i.get('parent_item_id'))] if raw_items else raw_items
+    item_lines = 0
+    for it in parents:
+        item_lines += 1
+        item_lines += len(it.get('order_item_variants', []) or [])
+        item_lines += len(it.get('order_item_ingredients', []) or [])
+        for ch in raw_items:
+            if ch.get('parent_item_id') == it.get('id'):
+                item_lines += 1
+    H = 120 * S + item_lines * (line_h + 3 * S) + 120 * S
+
+    img = PILImage.new('RGB', (W, H), 'white')
+    d = ImageDraw.Draw(img)
+    Y = 6 * S
+
+    BLACK = (0, 0, 0)
+    WHITE = (255, 255, 255)
+    GRAY = (107, 114, 128)
+    DARK = (51, 51, 51)
+
+    # ── Tipo de pedido (dashed alrededor) ──
+    if type_label:
+        f = font(16 * S, True)
+        y0 = Y
+        # líneas punteadas
+        dd = 4 * S
+        def dashed_h(y):
+            xx = x0
+            while xx < x1:
+                d.line([(xx, y), (min(xx + 4 * S, x1), y)], fill=BLACK, width=2)
+                xx += dd
+        dashed_h(y0)
+        tw = text_w(f, type_label)
+        d.text(((W - tw) / 2, y0 + 6 * S), type_label, font=f, fill=BLACK)
+        Y = y0 + 10 * S + 16 * S
+        dashed_h(Y)
+        Y += 6 * S
+
+    # ── Caja negra del título ──
+    f = font(13 * S, True)
+    box_h = int(22 * S)
+    d.rectangle([x0, Y, x1, Y + box_h], fill=BLACK)
+    tw = text_w(f, name)
+    if tw > CONTENT - 20 * S:
+        f = font(11 * S, True)
+        tw = text_w(f, name)
+    d.text(((W - tw) / 2, Y + (box_h - 16 * S) / 2), name, font=f, fill=WHITE)
+    Y += box_h + 8 * S
+
+    # ── Divider sólido ──
+    d.line([(x0, Y), (x1, Y)], fill=BLACK, width=3)
+    Y += 6 * S
+
+    # ── Número de pedido grande + fecha ──
+    num = str(order.get('order_number', ''))
+    if num and not num.startswith('#'):
+        num = '#' + num
+    f = font(30 * S, True)
+    tw = text_w(f, num)
+    d.text(((W - tw) / 2, Y), num, font=f, fill=BLACK)
+    Y += int(44 * S)
+    date_line = str(order.get('order_date', ''))
+    if date_line:
+        f = font(10 * S, False)
+        d.text(((W - text_w(f, date_line)) / 2, Y), date_line, font=f, fill=DARK)
+        Y += int(18 * S)
+
+    # ── Divider dashed ──
+    dd = 4 * S
+    def dashed_y(y):
+        xx = x0
+        while xx < x1:
+            d.line([(xx, y), (min(xx + 4 * S, x1), y)], fill=BLACK, width=2)
+            xx += dd
+    dashed_y(Y)
+    Y += 6 * S
+
+    # Funciones de helpers de texto
+    def section(title):
+        nonlocal Y
+        f = font(9 * S, True)
+        d.text((x0, Y), title, font=f, fill=BLACK)
+        Y += int(14 * S)
+
+    def line_pad(txt, size=9 * S, bold=False, color=BLACK, indent=0):
+        nonlocal Y
+        f = font(size, bold)
+        d.text((x0 + indent, Y), txt, font=f, fill=color)
+        Y += int(size * 1.35)
+
+    def wrap(txt, size, fontobj, maxw):
+        words = str(txt).split(' ')
+        lines, cur = [], ''
+        for w_ in words:
+            trial = (cur + ' ' + w_).strip()
+            if text_w(fontobj, trial) <= maxw:
+                cur = trial
+            else:
+                if cur:
+                    lines.append(cur)
+                cur = w_
+        if cur:
+            lines.append(cur)
+        return lines or ['']
+
+    # ── Datos del cliente ──
+    customer = str(order.get('customer_name', '') or '')
+    phone = str(order.get('customer_phone', '') or '')
+    address = str(order.get('delivery_address', '') or '')
+    if customer or phone or address:
+        section('DATOS DEL CLIENTE')
+        if customer:
+            line_pad(customer.upper(), 9 * S, True)
+        if address:
+            for ln in wrap(address, 9 * S, font(9 * S), CONTENT):
+                line_pad(ln, 9 * S, False)
+        if phone:
+            line_pad(f'Tel: {phone}', 9 * S, False)
+        Y += 6 * S
+
+    # ── Comentarios ──
+    notes = str(order.get('notes', '') or '')
+    if notes:
+        section('COMENTARIOS')
+        f = font(9 * S, True)
+        for ln in wrap(notes, 9 * S, f, CONTENT):
+            d.text((x0, Y), ln.upper(), font=f, fill=BLACK)
+            Y += int(14 * S)
+        Y += 6 * S
+
+    # ── Items ──
+    f_head = font(9 * S, True)
+    f_item = font(9 * S, True)
+    col_q = 30 * S
+    col_price = 60 * S
+    col_descr_w = CONTENT - col_q - col_price
+    x_q = x0
+    x_desc = x_q + col_q
+    x_price = x0 + CONTENT - col_price
+
+    d.text((x_q, Y), 'Cant', font=f_head, fill=BLACK)
+    d.text((x_desc, Y), 'Descripción', font=f_head, fill=BLACK)
+    d.text((x_price, Y), 'Total', font=f_head, fill=BLACK)
+    Y += int(16 * S)
+    d.line([(x0, Y), (x1, Y)], fill=BLACK, width=2)
+    Y += int(8 * S)
+
+    for it in parents:
+        qty = float(it.get('quantity', 1) or 1)
+        unit = float(it.get('price') or it.get('unit_price') or 0)
+        total_price = unit * qty
+        qty_str = f"{qty:g}x"
+        name_i = str(it.get('name') or it.get('product_name') or 'Item')
+        total_str = _money(total_price)
+
+        d.text((x_q, Y), qty_str, font=f_item, fill=BLACK)
+        for idx, ln in enumerate(wrap(name_i, 9 * S, f_item, col_descr_w)):
+            d.text((x_desc, Y + idx * int(13 * S)), ln, font=f_item, fill=BLACK)
+        nlines = max(1, len(wrap(name_i, 9 * S, f_item, col_descr_w)))
+        d.text((x_price, Y), total_str, font=f_item, fill=BLACK)
+
+        Y += nlines * int(13 * S)
+
+        for v in it.get('order_item_variants', []) or []:
+            d.text((x_desc + 8 * S, Y), f"- {v.get('variant_option_name', '')}", font=font(8 * S), fill=DARK)
+            Y += int(13 * S)
+        for ing in it.get('order_item_ingredients', []) or []:
+            es = f"+ {ing.get('ingredient_name', '')}"
+            ip = float(ing.get('price', 0) or 0)
+            if ip > 0:
+                es += f" (+{_money(ip)})"
+            d.text((x_desc + 8 * S, Y), es, font=font(8 * S), fill=DARK)
+            Y += int(13 * S)
+        for ch in raw_items:
+            if ch.get('parent_item_id') != it.get('id'):
+                continue
+            cq = float(ch.get('quantity', 0) or 0) / (qty or 1)
+            cq_str = f"{cq:g}x" if float(cq).is_integer() else f"{cq}x"
+            cline = f"    {cq_str} {ch.get('product_name', '')}"
+            for cv in ch.get('order_item_variants', []) or []:
+                cline += f" ({cv.get('variant_option_name', '')})"
+            cu = float(ch.get('unit_price', 0) or 0)
+            if cu > 0:
+                cline += f" (+{_money(cu)})"
+            for ln in wrap(cline, 8 * S, font(8 * S), col_descr_w):
+                d.text((x_desc + 10 * S, Y), ln, font=font(8 * S), fill=DARK)
+                Y += int(12 * S)
+
+    Y += 8 * S
+    dd = 4 * S
+    def dashed_line():
+        nonlocal Y
+        xx = x0
+        while xx < x1:
+            d.line([(xx, Y), (min(xx + 4 * S, x1), Y)], fill=BLACK, width=2)
+            xx += dd
+        Y += 6 * S
+    dashed_line()
+
+    # ── Totales ──
+    total = float(order.get('total', 0) or 0)
+    dev = float(order.get('delivery_fee', 0) or 0)
+    subtotal = max(total - dev, 0)
+    f_tot = font(9 * S, False)
+    def tot_row(label, value):
+        nonlocal Y
+        f = font(9 * S, False)
+        d.text((x0, Y), label, font=f, fill=BLACK)
+        v = _money(value)
+        d.text((x1 - text_w(font(9 * S), v), Y), v, font=f, fill=BLACK)
+        Y += int(14 * S)
+    tot_row('Subtotal', subtotal)
+    if dev > 0:
+        tot_row('Despacho', dev)
+    Y += 4 * S
+    d.line([(x0, Y), (x1, Y)], fill=BLACK, width=3)
+    Y += 8 * S
+    f_total = font(16 * S, True)
+    d.text((x0, Y), 'TOTAL', font=f_total, fill=BLACK)
+    v = _money(total)
+    d.text((x1 - text_w(f_total, v), Y), v, font=f_total, fill=BLACK)
+    Y += int(30 * S)
+
+    # ── Divider + aviso NO PAGADO ──
+    dashed_line()
+
+    is_paid = bool(order.get('is_paid', True))
+    if order.get('payments') and any(p.get('status') == 'pending' for p in order.get('payments', [])):
+        is_paid = False
+    if not is_paid:
+        f = font(11 * S, True)
+        for txt in ('NO PAGADO', 'COBRAR AL CLIENTE'):
+            tw = text_w(f, txt)
+            d.rectangle([x0, Y, x1, Y + int(20 * S)], fill=BLACK)
+            d.text(((W - tw) / 2, Y + int(6 * S)), txt, font=f, fill=WHITE)
+            Y += int(22 * S)
+        Y += 6 * S
+
+    # ── Footer ──
+    pay = str(order.get('payment_display', '') or '')
+    if pay:
+        f = font(9 * S, True)
+        d.text(((W - text_w(f, pay)) / 2, Y), pay, font=f, fill=BLACK)
+        Y += int(16 * S)
+    f = font(12 * S, True)
+    txt = '¡Gracias por preferirnos!'
+    d.text(((W - text_w(f, txt)) / 2, Y), txt, font=f, fill=BLACK)
+    Y += int(20 * S)
+    f = font(7 * S, False)
+    txt = 'P O W E R E D   B Y   F O O D H U B   P O S'
+    d.text(((W - text_w(f, txt)) / 2, Y), txt, font=f, fill=GRAY)
+
+    # Recortar al contenido real (alto automático, como la web)
+    bbox = img.getbbox()
+    if bbox:
+        img = img.crop(bbox)
+
+    # Redimensionar a resolución final
+    img = img.resize((width_dots, max(1, int(img.height / S))), PILImage.LANCZOS)
+    return img
 
 
 if __name__ == '__main__':
