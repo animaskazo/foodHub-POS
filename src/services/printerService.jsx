@@ -105,7 +105,9 @@ const captureReceiptCanvas = async (order, organization, width = RASTER_WIDTH) =
     //    oklch, mm, flex). Sin esto el simulador/PDF sale sin estilos.
     try {
       const { toCanvas } = await import('html-to-image');
-      const canvas = await toCanvas(hold, { pixelRatio, backgroundColor: '#ffffff' });
+      // skipFonts: el ticket usa Arial/Helvetica del sistema; así se evita
+      // descargar e incrustar la fuente variable Geist en cada captura.
+      const canvas = await toCanvas(hold, { pixelRatio, backgroundColor: '#ffffff', skipFonts: true });
       if (!isBlankCanvas(canvas)) return canvas;
       console.warn('html-to-image devolvió lienzo en blanco, reintentando con html2canvas');
     } catch (e) {
@@ -200,11 +202,27 @@ const sendToPythonPrinter = async (printerName, order, organization, imageDataUr
     payload.image_width = RASTER_WIDTH;
   }
 
-  const response = await fetch(`${PYTHON_API}/print`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  // Timeout: si la impresora está apagada/sin papel el spooler puede colgarse
+  // y el fetch quedaría esperando para siempre. OJO: el servidor podría igual
+  // alcanzar a imprimir, así que ante este error revisa el ticket antes de reintentar.
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 60000);
+  let response;
+  try {
+    response = await fetch(`${PYTHON_API}/print`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: ctrl.signal,
+    });
+  } catch (e) {
+    if (e?.name === 'AbortError') {
+      throw new Error('Tiempo de espera agotado (60s): revisa si el ticket salió antes de reintentar');
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
