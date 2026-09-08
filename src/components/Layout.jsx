@@ -28,7 +28,8 @@ import {
   BarChart3,
   ShoppingBag,
   ClipboardList,
-  LayoutGrid
+  LayoutGrid,
+  KeyRound
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import FeedbackBubble from './FeedbackBubble';
@@ -440,6 +441,14 @@ const Layout = () => {
               Cocina
             </NavLink>
           </div>
+          <NavLink
+            to="/update-password"
+            className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+          >
+            <KeyRound className="h-[18px] w-[18px]" />
+            Cambiar mi PIN
+          </NavLink>
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-semibold text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors mt-2"

@@ -13,7 +13,7 @@ import Modal from '../components/ui/Modal';
 import { NAV_ITEMS, getNavItems } from '../components/pos/BottomNav';
 import PrepTimeSelector from '../components/ui/PrepTimeSelector';
 import TableSelectionListModal from '../components/pos/TableSelectionListModal';
-import { X, LogOut, Menu, Home, ChefHat, Clock } from 'lucide-react';
+import { X, LogOut, Menu, Home, ChefHat, Clock, KeyRound } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import NewOrderAlert from '../components/ui/NewOrderAlert';
 import { createOrder, updateOrderCustomer, getOpenOrderForTable, appendItemsToOrder } from '../services/orderService';
@@ -28,10 +28,21 @@ import { printReceipt, printReceiptAsPDF } from '../services/printerService';
 
 
 const PosView = () => {
-  const { organization, role } = useAuth();
+  const { organization, role, isSuperAdmin } = useAuth();
   const taxRate = organization?.default_tax_rate ? Number(organization.default_tax_rate) / 100 : 0.19;
 
   const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      /* noop */
+    }
+    navigate('/login');
+  };
+
+  const handleChangePin = () => navigate('/update-password');
   const [cartItems, setCartItems] = useState([]);
   const [posPrintOrder, setPosPrintOrder] = useState(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -650,7 +661,7 @@ const PosView = () => {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto py-4">
-              {getNavItems(role).map(({ id, label, icon: Icon }) => (
+              {getNavItems(role, organization?.dine_in_enabled === true, isSuperAdmin).map(({ id, label, icon: Icon }) => (
                 <Button
                   key={id}
                   variant="ghost"
@@ -676,10 +687,18 @@ const PosView = () => {
             <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/50">
               <PrepTimeSelector menuVariant />
             </div>
-            <div className="p-5 border-t border-gray-100">
+            <div className="p-5 border-t border-gray-100 space-y-2">
               <Button
                 variant="ghost"
-                onPointerDown={() => window.location.href = '/'}
+                onPointerDown={handleChangePin}
+                className="w-full flex items-center justify-start gap-4 px-6 h-14 text-gray-700 font-bold active:bg-gray-100 hover:bg-gray-100 rounded-xl"
+              >
+                <KeyRound className="h-7 w-7" />
+                <span className="text-lg">Cambiar mi PIN</span>
+              </Button>
+              <Button
+                variant="ghost"
+                onPointerDown={handleLogout}
                 className="w-full flex items-center justify-start gap-4 px-6 h-16 text-red-600 font-bold active:bg-red-50 hover:bg-red-50 rounded-xl"
               >
                 <LogOut className="h-8 w-8" />
@@ -691,7 +710,7 @@ const PosView = () => {
       )}
 
       {/* Bottom Navigation (Hidden on mobile) */}
-      <BottomNav active={activeTab} onChange={setActiveTab} role={role} dineInEnabled={organization?.dine_in_enabled === true} />
+      <BottomNav active={activeTab} onChange={setActiveTab} role={role} dineInEnabled={organization?.dine_in_enabled === true} isAdmin={isSuperAdmin} onLogout={handleLogout} onChangePin={handleChangePin} />
 
       <PaymentModal
         isOpen={isPaymentModalOpen}

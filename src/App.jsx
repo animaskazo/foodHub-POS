@@ -81,23 +81,23 @@ function App() {
             <Layout />
           </ProtectedRoute>
         }>
-          <Route index element={<DashboardView />} />
+          <Route index element={<ProtectedRoute requireAdmin={true}><DashboardView /></ProtectedRoute>} />
           <Route path="superadmin" element={
             <ProtectedRoute requireSuperAdmin={true}>
               <SuperAdminView />
             </ProtectedRoute>
           } />
-          <Route path="categories" element={<CategoriesList />} />
-          <Route path="ingredients" element={<IngredientsManager />} />
-          <Route path="inventory" element={<InventoryManager />} />
-          <Route path="products" element={<CatalogManager />} />
-          <Route path="settings" element={<SettingsView />} />
-          <Route path="delivery" element={<DeliverySettingsView />} />
-          <Route path="shifts-settings" element={<ShiftsSettingsView />} />
-          <Route path="tables" element={<TablesSettingsView />} />
-          <Route path="customers" element={<CustomersView />} />
-          <Route path="conversations" element={<ConversationsView />} />
-          <Route path="reports" element={<ReportsView />} />
+          <Route path="categories" element={<ProtectedRoute requireAdmin={true}><CategoriesList /></ProtectedRoute>} />
+          <Route path="ingredients" element={<ProtectedRoute requireAdmin={true}><IngredientsManager /></ProtectedRoute>} />
+          <Route path="inventory" element={<ProtectedRoute requireAdmin={true}><InventoryManager /></ProtectedRoute>} />
+          <Route path="products" element={<ProtectedRoute requireAdmin={true}><CatalogManager /></ProtectedRoute>} />
+          <Route path="settings" element={<ProtectedRoute requireAdmin={true}><SettingsView /></ProtectedRoute>} />
+          <Route path="delivery" element={<ProtectedRoute requireAdmin={true}><DeliverySettingsView /></ProtectedRoute>} />
+          <Route path="shifts-settings" element={<ProtectedRoute requireAdmin={true}><ShiftsSettingsView /></ProtectedRoute>} />
+          <Route path="tables" element={<ProtectedRoute requireAdmin={true}><TablesSettingsView /></ProtectedRoute>} />
+          <Route path="customers" element={<ProtectedRoute requireAdmin={true}><CustomersView /></ProtectedRoute>} />
+          <Route path="conversations" element={<ProtectedRoute requireAdmin={true}><ConversationsView /></ProtectedRoute>} />
+          <Route path="reports" element={<ProtectedRoute requireAdmin={true}><ReportsView /></ProtectedRoute>} />
         </Route>
         
         {/* Full-screen Modals & Views (Outside Layout) */}

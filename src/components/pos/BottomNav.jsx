@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, ArrowLeftRight, Home, ChefHat, LogOut, LayoutGrid } from 'lucide-react';
+import { ShoppingCart, ArrowLeftRight, Home, ChefHat, LogOut, LayoutGrid, KeyRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useKitchenOrders } from '../../hooks/useKitchenOrders';
 
@@ -11,16 +11,20 @@ export const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: Home },
 ];
 
-export const getNavItems = (role, dineInEnabled = false) => {
+export const getNavItems = (role, dineInEnabled = false, isAdmin = false) => {
   return NAV_ITEMS.filter(item => {
     if (item.id === 'mesas') {
       return dineInEnabled && ['waiter', 'owner', 'admin', 'manager'].includes(role);
+    }
+    // Vendedores: solo POS + cocina.
+    if ((item.id === 'transacciones' || item.id === 'dashboard') && !isAdmin) {
+      return false;
     }
     return true;
   });
 };
 
-const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false }) => {
+const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false, isAdmin = false, onLogout, onChangePin }) => {
   const navigate = useNavigate();
   const { pendingCount, newOrderFlag } = useKitchenOrders();
   const [triggerAnimation, setTriggerAnimation] = useState(false);
@@ -44,18 +48,41 @@ const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false }) =
   return (
     <div className="bg-[#111111] text-white hidden md:flex items-center px-6 h-16 shrink-0 z-50">
       {/* Left: Session info */}
-      <button
-        onPointerDown={() => navigate('/')}
-        className="flex items-center gap-2 text-gray-400 active:text-white select-none mr-8"
-        style={{ WebkitTapHighlightColor: 'transparent' }}
-      >
-        <LogOut className="h-4 w-4" />
-        <span className="text-sm font-medium">Admin</span>
-      </button>
+      {isAdmin ? (
+        <button
+          onPointerDown={() => navigate('/')}
+          className="flex items-center gap-2 text-gray-400 active:text-white select-none mr-8"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="text-sm font-medium">Admin</span>
+        </button>
+      ) : (
+        <div className="flex items-center gap-1 mr-8">
+          <button
+            onPointerDown={() => onChangePin ? onChangePin() : navigate('/update-password')}
+            className="flex items-center gap-2 text-gray-400 active:text-white select-none px-2 py-1"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+            title="Cambiar mi PIN"
+          >
+            <KeyRound className="h-4 w-4" />
+            <span className="text-sm font-medium">Mi PIN</span>
+          </button>
+          <button
+            onPointerDown={() => onLogout ? onLogout() : navigate('/login')}
+            className="flex items-center gap-2 text-gray-400 active:text-white select-none px-2 py-1"
+            style={{ WebkitTapHighlightColor: 'transparent' }}
+            title="Cerrar sesión"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="text-sm font-medium">Salir</span>
+          </button>
+        </div>
+      )}
 
       {/* Center: Nav items */}
       <div className="flex items-center gap-1 flex-1">
-        {getNavItems(role, dineInEnabled).map(({ id, label, icon: Icon }) => (
+        {getNavItems(role, dineInEnabled, isAdmin).map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onPointerDown={() => {

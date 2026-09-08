@@ -102,6 +102,13 @@ export default function SignupView() {
         ]);
       if (staffError) throw staffError;
 
+      // Quien crea un local queda como Super Admin (modelo: supremo + vendedores).
+      try {
+        await supabase.functions.invoke('create-staff', { body: { action: 'claim-store' } });
+      } catch (e) {
+        console.warn('No se pudo otorgar Super Admin automáticamente:', e);
+      }
+
       // Send welcome email
       await sendEmail({
         type: 'welcome',

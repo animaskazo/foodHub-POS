@@ -30,6 +30,95 @@ const SuperAdminView = () => {
   const [isAIImportOpen, setIsAIImportOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
 
+  // ── Gestión de personal (solo Super Admin) ──
+  const [supremos, setSupremos] = useState([]);
+  const [staffBusy, setStaffBusy] = useState(null);
+  const [showCreateSeller, setShowCreateSeller] = useState(false);
+  const [newSellerName, setNewSellerName] = useState('');
+  const [newSellerEmail, setNewSellerEmail] = useState('');
+  const [createdPin, setCreatedPin] = useState(null);
+
+  const ROLE_LABELS = { owner: 'Administrador', admin: 'Administrador', manager: 'Encargado', cashier: 'Vendedor', kitchen: 'Cocina', waiter: 'Mesero' };
+
+  const callStaffFn = async (payload) => {
+    const { data, error } = await supabase.functions.invoke('create-staff', { body: payload });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data;
+  };
+
+  const fetchSupremos = async () => {
+    const { data } = await supabase.from('super_admins').select('user_id');
+    setSupremos((data || []).map(r => r.user_id));
+  };
+
+  const handleCreateSeller = async () => {
+    if (!selectedOrganization || !newSellerEmail.trim()) return;
+    setStaffBusy('create');
+    setCreatedPin(null);
+    try {
+      const data = await callStaffFn({
+        action: 'create',
+        email: newSellerEmail.trim(),
+        full_name: newSellerName.trim(),
+        organization_id: selectedOrganization.id,
+      });
+      setCreatedPin({ email: newSellerEmail.trim(), pin: data.pin });
+      setNewSellerEmail('');
+      setNewSellerName('');
+      await fetchUsers();
+      toast.success('Vendedor creado');
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || 'No se pudo crear el vendedor');
+    } finally {
+      setStaffBusy(null);
+    }
+  };
+
+  const handleResetPin = async (userId) => {
+    setStaffBusy(userId);
+    try {
+      const data = await callStaffFn({ action: 'reset-pin', user_id: userId });
+      setCreatedPin({ email: null, pin: data.pin });
+      toast.success('Nuevo PIN generado');
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || 'No se pudo generar el PIN');
+    } finally {
+      setStaffBusy(null);
+    }
+  };
+
+  const handleToggleActive = async (user) => {
+    setStaffBusy(user.id);
+    try {
+      await callStaffFn({ action: 'set-active', user_id: user.id, is_active: user.isActive === false });
+      await fetchUsers();
+      toast.success(user.isActive === false ? 'Cuenta activada' : 'Cuenta desactivada');
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || 'No se pudo actualizar');
+    } finally {
+      setStaffBusy(null);
+    }
+  };
+
+  const handleToggleSupremo = async (user) => {
+    const isSup = supremos.includes(user.id);
+    setStaffBusy(user.id);
+    try {
+      await callStaffFn({ action: 'set-supremo', user_id: user.id, value: !isSup });
+      await fetchSupremos();
+      toast.success(!isSup ? 'Super Admin otorgado' : 'Super Admin revocado');
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || 'No se pudo actualizar');
+    } finally {
+      setStaffBusy(null);
+    }
+  };
+
   const fetchOrgOrders = async (orgId) => {
     setLoadingOrders(true);
     try {
@@ -97,6 +186,7 @@ const SuperAdminView = () => {
     try {
       await Promise.all([
         fetchUsers(),
+        fetchSupremos(),
         fetchOrganizations(),
         fetchFeedbacks(),
         fetchProducts()
@@ -116,6 +206,7 @@ const SuperAdminView = () => {
         id,
         full_name,
         role,
+        is_active,
         created_at,
         organization_id,
         uber_direct_enabled,
@@ -125,14 +216,16 @@ const SuperAdminView = () => {
       .order('created_at', { ascending: false });
 
     if (fetchError) throw fetchError;
-    
+
     const formattedUsers = data.map(staff => ({
       id: staff.id,
       name: staff.full_name || 'Sin Nombre',
       email: 'N/A (Auth hidden)',
       organizationId: staff.organization_id,
       organizationName: staff.organizations?.name || 'Unknown',
-      role: staff.role === 'owner' ? 'Client Admin' : staff.role,
+      rawRole: staff.role,
+      role: ROLE_LABELS[staff.role] || staff.role,
+      isActive: staff.is_active !== false,
       createdAt: staff.created_at,
       uberDirectEnabled: staff.uber_direct_enabled || false,
       whatsappEnabled: staff.whatsapp_enabled || false,
@@ -563,49 +656,146 @@ const SuperAdminView = () => {
 
               {/* Users */}
               {detailTab === 'users' && (
-                <div className="overflow-x-auto -mx-6 -my-6">
+                <div className="p-4 md:p-6 space-y-4">
+                  {/* Crear vendedor con PIN */}
+                  {!showCreateSeller ? (
+                    <Button onClick={() => { setShowCreateSeller(true); setCreatedPin(null); }} className="bg-black text-white font-bold text-sm hover:bg-gray-800 cursor-pointer">
+                      + Crear vendedor (PIN)
+                    </Button>
+                  ) : (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+                      <p className="font-bold text-sm text-gray-900">Nuevo vendedor para {selectedOrganization.name}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input
+                          value={newSellerName}
+                          onChange={(e) => setNewSellerName(e.target.value)}
+                          placeholder="Nombre (ej: María)"
+                          className="h-11 px-4 bg-white border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-black"
+                        />
+                        <input
+                          value={newSellerEmail}
+                          onChange={(e) => setNewSellerEmail(e.target.value)}
+                          placeholder="Email (ej: maria@local.cl)"
+                          type="email"
+                          className="h-11 px-4 bg-white border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-black"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button onClick={handleCreateSeller} disabled={staffBusy === 'create' || !newSellerEmail.trim()} className="bg-black text-white font-bold text-sm hover:bg-gray-800 disabled:opacity-50 cursor-pointer">
+                          {staffBusy === 'create' ? 'Creando…' : 'Crear y generar PIN'}
+                        </Button>
+                        <Button variant="ghost" onClick={() => setShowCreateSeller(false)} className="text-sm cursor-pointer">
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {createdPin && (
+                    <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+                      <p className="text-sm text-amber-900">
+                        <span className="font-bold">PIN de un solo uso{createdPin.email ? ` para ${createdPin.email}` : ''}:</span>{' '}
+                        <span className="font-black text-2xl tracking-[0.3em]">{createdPin.pin}</span>
+                        <span className="block text-xs mt-1">Entrégalo ahora: no se volverá a mostrar. El vendedor deberá cambiarlo al ingresar.</span>
+                      </p>
+                      <Button
+                        variant="ghost"
+                        onClick={() => { navigator.clipboard.writeText(createdPin.pin); toast.success('PIN copiado'); }}
+                        className="text-sm font-bold text-amber-900 hover:bg-amber-100 cursor-pointer shrink-0"
+                      >
+                        Copiar
+                      </Button>
+                    </div>
+                  )}
+                <div className="overflow-x-auto -mx-4 md:-mx-6">
                   <table className="w-full text-left border-collapse whitespace-nowrap">
                     <thead>
                       <tr className="bg-gray-50 border-b">
                         <th className="px-6 py-4 text-sm font-semibold text-gray-600">Usuario</th>
                         <th className="px-6 py-4 text-sm font-semibold text-gray-600">Rol</th>
+                        <th className="px-6 py-4 text-sm font-semibold text-gray-600">Estado</th>
                         <th className="px-6 py-4 text-sm font-semibold text-gray-600">Registro</th>
+                        <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-right">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {orgUsers.map((user) => (
-                        <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                      {orgUsers.map((user) => {
+                        const isSup = supremos.includes(user.id);
+                        const busy = staffBusy === user.id;
+                        return (
+                        <tr key={user.id} className={`transition-colors ${user.isActive ? 'hover:bg-gray-50' : 'bg-gray-50/60 opacity-70'}`}>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
                               <User className="h-6 w-6 text-gray-900 mx-2" />
                               <div className="font-medium text-gray-900">{user.name}</div>
+                              {isSup && <Shield className="h-4 w-4 text-purple-600" title="Super Admin" />}
                             </div>
                           </td>
                           <td className="px-6 py-4">
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium ${
-                              user.role === 'Client Admin' 
-                                ? 'bg-purple-100 text-purple-700' 
-                                : 'bg-blue-100 text-blue-700'
+                              isSup
+                                ? 'bg-purple-100 text-purple-700'
+                                : user.rawRole === 'cashier'
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : 'bg-blue-100 text-blue-700'
                             }`}>
-                              {user.role === 'Client Admin' && <Shield className="h-3 w-3" />}
-                              {user.role}
+                              {(isSup || user.rawRole === 'owner') && <Shield className="h-3 w-3" />}
+                              {isSup ? 'Super Admin' : user.role}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-500 flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-gray-400" />
-                            {new Date(user.createdAt).toLocaleDateString()}
+                          <td className="px-6 py-4">
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
+                              {user.isActive ? 'Activo' : 'Desactivado'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-500">
+                            <span className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-gray-400" />
+                              {new Date(user.createdAt).toLocaleDateString()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handleResetPin(user.id)}
+                                disabled={busy}
+                                title="Generar nuevo PIN"
+                                className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-50 cursor-pointer"
+                              >
+                                PIN
+                              </button>
+                              <button
+                                onClick={() => handleToggleActive(user)}
+                                disabled={busy}
+                                title={user.isActive ? 'Desactivar cuenta' : 'Activar cuenta'}
+                                className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-50 cursor-pointer"
+                              >
+                                {user.isActive
+                                  ? <ToggleRight className="h-5 w-5 text-emerald-600" />
+                                  : <ToggleLeft className="h-5 w-5 text-gray-400" />}
+                              </button>
+                              <button
+                                onClick={() => handleToggleSupremo(user)}
+                                disabled={busy}
+                                title={isSup ? 'Quitar Super Admin' : 'Otorgar Super Admin'}
+                                className={`p-1.5 rounded-lg disabled:opacity-50 cursor-pointer ${isSup ? 'bg-purple-100 hover:bg-purple-200' : 'hover:bg-gray-100'}`}
+                              >
+                                <Shield className={`h-5 w-5 ${isSup ? 'text-purple-700' : 'text-gray-300'}`} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                       {orgUsers.length === 0 && (
                         <tr>
-                          <td colSpan="3" className="text-center py-12 text-gray-500">
+                          <td colSpan="5" className="text-center py-12 text-gray-500">
                             No hay usuarios en esta organización.
                           </td>
                         </tr>
                       )}
                     </tbody>
                   </table>
+                </div>
                 </div>
               )}
 
