@@ -10,6 +10,7 @@ import AIImportModal from '../components/catalog/AIImportModal';
 import EditProductModal from '../components/catalog/EditProductModal';
 import OrderDetailModal from '../components/pos/OrderDetailModal';
 import KlapReconciliationTab from '../components/superadmin/KlapReconciliationTab';
+import OrgBrandingTab from '../components/superadmin/OrgBrandingTab';
 import { getPaymentMethod } from '../utils/orderUtils';
 
 const SuperAdminView = () => {
@@ -143,7 +144,7 @@ const SuperAdminView = () => {
   const fetchOrganizations = async () => {
     const { data, error: fetchError } = await supabase
       .from('organizations')
-      .select('id, name, slug, created_at, whatsapp_phone_number_id, whatsapp_inbox_url, whatsapp_inbox_enabled, uber_enabled, delivery_mode, uber_client_id, uber_customer_id, dine_in_enabled, orders(total)')
+      .select('id, name, slug, logo_url, cover_url, cover_is_video, description, created_at, whatsapp_phone_number_id, whatsapp_inbox_url, whatsapp_inbox_enabled, uber_enabled, delivery_mode, uber_client_id, uber_customer_id, dine_in_enabled, orders(total)')
       .order('created_at', { ascending: false });
 
     if (fetchError) throw fetchError;
@@ -155,6 +156,10 @@ const SuperAdminView = () => {
         id: org.id,
         name: org.name,
         slug: org.slug,
+        logoUrl: org.logo_url || null,
+        coverUrl: org.cover_url || null,
+        coverIsVideo: org.cover_is_video === true,
+        description: org.description || '',
         createdAt: org.created_at,
         whatsappPhoneNumberId: org.whatsapp_phone_number_id,
         whatsappInboxUrl: org.whatsapp_inbox_url,
@@ -272,9 +277,13 @@ const SuperAdminView = () => {
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10   bg-gray-100 border flex items-center justify-center shrink-0">
-                            <Building2 className="h-5 w-5 text-gray-500" />
-                          </div>
+                          {org.logoUrl ? (
+                            <img src={org.logoUrl} alt={org.name} className="h-10 w-10 rounded-full object-cover bg-gray-100 border shrink-0" />
+                          ) : (
+                            <div className="h-10 w-10   bg-gray-100 border flex items-center justify-center shrink-0">
+                              <Building2 className="h-5 w-5 text-gray-500" />
+                            </div>
+                          )}
                           <span className="font-semibold text-gray-900">{org.name}</span>
                         </div>
                       </td>
@@ -357,6 +366,16 @@ const SuperAdminView = () => {
                 }`}
               >
                 Resumen
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setDetailTab('branding')}
+                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
+                  detailTab === 'branding' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <Store className="h-4 w-4" />
+                Perfil
               </Button>
               <Button
                 variant="ghost"
@@ -559,6 +578,35 @@ const SuperAdminView = () => {
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* Branding */}
+              {detailTab === 'branding' && (
+                <OrgBrandingTab
+                  organizationId={selectedOrganization.id}
+                  onSaved={(updated) => {
+                    setSelectedOrganization((prev) => ({
+                      ...prev,
+                      name: updated.name,
+                      slug: updated.slug,
+                      logoUrl: updated.logo_url || null,
+                      coverUrl: updated.cover_url || null,
+                      coverIsVideo: updated.cover_is_video === true,
+                      description: updated.description || '',
+                    }));
+                    setOrganizations((prev) => prev.map((o) => o.id === selectedOrganization.id
+                      ? {
+                        ...o,
+                        name: updated.name,
+                        slug: updated.slug,
+                        logoUrl: updated.logo_url || null,
+                        coverUrl: updated.cover_url || null,
+                        coverIsVideo: updated.cover_is_video === true,
+                        description: updated.description || '',
+                      }
+                      : o));
+                  }}
+                />
               )}
 
               {/* Users */}
