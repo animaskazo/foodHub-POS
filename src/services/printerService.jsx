@@ -16,23 +16,73 @@ const findMountedReceipt = (order) => {
 };
 
 const buildReceiptNode = async (order, organization) => {
+  // Montaje React real (no static markup): así corren los useEffect y el
+  // <canvas> del QR de WhatsApp queda pintado con sus píxeles.
   const React = (await import('react')).default;
-  const { default: ReactDOMServer } = await import('react-dom/server');
+  const { createRoot } = await import('react-dom/client');
+  const { flushSync } = await import('react-dom');
   const { default: PrintableReceipt } = await import('../components/pos/PrintableReceipt');
-  const html = ReactDOMServer.renderToStaticMarkup(
-    React.createElement(PrintableReceipt, { order, organization })
-  );
   const holder = document.createElement('div');
   holder.className = 'print-receipt-container';
   holder.style.cssText =
     'position:fixed;left:-10000px;top:0;opacity:1;pointer-events:none;z-index:-1;background:#fff;width:80mm;';
-  holder.innerHTML = html;
   document.body.appendChild(holder);
+  const root = createRoot(holder);
+  flushSync(() => {
+    root.render(React.createElement(PrintableReceipt, { order, organization }));
+  });
+  holder.__unmount = () => root.unmount();
+  // Un tick para asegurar paint del canvas del QR antes de capturar.
+  await new Promise((r) => setTimeout(r, 30));
   return holder;
 };
 
+// cloneNode(true) NO copia los píxeles de los <canvas> (el QR sale en blanco).
+// Hay que pintar cada canvas del clon desde su original.
+const copyCanvasBitmaps = (src, dest) => {
+  try {
+    const from = src.querySelectorAll('canvas');
+    const to = dest.querySelectorAll('canvas');
+    const n = Math.min(from.length, to.length);
+    for (let i = 0; i < n; i++) {
+      try {
+        const w = from[i].width, h = from[i].height;
+        if (!w || !h) continue;
+        if (to[i].width !== w) to[i].width = w;
+        if (to[i].height !== h) to[i].height = h;
+        to[i].getContext('2d').drawImage(from[i], 0, 0);
+      } catch {
+        /* canvas individual no copiable: se deja como está */
+      }
+    }
+  } catch {
+    /* sin canvas o DOM no disponible */
+  }
+};
+
+// Detecta un canvas en blanco (todo fondo) para no imprimir/PDF vacío.
+const isBlankCanvas = (canvas) => {
+  try {
+    const w = canvas.width, h = canvas.height;
+    if (!w || !h) return true;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const data = ctx.getImageData(0, 0, w, h).data;
+    const nx = 24, ny = Math.max(1, Math.round((24 * h) / w));
+    for (let ix = 0; ix < nx; ix++) {
+      for (let iy = 0; iy < ny; iy++) {
+        const x = Math.min(w - 1, Math.floor(((ix + 0.5) / nx) * w));
+        const y = Math.min(h - 1, Math.floor(((iy + 0.5) / ny) * h));
+        const o = (y * w + x) * 4;
+        if (data[o] < 250 || data[o + 1] < 250 || data[o + 2] < 250) return false;
+      }
+    }
+    return true;
+  } catch {
+    return false; // canvas "tainted": no se puede leer, asumir con contenido
+  }
+};
+
 const captureReceiptCanvas = async (order, organization, width = RASTER_WIDTH) => {
-  const { default: html2canvas } = await import('html2canvas-pro');
   let src = findMountedReceipt(order);
   let built = null;
   if (!src) {
@@ -41,21 +91,44 @@ const captureReceiptCanvas = async (order, organization, width = RASTER_WIDTH) =
   }
   const hold = src.cloneNode(true);
   hold.id = 'foodhub-print-capture';
+  // OJO: debe quedar DENTRO del viewport. html-to-image rasteriza con el motor
+  // del navegador y lo fuera de pantalla sale en blanco. Se esconde detrás de
+  // todo (z-index muy negativo) en vez de moverlo a -10000px.
   hold.style.cssText =
-    'position:fixed;left:-10000px;top:0;opacity:1;pointer-events:none;z-index:-1;background:#fff;width:80mm;';
+    'position:fixed;left:0;top:0;opacity:1;pointer-events:none;z-index:-10000;background:#fff;width:80mm;margin:0;';
   document.body.appendChild(hold);
+  copyCanvasBitmaps(src, hold);
   try {
     const elW = Math.max(hold.getBoundingClientRect().width || 1, 1);
-    const scale = Math.max(1.5, width / elW);
+    const pixelRatio = Math.max(1.5, width / elW);
+    // 1) Captura fiel con el motor real del navegador (respeta Tailwind v4,
+    //    oklch, mm, flex). Sin esto el simulador/PDF sale sin estilos.
+    try {
+      const { toCanvas } = await import('html-to-image');
+      const canvas = await toCanvas(hold, { pixelRatio, backgroundColor: '#ffffff' });
+      if (!isBlankCanvas(canvas)) return canvas;
+      console.warn('html-to-image devolvió lienzo en blanco, reintentando con html2canvas');
+    } catch (e) {
+      console.warn('html-to-image falló, reintentando con html2canvas:', e?.message || e);
+    }
+    // 2) Fallback: html2canvas-pro
+    const { default: html2canvas } = await import('html2canvas-pro');
     return await html2canvas(hold, {
-      scale,
+      scale: pixelRatio,
       backgroundColor: '#ffffff',
       useCORS: true,
       logging: false,
     });
   } finally {
     hold.remove();
-    if (built) built.remove();
+    if (built) {
+      try {
+        built.__unmount?.();
+      } catch {
+        /* noop */
+      }
+      built.remove();
+    }
   }
 };
 
@@ -138,7 +211,17 @@ const sendToPythonPrinter = async (printerName, order, organization, imageDataUr
     throw new Error(error.error || 'Print failed');
   }
 
-  return response.json();
+  const result = await response.json();
+  if (result?.mode === 'texto') {
+    console.warn(
+      'Ticket impreso en modo TEXTO (sin estilos). ' +
+      'Causa: ' + (result?.detail || 'desconocida') +
+      ' | Pillow: ' + (result?.pillow_available ? 'sí' : 'NO') +
+      ' | Imagen navegador: ' + (result?.had_image ? 'sí' : 'no') +
+      '. Revisa http://localhost:8088/debug (pillow_available debe ser true) y actualiza el programa de impresión.'
+    );
+  }
+  return result;
 };
 
 export const initPrinterService = async () => {

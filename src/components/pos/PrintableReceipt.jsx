@@ -1,5 +1,5 @@
 import React from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { fmt, getPaymentMethod } from '../../utils/orderUtils';
 
 const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
@@ -66,7 +66,7 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
             {waLink && (
               <div className="flex flex-col items-center shrink-0">
                 <div className="bg-white p-1 border border-black rounded inline-block">
-                  <QRCodeSVG value={waLink} size={50} level="M" />
+                  <QRCodeCanvas value={waLink} size={50} level="M" />
                 </div>
                 <p className="text-[6px] font-semibold mt-0.5 uppercase tracking-tight text-center leading-none text-gray-500">WhatsApp</p>
               </div>

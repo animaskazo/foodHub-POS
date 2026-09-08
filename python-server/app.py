@@ -380,13 +380,20 @@ def _png_base64_to_raster(png_data_url, width_dots=576):
 
 
 LAST_PRINT_MODE = 'texto'
+LAST_PRINT_DETAIL = ''
 
 
 def print_receipt(printer_name, order_data, organization_data, image_data_url=None, image_width=576):
-    global LAST_PRINT_MODE
+    global LAST_PRINT_MODE, LAST_PRINT_DETAIL
+    LAST_PRINT_DETAIL = ''
     if printer_name and printer_name.startswith(SIMULATOR_NAME):
         LAST_PRINT_MODE = 'simulador'
         return print_simulated(printer_name, order_data, organization_data)
+    had_image = bool(image_data_url)
+    if not had_image:
+        LAST_PRINT_DETAIL = 'sin imagen del navegador; '
+    if PILImage is None:
+        LAST_PRINT_DETAIL += 'Pillow no disponible; '
     if image_data_url and PILImage:
         try:
             raster = _png_base64_to_raster(image_data_url, int(image_width or 576))
@@ -395,8 +402,10 @@ def print_receipt(printer_name, order_data, organization_data, image_data_url=No
                 logger.info(f"Raster (HTML -> bit-image) impreso en {printer_name}")
                 LAST_PRINT_MODE = 'raster'
                 return True
+            LAST_PRINT_DETAIL += 'raster HTML devolvió fallo; '
             logger.warning("Raster devolvió fallo, usando formato texto")
         except Exception as e:
+            LAST_PRINT_DETAIL += f'raster HTML falló ({str(e)[:120]}); '
             logger.warning(f"Raster falló ({str(e)[:120]}) — usando formato texto")
     # ── Fallback con diseño: renderizamos el ticket en Pillow (mismo layout de la web) ──
     if PILImage:
@@ -413,8 +422,12 @@ def print_receipt(printer_name, order_data, organization_data, image_data_url=No
                     logger.info(f"Raster (Pillow -> bit-image) impreso en {printer_name}")
                     LAST_PRINT_MODE = 'raster'
                     return True
+                LAST_PRINT_DETAIL += 'raster Pillow devolvió fallo; '
                 logger.warning("Raster Pillow devolvió fallo, usando formato texto")
+            else:
+                LAST_PRINT_DETAIL += 'render Pillow devolvió None; '
         except Exception as e:
+            LAST_PRINT_DETAIL += f'render Pillow falló ({str(e)[:120]}); '
             logger.warning(f"Raster Pillow falló ({str(e)[:120]}) — usando formato texto")
     escpos_data = format_receipt(order_data, organization_data)
     if IS_MAC:
@@ -433,7 +446,7 @@ _last_simulated_pdf = None
 
 def _money(value):
     try:
-        return f"${float(value or 0):,.0f}"
+        return f"${float(value or 0):,.0f}".replace(',', '.')
     except (TypeError, ValueError):
         return '$0'
 
@@ -676,7 +689,10 @@ def print_receipt_api():
             return jsonify({'error': 'Print failed'}), 500
 
         simulated = bool(printer_name and printer_name.startswith(SIMULATOR_NAME))
-        response = {'success': True, 'printer': printer_name, 'mode': LAST_PRINT_MODE}
+        response = {'success': True, 'printer': printer_name, 'mode': LAST_PRINT_MODE,
+                    'detail': LAST_PRINT_DETAIL,
+                    'pillow_available': PILImage is not None,
+                    'had_image': bool(data.get('image'))}
         if simulated and _last_simulated_pdf:
             response['simulated'] = True
             response['pdf_path'] = _last_simulated_pdf
