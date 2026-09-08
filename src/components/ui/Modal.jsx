@@ -13,6 +13,7 @@ const Modal = ({
   customAnimation = null, 
   fullScreenOnMobile = false,
   alignEnd = false,
+  heightRatio = 0.9,
   className = '' 
 }) => {
   const [visible, setVisible] = useState(false);
@@ -51,9 +52,9 @@ const Modal = ({
       onClick={onClose}
     >
       <div 
-        className={`relative bg-white shadow-2xl w-full ${maxWidth} overflow-hidden flex flex-col transition-all duration-300 ${fullScreenOnMobile ? `${alignEnd ? 'rounded-none md:rounded-3xl h-[100dvh] md:h-[90dvh]' : 'rounded-none md:rounded-3xl h-[100dvh] md:h-auto'} !max-h-[100dvh]` : (alignEnd ? 'rounded-t-3xl rounded-b-none sm:rounded-3xl' : 'rounded-3xl')} ${customAnimation ? '' : (visible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4')} ${className}`}
+        className={`relative bg-white shadow-2xl w-full ${maxWidth} overflow-hidden flex flex-col transition-all duration-300 ${fullScreenOnMobile ? `${alignEnd ? 'rounded-none md:rounded-3xl h-[100dvh] md:h-[90dvh]' : 'rounded-none md:rounded-3xl h-[100dvh] md:h-auto'}${windowHeight < 768 ? ' !max-h-[100dvh]' : ''}` : (alignEnd ? 'rounded-t-3xl rounded-b-none sm:rounded-3xl' : 'rounded-3xl')} ${customAnimation ? '' : (visible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4')} ${className}`}
         style={(!fullScreenOnMobile || windowHeight >= 768) ? {
-          maxHeight: `${windowHeight * 0.9}px`,
+          maxHeight: `${windowHeight * heightRatio}px`,
           ...(customAnimation ? { animation: customAnimation } : {})
         } : {
           ...(customAnimation ? { animation: customAnimation } : {})

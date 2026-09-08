@@ -28,6 +28,7 @@ const OrderDetailModal = ({
       onClose={onClose}
       maxWidth="max-w-5xl"
       fullScreenOnMobile={true}
+      heightRatio={0.8}
       title={
         <div className="flex items-center justify-between w-full">
           <h2 className="text-3xl font-black text-gray-900">{order.order_number}</h2>
