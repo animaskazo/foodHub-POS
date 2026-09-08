@@ -66,7 +66,8 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
             {waLink && (
               <div className="flex flex-col items-center shrink-0">
                 <div className="bg-white p-1 border border-black rounded inline-block">
-                  <QRCodeCanvas value={waLink} size={50} level="M" />
+                  {/* size 240px interno, 64px visual: nítido en capturas y térmica */}
+                  <QRCodeCanvas value={waLink} size={240} level="M" includeMargin style={{ width: 64, height: 64 }} />
                 </div>
                 <p className="text-[6px] font-semibold mt-0.5 uppercase tracking-tight text-center leading-none text-gray-500">WhatsApp</p>
               </div>
