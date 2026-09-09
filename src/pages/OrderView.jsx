@@ -7,7 +7,7 @@ import CheckoutForm from '../components/public/CheckoutForm';
 import OrderConfirmation from '../components/public/OrderConfirmation';
 import OrderError from '../components/public/OrderError';
 import ProductDetailView from '../components/public/ProductDetailView';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Info } from 'lucide-react';
 import { getOrganizationByName, getPublicCatalog, createPublicOrder } from '../services/publicOrderService';
 import { getAccessToken, createQuote, createDeliveryWithRetry } from '../services/uberDirectService';
 import { geocodeAddress } from '../utils/geo';
@@ -308,6 +308,10 @@ const OrderView = () => {
 
   // ── Cart operations ───────────────────────────────────────
   const handleAddItem = useCallback((product) => {
+    if (org?.force_closed === true) {
+      alert('Tienda cerrada temporalmente. Puedes ver el menú, pero no hacer pedidos en este momento.');
+      return;
+    }
     setCartItems(prev => {
       // Check if same product + same variant + same extras + same combo options
       const variantId = product.variant?.id || null;
@@ -338,7 +342,7 @@ const OrderView = () => {
         selectedOptions: product.selectedOptions || null,
       }];
     });
-  }, []);
+  }, [org?.force_closed]);
 
   const handleUpdateQty = useCallback((cartItemId, newQty) => {
     if (newQty <= 0) {
@@ -527,6 +531,12 @@ const OrderView = () => {
   // ── Checkout ──────────────────────────────────────────────
   const handleCheckout = async (customerForm) => {
     setIsSubmitting(true);
+    // Cierre temporal total: ni ahora ni programado
+    if (org?.force_closed === true) {
+      alert('Esta tienda se encuentra cerrada temporalmente. No es posible recibir pedidos en este momento.');
+      setIsSubmitting(false);
+      return;
+    };
     const scheduledAt = customerForm.scheduleType === 'scheduled' && customerForm.scheduledAt ? customerForm.scheduledAt : null;
     if (!isOpen && !scheduledAt) {
       alert('El local se encuentra cerrado en este momento. Puedes agendar tu pedido para un horario disponible.');
@@ -754,6 +764,10 @@ const OrderView = () => {
     return acc + unitPrice * item.quantity;
   }, 0);
 
+  // Cierre temporal total de la tienda: bloquea navegación y pedido,
+  // pero siempre permite ver la confirmación de un pago en curso (retorno con orderId).
+  const storeForceClosed = org?.force_closed === true && !searchParams.get('orderId');
+
   return (
     <div className="min-h-[100dvh] bg-gray-200/40 flex flex-col justify-start items-center">
       <Helmet>
@@ -778,10 +792,20 @@ const OrderView = () => {
       <div className="w-full max-w-3xl mx-auto flex-1 flex flex-col bg-white md:shadow-[0_0_60px_rgba(0,0,0,0.05)] md:min-h-[100dvh] relative">
 
       <div className="flex-1 flex flex-col min-h-0">
-        {!isOpen && (
-          <div className="sticky top-0 z-40 bg-red-500 text-white text-[13px] font-bold text-center py-1.5 px-4 w-full tracking-wide">
-            En este momento el local se encuentra cerrado
+        {storeForceClosed ? (
+          <div className="sticky top-0 z-40 bg-blue-600 text-white w-full h-8 flex items-center justify-center gap-1.5 px-4">
+            <Info className="h-3.5 w-3.5 shrink-0" />
+            <p className="text-[12px] tracking-wide whitespace-nowrap overflow-hidden text-ellipsis">
+              <span className="font-bold">Tienda cerrada temporalmente</span>
+              <span className="font-normal"> · {org?.closed_message || 'No hay horarios disponibles ni pedidos para ahora.'}</span>
+            </p>
           </div>
+        ) : (
+          !isOpen && (
+            <div className="sticky top-0 z-40 bg-red-500 text-white text-[13px] font-bold text-center py-1.5 px-4 w-full tracking-wide">
+              En este momento el local se encuentra cerrado
+            </div>
+          )
         )}
         {(step === 2 || step === 3) && (
           <div className="w-full max-w-3xl mx-auto px-4 pt-6 pb-0 flex items-center gap-3">
@@ -806,6 +830,7 @@ const OrderView = () => {
             onRemoveItem={handleRemoveItem}
             onViewCart={() => setStep(2)}
             isOpen={isOpen}
+            orderingBlocked={storeForceClosed}
           />
         )}
         {step === 2 && (
@@ -814,8 +839,15 @@ const OrderView = () => {
             onUpdateQty={handleUpdateQty}
             onRemove={handleRemoveItem}
             onEditItem={(item) => setEditingCartItem(item)}
-            onCheckout={() => setStep(3)}
+            onCheckout={() => {
+              if (storeForceClosed) {
+                alert('Tienda cerrada temporalmente. No es posible hacer pedidos en este momento.');
+                return;
+              }
+              setStep(3);
+            }}
             isOpen={isOpen}
+            orderingBlocked={storeForceClosed}
           />
         )}
         {step === 3 && (

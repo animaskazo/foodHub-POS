@@ -144,7 +144,7 @@ const SuperAdminView = () => {
   const fetchOrganizations = async () => {
     const { data, error: fetchError } = await supabase
       .from('organizations')
-      .select('id, name, slug, logo_url, cover_url, cover_is_video, description, created_at, whatsapp_phone_number_id, whatsapp_inbox_url, whatsapp_inbox_enabled, uber_enabled, delivery_mode, uber_client_id, uber_customer_id, dine_in_enabled, orders(total)')
+      .select('id, name, slug, logo_url, cover_url, cover_is_video, description, force_closed, closed_message, created_at, whatsapp_phone_number_id, whatsapp_inbox_url, whatsapp_inbox_enabled, uber_enabled, delivery_mode, uber_client_id, uber_customer_id, dine_in_enabled, orders(total)')
       .order('created_at', { ascending: false });
 
     if (fetchError) throw fetchError;
@@ -160,6 +160,8 @@ const SuperAdminView = () => {
         coverUrl: org.cover_url || null,
         coverIsVideo: org.cover_is_video === true,
         description: org.description || '',
+        forceClosed: org.force_closed === true,
+        closedMessage: org.closed_message || '',
         createdAt: org.created_at,
         whatsappPhoneNumberId: org.whatsapp_phone_number_id,
         whatsappInboxUrl: org.whatsapp_inbox_url,
@@ -285,6 +287,9 @@ const SuperAdminView = () => {
                             </div>
                           )}
                           <span className="font-semibold text-gray-900">{org.name}</span>
+                          {org.forceClosed && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-200">Cerrada</span>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700">
@@ -593,6 +598,8 @@ const SuperAdminView = () => {
                       coverUrl: updated.cover_url || null,
                       coverIsVideo: updated.cover_is_video === true,
                       description: updated.description || '',
+                      forceClosed: updated.force_closed === true,
+                      closedMessage: updated.closed_message || '',
                     }));
                     setOrganizations((prev) => prev.map((o) => o.id === selectedOrganization.id
                       ? {
@@ -603,6 +610,8 @@ const SuperAdminView = () => {
                         coverUrl: updated.cover_url || null,
                         coverIsVideo: updated.cover_is_video === true,
                         description: updated.description || '',
+                        forceClosed: updated.force_closed === true,
+                        closedMessage: updated.closed_message || '',
                       }
                       : o));
                   }}

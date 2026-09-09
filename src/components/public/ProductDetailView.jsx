@@ -3,7 +3,7 @@ import { ArrowLeft, Plus, Minus } from 'lucide-react';
 import IngredientIcon from '../ui/IngredientIcon';
 import { buildSelection, selectionFromCartOption, defaultSelectionsForSlot } from '../../utils/bundleSelections';
 
-const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, initialExtras = [], initialQuantity = 1, isOutOfStock = false }) => {
+const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, initialExtras = [], initialQuantity = 1, isOutOfStock = false, orderingBlocked = false }) => {
   const isBundle = product.type === 'bundle';
   const hasVariants = product.variants?.length > 0;
   const extraIngredients = product.ingredients?.filter(i => i.isExtra) || [];
@@ -635,15 +635,15 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
             
             <button
               onClick={handleConfirm}
-              disabled={isOutOfStock || !slotsComplete || (!isBundle && hasVariants && !selectedVariant)}
+              disabled={isOutOfStock || orderingBlocked || !slotsComplete || (!isBundle && hasVariants && !selectedVariant)}
               className={`flex-1 h-14 font-bold rounded-full flex items-center justify-center px-6 transition-colors active:scale-[0.98] disabled:active:scale-100 ${
-                isOutOfStock || !slotsComplete || (!isBundle && hasVariants && !selectedVariant)
+                isOutOfStock || orderingBlocked || !slotsComplete || (!isBundle && hasVariants && !selectedVariant)
                   ? 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none'
                   : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/20'
               }`}
             >
-              <span className="font-bold">{isOutOfStock ? 'Sin stock' : 'Agregar'}</span>
-              {!isOutOfStock && (
+              <span className="font-bold">{isOutOfStock ? 'Sin stock' : orderingBlocked ? 'Tienda cerrada' : 'Agregar'}</span>
+              {!isOutOfStock && !orderingBlocked && (
                 <>
                   <span className="mx-1.5 opacity-40">·</span>
                   <span className="text-lg">${(finalGross * quantity).toLocaleString('es-CL')}</span>

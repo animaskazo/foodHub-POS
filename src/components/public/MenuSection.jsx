@@ -8,7 +8,7 @@ import { defaultSelectionsForSlot, bundleHasChoices } from '../../utils/bundleSe
 const fmt = (n) => Math.round(n).toLocaleString('es-CL');
 
 // ── Product Card ──────────────────────────────────────────────
-const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpdateQty, onRemoveItem, isOutOfStock }) => {
+const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpdateQty, onRemoveItem, isOutOfStock, orderingBlocked = false }) => {
   const [tapped, setTapped] = useState(false);
   const hasVariants = product.variants?.length > 0;
   const hasExtras = product.ingredients?.some(i => i.isExtra);
@@ -64,7 +64,11 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
 
         {/* Floating Add/Counter inside image */}
         <div className="absolute bottom-2.5 right-2.5 z-10" onClick={(e) => e.stopPropagation()}>
-          {quantity > 0 ? (
+          {orderingBlocked ? (
+            <span className="px-3 h-8 bg-gray-900/80 text-white rounded-full flex items-center font-extrabold text-xs">
+              Cerrado
+            </span>
+          ) : quantity > 0 ? (
             isConfigurable ? (
               <button
                 onClick={handleTap}
@@ -152,7 +156,7 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
 
 
 // ── Menu Section (Step 1) ─────────────────────────────────────
-const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdateQty, onRemoveItem, onViewCart, isOpen }) => {
+const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdateQty, onRemoveItem, onViewCart, isOpen, orderingBlocked = false }) => {
   const [activeCategory, setActiveCategory] = useState('all');
   const [isHoursModalOpen, setIsHoursModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -299,6 +303,8 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
   const categoriesToRender = categories;
   const renderFallback = groupedProducts['other']?.length > 0;
   const { t, stuck } = scrollProgress;
+  // Con cierre temporal la barra roja ocupa h-8: el offset sticky es top-8 igual que local cerrado
+  const effectiveOpen = isOpen && !orderingBlocked;
 
   return (
     <div className="flex flex-col min-h-0">
@@ -401,7 +407,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
 
       <div
         ref={stickyBarRef}
-        className={`sticky z-20 bg-white transition-all duration-300 ease-out ${stuck ? 'shadow-sm' : ''} ${isOpen ? 'top-0' : 'top-8'}`}
+        className={`sticky z-20 bg-white transition-all duration-300 ease-out ${stuck ? 'shadow-sm' : ''} ${effectiveOpen ? 'top-0' : 'top-8'}`}
       >
         {/* Store name */}
         <div
@@ -465,7 +471,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
 
                 return (
                   <div key={cat.id} id={`category-${cat.id}`} className="space-y-4">
-                    <h3 className="font-extrabold text-xl text-gray-900 pb-2 mb-1 px-1 sticky top-0 bg-white/90 backdrop-blur-sm z-10 pt-2">
+                    <h3 className={`font-extrabold text-xl text-gray-900 pb-2 mb-1 px-1 sticky bg-white/90 backdrop-blur-sm z-10 pt-2 ${effectiveOpen ? 'top-0' : 'top-8'}`}>
                       {cat.name}
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -480,6 +486,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                           onUpdateQty={onUpdateQty}
                           onRemoveItem={onRemoveItem}
                           isOutOfStock={outOfStockIds.includes(p.id)}
+                          orderingBlocked={orderingBlocked}
                         />
                       ))}
                     </div>
@@ -489,7 +496,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
 
               {renderFallback && (
                 <div id="category-other" className="space-y-4">
-                  <h3 className="font-extrabold text-xl text-gray-900 pb-2 mb-1 px-1 sticky top-0 bg-white/90 backdrop-blur-sm z-10 pt-2">
+                  <h3 className={`font-extrabold text-xl text-gray-900 pb-2 mb-1 px-1 sticky bg-white/90 backdrop-blur-sm z-10 pt-2 ${effectiveOpen ? 'top-0' : 'top-8'}`}>
                     Otros
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -499,15 +506,16 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                         product={p}
                         quantity={cartInfoMap[p.id]?.quantity || 0}
                         cartItemId={cartInfoMap[p.id]?.cartItemId || null}
-                        onAdd={handleProductTap}
-                        onAddDirect={() => handleAddDirect(p)}
-                        onUpdateQty={onUpdateQty}
-                        onRemoveItem={onRemoveItem}
-                        isOutOfStock={outOfStockIds.includes(p.id)}
-                      />
-                    ))}
+                          onAdd={handleProductTap}
+                          onAddDirect={() => handleAddDirect(p)}
+                          onUpdateQty={onUpdateQty}
+                          onRemoveItem={onRemoveItem}
+                          isOutOfStock={outOfStockIds.includes(p.id)}
+                          orderingBlocked={orderingBlocked}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
               )}
             </div>
           )}
@@ -539,6 +547,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
         <ProductDetailView
           product={selectedProduct}
           isOutOfStock={outOfStockIds.includes(selectedProduct.id)}
+          orderingBlocked={orderingBlocked}
           onAdd={(productToAdd) => {
             onAddItem({
               ...productToAdd,

@@ -4,7 +4,7 @@ import IngredientIcon from '../ui/IngredientIcon';
 
 const fmt = (n) => n.toLocaleString('es-CL');
 
-const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout, isOpen }) => {
+const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout, isOpen, orderingBlocked = false }) => {
   const [previewImage, setPreviewImage] = useState(null);
   const total = cartItems.reduce((acc, item) => {
     let unitPrice = Math.round(item.price);
@@ -155,11 +155,19 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
         <div className="max-w-3xl mx-auto flex flex-col items-center">
           <button
             onClick={onCheckout}
-            className="w-full h-16 bg-black text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl hover:bg-gray-900 transition-colors active:scale-[0.98] px-8 text-[17px] tracking-wide"
+            disabled={orderingBlocked}
+            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-colors active:scale-[0.98] px-8 text-[17px] tracking-wide ${orderingBlocked ? 'bg-gray-400 cursor-not-allowed' : 'bg-black hover:bg-gray-900'}`}
           >
-            Continuar con mis datos
-            <ChevronRight className="h-5 w-5" />
+            {orderingBlocked ? 'Tienda cerrada temporalmente' : (
+              <>
+                Continuar con mis datos
+                <ChevronRight className="h-5 w-5" />
+              </>
+            )}
           </button>
+          {orderingBlocked && (
+            <p className="text-xs text-red-600 font-semibold mt-2">No hay horarios disponibles ni pedidos para ahora.</p>
+          )}
         </div>
       </div>
 

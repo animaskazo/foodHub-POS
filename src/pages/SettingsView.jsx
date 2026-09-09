@@ -69,6 +69,8 @@ const SettingsView = () => {
   const [hoursTab, setHoursTab] = useState('comercial'); // 'comercial' | 'retiro'
   const [instantEnabled, setInstantEnabled] = useState(true);
   const [schedulingEnabled, setSchedulingEnabled] = useState(false);
+  const [forceClosed, setForceClosed] = useState(false);
+  const [closedMessage, setClosedMessage] = useState('');
   const [prepTime, setPrepTime] = useState(0);
   const [staff, setStaff] = useState([]);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -240,6 +242,8 @@ const SettingsView = () => {
         }
         setInstantEnabled(orgData.instant_enabled !== false);
         setSchedulingEnabled(orgData.scheduling_enabled === true);
+        setForceClosed(orgData.force_closed === true);
+        setClosedMessage(orgData.closed_message || '');
         setPrepTime(orgData.prep_time != null ? orgData.prep_time : 0);
         setKlapApiKey(orgData.klap_api_key || '');
         setStaff(staffData);
@@ -369,6 +373,23 @@ const SettingsView = () => {
     } catch (error) {
       console.error(error);
       alert('Error al guardar horarios. Por favor, asegúrate de haber ejecutado la migración SQL 015 en el SQL Editor de tu consola Supabase.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveStoreClosure = async () => {
+    if (!orgId) return;
+    setSaving(true);
+    try {
+      await updateOrganizationDetails(orgId, {
+        force_closed: forceClosed,
+        closed_message: closedMessage.trim() || null,
+      });
+      alert(forceClosed ? 'Tienda cerrada temporalmente' : 'Tienda abierta nuevamente');
+    } catch (error) {
+      console.error(error);
+      alert('Error al guardar. Por favor, asegúrate de haber ejecutado la migración SQL 053 en el SQL Editor de tu consola Supabase.');
     } finally {
       setSaving(false);
     }
@@ -847,6 +868,48 @@ const SettingsView = () => {
 
             {activeTab === 'hours' && (
               <div className="p-6 md:p-8 space-y-6">
+                {/* Cierre temporal total de la tienda */}
+                <div className={`border rounded-2xl p-5 space-y-4 ${forceClosed ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className={`h-11 w-11 rounded-2xl text-white flex items-center justify-center shrink-0 ${forceClosed ? 'bg-red-600' : 'bg-black'}`}>
+                        <Store className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm text-gray-800">Cerrar tienda temporalmente</p>
+                        <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
+                          Los clientes podrán ver el menú, pero no podrán hacer pedidos (ni ahora ni programado). Siempre verán que no hay horarios disponibles ni pedidos para ahora.
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={forceClosed}
+                      onCheckedChange={setForceClosed}
+                    />
+                  </div>
+                  {forceClosed && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Mensaje para el cliente (opcional)</label>
+                      <input
+                        type="text"
+                        value={closedMessage}
+                        onChange={(e) => setClosedMessage(e.target.value)}
+                        className="w-full h-12 px-4 bg-white border border-gray-300 rounded-xl outline-none text-[15px] focus:ring-2 focus:ring-black"
+                        placeholder="Ej: Volvemos el miércoles, ¡gracias!"
+                      />
+                    </div>
+                  )}
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={handleSaveStoreClosure}
+                      disabled={saving}
+                      className={`flex items-center gap-2 px-6 py-2.5 text-white font-bold transition-colors disabled:opacity-50 cursor-pointer ${forceClosed ? 'bg-red-600 hover:bg-red-700' : 'bg-black hover:bg-gray-800'}`}
+                    >
+                      {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+                      {forceClosed ? 'Cerrar Tienda' : 'Guardar'}
+                    </Button>
+                  </div>
+                </div>
                 {/* Tab switcher */}
                 <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 rounded-2xl">
                   <button

@@ -18,6 +18,8 @@ const OrgBrandingTab = ({ organizationId, onSaved }) => {
     logo_url: '',
     cover_url: '',
     cover_is_video: false,
+    force_closed: false,
+    closed_message: '',
   });
 
   useEffect(() => {
@@ -33,6 +35,8 @@ const OrgBrandingTab = ({ organizationId, onSaved }) => {
           logo_url: data.logo_url || '',
           cover_url: data.cover_url || '',
           cover_is_video: data.cover_is_video === true,
+          force_closed: data.force_closed === true,
+          closed_message: data.closed_message || '',
         });
       } catch (err) {
         console.error('Error loading org branding:', err);
@@ -91,6 +95,8 @@ const OrgBrandingTab = ({ organizationId, onSaved }) => {
         logo_url: form.logo_url || null,
         cover_url: form.cover_url || null,
         cover_is_video: form.cover_is_video || false,
+        force_closed: form.force_closed === true,
+        closed_message: form.closed_message.trim() || null,
       });
       setForm((prev) => ({ ...prev, slug: formattedSlug }));
       toast.success('Información del negocio actualizada', { id: toastId });
@@ -236,6 +242,35 @@ const OrgBrandingTab = ({ organizationId, onSaved }) => {
           className="w-full h-24 px-4 py-3 bg-white border border-gray-300 rounded-xl outline-none text-[15px] resize-none focus:ring-2 focus:ring-black"
           placeholder="Cuéntale a los clientes de qué se trata el negocio..."
         />
+      </div>
+
+      <div className={`border rounded-2xl p-5 space-y-4 ${form.force_closed ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
+        <label className="flex items-center justify-between gap-4 cursor-pointer select-none">
+          <span>
+            <span className="block text-sm font-bold text-gray-800">Cerrar tienda temporalmente</span>
+            <span className="block text-xs text-gray-500 mt-0.5 max-w-sm">
+              El cliente podrá ver el menú, pero no hacer pedidos (ahora o programados). Siempre verá que no hay horarios disponibles ni pedidos para ahora.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            checked={form.force_closed}
+            onChange={(e) => setForm({ ...form, force_closed: e.target.checked })}
+            className="h-5 w-5 accent-black shrink-0 cursor-pointer"
+          />
+        </label>
+        {form.force_closed && (
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Mensaje para el cliente (opcional)</label>
+            <input
+              type="text"
+              value={form.closed_message}
+              onChange={(e) => setForm({ ...form, closed_message: e.target.value })}
+              className="w-full h-12 px-4 bg-white border border-gray-300 rounded-xl outline-none text-[15px] focus:ring-2 focus:ring-black"
+              placeholder="Ej: Volvemos el miércoles, ¡gracias!"
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end">

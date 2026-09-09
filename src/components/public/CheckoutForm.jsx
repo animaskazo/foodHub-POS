@@ -92,6 +92,15 @@ const canOrderNow = (org) => {
   return false;
 };
 
+// ¿Un día (yyyy-mm-dd) está cerrado según la disponibilidad?
+const isScheduleDayClosed = (org, dateStr) => {
+  const availability = getAvailability(org);
+  if (!availability) return false;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const day = availability[DAY_KEYS[new Date(y, m - 1, d).getDay()]];
+  return !day || day.closed === true;
+};
+
 // Slots de 30 min para una fecha (yyyy-mm-dd), excluyendo pasados y los próximos 10 min
 const getSlots = (org, dateStr) => {
   const availability = getAvailability(org);
@@ -226,6 +235,8 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   const scheduleEmptyText = scheduleSlots.length === 0
     ? (scheduleDayLabel ? `No hay horarios disponibles para ${scheduleDayLabel.toLowerCase()}.` : 'No hay horarios disponibles.')
     : '';
+  // "Entregar ahora" solo tiene sentido si se puede pedir ahora y el día visto está abierto
+  const hideNowButton = isClosed || !instantAvailable || isScheduleDayClosed(org, scheduleDate);
   const [errors, setErrors] = useState({});
   const touchedRef = useRef({ name: false, email: false });
   const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
@@ -1180,6 +1191,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                 </>
               )}
             </button>
+            {!hideNowButton && (
             <button
               type="button"
               onClick={handleChooseNow}
@@ -1188,6 +1200,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               <Clock className="h-5 w-5" />
               Entregar ahora
             </button>
+            )}
           </div>
         </div>
       </Modal>
