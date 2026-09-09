@@ -250,3 +250,22 @@
 }
 
 /* Print styles en public/print.css (archivo estático, no procesado por Tailwind) */
+/* Banner de tienda cerrada: marquee en mobile cuando el texto no cabe */
+@keyframes store-banner-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.store-banner-marquee {
+  display: inline-flex;
+  align-items: center;
+  gap: 3rem;
+  padding-right: 3rem;
+  white-space: nowrap;
+  will-change: transform;
+  animation-name: store-banner-marquee;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .store-banner-marquee { animation: none; }
+}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import MenuSection from '../components/public/MenuSection';
@@ -65,6 +65,10 @@ const OrderView = () => {
     return null;
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Marquee del banner de cierre (mobile, solo si el texto no cabe)
+  const bannerViewportRef = useRef(null);
+  const bannerCopyRef = useRef(null);
+  const [bannerMarquee, setBannerMarquee] = useState(false);
 
   useEffect(() => {
     const handleReturn = async () => {
@@ -305,6 +309,25 @@ const OrderView = () => {
     const interval = setInterval(() => setIsOpen(checkIsOpen()), 60000);
     return () => clearInterval(interval);
   }, [org]);
+
+  // ── Marquee del banner de cierre: solo mobile y solo si el texto se corta ──
+  useEffect(() => {
+    const blocked = org?.force_closed === true && !searchParams.get('orderId');
+    if (!blocked) {
+      setBannerMarquee(false);
+      return;
+    }
+    const check = () => {
+      const copy = bannerCopyRef.current;
+      const viewport = bannerViewportRef.current;
+      if (!copy || !viewport) return;
+      const isMobile = window.matchMedia('(max-width: 640px)').matches;
+      setBannerMarquee(isMobile && copy.offsetWidth > viewport.clientWidth + 4);
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, [org?.force_closed, org?.closed_message]);
 
   // ── Cart operations ───────────────────────────────────────
   const handleAddItem = useCallback((product) => {
@@ -767,6 +790,8 @@ const OrderView = () => {
   // Cierre temporal total de la tienda: bloquea navegación y pedido,
   // pero siempre permite ver la confirmación de un pago en curso (retorno con orderId).
   const storeForceClosed = org?.force_closed === true && !searchParams.get('orderId');
+  const closureText = org?.closed_message || 'No hay horarios disponibles ni pedidos para ahora.';
+  const marqueeDuration = Math.min(22, Math.max(8, closureText.length * 0.28));
 
   return (
     <div className="min-h-[100dvh] bg-gray-200/40 flex flex-col justify-start items-center">
@@ -795,10 +820,25 @@ const OrderView = () => {
         {storeForceClosed ? (
           <div className="sticky top-0 z-40 bg-blue-600 text-white w-full h-8 flex items-center justify-center gap-1.5 px-4">
             <Info className="h-3.5 w-3.5 shrink-0" />
-            <p className="text-[12px] tracking-wide whitespace-nowrap overflow-hidden text-ellipsis">
-              <span className="font-bold">Tienda cerrada temporalmente</span>
-              <span className="font-normal"> · {org?.closed_message || 'No hay horarios disponibles ni pedidos para ahora.'}</span>
-            </p>
+            <div ref={bannerViewportRef} className="relative flex-1 min-w-0 h-full overflow-hidden">
+              <p ref={bannerCopyRef} aria-hidden="true" className="absolute top-0 left-0 invisible whitespace-nowrap text-[12px]">
+                <span className="font-bold">Tienda cerrada temporalmente</span>
+                <span className="font-normal"> · {closureText}</span>
+              </p>
+              {!bannerMarquee ? (
+                <p className="h-full flex items-center justify-center text-[12px] tracking-wide whitespace-nowrap overflow-hidden text-ellipsis">
+                  <span className="font-bold">Tienda cerrada temporalmente</span>
+                  <span className="font-normal"> · {closureText}</span>
+                </p>
+              ) : (
+                <div className="h-full flex items-center overflow-hidden">
+                  <div className="store-banner-marquee text-[12px] tracking-wide" style={{ animationDuration: `${marqueeDuration}s` }}>
+                    <span><span className="font-bold">Tienda cerrada temporalmente</span><span className="font-normal"> · {closureText}</span></span>
+                    <span aria-hidden="true"><span className="font-bold">Tienda cerrada temporalmente</span><span className="font-normal"> · {closureText}</span></span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           !isOpen && (
