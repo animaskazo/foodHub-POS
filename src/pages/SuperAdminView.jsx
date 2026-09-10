@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { User, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe, Store } from 'lucide-react';
+import { User, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe, Store, Plus, Pencil } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getStoreUrl } from '../utils/tenant';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,8 @@ import OrgBrandingTab from '../components/superadmin/OrgBrandingTab';
 import { getPaymentMethod } from '../utils/orderUtils';
 
 const SuperAdminView = () => {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedOrganization, setSelectedOrganization] = useState(null);
   const [detailTab, setDetailTab] = useState('overview');
   
@@ -30,6 +33,39 @@ const SuperAdminView = () => {
   const [error, setError] = useState(null);
   const [isAIImportOpen, setIsAIImportOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
+
+  // Abre la interfaz completa de edición (igual que la tienda) para un producto
+  const openFullProductEditor = (productId) => {
+    if (!selectedOrganization?.id) return;
+    const params = new URLSearchParams({
+      org: selectedOrganization.id,
+      from: 'superadmin',
+      orgName: selectedOrganization.name || '',
+    });
+    navigate(`/products/${productId}?${params.toString()}`);
+  };
+
+  const openNewProductEditor = () => {
+    if (!selectedOrganization?.id) return;
+    const params = new URLSearchParams({
+      org: selectedOrganization.id,
+      from: 'superadmin',
+      orgName: selectedOrganization.name || '',
+    });
+    navigate(`/products/new?${params.toString()}`);
+  };
+
+  const selectOrganization = (org, tab = 'overview') => {
+    setSelectedOrganization(org);
+    setDetailTab(tab);
+    setSearchParams(org ? { org: org.id } : {});
+    if (org) fetchOrgOrders(org.id);
+  };
+
+  const clearSelectedOrganization = () => {
+    setSelectedOrganization(null);
+    setSearchParams({});
+  };
 
   const fetchOrgOrders = async (orgId) => {
     setLoadingOrders(true);
@@ -91,6 +127,21 @@ const SuperAdminView = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Restaura el negocio seleccionado al volver del editor completo
+  // (/products/:id?org=<id>&from=superadmin → /superadmin?org=<id>)
+  useEffect(() => {
+    const orgIdFromUrl = searchParams.get('org');
+    if (orgIdFromUrl && organizations.length > 0 && !selectedOrganization) {
+      const match = organizations.find((o) => o.id === orgIdFromUrl);
+      if (match) {
+        setSelectedOrganization(match);
+        setDetailTab('products');
+        fetchOrgOrders(match.id);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organizations]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -270,11 +321,7 @@ const SuperAdminView = () => {
                   {organizations.map((org) => (
                     <tr 
                       key={org.id} 
-                      onClick={() => {
-                        setSelectedOrganization(org);
-                        setDetailTab('overview');
-                        fetchOrgOrders(org.id);
-                      }}
+                      onClick={() => selectOrganization(org, 'overview')}
                       className="hover:bg-gray-50 transition-colors cursor-pointer group"
                     >
                       <td className="px-6 py-4">
@@ -331,7 +378,7 @@ const SuperAdminView = () => {
             <div>
               <Button 
                 variant="ghost"
-                onClick={() => setSelectedOrganization(null)}
+                onClick={clearSelectedOrganization}
                 className="flex items-center text-sm font-medium text-gray-500 hover:text-black hover:bg-transparent px-0 h-auto transition-colors mb-4"
               >
                 <ArrowLeft className="h-4 w-4 mr-1" />
@@ -930,15 +977,25 @@ const SuperAdminView = () => {
               {/* Products */}
               {detailTab === 'products' && (
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-800">Productos del catálogo</h3>
-                    <Button
-                      variant="outline"
-                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                      onClick={() => setIsAIImportOpen(true)}
-                    >
-                      <Sparkles className="h-4 w-4 mr-2" /> Importar menú con IA
-                    </Button>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <div>
+                      <h3 className="font-semibold text-gray-800">Productos del catálogo</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Abre el editor completo de cada producto, con la misma interfaz que usa la tienda.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        onClick={() => setIsAIImportOpen(true)}
+                      >
+                        <Sparkles className="h-4 w-4 mr-2" /> Importar menú con IA
+                      </Button>
+                      <Button onClick={openNewProductEditor}>
+                        <Plus className="h-4 w-4 mr-2" /> Nuevo artículo
+                      </Button>
+                    </div>
                   </div>
                   <div className="overflow-x-auto -mx-6 -my-6">
                     <table className="w-full text-left border-collapse whitespace-nowrap">
@@ -980,14 +1037,27 @@ const SuperAdminView = () => {
                               </span>
                             </td>
                             <td className="px-6 py-4 text-right">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setEditingProductId(prod.id)}
-                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs font-semibold"
-                              >
-                                Editar
-                              </Button>
+                              <div className="flex items-center justify-end gap-2">
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => openFullProductEditor(prod.id)}
+                                  className="text-xs font-semibold"
+                                  title="Abrir el editor completo, igual que la tienda (variantes, ingredientes, imagen, combos, receta)"
+                                >
+                                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                                  Editar
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingProductId(prod.id)}
+                                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs font-semibold"
+                                  title="Edición rápida (nombre, precio, SKU, categoría y estado)"
+                                >
+                                  Rápido
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         ))}

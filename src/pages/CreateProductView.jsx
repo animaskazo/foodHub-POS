@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 import { getFirstOrganizationId, createProduct, getProductById, updateProduct, getCategories, getIngredients, getProducts } from '../services/catalogService';
 import { getInventoryItems, getProductRecipes, replaceProductRecipes } from '../services/inventoryService';
 import { uploadImage } from '../services/storageService';
@@ -21,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  X, Image as ImageIcon, Store, Globe, MessageCircle, Plus, Search, ChevronDown, Trash2, Loader2, Sparkles, Check
+  X, Image as ImageIcon, Store, Globe, MessageCircle, Plus, Search, ChevronDown, Trash2, Loader2, Sparkles, Check, ShieldAlert, ArrowLeft
 } from 'lucide-react';
 
 const SectionRow = ({ title, description, badge, children }) => (
@@ -50,6 +51,15 @@ const CreateProductView = () => {
   const queryParams = new URLSearchParams(location.search);
   const queryType = queryParams.get('type');
   const initialType = queryType === 'bundle' ? 'Combo / Promoción' : 'Producto físico';
+
+  // ── Modo Super Admin: permite editar el catálogo de cualquier negocio ──
+  // El SuperAdminView enlaza a /products/:id?org=<orgId>&from=superadmin
+  // para abrir esta misma interfaz completa (igual que la tienda).
+  const orgOverride = queryParams.get('org');
+  const fromSuperadmin = queryParams.get('from') === 'superadmin';
+  const superadminMode = Boolean(orgOverride && fromSuperadmin);
+  const [effectiveOrgId, setEffectiveOrgId] = useState(orgOverride || null);
+  const [superOrgName, setSuperOrgName] = useState(queryParams.get('orgName') || '');
 
   const [formData, setFormData] = useState({
     name: '', price: '', description: '', type: initialType, sku: '', gtin: '', categoryId: 'none', imageUrl: '', status: 'available'
@@ -106,7 +116,19 @@ const CreateProductView = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        const orgId = await getFirstOrganizationId();
+        // En modo super-admin se usa la org indicada en la URL, no la del staff logueado.
+        const orgId = orgOverride || await getFirstOrganizationId();
+        setEffectiveOrgId(orgId);
+        if (superadminMode && orgId && !superOrgName) {
+          try {
+            const { data: org } = await supabase
+              .from('organizations')
+              .select('name')
+              .eq('id', orgId)
+              .maybeSingle();
+            if (org?.name) setSuperOrgName(org.name);
+          } catch { /* nombre opcional, no bloquea */ }
+        }
         if (orgId) {
           const [fetchedCategories, fetchedIngredients, fetchedProducts, fetchedInventoryItems] = await Promise.all([
             getCategories(orgId),
@@ -199,7 +221,8 @@ const CreateProductView = () => {
       }
     };
     init();
-  }, [id, isEditing]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, isEditing, orgOverride]);
 
   useEffect(() => {
     if (showImageModal) {
@@ -282,13 +305,21 @@ const CreateProductView = () => {
     }
   };
 
+  const goBack = () => {
+    if (superadminMode && (effectiveOrgId || orgOverride)) {
+      navigate(`/superadmin?org=${effectiveOrgId || orgOverride}`);
+    } else {
+      navigate(-1);
+    }
+  };
+
   const handleClose = () => {
     if (hasChanges) {
       if (window.confirm("Tienes cambios sin guardar. ¿Estás seguro de que deseas salir sin guardar?")) {
-        navigate(-1);
+        goBack();
       }
     } else {
-      navigate(-1);
+      goBack();
     }
   };
 
@@ -356,12 +387,13 @@ const CreateProductView = () => {
         await replaceProductRecipes(id, recipeEntries);
         toast.success("Producto actualizado exitosamente");
       } else {
-        const orgId = await getFirstOrganizationId();
+        const orgId = effectiveOrgId || orgOverride || await getFirstOrganizationId();
         if (!orgId) throw new Error("Organización no encontrada");
         const created = await createProduct(orgId, productPayload);
         await replaceProductRecipes(created.id, recipeEntries);
         toast.success("Producto creado exitosamente");
-        navigate(`/products/${created.id}`, { replace: true });
+        const keepCtx = superadminMode ? `?org=${orgId}&from=superadmin` : '';
+        navigate(`/products/${created.id}${keepCtx}`, { replace: true });
       }
 
       setHasChanges(false);
@@ -421,6 +453,29 @@ const CreateProductView = () => {
 
       {/* ── Body ──────────────────────────────────────── */}
       <main className="max-w-5xl mx-auto px-6 py-8 pt-[104px]">
+        {superadminMode && (
+          <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 shrink-0">
+              <ShieldAlert className="h-5 w-5 text-amber-700" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-amber-900">
+                Modo Super Admin{superOrgName ? ` · ${superOrgName}` : ''}
+              </p>
+              <p className="text-xs text-amber-700">
+                Estás editando el catálogo de otra tienda con la interfaz completa, igual que la tienda.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={goBack}
+              className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition-colors shrink-0"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Volver al panel
+            </button>
+          </div>
+        )}
         {isLoading ? (
           <div className="flex justify-center py-20 text-gray-400">Cargando artículo...</div>
         ) : (
