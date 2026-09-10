@@ -37,7 +37,7 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
   return (
     <div
       onClick={handleTap}
-      className={`bg-white rounded-2xl overflow-hidden border border-gray-200/60 transition-all duration-200 ${isOutOfStock ? 'opacity-70 grayscale' : 'active:scale-[0.97] cursor-pointer'} flex flex-col h-full ${tapped ? 'scale-[0.97]' : ''}`}
+      className={`group bg-white rounded-2xl overflow-hidden border border-gray-200/60 transition-all duration-200 ${isOutOfStock ? 'opacity-70 grayscale' : 'active:scale-[0.97] cursor-pointer'} flex flex-col h-full ${tapped ? 'scale-[0.97]' : ''}`}
     >
       {/* Image */}
       <div className="aspect-square bg-gray-100 relative overflow-hidden shrink-0">
@@ -53,7 +53,7 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
             <img
               src={product.image}
               alt={product.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transform-gpu will-change-transform transition-transform duration-500 ease-out motion-safe:[@media(hover:hover)]:group-hover:scale-[1.1]"
               loading="lazy"
             />
           )
