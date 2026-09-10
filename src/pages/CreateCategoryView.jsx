@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Switch } from "@/components/ui/switch";
-import { X, Image as ImageIcon, Tags, Store, Loader2, Globe, MessageCircle } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { X, Image as ImageIcon, Tags, Store, Loader2, Globe, MessageCircle, ShieldAlert, ArrowLeft } from 'lucide-react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '../lib/supabase';
 import { getFirstOrganizationId, createCategory, getCategoryById, updateCategory, getProducts } from '../services/catalogService';
 import CategoryProductsModal from '../components/admin/CategoryProductsModal';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,17 @@ const SectionRow = ({ icon: Icon, title, description, children }) => (
 const CreateCategoryView = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const location = useLocation();
   const isEditing = id && id !== 'new';
+
+  // ── Modo Super Admin: permite editar categorías de cualquier negocio ──
+  // El SuperAdminView enlaza a /categories/:id?org=<orgId>&from=superadmin
+  const queryParams = new URLSearchParams(location.search);
+  const orgOverride = queryParams.get('org');
+  const fromSuperadmin = queryParams.get('from') === 'superadmin';
+  const superadminMode = Boolean(orgOverride && fromSuperadmin);
+  const [effectiveOrgId, setEffectiveOrgId] = useState(orgOverride || null);
+  const [superOrgName, setSuperOrgName] = useState(queryParams.get('orgName') || '');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -44,7 +55,19 @@ const CreateCategoryView = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const orgId = await getFirstOrganizationId();
+        // En modo super-admin se usa la org indicada en la URL, no la del staff logueado.
+        const orgId = orgOverride || await getFirstOrganizationId();
+        setEffectiveOrgId(orgId);
+        if (superadminMode && orgId && !superOrgName) {
+          try {
+            const { data: org } = await supabase
+              .from('organizations')
+              .select('name')
+              .eq('id', orgId)
+              .maybeSingle();
+            if (org?.name) setSuperOrgName(org.name);
+          } catch { /* nombre opcional, no bloquea */ }
+        }
         if (orgId) {
           const prods = await getProducts(orgId);
           setAllProducts(prods);
@@ -77,13 +100,21 @@ const CreateCategoryView = () => {
 
   const hasChanges = initialData && JSON.stringify(formData) !== JSON.stringify(initialData);
 
+  const goBack = () => {
+    if (superadminMode && (effectiveOrgId || orgOverride)) {
+      navigate(`/superadmin?org=${effectiveOrgId || orgOverride}`);
+    } else {
+      navigate(-1);
+    }
+  };
+
   const handleClose = () => {
     if (hasChanges) {
       if (window.confirm("Tienes cambios sin guardar. ¿Estás seguro de que deseas salir sin guardar?")) {
-        navigate(-1);
+        goBack();
       }
     } else {
-      navigate(-1);
+      goBack();
     }
   };
 
@@ -100,13 +131,17 @@ const CreateCategoryView = () => {
         await updateCategory(id, formData);
         toast.success("Categoría actualizada exitosamente");
         setInitialData(formData); // Reset changes tracker
-        navigate(-1);
+        goBack();
       } else {
-        const orgId = await getFirstOrganizationId();
+        const orgId = effectiveOrgId || orgOverride || await getFirstOrganizationId();
         if (!orgId) throw new Error("Organización no encontrada");
         const created = await createCategory(orgId, formData);
         toast.success("Categoría creada exitosamente");
-        navigate(`/categories`, { replace: true });
+        if (superadminMode) {
+          navigate(`/categories/${created.id}?org=${orgId}&from=superadmin`, { replace: true });
+        } else {
+          navigate(`/categories`, { replace: true });
+        }
       }
     } catch (error) {
       console.error(error);
@@ -131,6 +166,29 @@ const CreateCategoryView = () => {
 
       {/* ── Body ──────────────────────────────────────── */}
       <main className="max-w-2xl mx-auto px-6 py-8 pt-[104px]">
+        {superadminMode && (
+          <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 shrink-0">
+              <ShieldAlert className="h-5 w-5 text-amber-700" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-amber-900">
+                Modo Super Admin{superOrgName ? ` · ${superOrgName}` : ''}
+              </p>
+              <p className="text-xs text-amber-700">
+                Estás editando las categorías de otra tienda.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={goBack}
+              className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition-colors shrink-0"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Volver al panel
+            </button>
+          </div>
+        )}
         {isLoading ? (
           <div className="flex justify-center py-20 text-gray-400">Cargando categoría...</div>
         ) : (

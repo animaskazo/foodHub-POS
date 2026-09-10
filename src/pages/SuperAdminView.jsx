@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { User, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe, Store, Plus, Pencil } from 'lucide-react';
+import { User, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe, Store, Plus, Pencil, Tags, Copy, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getStoreUrl } from '../utils/tenant';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import OrderDetailModal from '../components/pos/OrderDetailModal';
 import KlapReconciliationTab from '../components/superadmin/KlapReconciliationTab';
 import OrgBrandingTab from '../components/superadmin/OrgBrandingTab';
 import { getPaymentMethod } from '../utils/orderUtils';
+import { getCategories, quickUpdateCategoryStatus, deleteCategory, duplicateCategory } from '../services/catalogService';
 
 const SuperAdminView = () => {
   const navigate = useNavigate();
@@ -24,6 +25,8 @@ const SuperAdminView = () => {
   const [organizations, setOrganizations] = useState([]);
   const [feedbacks, setFeedbacks] = useState([]);
   const [products, setProducts] = useState([]);
+  const [orgCategories, setOrgCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
   
   const [orgOrders, setOrgOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
@@ -55,11 +58,35 @@ const SuperAdminView = () => {
     navigate(`/products/new?${params.toString()}`);
   };
 
+  // Abre la interfaz completa de edición para una categoría del negocio
+  const openFullCategoryEditor = (categoryId) => {
+    if (!selectedOrganization?.id) return;
+    const params = new URLSearchParams({
+      org: selectedOrganization.id,
+      from: 'superadmin',
+      orgName: selectedOrganization.name || '',
+    });
+    navigate(`/categories/${categoryId}?${params.toString()}`);
+  };
+
+  const openNewCategoryEditor = () => {
+    if (!selectedOrganization?.id) return;
+    const params = new URLSearchParams({
+      org: selectedOrganization.id,
+      from: 'superadmin',
+      orgName: selectedOrganization.name || '',
+    });
+    navigate(`/categories/new?${params.toString()}`);
+  };
+
   const selectOrganization = (org, tab = 'overview') => {
     setSelectedOrganization(org);
     setDetailTab(tab);
     setSearchParams(org ? { org: org.id } : {});
-    if (org) fetchOrgOrders(org.id);
+    if (org) {
+      fetchOrgOrders(org.id);
+      fetchOrgCategories(org.id);
+    }
   };
 
   const clearSelectedOrganization = () => {
@@ -114,10 +141,24 @@ const SuperAdminView = () => {
     }
   };
 
+  const fetchOrgCategories = async (orgId) => {
+    setLoadingCategories(true);
+    try {
+      const data = await getCategories(orgId);
+      setOrgCategories(data || []);
+    } catch (err) {
+      console.error('Error fetching org categories:', err);
+      setOrgCategories([]);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
   useEffect(() => {
     const handleReload = () => {
       if (selectedOrganization?.id) {
         fetchOrgOrders(selectedOrganization.id);
+        fetchOrgCategories(selectedOrganization.id);
       }
     };
     window.addEventListener('reload-orders', handleReload);
@@ -130,6 +171,7 @@ const SuperAdminView = () => {
 
   // Restaura el negocio seleccionado al volver del editor completo
   // (/products/:id?org=<id>&from=superadmin → /superadmin?org=<id>)
+  // (/categories/:id?org=<id>&from=superadmin → /superadmin?org=<id>)
   useEffect(() => {
     const orgIdFromUrl = searchParams.get('org');
     if (orgIdFromUrl && organizations.length > 0 && !selectedOrganization) {
@@ -138,6 +180,7 @@ const SuperAdminView = () => {
         setSelectedOrganization(match);
         setDetailTab('products');
         fetchOrgOrders(match.id);
+        fetchOrgCategories(match.id);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -458,6 +501,17 @@ const SuperAdminView = () => {
               >
                 Catálogo
                 <span className="bg-gray-200 text-gray-700 py-0.5 px-2 rounded-full text-xs font-bold leading-none flex items-center">{orgProducts.length}</span>
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setDetailTab('categories')}
+                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
+                  detailTab === 'categories' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <Tags className="h-4 w-4" />
+                Categorías
+                <span className="bg-gray-200 text-gray-700 py-0.5 px-2 rounded-full text-xs font-bold leading-none flex items-center">{orgCategories.length}</span>
               </Button>
               <Button
                 variant="ghost"
@@ -1071,6 +1125,156 @@ const SuperAdminView = () => {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              )}
+
+              {/* Categories */}
+              {detailTab === 'categories' && (
+                <div>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <div>
+                      <h3 className="font-semibold text-gray-800">Categorías del negocio</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Abre el editor completo de cada categoría, con la misma interfaz que usa la tienda.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => selectedOrganization?.id && fetchOrgCategories(selectedOrganization.id)}
+                        disabled={loadingCategories}
+                      >
+                        <RefreshCw className={`h-4 w-4 mr-2 ${loadingCategories ? 'animate-spin' : ''}`} /> Recargar
+                      </Button>
+                      <Button onClick={openNewCategoryEditor}>
+                        <Plus className="h-4 w-4 mr-2" /> Nueva categoría
+                      </Button>
+                    </div>
+                  </div>
+                  {loadingCategories ? (
+                    <div className="flex justify-center items-center py-12">
+                      <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto -mx-6 -my-6">
+                      <table className="w-full text-left border-collapse whitespace-nowrap">
+                        <thead>
+                          <tr className="bg-gray-50 border-b">
+                            <th className="px-6 py-4 text-sm font-semibold text-gray-600">Categoría</th>
+                            <th className="px-6 py-4 text-sm font-semibold text-gray-600">Artículos</th>
+                            <th className="px-6 py-4 text-sm font-semibold text-gray-600">Estado</th>
+                            <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-right">Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {orgCategories.map((cat) => (
+                            <tr key={cat.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  {cat.image_url ? (
+                                    <img src={cat.image_url} alt={cat.name} className="h-10 w-10 object-cover bg-gray-100 border border-gray-200 rounded-md" />
+                                  ) : (
+                                    <div className="h-10 w-10 bg-gray-100 border border-gray-200 rounded-md flex items-center justify-center shrink-0">
+                                      <Tags className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                  )}
+                                  <span className="font-medium text-gray-900">{cat.name}</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-600">
+                                <span className="font-semibold text-gray-900">{cat.product_count || 0}</span>{' '}
+                                {(cat.product_count || 0) === 1 ? 'artículo' : 'artículos'}
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-2">
+                                  <Switch
+                                    checked={cat.is_active}
+                                    onCheckedChange={async (checked) => {
+                                      const toastId = toast.loading(checked ? 'Activando categoría...' : 'Desactivando categoría...');
+                                      try {
+                                        await quickUpdateCategoryStatus(cat.id, checked);
+                                        setOrgCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, is_active: checked } : c));
+                                        toast.success(checked ? 'Categoría activada' : 'Categoría desactivada', { id: toastId });
+                                      } catch (err) {
+                                        console.error(err);
+                                        toast.error('Error al actualizar estado', { id: toastId });
+                                      }
+                                    }}
+                                  />
+                                  <span className={`text-xs font-medium ${cat.is_active ? 'text-green-700' : 'text-gray-500'}`}>
+                                    {cat.is_active ? 'Activa' : 'Inactiva'}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => openFullCategoryEditor(cat.id)}
+                                    className="text-xs font-semibold"
+                                    title="Abrir el editor completo, igual que la tienda (nombre, artículos, canales)"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                                    Editar
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                      const toastId = toast.loading('Duplicando categoría...');
+                                      try {
+                                        await duplicateCategory(cat.id);
+                                        await fetchOrgCategories(selectedOrganization.id);
+                                        toast.success('Categoría duplicada', { id: toastId });
+                                      } catch (err) {
+                                        console.error(err);
+                                        toast.error('Error al duplicar', { id: toastId });
+                                      }
+                                    }}
+                                    className="text-gray-600 hover:text-gray-900 text-xs font-semibold"
+                                    title="Duplicar categoría"
+                                  >
+                                    <Copy className="h-3.5 w-3.5 mr-1.5" />
+                                    Duplicar
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                      if (!confirm(`¿Eliminar la categoría "${cat.name}"? Sus artículos quedarán sin categoría.`)) return;
+                                      const toastId = toast.loading('Eliminando categoría...');
+                                      try {
+                                        await deleteCategory(cat.id);
+                                        setOrgCategories((prev) => prev.filter((c) => c.id !== cat.id));
+                                        toast.success('Categoría eliminada', { id: toastId });
+                                      } catch (err) {
+                                        console.error(err);
+                                        toast.error('Error al eliminar', { id: toastId });
+                                      }
+                                    }}
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold"
+                                    title="Eliminar categoría"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                                    Eliminar
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                          {orgCategories.length === 0 && (
+                            <tr>
+                              <td colSpan="4" className="text-center py-12 text-gray-500">
+                                No hay categorías registradas en este negocio.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
