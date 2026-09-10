@@ -1,6 +1,7 @@
 
 import { getFirstOrganizationId, createCategory, createIngredient, createProduct } from './catalogService';
 import { recommendIngredientIcon, FOOD_ICONS } from '../utils/ingredientIcons';
+import { parsePriceToCLP, parseQuantity } from '../utils/priceParser';
 
 /**
  * Normaliza la cadena de unidad de medida ingresada en Excel a las permitidas por el sistema.
@@ -60,19 +61,15 @@ export const parseIngredientsExcel = async (file) => {
       if (normKey.includes('nombre') || normKey.includes('ingrediente') || normKey === 'name' || normKey === 'item') {
         if (!name) name = valStr;
       } else if (normKey.includes('precio') || normKey.includes('costo') || normKey.includes('price')) {
-        const parsedVal = parseFloat(String(val).replace(/[^0-9.-]/g, ''));
-        if (!isNaN(parsedVal)) price = parsedVal;
+        price = parsePriceToCLP(val);
       } else if (normKey.includes('unidad') || normKey.includes('medida') || normKey === 'unit' || normKey === 'uom') {
         unit = normalizeUnit(valStr);
       } else if (normKey.includes('porcion') || normKey.includes('portion')) {
-        const parsedVal = parseFloat(String(val).replace(/[^0-9.-]/g, ''));
-        if (!isNaN(parsedVal)) portion_quantity = parsedVal;
+        portion_quantity = parseQuantity(val);
       } else if (normKey.includes('umbral') || normKey.includes('minimo') || normKey.includes('threshold')) {
-        const parsedVal = parseFloat(String(val).replace(/[^0-9.-]/g, ''));
-        if (!isNaN(parsedVal)) low_stock_threshold = parsedVal;
+        if (valStr) low_stock_threshold = parseQuantity(val);
       } else if (normKey.includes('stock') || normKey.includes('existencia') || normKey.includes('cantidad')) {
-        const parsedVal = parseFloat(String(val).replace(/[^0-9.-]/g, ''));
-        if (!isNaN(parsedVal)) stock_quantity = parsedVal;
+        stock_quantity = parseQuantity(val);
       } else if (normKey.includes('icono') || normKey.includes('icon')) {
         if (valStr) icon = valStr;
       }
@@ -239,7 +236,7 @@ export const processAndSaveMenu = async (menuData, overrideOrgId = null) => {
       try {
         const createdIng = await createIngredient(orgId, {
           name: ing.name,
-          price: ing.price || 0,
+          price: parsePriceToCLP(ing.price),
           is_active: true
         });
         ingredientMap[ing.name] = createdIng.id;
@@ -268,7 +265,7 @@ export const processAndSaveMenu = async (menuData, overrideOrgId = null) => {
         await createProduct(orgId, {
           name: prod.name,
           description: prod.description || '',
-          price: prod.price || 0,
+          price: parsePriceToCLP(prod.price),
           categoryId: catId,
           type: 'Producto físico',
           ingredients: ingredientIds,

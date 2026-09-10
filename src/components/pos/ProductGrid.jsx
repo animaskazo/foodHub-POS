@@ -10,6 +10,7 @@ import 'react-simple-keyboard/build/css/index.css';
 import { getCategories, getProducts } from '../../services/catalogService';
 import { getOutOfStockProductIds } from '../../services/inventoryService';
 import PrepTimeSelector from '../ui/PrepTimeSelector';
+import ProductImageFallback from '../ui/ProductImageFallback';
 
 const spanishLayout = {
   default: [
@@ -41,7 +42,8 @@ const ProductGrid = ({
   activeTable, 
   onChangeTable, 
   role,
-  hasTables = false 
+  hasTables = false,
+  logoUrl = null
 }) => {
   const [categories, setCategories] = useState([{ id: 'all', name: 'Todos' }]);
   const [products, setProducts] = useState([]);
@@ -174,8 +176,9 @@ const ProductGrid = ({
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
           </div>
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200">
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent"></div>
+          <div className="absolute inset-0">
+            <ProductImageFallback logoUrl={logoUrl} alt={product.name} className="w-full h-full" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent pointer-events-none"></div>
           </div>
         )}
 

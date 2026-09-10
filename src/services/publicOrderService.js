@@ -49,6 +49,7 @@ export const getPublicCatalog = async (organizationId) => {
         status,
         type,
         sort_order,
+        video_url,
         product_categories (
           categories ( id, name )
         ),
@@ -152,6 +153,7 @@ export const getPublicCatalog = async (organizationId) => {
       category: catInfo?.name || 'General',
       categoryId: catInfo?.id || 'none',
       image: p.product_images?.[0]?.url || null,
+      video: p.video_url || null,
       variants: variantGroup?.variant_options?.filter(v => v.is_active) || [],
       ingredients: (p.product_ingredients || []).map(pi => {
         if (!pi.ingredients || !pi.ingredients.is_active) return null;

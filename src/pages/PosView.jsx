@@ -545,6 +545,7 @@ const PosView = () => {
                 onChangeTable={() => setIsTableModalOpen(true)}
                 role={role}
                 hasTables={hasTables}
+                logoUrl={organization?.logo_url}
               />
               
               {/* Floating Cart Button for Mobile */}

@@ -4,6 +4,100 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
+// Tasa de conversión para cuando el menú trae precios en moneda extranjera.
+// Debe mantenerse sincronizada con src/utils/priceParser.js
+const USD_TO_CLP = 950;
+const EUR_TO_CLP = 1000;
+const UF_TO_CLP = 39000;
+
+/**
+ * Convierte cualquier formato de precio a entero CLP (>= 0, sin decimales).
+ * Duplicado intencional del parser del frontend (la edge function no comparte código).
+ * Acepta: "$12.990", "12,990", "12990", "$12.990,50", "12k", "US$9.99", "gratis", etc.
+ */
+function parsePriceToCLP(value: unknown): number {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value) || value < 0) return 0;
+    return Math.round(value);
+  }
+  let s = String(value).trim();
+  if (!s) return 0;
+  const lower = s.toLowerCase();
+  if (/(gratis|gratuito|cortes[ií]a|incluido|inclu[ií]do|consultar|s\/p|^s\.?p\.?$|a convenir|por confirmar)/i.test(lower)) return 0;
+
+  const isUSD = /\busd\b|us\$|u\$|\$us|d[oó]lar|dollar|buck/i.test(s);
+  const isEUR = /€|\beur\b/i.test(s);
+  const isUF = /\buf\b|\bclf\b|unidad de fomento/i.test(s);
+
+  const kMatch = lower.replace(/\s+/g, '').match(/^[$\w.,]*?(\d[\d.,]*)\s*k$/);
+  if (kMatch) {
+    const base = parseNumericPart(kMatch[1]);
+    if (base === null) return 0;
+    return Math.max(0, Math.round(base * 1000 * (isUSD ? USD_TO_CLP : 1)));
+  }
+
+  const numeric = parseNumericPart(s);
+  if (numeric === null || !Number.isFinite(numeric) || numeric < 0) return 0;
+
+  let clp = numeric;
+  if (isUSD) clp = numeric * USD_TO_CLP;
+  else if (isEUR) clp = numeric * EUR_TO_CLP;
+  else if (isUF) clp = numeric * UF_TO_CLP;
+  return Math.max(0, Math.round(clp));
+}
+
+function parseNumericPart(raw: string): number | null {
+  let s = String(raw).replace(/[^\d.,\s'-]/g, '').trim().replace(/[\s']/g, '');
+  if (!s || s === '.' || s === ',' || s === '-') return null;
+  s = s.replace(/-/g, '');
+  if (!s) return null;
+  const hasDot = s.includes('.');
+  const hasComma = s.includes(',');
+  let normalized: string;
+  if (hasDot && hasComma) {
+    const lastDot = s.lastIndexOf('.');
+    const lastComma = s.lastIndexOf(',');
+    const decimalSep = lastDot > lastComma ? '.' : ',';
+    const thousandSep = decimalSep === '.' ? ',' : '.';
+    normalized = s.split(thousandSep).join('').replace(decimalSep, '.');
+  } else if (hasComma) {
+    const parts = s.split(',');
+    if (parts.length > 2) normalized = parts.join('');
+    else {
+      const dec = parts[1] ?? '';
+      if (dec.length === 2) normalized = parts.join('.');
+      else if (dec.length === 3 || dec.length === 0) normalized = parts.join('');
+      else normalized = parts.join('.');
+    }
+  } else if (hasDot) {
+    const parts = s.split('.');
+    if (parts.length > 2) normalized = parts.join('');
+    else {
+      const dec = parts[1] ?? '';
+      if (dec.length === 3) normalized = parts.join('');
+      else normalized = parts.join('.');
+    }
+  } else {
+    normalized = s;
+  }
+  if (!normalized || normalized === '.') return null;
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Normaliza productos e ingredientes del menú extraído a CLP entero. */
+function normalizeMenuPrices(menu: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...(menu as object) } as { products?: Array<Record<string, unknown>>; ingredients?: Array<Record<string, unknown>> };
+  if (Array.isArray(out.products)) {
+    out.products = out.products.map((p) => ({ ...p, price: parsePriceToCLP((p as { price?: unknown }).price) }));
+  }
+  if (Array.isArray(out.ingredients)) {
+    out.ingredients = out.ingredients.map((ing) => ({ ...ing, price: parsePriceToCLP((ing as { price?: unknown }).price) }));
+  }
+  return out as Record<string, unknown>;
+}
+
 Deno.serve(async (req) => {
   // Manejo de Preflight CORS
   if (req.method === 'OPTIONS') {
@@ -31,7 +125,7 @@ Deno.serve(async (req) => {
       }
 
       const prompt = `
-Eres un sistema experto en extracción de datos para un software de Punto de Venta (POS) de restaurantes.
+Eres un sistema experto en extracción de datos para un software de Punto de Venta (POS) de restaurantes en Chile.
 Analiza la siguiente imagen de un menú y extrae toda la información en un formato JSON estricto.
 
 Reglas:
@@ -39,7 +133,15 @@ Reglas:
 2. MUY IMPORTANTE SOBRE INGREDIENTES: El texto que aparece debajo de los nombres de los productos, especialmente si está separado por comas o consiste en listas de elementos únicos (ej: "queso, tomate, jamón"), DEBE tratarse como INGREDIENTES individuales y NO como una descripción general.
 3. Todo ingrediente detectado bajo un plato debe agregarse a la lista global "ingredients". Asígnales "price": 0 si no tienen precio extra.
 4. Extrae todos los productos con su nombre, precio, categoría y sus ingredientes. Usa el campo "description" SOLO si es una frase puramente descriptiva o publicitaria; si son elementos separados por comas, van en "ingredients".
-5. Devuelve SOLO un objeto JSON válido, sin bloques de código ni markdown.
+5. PRECIOS — SIEMPRE EN PESOS CHILENOS (CLP), número entero sin decimales, sin símbolos ni puntos de miles:
+   - "$12.990", "12.990", "12,990", "12990", "CLP 12.990" → 12990
+   - "$12.990,50" o "12,990.50" → 12991 (redondeado, CLP no usa decimales)
+   - "12k" o "12,5k" → 12000 o 12500
+   - Si el precio está en dólares ("US$9.99", "USD 10", "10 dólares") conviértelo a CLP multiplicando por ~950. Si está en euros ("€10") multiplica por ~1000. Si está en UF multiplica por ~39000.
+   - Si dice "gratis", "incluido", "s/p", "consultar" o no tiene precio visible → 0
+   - NUNCA devuelvas strings como "$12.990" ni decimales como 12.99 para representar $12.990. Siempre entero CLP.
+   - Ejemplos: "$8.500" → 8500. "US$10" → 9500. "Gratis" → 0.
+6. Devuelve SOLO un objeto JSON válido, sin bloques de código ni markdown.
 
 Estructura del JSON:
 {
@@ -52,14 +154,12 @@ Estructura del JSON:
     {
       "name": "nombre producto",
       "description": "descripción promocional (opcional, omitir si es solo lista de ingredientes)",
-      "price": 0,
+      "price": 12990,
       "category": "nombre_categoria_1",
       "ingredients": ["tomate", "queso"]
     }
   ]
 }
-
-Ten en cuenta que los precios deben ser números (sin símbolos). Si no hay ingredientes, deja el arreglo vacío. Procesa todo el texto bajo el producto como ingredientes si están separados por comas.
       `;
 
       const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -106,7 +206,18 @@ Ten en cuenta que los precios deben ser números (sin símbolos). Si no hay ingr
       const resData = await response.json();
       const responseText = resData.content[0].text;
       const cleanedText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      const parsedData = JSON.parse(cleanedText);
+      let parsedData: Record<string, unknown>;
+      try {
+        parsedData = JSON.parse(cleanedText);
+      } catch {
+        // Fallback: extraer el primer bloque {...} válido si la IA agregó texto extra
+        const match = cleanedText.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error("La IA no devolvió un JSON válido");
+        parsedData = JSON.parse(match[0]);
+      }
+      // Defensa en profundidad: aunque el prompt exige entero CLP, la IA a veces
+      // devuelve strings ("$12.990") o decimales. Normalizar todo a CLP aquí.
+      parsedData = normalizeMenuPrices(parsedData);
 
       return new Response(JSON.stringify({ success: true, data: parsedData }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }

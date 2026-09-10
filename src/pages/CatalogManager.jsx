@@ -15,8 +15,11 @@ import BulkActionMenu from '../components/ui/BulkActionMenu';
 import Modal from '../components/ui/Modal';
 import { toast } from 'sonner';
 import PageHeader from '../components/ui/PageHeader';
+import ProductImageFallback from '../components/ui/ProductImageFallback';
+import { useAuth } from '../components/AuthContext';
 
 const CatalogManager = () => {
+  const { organization } = useAuth();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -394,12 +397,14 @@ const CatalogManager = () => {
                         </td>
                         <td className="pl-4 pr-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div 
-                              className="w-12 h-12 rounded overflow-hidden bg-gray-100 bg-cover bg-center shrink-0 border flex items-center justify-center text-gray-400"
-                              style={product.image ? { backgroundImage: `url(${product.image})` } : {}}
-                            >
-                              {!product.image && <span className="text-xs">Sin foto</span>}
-                            </div>
+                            {product.image ? (
+                              <div
+                                className="w-12 h-12 rounded overflow-hidden bg-gray-100 bg-cover bg-center shrink-0 border"
+                                style={{ backgroundImage: `url(${product.image})` }}
+                              />
+                            ) : (
+                              <ProductImageFallback logoUrl={organization?.logo_url} alt={product.name} className="w-12 h-12 rounded shrink-0 border" />
+                            )}
                             <span className="font-medium text-gray-900">{product.name}</span>
                           </div>
                         </td>

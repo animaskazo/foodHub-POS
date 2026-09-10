@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { X, Plus, Check, MapPin, ExternalLink, Clock, ChefHat } from 'lucide-react';
 import ProductDetailView from './ProductDetailView';
+import ProductMedia from './ProductMedia';
+import ProductImageFallback from '../ui/ProductImageFallback';
 import Modal from '../ui/Modal';
 import { getOutOfStockProductIds } from '../../services/inventoryService';
 import { defaultSelectionsForSlot, bundleHasChoices } from '../../utils/bundleSelections';
@@ -8,7 +10,7 @@ import { defaultSelectionsForSlot, bundleHasChoices } from '../../utils/bundleSe
 const fmt = (n) => Math.round(n).toLocaleString('es-CL');
 
 // ── Product Card ──────────────────────────────────────────────
-const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpdateQty, onRemoveItem, isOutOfStock, orderingBlocked = false }) => {
+const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpdateQty, onRemoveItem, isOutOfStock, orderingBlocked = false, logoUrl = null }) => {
   const [tapped, setTapped] = useState(false);
   const hasVariants = product.variants?.length > 0;
   const hasExtras = product.ingredients?.some(i => i.isExtra);
@@ -40,16 +42,23 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
       {/* Image */}
       <div className="aspect-square bg-gray-100 relative overflow-hidden shrink-0">
         {product.image ? (
-          <img
-            src={product.image}
-            alt={product.name}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+          (product.video || product.videoUrl) ? (
+            <ProductMedia
+              image={product.image}
+              video={product.video || product.videoUrl}
+              alt={product.name}
+              imgClassName="w-full h-full object-cover"
+            />
+          ) : (
+            <img
+              src={product.image}
+              alt={product.name}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          )
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="text-4xl">🍽️</span>
-          </div>
+          <ProductImageFallback logoUrl={logoUrl} alt={product.name} className="w-full h-full" />
         )}
         {isOutOfStock && (
           <div className="absolute top-2.5 left-2.5 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow z-10 border border-red-400">
@@ -487,6 +496,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                           onRemoveItem={onRemoveItem}
                           isOutOfStock={outOfStockIds.includes(p.id)}
                           orderingBlocked={orderingBlocked}
+                          logoUrl={org?.logo_url}
                         />
                       ))}
                     </div>
@@ -512,6 +522,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                           onRemoveItem={onRemoveItem}
                           isOutOfStock={outOfStockIds.includes(p.id)}
                           orderingBlocked={orderingBlocked}
+                          logoUrl={org?.logo_url}
                         />
                       ))}
                     </div>
@@ -548,6 +559,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
           product={selectedProduct}
           isOutOfStock={outOfStockIds.includes(selectedProduct.id)}
           orderingBlocked={orderingBlocked}
+          logoUrl={org?.logo_url}
           onAdd={(productToAdd) => {
             onAddItem({
               ...productToAdd,

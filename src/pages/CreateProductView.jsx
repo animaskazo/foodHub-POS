@@ -62,7 +62,7 @@ const CreateProductView = () => {
   const [superOrgName, setSuperOrgName] = useState(queryParams.get('orgName') || '');
 
   const [formData, setFormData] = useState({
-    name: '', price: '', description: '', type: initialType, sku: '', gtin: '', categoryId: 'none', imageUrl: '', status: 'available'
+    name: '', price: '', description: '', type: initialType, sku: '', gtin: '', categoryId: 'none', imageUrl: '', videoUrl: '', status: 'available'
   });
   const [includesIva, setIncludesIva] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -82,6 +82,7 @@ const CreateProductView = () => {
   const [bundleMaxTotal, setBundleMaxTotal] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageDetails, setImageDetails] = useState('');
@@ -156,6 +157,7 @@ const CreateProductView = () => {
             gtin: product.gtin || '',
             categoryId: product.categoryId || 'none',
             imageUrl: product.imageUrl || '',
+            videoUrl: product.videoUrl || product.video_url || '',
             status: (product.status === 'Disponible' || product.status === 'available') ? 'available' : 'unavailable',
           }));
 
@@ -280,6 +282,35 @@ const CreateProductView = () => {
     }
   };
 
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('video/')) {
+      toast.error("El archivo debe ser un video (MP4 o WebM).");
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("El video no debe superar los 20MB.");
+      e.target.value = '';
+      return;
+    }
+
+    try {
+      setIsUploadingVideo(true);
+      const url = await uploadImage(file, 'products');
+      setFormData((prev) => ({ ...prev, videoUrl: url }));
+      setHasChanges(true);
+      toast.success("Video subido. Se reproducirá al pasar sobre la foto en la tienda.");
+    } catch (error) {
+      toast.error("Error al subir el video. Por favor intenta de nuevo.");
+      console.error(error);
+    } finally {
+      setIsUploadingVideo(false);
+      e.target.value = '';
+    }
+  };
+
   const handleGenerateAIImage = async () => {
     if (!formData.name.trim()) {
       toast.error("Ingresa un nombre para poder generar la imagen.");
@@ -375,6 +406,7 @@ const CreateProductView = () => {
         type: formData.type,
         categoryId: formData.categoryId,
         imageUrl: formData.imageUrl,
+        videoUrl: formData.videoUrl || null,
         variants: finalVariants,
         baseIngredients: baseIngredients,
         extraIngredients: extraIngredients,
@@ -447,7 +479,7 @@ const CreateProductView = () => {
         onSave={handleSave}
         isSaving={isSaving}
         isLoading={isLoading}
-        isUploadingImage={isUploadingImage}
+        isUploadingImage={isUploadingImage || isUploadingVideo}
         hasChanges={hasChanges}
       />
 
@@ -641,6 +673,59 @@ const CreateProductView = () => {
                   <p className="text-[10px] text-gray-400 mt-1.5 leading-normal">
                     La IA tomará el nombre del producto, la descripción, los artículos del combo y estas instrucciones adicionales para crear la foto gastronómica perfecta.
                   </p>
+                </div>
+              </div>
+
+              {/* Video del artículo (hover en tienda pública) */}
+              <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
+                <div>
+                  <p className="font-semibold text-[15px] text-gray-900">Video del artículo <span className="text-xs font-normal text-gray-400">(opcional)</span></p>
+                  <p className="text-sm text-gray-500 leading-relaxed">Si hay foto + video, en la tienda pública el video se reproduce al pasar el cursor sobre la foto. MP4/WebM, máx 20MB.</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="w-24 h-24 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 overflow-hidden relative">
+                    {formData.videoUrl ? (
+                      <video src={formData.videoUrl} muted playsInline preload="metadata" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-2xl">🎬</span>
+                    )}
+                  </div>
+
+                  <div className="flex-1 space-y-2">
+                    <Button variant="outline" className="w-full relative">
+                      {isUploadingVideo ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="animate-spin h-4 w-4" />
+                          Subiendo...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <ImageIcon className="h-4 w-4" />
+                          {formData.videoUrl ? 'Cambiar video' : 'Subir video'}
+                        </span>
+                      )}
+                      <input
+                        type="file"
+                        accept="video/mp4,video/webm"
+                        onChange={handleVideoUpload}
+                        disabled={isUploadingVideo}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                    </Button>
+
+                    {formData.videoUrl && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => { setFormData((prev) => ({ ...prev, videoUrl: '' })); setHasChanges(true); }}
+                        disabled={isUploadingVideo}
+                        className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Eliminar video
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
 

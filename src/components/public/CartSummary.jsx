@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Trash2, Plus, Minus, ChevronRight, X, ShoppingBag } from 'lucide-react';
 import IngredientIcon from '../ui/IngredientIcon';
+import ProductImageFallback from '../ui/ProductImageFallback';
 
 const fmt = (n) => n.toLocaleString('es-CL');
 
-const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout, isOpen, orderingBlocked = false }) => {
+const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout, isOpen, orderingBlocked = false, logoUrl = null }) => {
   const [previewImage, setPreviewImage] = useState(null);
   const total = cartItems.reduce((acc, item) => {
     let unitPrice = Math.round(item.price);
@@ -44,16 +45,18 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
             return (
               <div key={item.cartItemId} className="bg-white rounded-2xl border border-gray-100 p-4 flex gap-4">
                 {/* Image */}
-                <div
-                  className="w-16 h-16 rounded-xl shrink-0 bg-gray-100 bg-cover bg-center cursor-pointer"
-                  style={{ backgroundImage: item.image ? `url(${item.image})` : undefined }}
-                  onClick={(e) => {
-                    if (item.image) {
+                {item.image ? (
+                  <div
+                    className="w-16 h-16 rounded-xl shrink-0 bg-gray-100 bg-cover bg-center cursor-pointer"
+                    style={{ backgroundImage: `url(${item.image})` }}
+                    onClick={(e) => {
                       e.stopPropagation();
                       setPreviewImage(item.image);
-                    }
-                  }}
-                />
+                    }}
+                  />
+                ) : (
+                  <ProductImageFallback logoUrl={logoUrl} alt={item.name} className="w-16 h-16 rounded-xl shrink-0" />
+                )}
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">

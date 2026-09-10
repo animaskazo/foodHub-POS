@@ -886,6 +886,7 @@ const OrderView = () => {
               }
               setStep(3);
             }}
+            logoUrl={org?.logo_url}
             isOpen={isOpen}
             orderingBlocked={storeForceClosed}
           />

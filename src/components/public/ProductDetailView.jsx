@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowLeft, Plus, Minus } from 'lucide-react';
 import IngredientIcon from '../ui/IngredientIcon';
+import ProductImageFallback from '../ui/ProductImageFallback';
 import { buildSelection, selectionFromCartOption, defaultSelectionsForSlot } from '../../utils/bundleSelections';
 
-const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, initialExtras = [], initialQuantity = 1, isOutOfStock = false, orderingBlocked = false }) => {
+const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, initialExtras = [], initialQuantity = 1, isOutOfStock = false, orderingBlocked = false, logoUrl = null }) => {
   const isBundle = product.type === 'bundle';
   const hasVariants = product.variants?.length > 0;
   const extraIngredients = product.ingredients?.filter(i => i.isExtra) || [];
@@ -294,7 +295,20 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
           <div className="relative bg-transparent shrink-0">
             {product.image ? (
               <div className="w-full h-[280px] sm:h-[340px] relative bg-gray-100 overflow-hidden">
-                <img src={product.image} alt={product.name} className="w-full h-full object-cover object-center block" />
+                {(product.video || product.videoUrl) ? (
+                  <video
+                    src={product.video || product.videoUrl}
+                    poster={product.image}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    className="w-full h-full object-cover object-center block"
+                  />
+                ) : (
+                  <img src={product.image} alt={product.name} className="w-full h-full object-cover object-center block" />
+                )}
                 <button 
                   onClick={handleClose} 
                   className="absolute top-4 left-4 p-2.5 bg-white/90 backdrop-blur-md rounded-full hover:bg-white transition-colors shadow-sm z-10"
@@ -303,10 +317,11 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                 </button>
               </div>
             ) : (
-              <div className="pt-4 px-4 pb-2">
-                <button 
-                  onClick={handleClose} 
-                  className="p-2 -ml-2 rounded-full hover:bg-gray-100 mb-2 inline-flex"
+              <div className="w-full h-[280px] sm:h-[340px] relative bg-gray-100 overflow-hidden">
+                <ProductImageFallback logoUrl={logoUrl} alt={product.name} className="w-full h-full" />
+                <button
+                  onClick={handleClose}
+                  className="absolute top-4 left-4 p-2.5 bg-white/90 backdrop-blur-md rounded-full hover:bg-white transition-colors shadow-sm z-10"
                 >
                   <ArrowLeft className="h-6 w-6 text-gray-900" />
                 </button>

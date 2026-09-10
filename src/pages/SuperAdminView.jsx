@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { User, Calendar, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe, Store, Plus, Pencil, Tags, Copy, Trash2 } from 'lucide-react';
+import { User, Calendar, Clock, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe, Store, Plus, Pencil, Tags, Copy, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getStoreUrl } from '../utils/tenant';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,8 @@ import EditProductModal from '../components/catalog/EditProductModal';
 import OrderDetailModal from '../components/pos/OrderDetailModal';
 import KlapReconciliationTab from '../components/superadmin/KlapReconciliationTab';
 import OrgBrandingTab from '../components/superadmin/OrgBrandingTab';
+import OrgHoursTab from '../components/superadmin/OrgHoursTab';
+import ProductImageFallback from '../components/ui/ProductImageFallback';
 import { getPaymentMethod } from '../utils/orderUtils';
 import { getCategories, quickUpdateCategoryStatus, deleteCategory, duplicateCategory } from '../services/catalogService';
 
@@ -474,6 +476,16 @@ const SuperAdminView = () => {
               </Button>
               <Button
                 variant="ghost"
+                onClick={() => setDetailTab('hours')}
+                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
+                  detailTab === 'hours' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <Clock className="h-4 w-4" />
+                Horarios
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => setDetailTab('orders')}
                 className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
                   detailTab === 'orders' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
@@ -717,6 +729,11 @@ const SuperAdminView = () => {
                       : o));
                   }}
                 />
+              )}
+
+              {/* Hours */}
+              {detailTab === 'hours' && (
+                <OrgHoursTab organizationId={selectedOrganization.id} />
               )}
 
               {/* Users */}
@@ -1070,9 +1087,7 @@ const SuperAdminView = () => {
                                 {prod.product_images?.[0]?.url ? (
                                   <img src={prod.product_images[0].url} alt={prod.name} className="h-10 w-10   object-cover bg-gray-100 border border-gray-200" />
                                 ) : (
-                                  <div className="h-10 w-10   bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
-                                    <Package className="h-5 w-5 text-gray-400" />
-                                  </div>
+                                  <ProductImageFallback logoUrl={selectedOrganization?.logoUrl} alt={prod.name} className="h-10 w-10   shrink-0 border border-gray-200" />
                                 )}
                                 <span className="font-medium text-gray-900">{prod.name}</span>
                               </div>

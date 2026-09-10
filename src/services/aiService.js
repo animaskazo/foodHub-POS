@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { uploadImage } from './storageService';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { parsePriceToCLP } from '../utils/priceParser';
 
 /**
  * Convierte un File a un string base64 y extrae su mimeType
@@ -43,8 +44,21 @@ export const extractMenuFromImage = async (imageFile) => {
       throw new Error(data.error || "Error devuelto por la IA");
     }
 
+    // Normalizar precios a CLP entero aunque la IA devuelva otros formatos
+    // ("$12.990", "12,990", "US$9.99", 12.5, etc.). Doble defensa además
+    // de la normalización en la edge function.
+    const menu = data.data || data;
+    if (menu && (Array.isArray(menu.products) || Array.isArray(menu.ingredients))) {
+      if (Array.isArray(menu.products)) {
+        menu.products = menu.products.map((p) => ({ ...p, price: parsePriceToCLP(p?.price) }));
+      }
+      if (Array.isArray(menu.ingredients)) {
+        menu.ingredients = menu.ingredients.map((ing) => ({ ...ing, price: parsePriceToCLP(ing?.price) }));
+      }
+    }
+
     // Retorna data.data ya que el wrapper es { success: true, data: parsedData }
-    return data.data || data;
+    return menu;
   } catch (error) {
     console.error("Error extraiendo menú con Claude via Edge Function:", error);
     throw new Error(error.message || "Error al comunicarse con la función de Supabase.");

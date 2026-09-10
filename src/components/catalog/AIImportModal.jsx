@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Upload, Sparkles, CheckCircle2 } from 'lucide-react';
 import { extractMenuFromImage } from '../../services/aiService';
 import { processAndSaveMenu } from '../../services/importService';
+import { formatCLP } from '../../utils/priceParser';
 import { toast } from 'sonner';
 
 const AIImportModal = ({ isOpen, onClose, onSuccess, organizationId = null }) => {
@@ -146,7 +147,7 @@ const AIImportModal = ({ isOpen, onClose, onSuccess, organizationId = null }) =>
                   <div className="flex flex-wrap gap-2">
                     {extractedData.ingredients.map((ing, idx) => (
                       <span key={idx} className="px-3 py-1 bg-gray-100 rounded-full text-sm font-medium text-gray-700">
-                        {ing.name} <span className="text-gray-400">(${ing.price})</span>
+                        {ing.name} <span className="text-gray-400">({formatCLP(ing.price)})</span>
                       </span>
                     ))}
                   </div>
@@ -178,7 +179,7 @@ const AIImportModal = ({ isOpen, onClose, onSuccess, organizationId = null }) =>
                               )}
                             </div>
                             <div className="font-bold text-gray-900 whitespace-nowrap">
-                              ${prod.price?.toLocaleString('es-CL')}
+                              {formatCLP(prod.price)}
                             </div>
                           </div>
                         ))

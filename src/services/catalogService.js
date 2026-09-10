@@ -130,6 +130,7 @@ export const getProducts = async (organizationId, filters = {}) => {
       type,
       status,
       sort_order,
+      video_url,
       product_categories (
         categories (
           id,
@@ -250,6 +251,9 @@ export const getProducts = async (organizationId, filters = {}) => {
       category: categoryInfo?.name || 'General',
       categoryId: categoryInfo?.id || 'none',
       image: product.product_images?.[0]?.url || null,
+      imageUrl: product.product_images?.[0]?.url || null,
+      video: product.video_url || null,
+      videoUrl: product.video_url || null,
       status: product.status === 'available' ? 'Disponible' : 'No disponible',
       variants: variantGroup?.variant_options || [],
       ingredients: product.product_ingredients?.map(pi => {
@@ -381,6 +385,7 @@ export const createProduct = async (organizationId, productData) => {
         gtin: productData.gtin || null,
         type: productData.type === 'Servicio' ? 'service' : (productData.type === 'Combo / Promoción' || productData.type === 'bundle' ? 'bundle' : 'physical'),
         status: productData.status || 'available',
+        video_url: productData.videoUrl || null,
         sort_order: nextSortOrder
       }
     ])
@@ -612,6 +617,7 @@ export const getProductById = async (id) => {
     data.bundleMaxTotal = bundleMaxTotal;
     data.categoryId = data.product_categories?.[0]?.category_id || 'none';
     data.imageUrl = data.product_images?.[0]?.url || '';
+    data.videoUrl = data.video_url || '';
     
     // Extraer variantes del último grupo (el más reciente)
     if (data.variant_groups && data.variant_groups.length > 0) {
@@ -664,6 +670,10 @@ export const updateProduct = async (id, productData) => {
     gtin: productData.gtin || null,
     type: productData.type === 'Servicio' ? 'service' : (productData.type === 'Combo / Promoción' || productData.type === 'bundle' ? 'bundle' : 'physical'),
   };
+  
+  if (productData.videoUrl !== undefined) {
+    updatePayload.video_url = productData.videoUrl || null;
+  }
   
   if (productData.status !== undefined) {
     updatePayload.status = productData.status;
@@ -1005,6 +1015,7 @@ export const duplicateProduct = async (id) => {
     status: prod.status || 'available',
     categoryId: prod.categoryId,
     imageUrl: prod.imageUrl,
+    videoUrl: prod.videoUrl || prod.video_url || '',
     variants: prod.variants,
     baseIngredients: prod.baseIngredients,
     extraIngredients: prod.extraIngredients,
