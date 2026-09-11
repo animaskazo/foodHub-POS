@@ -35,10 +35,18 @@ export default async function middleware(req: Request) {
 
   const atRoot = url.pathname === '/'
   const previewUrl = `${SOCIAL_PREVIEW_URL}?slug=${encodeURIComponent(slug)}&origin=${encodeURIComponent(url.origin)}${atRoot ? '&root=1' : ''}`
-  const res = await fetch(previewUrl)
-  const html = await res.text()
+  try {
+    const res = await fetch(previewUrl)
+    if (!res.ok) return
+    const html = await res.text()
+    if (!html || !html.includes('og:title')) return
 
-  return new Response(html, {
-    headers: { 'content-type': 'text/html;charset=utf-8' },
-  })
+    return new Response(html, {
+      headers: { 'content-type': 'text/html;charset=utf-8' },
+    })
+  } catch {
+    // Ante cualquier fallo, servir la página normal: los tags genéricos
+    // de index.html son mejor fallback que un error.
+    return
+  }
 }
