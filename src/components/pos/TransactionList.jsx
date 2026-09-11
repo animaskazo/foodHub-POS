@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock, Ban, Trash2, CheckSquare, Square, XCircle } from 'lucide-react';
+import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, Check, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock, Ban, Trash2, CheckSquare, Square, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import Tooltip from '../ui/tooltip';
 import Modal from '../ui/Modal';
 import PaymentModal from './PaymentModal';
 import AddressMap from './AddressMap';
@@ -30,6 +31,22 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
   const [isBulkCancelConfirmOpen, setIsBulkCancelConfirmOpen] = useState(false);
   const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [markingReadyId, setMarkingReadyId] = useState(null);
+
+  const handleMarkReady = async (e, order) => {
+    e.stopPropagation();
+    if (!order || markingReadyId) return;
+    setMarkingReadyId(order.id);
+    try {
+      await updateOrderStatus(order.id, 'ready');
+      if (onOrderUpdated) await onOrderUpdated();
+    } catch (err) {
+      console.error('Error marcando pedido como listo:', err);
+      alert(`No se pudo marcar el pedido como listo: ${err.message || JSON.stringify(err)}`);
+    } finally {
+      setMarkingReadyId(null);
+    }
+  };
 
   const toggleSelectAll = () => {
     if (selectedOrderIds.length === orders.length) {
@@ -268,7 +285,27 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                         </td>
                         <td className="px-6 py-6 text-gray-600">{formattedDate}</td>
                         <td className="px-6 py-6">
-                          {getStatusTag(order)}
+                          <div className="flex items-center gap-1.5">
+                            {getStatusTag(order)}
+                            {order.status === 'preparing' && (
+                              <Tooltip text="Pedido listo">
+                                <button
+                                  type="button"
+                                  aria-label="Pedido listo"
+                                  title="Pedido listo"
+                                  onClick={(e) => handleMarkReady(e, order)}
+                                  disabled={markingReadyId === order.id}
+                                  className="inline-flex items-center justify-center size-7 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition-colors disabled:opacity-50 disabled:cursor-wait shrink-0"
+                                >
+                                  {markingReadyId === order.id ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Check className="h-4 w-4" strokeWidth={3} />
+                                  )}
+                                </button>
+                              </Tooltip>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-6">
                           {(() => {
@@ -413,8 +450,28 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                           </span>
                         )}
                       </div>
-                      <div className="flex flex-col items-end">
-                        {getStatusTag(order)}
+                      <div className="flex flex-col items-end gap-1.5">
+                        <div className="flex items-center gap-1.5">
+                          {getStatusTag(order)}
+                          {order.status === 'preparing' && (
+                            <Tooltip text="Pedido listo">
+                              <button
+                                type="button"
+                                aria-label="Pedido listo"
+                                title="Pedido listo"
+                                onClick={(e) => handleMarkReady(e, order)}
+                                disabled={markingReadyId === order.id}
+                                className="inline-flex items-center justify-center size-7 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition-colors disabled:opacity-50 disabled:cursor-wait shrink-0"
+                              >
+                                {markingReadyId === order.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Check className="h-4 w-4" strokeWidth={3} />
+                                )}
+                              </button>
+                            </Tooltip>
+                          )}
+                        </div>
                       </div>
                     </div>
 
