@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { checkInventoryStock, deductInventoryForOrder } from './inventoryService';
 import { upsertCustomerForOrder } from './customerService';
+import { getCartItemUnitPrice, getBundleOptionUnitPrice } from '../utils/cartTotals';
 
 export const createOrder = async (cartItems, paymentMethod, orderType, total, subtotal, tax, deliveryInfo = null, orderNotes = '', deliveryFee = 0, tableId = null) => {
   try {
@@ -74,7 +75,7 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
 
     // 4. Insert order items & their variants/ingredients
     for (const item of cartItems) {
-      const lineUnitPrice = Math.round(item.price) + (item.selectedIngredients || []).reduce((s, ing) => s + (ing.price || 0), 0);
+      const lineUnitPrice = getCartItemUnitPrice(item);
       // Insert parent item
       const { data: insertedItem, error: itemError } = await supabase
         .from('order_items')
@@ -121,10 +122,15 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
       }
 
       // If it is a bundle/combo, insert child options
+      // El desglose hijo incluye variante + extras para que sume el total del combo.
       if (item.type === 'bundle' && item.selectedOptions && item.selectedOptions.length > 0) {
         for (const option of item.selectedOptions) {
           const childQty = (option.quantity || 1) * item.quantity;
-          const childPrice = option.price || 0;
+          const childPrice = getBundleOptionUnitPrice({
+            priceModifier: option.priceModifier ?? option.price ?? 0,
+            variant: option.variant,
+            selectedIngredients: option.selectedIngredients,
+          });
           const { data: insertedChild, error: childError } = await supabase
             .from('order_items')
             .insert({
@@ -578,7 +584,7 @@ export const appendItemsToOrder = async (orderId, newCartItems, additionalTotal,
 
     // 2. Insert new order items
     for (const item of newCartItems) {
-      const lineUnitPrice = Math.round(item.price) + (item.selectedIngredients || []).reduce((s, ing) => s + (ing.price || 0), 0);
+      const lineUnitPrice = getCartItemUnitPrice(item);
       const { data: insertedItem, error: itemError } = await supabase
         .from('order_items')
         .insert({
@@ -618,7 +624,11 @@ export const appendItemsToOrder = async (orderId, newCartItems, additionalTotal,
       if (item.type === 'bundle' && item.selectedOptions && item.selectedOptions.length > 0) {
         for (const option of item.selectedOptions) {
           const childQty = (option.quantity || 1) * item.quantity;
-          const childPrice = option.price || 0;
+          const childPrice = getBundleOptionUnitPrice({
+            priceModifier: option.priceModifier ?? option.price ?? 0,
+            variant: option.variant,
+            selectedIngredients: option.selectedIngredients,
+          });
           const { data: insertedChild, error: childError } = await supabase
             .from('order_items')
             .insert({

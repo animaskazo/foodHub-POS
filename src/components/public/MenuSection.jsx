@@ -6,6 +6,7 @@ import ProductImageFallback from '../ui/ProductImageFallback';
 import Modal from '../ui/Modal';
 import { getOutOfStockProductIds } from '../../services/inventoryService';
 import { defaultSelectionsForSlot, bundleHasChoices } from '../../utils/bundleSelections';
+import { getCartTotal } from '../../utils/cartTotals';
 
 const fmt = (n) => Math.round(n).toLocaleString('es-CL');
 
@@ -185,7 +186,8 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
   }, [org?.id]);
 
   const totalQty = cartItems.reduce((s, i) => s + i.quantity, 0);
-  const totalPrice = cartItems.reduce((s, i) => s + (Math.round(i.price) * i.quantity), 0);
+  // Incluye ingredientes extra (estándar) sin duplicar opciones de combos.
+  const totalPrice = getCartTotal(cartItems);
   const catRefs = useRef({});
   const catBarRef = useRef(null);
   const stickyBarRef = useRef(null);

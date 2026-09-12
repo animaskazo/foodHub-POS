@@ -2,18 +2,13 @@ import React, { useState } from 'react';
 import { Trash2, Plus, Minus, ChevronRight, X, ShoppingBag } from 'lucide-react';
 import IngredientIcon from '../ui/IngredientIcon';
 import ProductImageFallback from '../ui/ProductImageFallback';
+import { getCartItemUnitPrice, getCartTotal } from '../../utils/cartTotals';
 
 const fmt = (n) => n.toLocaleString('es-CL');
 
 const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout, isOpen, orderingBlocked = false, logoUrl = null }) => {
   const [previewImage, setPreviewImage] = useState(null);
-  const total = cartItems.reduce((acc, item) => {
-    let unitPrice = Math.round(item.price);
-    if (item.selectedIngredients) {
-      unitPrice += item.selectedIngredients.reduce((s, i) => s + (i.price || 0), 0);
-    }
-    return acc + unitPrice * item.quantity;
-  }, 0);
+  const total = getCartTotal(cartItems);
 
   if (cartItems.length === 0) {
     return (
@@ -36,10 +31,7 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
         <div className="max-w-3xl mx-auto px-4 py-4">
           <div className="space-y-3">
           {cartItems.map((item) => {
-            let unitPrice = Math.round(item.price);
-            if (item.selectedIngredients) {
-              unitPrice += item.selectedIngredients.reduce((s, i) => s + (i.price || 0), 0);
-            }
+            const unitPrice = getCartItemUnitPrice(item);
             const lineTotal = unitPrice * item.quantity;
 
             return (

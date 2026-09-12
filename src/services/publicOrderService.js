@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import { parseBundleLimits } from './catalogService';
 import { checkInventoryStock, deductInventoryForOrder } from './inventoryService';
 import { findCustomerByPhone, upsertCustomerForOrder } from './customerService';
+import { getCartItemUnitPrice, getBundleOptionUnitPrice, getCartTotal } from '../utils/cartTotals';
 
 // ── Get organization by its name (used as public identifier) ──
 export const getOrganizationByName = async (orgName) => {
@@ -206,13 +207,7 @@ export const createPublicOrder = async ({
   // Calculate totals (all prices already include IVA for display)
   // Nota: para combos, item.price YA incluye las opciones seleccionadas
   // (calculateBundleTotalGross en ProductDetailView), por lo que no se suman selectedOptions.
-  const total = cartItems.reduce((acc, item) => {
-    let unitPrice = Math.round(item.price);
-    if (item.selectedIngredients) {
-      unitPrice += item.selectedIngredients.reduce((s, i) => s + (i.price || 0), 0);
-    }
-    return acc + unitPrice * item.quantity;
-  }, 0) + (deliveryFee || 0);
+  const total = getCartTotal(cartItems) + (deliveryFee || 0);
 
   const { data: orgData } = await supabase
     .from('organizations')
@@ -251,8 +246,9 @@ export const createPublicOrder = async ({
 
   // Insert items, variants, ingredients, and bundle child options
   for (const item of cartItems) {
-    // Full line unit price (base + variant ya en item.price, más ingredientes extra).
-    const lineUnitPrice = Math.round(item.price) + (item.selectedIngredients || []).reduce((s, i) => s + (i.price || 0), 0);
+    // Full line unit price (base + variante ya en item.price, más ingredientes extra;
+    // en combos `price` ya es el total y no se suma nada más).
+    const lineUnitPrice = getCartItemUnitPrice(item);
 
     // Insert parent item
     const { data: insertedItem, error: itemError } = await supabase
@@ -300,10 +296,15 @@ export const createPublicOrder = async ({
     }
 
     // If it is a bundle/combo, insert child options
+    // El desglose hijo incluye variante + extras para que sume el total del combo.
     if (item.type === 'bundle' && item.selectedOptions && item.selectedOptions.length > 0) {
       for (const option of item.selectedOptions) {
         const childQty = (option.quantity || 1) * item.quantity;
-        const childPrice = option.price || 0;
+        const childPrice = getBundleOptionUnitPrice({
+          priceModifier: option.priceModifier ?? option.price ?? 0,
+          variant: option.variant,
+          selectedIngredients: option.selectedIngredients,
+        });
         const { data: insertedChild, error: childError } = await supabase
           .from('order_items')
           .insert({

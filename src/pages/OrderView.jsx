@@ -15,6 +15,7 @@ import { sendEmail } from '../services/emailService';
 import { supabase } from '../lib/supabase';
 import { getTenantSlug } from '../utils/tenant';
 import { EcommerceSkeleton } from '../components/ui/Skeleton';
+import { getCartTotal } from '../utils/cartTotals';
 
 const OrderView = () => {
   const { slug: pathSlug } = useParams();
@@ -384,13 +385,7 @@ const OrderView = () => {
   // ── Subtotal computation (same formula as createPublicOrder) ──
   // Nota: para combos, item.price YA incluye las opciones seleccionadas (calculateBundleTotalGross),
   // por lo que no se suman selectedOptions de nuevo.
-  const computeSubtotal = (items) => items.reduce((acc, item) => {
-    let unitPrice = Math.round(item.price);
-    if (item.selectedIngredients) {
-      unitPrice += item.selectedIngredients.reduce((s, i) => s + (i.price || 0), 0);
-    }
-    return acc + unitPrice * item.quantity;
-  }, 0);
+  const computeSubtotal = (items) => getCartTotal(items);
 
   // ── Uber Direct: create delivery, returns info to apply to an order ──
   const createUberDelivery = async (orgData, customerForm, cart, scheduledAt) => {
@@ -779,13 +774,7 @@ const OrderView = () => {
     );
   }
 
-  const totalAmount = cartItems.reduce((acc, item) => {
-    let unitPrice = Math.round(item.price);
-    if (item.selectedIngredients) {
-      unitPrice += item.selectedIngredients.reduce((s, i) => s + (i.price || 0), 0);
-    }
-    return acc + unitPrice * item.quantity;
-  }, 0);
+  const totalAmount = getCartTotal(cartItems);
 
   // Cierre temporal total de la tienda: bloquea navegación y pedido,
   // pero siempre permite ver la confirmación de un pago en curso (retorno con orderId).

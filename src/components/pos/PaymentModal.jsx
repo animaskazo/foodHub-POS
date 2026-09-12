@@ -4,6 +4,7 @@ import Modal from '../ui/Modal';
 import { Button } from '../ui/button';
 import { useAuth } from '../AuthContext';
 import { geocodeAddress, calculateDistance, isPointInPolygon, findDeliveryZoneForLocation } from '../../utils/geo';
+import { getCartTotal } from '../../utils/cartTotals';
 
 const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, confirmOnly = false, confirmTotal = null }) => {
   const { organization } = useAuth();
@@ -42,7 +43,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
     }
   }, [isOpen]);
 
-  const cartTotal = cartItems.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
+  const cartTotal = getCartTotal(cartItems);
   const total = cartTotal + deliveryFee;
   const subtotal = Math.round(cartTotal / 1.19);
   const tax = cartTotal - subtotal;

@@ -21,7 +21,10 @@ export const selectionFromCartOption = (opt) => ({
   optionId: opt.optionId,
   productId: opt.productId,
   name: opt.originalName || opt.name,
-  priceModifier: opt.priceModifier || 0,
+  // El carrito guarda la opción como `price` (BundleSelectionModal/ProductDetailView);
+  // las selecciones internas usan `priceModifier`. Aceptar ambos para no perder
+  // el precio al editar un combo (antes volvía a 0 y el total quedaba inferior).
+  priceModifier: opt.priceModifier ?? opt.price ?? 0,
   quantity: opt.quantity || 1,
   variant: opt.variant || null,
   selectedIngredients: opt.selectedIngredients || []

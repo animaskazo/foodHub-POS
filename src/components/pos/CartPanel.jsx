@@ -5,6 +5,7 @@ import { Button } from "../ui/button";
 import { getFirstOrganizationId } from '../../services/organizationService';
 import { supabase } from '../../lib/supabase';
 import { getRestaurantTables } from '../../services/tableService';
+import { getCartItemUnitPrice, getCartTotal } from '../../utils/cartTotals';
 
 const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onChangeTableMobile, onItemClick, onSaveOrder, onTableSelect, taxRate = 0.19 }) => {
   const items = cartItems;
@@ -30,22 +31,9 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
   }, []);
 
   const totalQty = items.reduce((acc, i) => acc + i.quantity, 0);
-  const total = items.reduce((acc, i) => {
-    let unitPrice = Math.round(i.price);
-    if (i.selectedIngredients) {
-      unitPrice += i.selectedIngredients.reduce((s, ing) => s + (ing.price || 0), 0);
-    }
-    if (i.selectedOptions) {
-      unitPrice += i.selectedOptions.reduce((s, o) => {
-        let optTotal = o.price || 0;
-        if (o.selectedIngredients) {
-          optTotal += o.selectedIngredients.reduce((s2, i2) => s2 + (i2.price || 0), 0);
-        }
-        return s + optTotal;
-      }, 0);
-    }
-    return acc + (unitPrice * i.quantity);
-  }, 0);
+  // `getCartTotal`: estándar = base + extras; combo = `price` ya es el total
+  // (no se suman `selectedOptions` de nuevo para no duplicar).
+  const total = getCartTotal(items);
   const subtotal = Math.round(total / (1 + taxRate));
   const tax = total - subtotal;
 
@@ -243,13 +231,7 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                         ))}
                       </div>
                     )}
-                    <p className="text-xs text-gray-400 mt-1">${fmt((() => {
-                      let uPrice = Math.round(item.price);
-                      if (item.selectedIngredients) {
-                        uPrice += item.selectedIngredients.reduce((s, ing) => s + (ing.price || 0), 0);
-                      }
-                      return uPrice;
-                    })())} c/u</p>
+                    <p className="text-xs text-gray-400 mt-1">${fmt(getCartItemUnitPrice(item))} c/u</p>
 
                     {/* Qty Controls */}
                     <div className={`inline-flex items-center bg-gray-100/80 rounded-full mt-2.5 ${item.isSaved ? 'opacity-50 pointer-events-none' : ''}`}>
@@ -273,22 +255,7 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
 
                   {/* Price + Actions */}
                   <div className="flex flex-col items-end justify-between min-h-[4rem] pl-2">
-                    <span className="font-bold text-[16px]">${fmt((() => {
-                    let unitPrice = Math.round(item.price);
-                    if (item.selectedIngredients) {
-                      unitPrice += item.selectedIngredients.reduce((s, ing) => s + (ing.price || 0), 0);
-                    }
-                    if (item.selectedOptions) {
-                      unitPrice += item.selectedOptions.reduce((s, o) => {
-                        let optTotal = o.price || 0;
-                        if (o.selectedIngredients) {
-                          optTotal += o.selectedIngredients.reduce((s2, i2) => s2 + (i2.price || 0), 0);
-                        }
-                        return s + optTotal;
-                      }, 0);
-                    }
-                    return unitPrice * item.quantity;
-                  })())}</span>
+                    <span className="font-bold text-[16px]">${fmt(getCartItemUnitPrice(item) * item.quantity)}</span>
                     
                     <div className="flex items-center gap-1">
                       {hasOptions && !item.isSaved && (

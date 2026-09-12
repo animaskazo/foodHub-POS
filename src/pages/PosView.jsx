@@ -25,6 +25,7 @@ import { PosSkeleton } from '../components/ui/Skeleton';
 import { defaultSelectionsForSlot, bundleHasChoices } from '../utils/bundleSelections';
 import PrintableReceipt from '../components/pos/PrintableReceipt';
 import { printReceipt, printReceiptAsPDF } from '../services/printerService';
+import { getCartTotal, getCartTotalsWithTax } from '../utils/cartTotals';
 
 
 const PosView = () => {
@@ -167,7 +168,10 @@ const PosView = () => {
               fullName += ` (${sel.variant.name})`;
             }
 
-            const optPriceNet = (sel.priceModifier || 0) + (sel.variant?.price_modifier || 0);
+            const optPriceNet =
+              (sel.priceModifier || 0) +
+              (sel.variant?.price_modifier || 0) +
+              (sel.selectedIngredients || []).reduce((s, ing) => s + Math.round(ing.price || 0), 0);
 
             return {
               slotId: slot.id,
@@ -405,7 +409,7 @@ const PosView = () => {
 
   const handlePaymentConfirm = async (method, orderType, deliveryInfo, orderNotes) => {
     try {
-      const cartTotal = cartItems.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
+      const cartTotal = getCartTotal(cartItems);
       const deliveryFee = deliveryInfo?.deliveryFee || 0;
       const total = cartTotal + deliveryFee;
       const subtotal = Math.round(cartTotal / (1 + taxRate));
@@ -416,9 +420,7 @@ const PosView = () => {
       if (activeOrder) {
         const newItems = cartItems.filter(i => !i.isSaved);
         if (newItems.length > 0) {
-          const newTotal = newItems.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
-          const newSubtotal = Math.round(newTotal / (1 + taxRate));
-          const newTax = newTotal - newSubtotal;
+          const { total: newTotal, subtotal: newSubtotal, tax: newTax } = getCartTotalsWithTax(newItems, taxRate);
           await appendItemsToOrder(activeOrder.id, newItems, newTotal, newSubtotal, newTax);
         }
         
@@ -474,9 +476,7 @@ const PosView = () => {
       const newItems = cartItems.filter(i => !i.isSaved);
       if (newItems.length === 0) return;
 
-      const newTotal = newItems.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
-      const newSubtotal = Math.round(newTotal / (1 + taxRate));
-      const newTax = newTotal - newSubtotal;
+      const { total: newTotal, subtotal: newSubtotal, tax: newTax } = getCartTotalsWithTax(newItems, taxRate);
 
       if (activeOrder) {
         await appendItemsToOrder(activeOrder.id, newItems, newTotal, newSubtotal, newTax);
@@ -501,7 +501,7 @@ const PosView = () => {
   };
 
   const totalQty = cartItems.reduce((acc, i) => acc + i.quantity, 0);
-  const total = cartItems.reduce((acc, i) => acc + (Math.round(i.price) * i.quantity), 0);
+  const total = getCartTotal(cartItems);
   const subtotal = total / 1.19;
 
   useDocumentTitle('Punto de Venta');

@@ -195,8 +195,13 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
           fullName += ` (${sel.variant.name})`;
         }
 
-        // Calcular precio unitario neto para esta opción (modificador de combo + modificador de variante)
-        const optPriceNet = (sel.priceModifier || 0) + (sel.variant?.price_modifier || 0);
+        // Precio unitario de la opción: modificador de combo + variante + extras.
+        // Debe ser consistente con `calculateTotal()` para que el desglose hijo
+        // sume el total del combo cobrado en `price`.
+        const optPriceNet =
+          (sel.priceModifier || 0) +
+          (sel.variant?.price_modifier || 0) +
+          (sel.selectedIngredients || []).reduce((s, ing) => s + Math.round(ing.price || 0), 0);
 
         return {
           slotId: slot.id,

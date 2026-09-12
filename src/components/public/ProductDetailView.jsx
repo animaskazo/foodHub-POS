@@ -247,7 +247,10 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
             fullName += ` (${sel.variant.name})`;
           }
 
-          const optPriceNet = (sel.priceModifier || 0) + (sel.variant?.price_modifier || 0);
+          const optPriceNet =
+            (sel.priceModifier || 0) +
+            (sel.variant?.price_modifier || 0) +
+            (sel.selectedIngredients || []).reduce((s, ing) => s + Math.round(ing.price || 0), 0);
 
           return {
             slotId: slot.id,
