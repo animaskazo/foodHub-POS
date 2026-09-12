@@ -273,8 +273,8 @@ const OrgBrandingTab = ({ organizationId, onSaved }) => {
         )}
       </div>
 
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={saving || uploadingLogo || uploadingCover} className="bg-black text-white hover:bg-gray-800 font-bold px-6">
+      <div className="flex justify-stretch sm:justify-end">
+        <Button onClick={handleSave} disabled={saving || uploadingLogo || uploadingCover} className="w-full sm:w-auto h-12 bg-black text-white hover:bg-gray-800 font-bold px-6">
           {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Guardar cambios
         </Button>

@@ -33,7 +33,7 @@ const renderDayRow = (dayKey, dayData, onToggle, onTimeChange) => (
     </div>
     <div className="flex flex-col sm:flex-row sm:items-center gap-3">
       {!dayData.closed && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 h-11">
             <Clock className="h-4 w-4 text-gray-400 shrink-0" />
             <input
@@ -195,8 +195,8 @@ const OrgHoursTab = ({ organizationId }) => {
               )
             )}
           </div>
-          <div className="pt-2 flex justify-end">
-            <Button onClick={handleSaveHours} disabled={saving} className="flex items-center gap-2 px-6 bg-black text-white font-bold hover:bg-gray-800 disabled:opacity-50">
+          <div className="pt-2 flex justify-stretch sm:justify-end">
+            <Button onClick={handleSaveHours} disabled={saving} className="w-full sm:w-auto h-12 flex items-center justify-center gap-2 px-6 bg-black text-white font-bold hover:bg-gray-800 disabled:opacity-50">
               {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
               Guardar Horarios
             </Button>
@@ -213,7 +213,7 @@ const OrgHoursTab = ({ organizationId }) => {
             </p>
           </div>
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-4 p-5 bg-white border border-gray-200 rounded-2xl">
+            <div className="flex items-center justify-between gap-3 md:gap-4 p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
               <div className="flex items-center gap-4">
                 <div className="h-11 w-11 rounded-2xl bg-black text-white flex items-center justify-center shrink-0">
                   <Clock className="h-5 w-5" />
@@ -227,7 +227,7 @@ const OrgHoursTab = ({ organizationId }) => {
               </div>
               <Switch checked={instantEnabled} onCheckedChange={setInstantEnabled} />
             </div>
-            <div className="flex items-center justify-between gap-4 p-5 bg-white border border-gray-200 rounded-2xl">
+            <div className="flex items-center justify-between gap-3 md:gap-4 p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
               <div className="flex items-center gap-4">
                 <div className="h-11 w-11 rounded-2xl bg-black text-white flex items-center justify-center shrink-0">
                   <CalendarClock className="h-5 w-5" />
@@ -241,7 +241,7 @@ const OrgHoursTab = ({ organizationId }) => {
               </div>
               <Switch checked={schedulingEnabled} onCheckedChange={setSchedulingEnabled} />
             </div>
-            <div className="flex items-center justify-between gap-4 p-5 bg-white border border-gray-200 rounded-2xl">
+            <div className="flex items-center justify-between gap-3 md:gap-4 p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
               <div className="flex items-center gap-4">
                 <div className="h-11 w-11 rounded-2xl bg-black text-white flex items-center justify-center shrink-0">
                   <Timer className="h-5 w-5" />
@@ -274,8 +274,8 @@ const OrgHoursTab = ({ organizationId }) => {
               )
             )}
           </div>
-          <div className="pt-2 flex justify-end">
-            <Button onClick={handleSavePickupHours} disabled={saving} className="flex items-center gap-2 px-6 bg-black text-white font-bold hover:bg-gray-800 disabled:opacity-50">
+          <div className="pt-2 flex justify-stretch sm:justify-end">
+            <Button onClick={handleSavePickupHours} disabled={saving} className="w-full sm:w-auto h-12 flex items-center justify-center gap-2 px-6 bg-black text-white font-bold hover:bg-gray-800 disabled:opacity-50">
               {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
               Guardar Horarios de Retiro
             </Button>

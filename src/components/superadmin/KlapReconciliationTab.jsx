@@ -244,7 +244,7 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
   };
 
   return (
-    <div className="space-y-6 py-4 animate-in fade-in">
+    <div className="space-y-4 md:space-y-6 animate-in fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-xl border border-gray-200">
         <div>
           <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -254,7 +254,7 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
           <p className="text-sm text-gray-500 mt-1">Sube la liquidación oficial de Klap (CSV/Excel) para cruzar los montos liquidados con tus pedidos.</p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 w-full md:w-auto">
           <input 
             type="file" 
             accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
@@ -262,19 +262,19 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
             ref={fileInputRef}
             onChange={handleFileUpload}
           />
-          <Button 
+          <Button
             onClick={() => fileInputRef.current?.click()}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center gap-2 shadow-sm"
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center justify-center gap-2 shadow-sm h-11"
           >
             <Upload className="h-4 w-4" />
             {csvData ? 'Cambiar Archivo' : 'Subir Liquidación'}
           </Button>
 
           {csvData && (
-            <Button 
+            <Button
               onClick={downloadReport}
               variant="outline"
-              className="flex items-center gap-2 font-medium"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 font-medium h-11"
             >
               Descargar Reporte
             </Button>
@@ -303,21 +303,75 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
       )}
 
       <div className="bg-white border rounded-xl shadow-sm overflow-hidden flex flex-col">
-        <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
+        <div className="p-4 border-b bg-gray-50 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
           <h4 className="font-semibold text-gray-800">Detalle de Transacciones</h4>
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Buscar pedido o Klap ID..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-1.5 border border-gray-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
-        
-        <div className="overflow-x-auto">
+
+        {/* Mobile: cards */}
+        <div className="divide-y md:hidden">
+          {matchedOrders.map(order => {
+            const refCode = order.payments?.[0]?.reference_code;
+            const date = new Date(order.created_at).toLocaleString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+            const isMatched = !!order.klapMatch;
+            return (
+              <div key={order.id} className="px-4 py-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-gray-900">#{order.order_number}</span>
+                  {order.is_klap_reconciled ? (
+                    <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 flex items-center gap-1 w-fit border-none text-[10px]">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Ya Abonado
+                    </Badge>
+                  ) : isMatched ? (
+                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 flex items-center gap-1 w-fit border-none text-[10px]">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Conciliado
+                    </Badge>
+                  ) : csvData ? (
+                    <Badge className="bg-red-50 text-red-600 hover:bg-red-50 flex items-center gap-1 w-fit border border-red-100 text-[10px]">
+                      <XCircle className="h-3 w-3" />
+                      Falta en Klap
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-gray-100 text-gray-500 hover:bg-gray-100 flex items-center gap-1 w-fit border border-gray-200 text-[10px]">
+                      <AlertCircle className="h-3 w-3" />
+                      Esperando CSV
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {date} · {refCode ? `Klap ****${String(refCode).slice(-4)}` : 'Sin Klap ID'}
+                </p>
+                <div className="flex items-center justify-between mt-2 text-sm">
+                  <span className="text-gray-500">POS: <span className="font-bold text-gray-900">${Number(order.total).toLocaleString('es-CL')}</span></span>
+                  {isMatched ? (
+                    <span className="text-green-700 font-bold">Liquida ${Number(order.csvMontoPagado).toLocaleString('es-CL')}</span>
+                  ) : (
+                    <span className="text-gray-400">Sin cruce</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {matchedOrders.length === 0 && (
+            <p className="px-4 py-8 text-center text-gray-500 text-sm">
+              No hay transacciones de Klap en este negocio.
+            </p>
+          )}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-left border-collapse whitespace-nowrap">
             <thead>
               <tr className="bg-gray-50 border-b">

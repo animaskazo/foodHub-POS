@@ -322,10 +322,10 @@ const SuperAdminView = () => {
   return (
     <div className="min-h-full bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b px-4 md:px-8 py-6 shrink-0 flex items-center justify-between sticky top-0 z-10">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Super Admin Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">Gestión individualizada de negocios</p>
+      <header className="bg-white border-b px-4 md:px-8 py-4 md:py-6 shrink-0 flex items-center justify-between sticky top-0 z-10">
+        <div className="min-w-0">
+          <h1 className="text-lg md:text-2xl font-bold text-gray-900 truncate">Super Admin Dashboard</h1>
+          <p className="text-xs md:text-sm text-gray-500 mt-0.5 md:mt-1">Gestión individualizada de negocios</p>
         </div>
       </header>
 
@@ -348,10 +348,46 @@ const SuperAdminView = () => {
              MASTER VIEW: List of all Organizations
              ========================================================= */
           <div className="bg-white rounded-xl border overflow-hidden min-h-[400px]">
-            <div className="px-6 py-4 border-b bg-gray-50">
+            <div className="px-4 md:px-6 py-4 border-b bg-gray-50">
               <h2 className="font-semibold text-gray-800">Negocios Registrados</h2>
             </div>
-            <div className="overflow-x-auto">
+            {/* Mobile: cards */}
+            <div className="divide-y md:hidden">
+              {organizations.map((org) => (
+                <button
+                  key={org.id}
+                  onClick={() => selectOrganization(org, 'overview')}
+                  className="w-full flex items-center gap-3 px-4 py-4 text-left active:bg-gray-50 transition-colors"
+                >
+                  {org.logoUrl ? (
+                    <img src={org.logoUrl} alt={org.name} className="h-11 w-11 rounded-full object-cover bg-gray-100 border shrink-0" />
+                  ) : (
+                    <div className="h-11 w-11 rounded-full bg-gray-100 border flex items-center justify-center shrink-0">
+                      <Building2 className="h-5 w-5 text-gray-500" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-900 truncate">{org.name}</span>
+                      {org.forceClosed && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-200 shrink-0">Cerrada</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {org.orderCount} {org.orderCount === 1 ? 'orden' : 'órdenes'} · ${org.totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-gray-300 shrink-0" />
+                </button>
+              ))}
+              {organizations.length === 0 && (
+                <p className="text-center py-12 text-gray-500 text-sm">
+                  No hay negocios registrados.
+                </p>
+              )}
+            </div>
+            {/* Desktop: table */}
+            <div className="overflow-x-auto hidden md:block">
               <table className="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
                   <tr className="bg-gray-50/50 border-b">
@@ -430,9 +466,9 @@ const SuperAdminView = () => {
                 Volver a Negocios
               </Button>
               
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-3xl font-bold text-gray-900">{selectedOrganization.name}</h2>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-xl md:text-3xl font-bold text-gray-900 truncate">{selectedOrganization.name}</h2>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 mt-2">
                     <p className="text-sm text-gray-500 flex items-center gap-1.5">
                       <Calendar className="h-4 w-4 text-gray-400" /> 
@@ -454,7 +490,7 @@ const SuperAdminView = () => {
             </div>
 
             {/* Detail Tabs */}
-            <div className="flex space-x-1 border-b overflow-x-auto hide-scrollbar">
+            <div className="flex space-x-1 border-b overflow-x-auto hide-scrollbar -mx-4 px-4 md:mx-0 md:px-0 snap-x">
               <Button
                 variant="ghost"
                 onClick={() => setDetailTab('overview')}
@@ -576,7 +612,54 @@ const SuperAdminView = () => {
                       <p>Este negocio no tiene pedidos registrados.</p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto -mx-6 -my-6">
+                    <>
+                    {/* Mobile: cards */}
+                    <div className="divide-y md:hidden -m-4 md:m-0">
+                      {orgOrders.map((order) => {
+                        const orderDate = new Date(order.created_at).toLocaleString('es-CL', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        });
+                        return (
+                          <button
+                            key={order.id}
+                            onClick={() => setSelectedOrder(order)}
+                            className="w-full px-4 py-4 flex items-center gap-3 text-left active:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-gray-900">#{order.order_number}</span>
+                                <span className={`inline-flex px-2 py-0.5 text-[10px] font-bold rounded-full shrink-0 ${
+                                  order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                  order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                  'bg-blue-100 text-blue-800'
+                                }`}>
+                                  {order.status === 'scheduled' ? 'Programado' :
+                                   order.status === 'pending' ? 'Pendiente' :
+                                   order.status === 'confirmed' ? 'Confirmado' :
+                                   order.status === 'preparing' ? 'Preparando' :
+                                   order.status === 'ready' ? 'Listo' :
+                                   order.status === 'completed' ? 'Completado' :
+                                   'Cancelado'}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1 truncate">
+                                {order.customer_name || 'Cliente'} · <span className="capitalize">{order.order_type}</span>{order.delivery_type === 'delivery' ? ' · Despacho' : ' · Retiro'} · {orderDate}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-bold text-gray-900">${Number(order.total || 0).toLocaleString('es-CL')}</p>
+                              <p className="text-[10px] text-gray-500 mt-0.5">{getPaymentMethod(order)}</p>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-gray-300 shrink-0" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {/* Desktop: table */}
+                    <div className="overflow-x-auto -mx-6 -my-6 hidden md:block">
                       <table className="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
                           <tr className="bg-gray-50 border-b">
@@ -667,6 +750,7 @@ const SuperAdminView = () => {
                         </tbody>
                       </table>
                     </div>
+                    </>
                   )}
                 </div>
               )}
@@ -738,7 +822,39 @@ const SuperAdminView = () => {
 
               {/* Users */}
               {detailTab === 'users' && (
-                <div className="overflow-x-auto -mx-6 -my-6">
+                <>
+                {/* Mobile: cards */}
+                <div className="divide-y md:hidden -m-4 md:m-0">
+                  {orgUsers.map((user) => (
+                    <div key={user.id} className="px-4 py-4 flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                        <User className="h-5 w-5 text-gray-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{user.name}</p>
+                        <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(user.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 ${
+                        user.role === 'Client Admin'
+                          ? 'bg-purple-100 text-purple-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {user.role === 'Client Admin' && <Shield className="h-3 w-3" />}
+                        {user.role}
+                      </span>
+                    </div>
+                  ))}
+                  {orgUsers.length === 0 && (
+                    <p className="text-center py-12 text-gray-500 text-sm">
+                      No hay usuarios en esta organización.
+                    </p>
+                  )}
+                </div>
+                {/* Desktop: table */}
+                <div className="overflow-x-auto -mx-6 -my-6 hidden md:block">
                   <table className="w-full text-left border-collapse whitespace-nowrap">
                     <thead>
                       <tr className="bg-gray-50 border-b">
@@ -782,11 +898,12 @@ const SuperAdminView = () => {
                     </tbody>
                   </table>
                 </div>
+                </>
               )}
 
               {/* Klap Reconciliation Tab */}
               {detailTab === 'klap' && (
-                <div className="p-4 md:p-8 animate-in fade-in">
+                <div className="animate-in fade-in">
                   <KlapReconciliationTab orders={orgOrders} onReconciled={() => fetchOrgOrders(selectedOrganization.id)} />
                 </div>
               )}
@@ -847,7 +964,7 @@ const SuperAdminView = () => {
                 <div className="space-y-8">
                   {/* WhatsApp Integration */}
                   <div className="border rounded-xl overflow-hidden">
-                    <div className="p-4 md:p-5 flex items-center justify-between border-b">
+                    <div className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between border-b">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
                           <MessageCircle className="h-5 w-5 text-green-600" />
@@ -857,7 +974,7 @@ const SuperAdminView = () => {
                           <p className="text-xs text-gray-500">Inbox de conversaciones</p>
                         </div>
                       </div>
-                      <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <label className="flex items-center justify-between sm:justify-end gap-3 cursor-pointer select-none w-full sm:w-auto">
                         <span className={`text-sm font-semibold ${selectedOrganization.whatsappInboxEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
                           Visible en el menú
                         </span>
@@ -881,7 +998,7 @@ const SuperAdminView = () => {
                         />
                       </label>
                     </div>
-                    <div className="px-4 md:px-5 py-3 bg-gray-50/50 flex items-center justify-between">
+                    <div className="px-4 md:px-5 py-3 bg-gray-50/50 flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2 text-sm">
                         {selectedOrganization.whatsappInboxUrl ? (
                           <span className="text-green-600 font-medium flex items-center gap-1.5">
@@ -945,7 +1062,7 @@ const SuperAdminView = () => {
 
                   {/* Uber Direct Integration */}
                   <div className="border rounded-xl overflow-hidden">
-                    <div className="p-4 md:p-5 flex items-center justify-between border-b">
+                    <div className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between border-b">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
                           <Globe className="h-5 w-5 text-blue-600" />
@@ -955,7 +1072,7 @@ const SuperAdminView = () => {
                           <p className="text-xs text-gray-500">Delivery a través de Uber</p>
                         </div>
                       </div>
-                      <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <label className="flex items-center justify-between sm:justify-end gap-3 cursor-pointer select-none w-full sm:w-auto">
                         <span className={`text-sm font-semibold ${selectedOrganization.uberEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
                           Visible en el menú
                         </span>
@@ -980,7 +1097,7 @@ const SuperAdminView = () => {
                         />
                       </label>
                     </div>
-                    <div className="px-4 md:px-5 py-3 bg-gray-50/50 flex items-center justify-between">
+                    <div className="px-4 md:px-5 py-3 bg-gray-50/50 flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2 text-sm">
                         {selectedOrganization.uberClientId && selectedOrganization.uberCustomerId ? (
                           <span className="text-green-600 font-medium flex items-center gap-1.5">
@@ -1006,7 +1123,7 @@ const SuperAdminView = () => {
 
                   {/* Dine-In Mode Integration */}
                   <div className="border rounded-xl overflow-hidden">
-                    <div className="p-4 md:p-5 flex items-center justify-between">
+                    <div className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
                           <Store className="h-5 w-5 text-orange-600" />
@@ -1016,7 +1133,7 @@ const SuperAdminView = () => {
                           <p className="text-xs text-gray-500">Permite gestionar mesas y sectores en el POS</p>
                         </div>
                       </div>
-                      <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <label className="flex items-center justify-between sm:justify-end gap-3 cursor-pointer select-none w-full sm:w-auto">
                         <span className={`text-sm font-semibold ${selectedOrganization.dineInEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
                           Habilitado
                         </span>
@@ -1055,20 +1172,70 @@ const SuperAdminView = () => {
                         Abre el editor completo de cada producto, con la misma interfaz que usa la tienda.
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                       <Button
                         variant="outline"
-                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        className="w-full sm:w-auto text-blue-600 border-blue-200 hover:bg-blue-50"
                         onClick={() => setIsAIImportOpen(true)}
                       >
                         <Sparkles className="h-4 w-4 mr-2" /> Importar menú con IA
                       </Button>
-                      <Button onClick={openNewProductEditor}>
+                      <Button onClick={openNewProductEditor} className="w-full sm:w-auto">
                         <Plus className="h-4 w-4 mr-2" /> Nuevo artículo
                       </Button>
                     </div>
                   </div>
-                  <div className="overflow-x-auto -mx-6 -my-6">
+                  {/* Mobile: cards */}
+                  <div className="divide-y md:hidden -m-4 md:m-0">
+                    {orgProducts.map((prod) => (
+                      <div key={prod.id} className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          {prod.product_images?.[0]?.url ? (
+                            <img src={prod.product_images[0].url} alt={prod.name} className="h-12 w-12 rounded-xl object-cover bg-gray-100 border border-gray-200 shrink-0" />
+                          ) : (
+                            <ProductImageFallback logoUrl={selectedOrganization?.logoUrl} alt={prod.name} className="h-12 w-12 rounded-xl shrink-0 border border-gray-200" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 truncate">{prod.name}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {prod.sku || 'Sin SKU'} · ${Number(prod.base_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold shrink-0 ${
+                            prod.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {prod.status === 'available' ? 'Disponible' : prod.status}
+                          </span>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => openFullProductEditor(prod.id)}
+                            className="flex-1 text-xs font-semibold h-10"
+                          >
+                            <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingProductId(prod.id)}
+                            className="flex-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs font-semibold h-10 border border-blue-100"
+                          >
+                            Rápido
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    {orgProducts.length === 0 && (
+                      <p className="text-center py-12 text-gray-500 text-sm">
+                        No hay productos registrados en este negocio.
+                      </p>
+                    )}
+                  </div>
+                  {/* Desktop: table */}
+                  <div className="overflow-x-auto -mx-6 -my-6 hidden md:block">
                     <table className="w-full text-left border-collapse whitespace-nowrap">
                       <thead>
                         <tr className="bg-gray-50 border-b">
@@ -1153,16 +1320,17 @@ const SuperAdminView = () => {
                         Abre el editor completo de cada categoría, con la misma interfaz que usa la tienda.
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => selectedOrganization?.id && fetchOrgCategories(selectedOrganization.id)}
                         disabled={loadingCategories}
+                        className="w-full sm:w-auto h-10"
                       >
                         <RefreshCw className={`h-4 w-4 mr-2 ${loadingCategories ? 'animate-spin' : ''}`} /> Recargar
                       </Button>
-                      <Button onClick={openNewCategoryEditor}>
+                      <Button onClick={openNewCategoryEditor} className="w-full sm:w-auto h-10">
                         <Plus className="h-4 w-4 mr-2" /> Nueva categoría
                       </Button>
                     </div>
@@ -1172,7 +1340,100 @@ const SuperAdminView = () => {
                       <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
                     </div>
                   ) : (
-                    <div className="overflow-x-auto -mx-6 -my-6">
+                    <>
+                    {/* Mobile: cards */}
+                    <div className="divide-y md:hidden -m-4 md:m-0">
+                      {orgCategories.map((cat) => (
+                        <div key={cat.id} className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            {cat.image_url ? (
+                              <img src={cat.image_url} alt={cat.name} className="h-12 w-12 object-cover bg-gray-100 border border-gray-200 rounded-xl shrink-0" />
+                            ) : (
+                              <div className="h-12 w-12 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-center shrink-0">
+                                <Tags className="h-5 w-5 text-gray-400" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-gray-900 truncate">{cat.name}</p>
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                <span className="font-semibold text-gray-900">{cat.product_count || 0}</span>{' '}
+                                {(cat.product_count || 0) === 1 ? 'artículo' : 'artículos'} · {cat.is_active ? 'Activa' : 'Inactiva'}
+                              </p>
+                            </div>
+                            <Switch
+                              checked={cat.is_active}
+                              onCheckedChange={async (checked) => {
+                                const toastId = toast.loading(checked ? 'Activando categoría...' : 'Desactivando categoría...');
+                                try {
+                                  await quickUpdateCategoryStatus(cat.id, checked);
+                                  setOrgCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, is_active: checked } : c));
+                                  toast.success(checked ? 'Categoría activada' : 'Categoría desactivada', { id: toastId });
+                                } catch (err) {
+                                  console.error(err);
+                                  toast.error('Error al actualizar estado', { id: toastId });
+                                }
+                              }}
+                            />
+                          </div>
+                          <div className="flex gap-2 mt-3">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => openFullCategoryEditor(cat.id)}
+                              className="flex-1 text-xs font-semibold h-10"
+                            >
+                              <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                              Editar
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={async () => {
+                                const toastId = toast.loading('Duplicando categoría...');
+                                try {
+                                  await duplicateCategory(cat.id);
+                                  await fetchOrgCategories(selectedOrganization.id);
+                                  toast.success('Categoría duplicada', { id: toastId });
+                                } catch (err) {
+                                  console.error(err);
+                                  toast.error('Error al duplicar', { id: toastId });
+                                }
+                              }}
+                              className="flex-1 text-gray-600 text-xs font-semibold h-10 border border-gray-200"
+                            >
+                              <Copy className="h-3.5 w-3.5 mr-1.5" />
+                              Duplicar
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={async () => {
+                                if (!confirm(`¿Eliminar la categoría "${cat.name}"? Sus artículos quedarán sin categoría.`)) return;
+                                const toastId = toast.loading('Eliminando categoría...');
+                                try {
+                                  await deleteCategory(cat.id);
+                                  setOrgCategories((prev) => prev.filter((c) => c.id !== cat.id));
+                                  toast.success('Categoría eliminada', { id: toastId });
+                                } catch (err) {
+                                  console.error(err);
+                                  toast.error('Error al eliminar', { id: toastId });
+                                }
+                              }}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold h-10 px-3 border border-red-100"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {orgCategories.length === 0 && (
+                        <p className="text-center py-12 text-gray-500 text-sm">
+                          No hay categorías registradas en este negocio.
+                        </p>
+                      )}
+                    </div>
+                    {/* Desktop: table */}
+                    <div className="overflow-x-auto -mx-6 -my-6 hidden md:block">
                       <table className="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
                           <tr className="bg-gray-50 border-b">
@@ -1289,6 +1550,7 @@ const SuperAdminView = () => {
                         </tbody>
                       </table>
                     </div>
+                    </>
                   )}
                 </div>
               )}
