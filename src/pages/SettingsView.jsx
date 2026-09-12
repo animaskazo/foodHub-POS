@@ -79,6 +79,28 @@ const SettingsView = () => {
     localStorage.getItem('pos_auto_print_enabled') === 'true'
   );
 
+  const [ticketExtraMessage, setTicketExtraMessage] = useState('');
+  const [ticketExtraSaving, setTicketExtraSaving] = useState(false);
+  const [ticketExtraSaved, setTicketExtraSaved] = useState(false);
+
+  const handleSaveTicketExtraMessage = async () => {
+    if (!orgId) return;
+    setTicketExtraSaving(true);
+    setTicketExtraSaved(false);
+    try {
+      await updateOrganizationDetails(orgId, {
+        ticket_extra_message: ticketExtraMessage.trim() || null,
+      });
+      setTicketExtraSaved(true);
+      setTimeout(() => setTicketExtraSaved(false), 3000);
+    } catch (err) {
+      console.error('Error saving ticket message:', err);
+      alert('No se pudo guardar el mensaje. Intenta nuevamente.');
+    } finally {
+      setTicketExtraSaving(false);
+    }
+  };
+
   const [klapApiKey, setKlapApiKey] = useState('');
   const [klapApiKeySaving, setKlapApiKeySaving] = useState(false);
   const [klapApiKeyValidating, setKlapApiKeyValidating] = useState(false);
@@ -246,6 +268,7 @@ const SettingsView = () => {
         setClosedMessage(orgData.closed_message || '');
         setPrepTime(orgData.prep_time != null ? orgData.prep_time : 0);
         setKlapApiKey(orgData.klap_api_key || '');
+        setTicketExtraMessage(orgData.ticket_extra_message || '');
         setStaff(staffData);
       }
     } catch (error) {
@@ -1163,10 +1186,51 @@ const SettingsView = () => {
                     />
                   </div>
                   
-{autoPrintEnabled && (<div className="mt-2 p-3 bg-blue-50 text-blue-800 rounded-lg text-sm">
+ {autoPrintEnabled && (<div className="mt-2 p-3 bg-blue-50 text-blue-800 rounded-lg text-sm">
                        Los pedidos se imprimirán automáticamente en la impresora seleccionada arriba.
                      </div>)}
-                 </div>
+                  </div>
+
+                  {/* Mensaje personalizado en ticket */}
+                  <div className="border border-gray-200 rounded-xl p-4">
+                    <h3 className="font-bold text-gray-900 text-lg">Mensaje personalizado</h3>
+                    <p className="text-gray-500 text-sm mt-1">
+                      Tras imprimir el voucher y cortar el papel, saldrá un segundo ticket con este mensaje.
+                      Si el pedido tiene nombre de cliente guardado, se agrega un saludo: Hola cliente.
+                      Déjalo vacío para imprimir solo el voucher.
+                    </p>
+                    <textarea
+                      value={ticketExtraMessage}
+                      onChange={(e) => setTicketExtraMessage(e.target.value.slice(0, 500))}
+                      rows={4}
+                      placeholder={'Ej: Presenta este ticket en tu próxima visita y obtén un 10% de descuento.'}
+                      className="mt-3 w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black resize-y"
+                    />
+                    <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-3">
+                      <button
+                        onClick={handleSaveTicketExtraMessage}
+                        disabled={ticketExtraSaving}
+                        className="bg-black text-white font-bold py-2.5 px-6 rounded-xl hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50 w-full sm:w-auto"
+                      >
+                        {ticketExtraSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        Guardar mensaje
+                      </button>
+                      <span className="text-xs text-gray-400">{ticketExtraMessage.length}/500</span>
+                      {ticketExtraSaved && (
+                        <span className="text-xs text-emerald-600 flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Mensaje guardado
+                        </span>
+                      )}
+                    </div>
+                    {ticketExtraMessage.trim() && (
+                      <div className="mt-4 bg-gray-50 border border-gray-200 rounded-xl p-4 max-w-[280px] mx-auto text-center">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Vista previa 2º ticket</p>
+                        <p className="font-bold text-sm">Hola Cliente,</p>
+                        <p className="text-sm mt-2 whitespace-pre-wrap break-words">{ticketExtraMessage.trim()}</p>
+                        <p className="font-bold text-sm mt-3">¡Gracias por su visita!</p>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Guía de Configuración */}
                   <div className="border-t border-gray-200 pt-8">

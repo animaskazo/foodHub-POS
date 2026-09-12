@@ -246,6 +246,25 @@ def format_receipt(order_data, organization_data=None):
     buffer += FEED_LINES(3)
     buffer += CUT_PAPER
 
+    # ── Segundo ticket: mensaje personalizado (tras el corte) ──
+    # Sin número de pedido: solo saludo + mensaje + despedida.
+    extra_message = str(order.get('extra_message', '') or '').strip()
+    if extra_message:
+        extra_greeting = str(order.get('extra_greeting', '') or '').strip()
+        buffer += FEED_LINES(2)
+        buffer += ALIGN_CENTER + encode_text(SOLID) + b'\n'
+        for line in _wrap(store_name, WIDTH) or ['']:
+            buffer += ALIGN_CENTER + BOLD_ON + encode_text(line) + b'\n' + BOLD_OFF
+        buffer += ALIGN_CENTER + encode_text(DASHED) + b'\n'
+        if extra_greeting:
+            for line in _wrap(extra_greeting, WIDTH):
+                buffer += ALIGN_CENTER + BOLD_ON + encode_text(line) + b'\n' + BOLD_OFF
+        for line in _wrap(extra_message, WIDTH):
+            buffer += ALIGN_CENTER + encode_text(line) + b'\n'
+        buffer += ALIGN_CENTER + BOLD_ON + encode_text('¡Gracias por su visita!') + b'\n' + BOLD_OFF
+        buffer += FEED_LINES(3)
+        buffer += CUT_PAPER
+
     return bytes(buffer)
 
 

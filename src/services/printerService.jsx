@@ -15,24 +15,44 @@ const findMountedReceipt = (order) => {
   return els[0] || null;
 };
 
-const buildReceiptNode = async (order, organization) => {
-  // Montaje React real (no static markup): así corren los useEffect y el
-  // <canvas> del QR de WhatsApp queda pintado con sus píxeles.
+// Mensaje del segundo ticket (tras el corte). Vacío = solo voucher.
+export const getExtraTicketMessage = (organization) =>
+  (organization?.ticket_extra_message || '').trim();
+
+const mountNode = async (Component, props, containerClass) => {
   const React = (await import('react')).default;
   const { createRoot } = await import('react-dom/client');
   const { flushSync } = await import('react-dom');
-  const { default: PrintableReceipt } = await import('../components/pos/PrintableReceipt');
   const holder = document.createElement('div');
-  holder.className = 'print-receipt-container';
+  holder.className = containerClass;
   holder.style.cssText =
     'position:fixed;left:-10000px;top:0;opacity:1;pointer-events:none;z-index:-1;background:#fff;width:80mm;';
   document.body.appendChild(holder);
   const root = createRoot(holder);
   flushSync(() => {
-    root.render(React.createElement(PrintableReceipt, { order, organization }));
+    root.render(React.createElement(Component, props));
   });
   holder.__unmount = () => root.unmount();
+  return holder;
+};
+
+const buildReceiptNode = async (order, organization) => {
+  // Montaje React real (no static markup): así corren los useEffect y el
+  // <canvas> del QR de WhatsApp queda pintado con sus píxeles.
+  const { default: PrintableReceipt } = await import('../components/pos/PrintableReceipt');
+  const holder = await mountNode(PrintableReceipt, { order, organization }, 'print-receipt-container');
   // Un tick para asegurar paint del canvas del QR antes de capturar.
+  await new Promise((r) => setTimeout(r, 30));
+  return holder;
+};
+
+const buildExtraTicketNode = async (order, organization, message) => {
+  const { default: PrintableExtraTicket } = await import('../components/pos/PrintableExtraTicket');
+  const holder = await mountNode(
+    PrintableExtraTicket,
+    { organization, customerName: order?.customer_name || '', message },
+    'print-extra-ticket-container'
+  );
   await new Promise((r) => setTimeout(r, 30));
   return holder;
 };
@@ -82,13 +102,7 @@ const isBlankCanvas = (canvas) => {
   }
 };
 
-const captureReceiptCanvas = async (order, organization, width = RASTER_WIDTH) => {
-  let src = findMountedReceipt(order);
-  let built = null;
-  if (!src) {
-    built = await buildReceiptNode(order, organization);
-    src = built;
-  }
+const rasterizeNode = async (src, width = RASTER_WIDTH) => {
   const hold = src.cloneNode(true);
   hold.id = 'foodhub-print-capture';
   // OJO: debe quedar DENTRO del viewport. html-to-image rasteriza con el motor
@@ -123,14 +137,39 @@ const captureReceiptCanvas = async (order, organization, width = RASTER_WIDTH) =
     });
   } finally {
     hold.remove();
-    if (built) {
-      try {
-        built.__unmount?.();
-      } catch {
-        /* noop */
-      }
-      built.remove();
-    }
+  }
+};
+
+const unmountBuilt = (built) => {
+  if (!built) return;
+  try {
+    built.__unmount?.();
+  } catch {
+    /* noop */
+  }
+  built.remove();
+};
+
+const captureReceiptCanvas = async (order, organization, width = RASTER_WIDTH) => {
+  let src = findMountedReceipt(order);
+  let built = null;
+  if (!src) {
+    built = await buildReceiptNode(order, organization);
+    src = built;
+  }
+  try {
+    return await rasterizeNode(src, width);
+  } finally {
+    unmountBuilt(built);
+  }
+};
+
+const captureExtraTicketCanvas = async (order, organization, message, width = RASTER_WIDTH) => {
+  const built = await buildExtraTicketNode(order, organization, message);
+  try {
+    return await rasterizeNode(built, width);
+  } finally {
+    unmountBuilt(built);
   }
 };
 
@@ -142,6 +181,13 @@ const saveSimulatedPdf = async (order, organization) => {
   const imgH = (canvas.height / canvas.width) * imgW;
   const pdf = new JSPDF({ unit: 'mm', format: [80, imgH + 10], compress: true });
   pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 2, 5, imgW, imgH);
+  const extraMessage = getExtraTicketMessage(organization);
+  if (extraMessage) {
+    const extraCanvas = await captureExtraTicketCanvas(order, organization, extraMessage);
+    const extraH = (extraCanvas.height / extraCanvas.width) * imgW;
+    pdf.addPage([80, extraH + 10]);
+    pdf.addImage(extraCanvas.toDataURL('image/png'), 'PNG', 2, 5, imgW, extraH);
+  }
   const ticketId = order?.id || order?.order_number || 'ticket';
   const safeId = String(ticketId).replace(/[^\w-]/g, '') || 'ticket';
   pdf.save(`FoodHub-Ticket-${safeId}.pdf`);
@@ -166,6 +212,12 @@ const sendToPythonPrinter = async (printerName, order, organization, imageDataUr
   const paymentDisplay = getPaymentMethodFromOrder(order);
   const paymentRef = order?.payments?.[0]?.reference_code;
   const isPaid = !(order?.payments?.some(p => p.status === 'pending'));
+  // Segundo ticket (solo lo usa el servidor en modo texto; en modo raster
+  // el frontend envía el ticket extra como una segunda petición /print).
+  const extraMessage = getExtraTicketMessage(organization);
+  const extraGreeting = (order?.customer_name || '').trim()
+    ? `Hola ${(order.customer_name || '').trim()},`
+    : '';
 
   const payload = {
     store_name: organization?.name || '',
@@ -196,6 +248,8 @@ const sendToPythonPrinter = async (printerName, order, organization, imageDataUr
     is_paid: isPaid,
     payment_display: isPaid && paymentDisplay ? `${paymentDisplay}${paymentRef ? ` · ID ${paymentRef}` : ''}` : '',
     printer_name: printerName,
+    extra_message: extraMessage,
+    extra_greeting: extraGreeting,
   };
   if (imageDataUrl) {
     payload.image = imageDataUrl;
@@ -282,6 +336,19 @@ export const printReceipt = async (order, organization, printerName, _retry = fa
     const image = canvas.toDataURL('image/png');
     const result = await sendToPythonPrinter(printerName, order, organization, image);
     console.log('Ticket impreso (HTML -> raster) en', printerName, '| modo:', result?.mode);
+
+    // Segundo ticket con el mensaje personalizado (tras el corte del voucher).
+    const extraMessage = getExtraTicketMessage(organization);
+    if (extraMessage) {
+      try {
+        const extraCanvas = await captureExtraTicketCanvas(order, organization, extraMessage);
+        await sendToPythonPrinter(printerName, order, organization, extraCanvas.toDataURL('image/png'));
+        console.log('Segundo ticket (mensaje) impreso en', printerName);
+      } catch (extraError) {
+        console.error('Error al imprimir el segundo ticket:', extraError);
+        throw new Error('Voucher impreso, pero falló el segundo ticket (mensaje). Revisa la impresora antes de reintentar solo el mensaje.');
+      }
+    }
     return true;
   } catch (error) {
     console.error('Error al imprimir:', error);
@@ -303,19 +370,43 @@ export const printReceipt = async (order, organization, printerName, _retry = fa
 };
 
 export const printReceiptAsPDF = async (order, organization) => {
+  let combined = null;
+  let builtExtra = null;
   try {
     const printJS = (await import('print-js')).default;
 
     const receiptEl = document.querySelector('.print-receipt-container');
     if (!receiptEl) throw new Error('No se encontró el ticket en el DOM');
-    if (!receiptEl.id) receiptEl.id = 'foodhub-print-ticket';
+
+    let printableId = receiptEl.id || 'foodhub-print-ticket';
+    receiptEl.id = printableId;
+
+    // Segundo ticket con el mensaje: se anexa como segunda página.
+    const extraMessage = getExtraTicketMessage(organization);
+    if (extraMessage) {
+      builtExtra = await buildExtraTicketNode(order, organization, extraMessage);
+      combined = document.createElement('div');
+      combined.id = 'foodhub-print-combined';
+      combined.style.cssText =
+        'position:fixed;left:0;top:0;pointer-events:none;z-index:-10000;background:#fff;width:80mm;margin:0;';
+      const receiptClone = receiptEl.cloneNode(true);
+      receiptClone.removeAttribute('id');
+      const breakEl = document.createElement('div');
+      breakEl.className = 'extra-ticket-break';
+      combined.appendChild(receiptClone);
+      combined.appendChild(breakEl);
+      combined.appendChild(builtExtra.cloneNode(true));
+      document.body.appendChild(combined);
+      printableId = combined.id;
+    }
 
     printJS({
-      printable: receiptEl.id,
+      printable: printableId,
       type: 'html',
       scanStyles: false,
       style: `
         @page { size: 80mm auto; margin: 0; }
+        .extra-ticket-break { page-break-before: always; break-before: page; }
         body { width: 80mm; margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.4; color: black; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         #foodhub-print-ticket { position: static !important; left: auto !important; top: auto !important; opacity: 1 !important; pointer-events: auto !important; z-index: auto !important; display: block !important; width: 80mm !important; margin: 0 !important; padding: 0 !important; background: white !important; }
         #foodhub-print-ticket, #foodhub-print-ticket * { visibility: visible !important; }
@@ -410,5 +501,8 @@ export const printReceiptAsPDF = async (order, organization) => {
   } catch (error) {
     console.error('Error opening print dialog:', error);
     throw error;
+  } finally {
+    if (combined) combined.remove();
+    unmountBuilt(builtExtra);
   }
 };

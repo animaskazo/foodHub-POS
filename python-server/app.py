@@ -670,6 +670,8 @@ def print_receipt_api():
             'payments': data.get('payments', []),
             'is_paid': data.get('is_paid', True),
             'payment_display': data.get('payment_display', ''),
+            'extra_message': (data.get('extra_message') or '').strip(),
+            'extra_greeting': (data.get('extra_greeting') or '').strip(),
         }
         organization_data = {
             'name': data.get('store_name', ''),
