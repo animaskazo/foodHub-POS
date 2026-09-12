@@ -1,6 +1,18 @@
 const PYTHON_API = 'http://localhost:8088';
 const RASTER_WIDTH = 576;
 
+// iOS Safari no imprime iframes ocultos (el mecanismo que usa print-js),
+// por lo que el PDF sale en blanco. En ese caso se genera el PDF con
+// jsPDF a partir del ticket rasterizado y se abre en una pestaña nueva.
+const isIOSSafari = () => {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isSafari = /^((?!chrome|android|crios|fxios|edgios).)*safari/i.test(ua);
+  return isIOS && isSafari;
+};
+
 const findMountedReceipt = (order) => {
   const els = Array.from(document.querySelectorAll('.print-receipt-container')) || [];
   if (els.length <= 1) return els[0] || null;
@@ -173,7 +185,7 @@ const captureExtraTicketCanvas = async (order, organization, message, width = RA
   }
 };
 
-const saveSimulatedPdf = async (order, organization) => {
+const buildTicketPdf = async (order, organization) => {
   const canvas = await captureReceiptCanvas(order, organization);
   const jsPdfMod = await import('jspdf');
   const JSPDF = jsPdfMod.default || jsPdfMod;
@@ -188,9 +200,35 @@ const saveSimulatedPdf = async (order, organization) => {
     pdf.addPage([80, extraH + 10]);
     pdf.addImage(extraCanvas.toDataURL('image/png'), 'PNG', 2, 5, imgW, extraH);
   }
+  return pdf;
+};
+
+const saveSimulatedPdf = async (order, organization) => {
+  const pdf = await buildTicketPdf(order, organization);
   const ticketId = order?.id || order?.order_number || 'ticket';
   const safeId = String(ticketId).replace(/[^\w-]/g, '') || 'ticket';
   pdf.save(`FoodHub-Ticket-${safeId}.pdf`);
+  return true;
+};
+
+// Ruta iOS Safari: abre el PDF en una pestaña nueva (visor del sistema,
+// desde donde se puede compartir o imprimir por AirPrint).
+const printReceiptAsPDF_IOS = async (order, organization) => {
+  const pdf = await buildTicketPdf(order, organization);
+  const blob = pdf.output('blob');
+  const url = URL.createObjectURL(blob);
+  try {
+    const win = window.open(url, '_blank');
+    if (!win) {
+      // Popup bloqueado: descargar como respaldo.
+      const ticketId = order?.id || order?.order_number || 'ticket';
+      const safeId = String(ticketId).replace(/[^\w-]/g, '') || 'ticket';
+      pdf.save(`FoodHub-Ticket-${safeId}.pdf`);
+    }
+  } finally {
+    // Liberar el objeto un poco después para que la pestaña alcance a cargarlo.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
   return true;
 };
 
@@ -370,8 +408,21 @@ export const printReceipt = async (order, organization, printerName, _retry = fa
 };
 
 export const printReceiptAsPDF = async (order, organization) => {
+  // En iPhone/iPad el iframe de print-js sale en blanco: usar ruta jsPDF.
+  if (isIOSSafari()) {
+    console.log('iOS Safari detectado: generando PDF con jsPDF');
+    return printReceiptAsPDF_IOS(order, organization);
+  }
+
   let combined = null;
   let builtExtra = null;
+  let cleanedUp = false;
+  const cleanupTempDom = () => {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    if (combined) combined.remove();
+    unmountBuilt(builtExtra);
+  };
   try {
     const printJS = (await import('print-js')).default;
 
@@ -407,6 +458,8 @@ export const printReceiptAsPDF = async (order, organization) => {
       style: `
         @page { size: 80mm auto; margin: 0; }
         .extra-ticket-break { page-break-before: always; break-before: page; }
+        #foodhub-print-combined { position: static !important; left: auto !important; top: auto !important; opacity: 1 !important; pointer-events: auto !important; z-index: auto !important; display: block !important; width: 80mm !important; margin: 0 !important; padding: 0 !important; background: white !important; }
+        #foodhub-print-combined, #foodhub-print-combined * { visibility: visible !important; }
         body { width: 80mm; margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 13px; line-height: 1.4; color: black; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         #foodhub-print-ticket { position: static !important; left: auto !important; top: auto !important; opacity: 1 !important; pointer-events: auto !important; z-index: auto !important; display: block !important; width: 80mm !important; margin: 0 !important; padding: 0 !important; background: white !important; }
         #foodhub-print-ticket, #foodhub-print-ticket * { visibility: visible !important; }
@@ -492,17 +545,20 @@ export const printReceiptAsPDF = async (order, organization) => {
         .bg-black { background: #000; }
         .bg-gray-100 { background: #f3f4f6; }
       `,
-      onPrintDialogClose: () => console.log('Print dialog closed'),
+      onPrintDialogClose: () => {
+        console.log('Print dialog closed');
+        cleanupTempDom();
+      },
       onError: (e) => { throw e; },
     });
 
     console.log('Print dialog opened via print-js');
+    // Respaldo: si el diálogo no reporta el cierre, limpiar igual.
+    setTimeout(cleanupTempDom, 10_000);
     return true;
   } catch (error) {
     console.error('Error opening print dialog:', error);
+    cleanupTempDom();
     throw error;
-  } finally {
-    if (combined) combined.remove();
-    unmountBuilt(builtExtra);
   }
 };
