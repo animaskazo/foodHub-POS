@@ -54,23 +54,23 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
 
         {/* Customer Info */}
         {(order.customer_name || order.customer_phone || order.delivery_address) && (
-          <div className="mb-4 flex justify-between items-start gap-2">
-            <div className="flex-1">
-              <div className="receipt-section-title">Datos del Cliente</div>
-              {order.customer_name && <p className="font-bold text-sm uppercase">{order.customer_name}</p>}
-              {order.delivery_address && (
-                <p className="mt-1 leading-tight">{order.delivery_address}</p>
-              )}
-              {order.customer_phone && <p className="mt-1">Tel: {order.customer_phone}</p>}
-            </div>
+          <div className="mb-4 text-center">
+            <div className="receipt-section-title">Datos del Cliente</div>
+            {order.customer_name && (
+              <p className="font-bold uppercase leading-tight" style={{ fontSize: 20 }}>{order.customer_name}</p>
+            )}
+            {order.delivery_address && (
+              <p className="mt-1 leading-tight">{order.delivery_address}</p>
+            )}
             {waLink && (
-              <div className="flex flex-col items-center shrink-0">
-                <div className="bg-white p-1 border border-black rounded inline-block">
-                  {/* size 240px interno, 64px visual: nítido en capturas y térmica */}
-                  <QRCodeCanvas value={waLink} size={240} level="M" includeMargin style={{ width: 64, height: 64 }} />
-                </div>
-                <p className="text-[6px] font-semibold mt-0.5 uppercase tracking-tight text-center leading-none text-gray-500">WhatsApp</p>
+              <div className="mt-2 mx-auto" style={{ width: '50%' }}>
+                {/* Sin marco: el QR incluye su margen blanco interno */}
+                <QRCodeCanvas value={waLink} size={512} level="M" includeMargin style={{ width: '100%', height: 'auto', display: 'block' }} />
+                <p className="text-[8px] font-semibold mt-1 uppercase tracking-tight text-center leading-none text-gray-500">WhatsApp</p>
               </div>
+            )}
+            {order.customer_phone && (
+              <p className="mt-1 text-center leading-tight" style={{ overflowWrap: 'anywhere' }}>Tel: {order.customer_phone}</p>
             )}
           </div>
         )}
