@@ -31,6 +31,33 @@ const findMountedReceipt = (order) => {
 export const getExtraTicketMessage = (organization) =>
   (organization?.ticket_extra_message || '').trim();
 
+// El logo (<img>) puede tardar más que el tick de 30ms en descargarse;
+// si se rasteriza antes, el ticket sale sin logo (falla intermitente).
+// Se espera a que todas las imágenes del nodo estén listas, con timeout.
+const waitForImages = async (node, timeoutMs = 2500) => {
+  try {
+    const imgs = Array.from(node.querySelectorAll('img'));
+    if (imgs.length === 0) return;
+    await Promise.race([
+      Promise.all(
+        imgs.map((img) => {
+          if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+          return Promise.race([
+            (img.decode ? img.decode() : Promise.resolve()).catch(() => {}),
+            new Promise((resolve) => {
+              img.addEventListener('load', resolve, { once: true });
+              img.addEventListener('error', resolve, { once: true });
+            }),
+          ]);
+        })
+      ),
+      new Promise((resolve) => setTimeout(resolve, timeoutMs)),
+    ]);
+  } catch {
+    /* ante cualquier duda se captura igual */
+  }
+};
+
 const mountNode = async (Component, props, containerClass) => {
   const React = (await import('react')).default;
   const { createRoot } = await import('react-dom/client');
@@ -53,8 +80,10 @@ const buildReceiptNode = async (order, organization) => {
   // <canvas> del QR de WhatsApp queda pintado con sus píxeles.
   const { default: PrintableReceipt } = await import('../components/pos/PrintableReceipt');
   const holder = await mountNode(PrintableReceipt, { order, organization }, 'print-receipt-container');
-  // Un tick para asegurar paint del canvas del QR antes de capturar.
+  // Un tick para asegurar paint del canvas del QR antes de capturar,
+  // más espera a que el logo termine de descargarse.
   await new Promise((r) => setTimeout(r, 30));
+  await waitForImages(holder);
   return holder;
 };
 
@@ -66,6 +95,7 @@ const buildExtraTicketNode = async (order, organization, message) => {
     'print-extra-ticket-container'
   );
   await new Promise((r) => setTimeout(r, 30));
+  await waitForImages(holder);
   return holder;
 };
 
@@ -115,6 +145,9 @@ const isBlankCanvas = (canvas) => {
 };
 
 const rasterizeNode = async (src, width = RASTER_WIDTH) => {
+  // También cuando el ticket ya está montado en la vista (POS): el logo
+  // puede seguir descargándose; esperar antes de clonar.
+  await waitForImages(src);
   const hold = src.cloneNode(true);
   hold.id = 'foodhub-print-capture';
   // OJO: debe quedar DENTRO del viewport. html-to-image rasteriza con el motor
