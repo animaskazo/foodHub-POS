@@ -160,11 +160,12 @@ const DeliverySettingsView = () => {
 
       // Se permite arreglo vacío: ambos métodos apagados (solo retiro en checkout).
       // delivery_mode legacy se conserva por compatibilidad.
+      // delivery_enabled deriva de los switches por método (sin switch maestro).
       const modesToSave = (deliveryData.delivery_modes || [])
         .filter(m => m === 'own' || m === 'uber_direct');
 
       const basePayload = {
-        delivery_enabled: deliveryData.delivery_enabled,
+        delivery_enabled: modesToSave.length > 0,
         delivery_mode: modesToSave[0] || deliveryData.delivery_mode || 'own',
         store_lat: deliveryData.store_lat,
         store_lng: deliveryData.store_lng,
@@ -377,24 +378,6 @@ const DeliverySettingsView = () => {
 
         <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-8 space-y-6">
 
-          <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl">
-            <div>
-              <h4 className="font-bold text-sm text-gray-800">Habilitar Delivery</h4>
-              <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
-                Activa o desactiva la opción de entregas a domicilio para tus clientes.
-              </p>
-            </div>
-            <Switch
-              checked={deliveryData.delivery_enabled}
-              onCheckedChange={(checked) => {
-                setDeliveryData({ ...deliveryData, delivery_enabled: checked });
-                setHasChanges(true);
-              }}
-            />
-          </div>
-
-          {deliveryData.delivery_enabled && (
-            <>
               <p className="text-xs text-gray-500 -mt-3">
                 Navega entre cada método y actívalo por separado: el cliente elegirá en el checkout.
               </p>
@@ -1125,8 +1108,6 @@ const DeliverySettingsView = () => {
                   )}
                 </div>
               )}
-            </>
-          )}
 
           <div className="pt-6 border-t border-gray-100"></div>
         </div>
