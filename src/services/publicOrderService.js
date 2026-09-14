@@ -55,6 +55,7 @@ export const getPublicCatalog = async (organizationId) => {
         status,
         type,
         sort_order,
+        is_featured,
         video_url,
         product_categories (
           categories ( id, name )
@@ -156,6 +157,7 @@ export const getPublicCatalog = async (organizationId) => {
       bundleMaxTotal,
       type: p.type || 'physical',
       sortOrder: p.sort_order ?? Number.MAX_SAFE_INTEGER,
+      isFeatured: p.is_featured || false,
       category: catInfo?.name || 'General',
       categoryId: catInfo?.id || 'none',
       image: p.product_images?.[0]?.url || null,

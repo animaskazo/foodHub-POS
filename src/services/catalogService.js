@@ -248,6 +248,7 @@ export const getProducts = async (organizationId, filters = {}) => {
       bundleMaxTotal,
       type: product.type || 'physical',
       sortOrder: product.sort_order ?? Number.MAX_SAFE_INTEGER,
+      isFeatured: product.is_featured || false,
       category: categoryInfo?.name || 'General',
       categoryId: categoryInfo?.id || 'none',
       image: product.product_images?.[0]?.url || null,
@@ -385,6 +386,7 @@ export const createProduct = async (organizationId, productData) => {
         gtin: productData.gtin || null,
         type: productData.type === 'Servicio' ? 'service' : (productData.type === 'Combo / Promoción' || productData.type === 'bundle' ? 'bundle' : 'physical'),
         status: productData.status || 'available',
+        is_featured: productData.isFeatured || false,
         video_url: productData.videoUrl || null,
         sort_order: nextSortOrder
       }
@@ -618,6 +620,7 @@ export const getProductById = async (id) => {
     data.categoryId = data.product_categories?.[0]?.category_id || 'none';
     data.imageUrl = data.product_images?.[0]?.url || '';
     data.videoUrl = data.video_url || '';
+    data.isFeatured = data.is_featured || false;
     
     // Extraer variantes del último grupo (el más reciente)
     if (data.variant_groups && data.variant_groups.length > 0) {
@@ -677,6 +680,10 @@ export const updateProduct = async (id, productData) => {
   
   if (productData.status !== undefined) {
     updatePayload.status = productData.status;
+  }
+
+  if (productData.isFeatured !== undefined) {
+    updatePayload.is_featured = productData.isFeatured;
   }
 
   const { data, error } = await supabase
