@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard, PaperBag, Info, CalendarClock, Clock, ChefHat } from 'lucide-react';
+import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard, PaperBag, Info, CalendarClock, Clock, ChefHat, Truck } from 'lucide-react';
 import { getCustomerByPhone } from '../../services/publicOrderService';
 import { geocodeAddress, calculateDistance, isPointInPolygon, findDeliveryZoneForLocation } from '../../utils/geo';
 import { getAccessToken, createQuote } from '../../services/uberDirectService';
@@ -162,7 +162,22 @@ export const formatChileanPhone = (value) => {
 
 const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePayments = true, acceptsLocalPayments = true, organizationId, org, cartItems = [], isOpen = true }) => {
   const uberEnabled = org?.uber_enabled !== false;
-  const deliveryMode = !uberEnabled && org?.delivery_mode === 'uber_direct' ? 'own' : org?.delivery_mode;
+  // ── Triple deliveryType (pickup|own|uber): modos ofrecidos por el local ──
+  // Fuente: organizations.delivery_modes (nuevo). Fallback legacy delivery_mode
+  // solo cuando la columna aún no existe (undefined). Un arreglo vacío [] significa
+  // ambos métodos apagados explícitamente (solo retiro).
+  const legacyMode = org?.delivery_mode || 'own';
+  const configuredModes = Array.isArray(org?.delivery_modes)
+    ? org.delivery_modes
+    : [legacyMode];
+  // Compat legacy: si Uber está apagado por super-admin y el local era solo-Uber,
+  // se ofrece delivery propio (mismo fallback que antes del modo triple).
+  const effectiveModes = (!uberEnabled && configuredModes.length === 1 && configuredModes[0] === 'uber_direct')
+    ? ['own']
+    : configuredModes;
+  const canOwn = effectiveModes.includes('own');
+  const canUber = effectiveModes.includes('uber_direct') && uberEnabled;
+  const hasDeliveryOptions = (canOwn || canUber) && org?.delivery_enabled === true;
   const instantAvailable = canOrderNow(org);
   const schedulingEnabled = org?.scheduling_enabled === true;
   const showScheduleSection = schedulingEnabled;
@@ -217,7 +232,10 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   });
   const nowBlocked = form.scheduleType === 'now' && (isClosed || !instantAvailable);
   const scheduledBlocked = showScheduleSection && form.scheduleType === 'scheduled' && !form.scheduledAt;
-  const isUberDelivery = form.deliveryType === 'delivery' && deliveryMode === 'uber_direct';
+  // Triple deliveryType: 'pickup' | 'own' | 'uber' (legacy 'delivery' = propio)
+  const isUberDelivery = form.deliveryType === 'uber';
+  const isOwnDelivery = form.deliveryType === 'own' || form.deliveryType === 'delivery';
+  const isAnyDelivery = isUberDelivery || isOwnDelivery;
   const uberOnlineBlocked = isUberDelivery && acceptsOnlinePayments !== true;
   const [scheduleDate, setScheduleDate] = useState(() => dateInput(new Date()));
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -293,6 +311,33 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     }
   };
 
+  // ── Selección de método de entrega (triple): resetea el estado del otro método ──
+  const selectDeliveryMethod = (method) => {
+    setForm(f => {
+      if (f.deliveryType === method) return f;
+      return {
+        ...f,
+        deliveryType: method,
+        deliveryFee: 0,
+        quoteId: null,
+        quotePrice: null,
+        matchedZone: null,
+      };
+    });
+    setDistanceError(null);
+    setIsValidatedAddress(false);
+    setErrors(e => ({ ...e, deliveryAddress: null }));
+  };
+
+  // ── Fallback: Uber sin cobertura → re-validar la misma dirección como propio ──
+  const handleFallbackToOwn = () => {
+    const coords = form.deliveryCoords || null;
+    selectDeliveryMethod('own');
+    // selectDeliveryMethod resetea isValidatedAddress (async); forzamos método 'own'
+    // para no depender del estado pendiente y reutilizamos las coords ya resueltas.
+    setTimeout(() => handleAddressBlur(coords, 'own'), 0);
+  };
+
   const validate = () => {
     const errs = {};
     if (!form.name.trim()) errs.name = 'El nombre es requerido';
@@ -310,11 +355,11 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       errs.email = 'Ingresa un email válido';
     }
-    if (form.deliveryType === 'delivery') {
+    if (form.deliveryType === 'own' || form.deliveryType === 'uber' || form.deliveryType === 'delivery') {
       if (!form.deliveryAddress?.trim()) {
         errs.deliveryAddress = 'La dirección de entrega es requerida';
       } else if (!isValidatedAddress) {
-        if (deliveryMode === 'uber_direct') {
+        if (form.deliveryType === 'uber') {
           errs.deliveryAddress = 'Por favor presiona "Validar" para verificar tu dirección';
         } else if (org?.store_lat && org?.store_lng) {
           errs.deliveryAddress = 'Por favor selecciona o valida una dirección válida en el mapa (presiona enter)';
@@ -392,11 +437,14 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     onSubmit(form);
   };
 
-  const handleAddressBlur = async (preFetchedCoords = null) => {
+  const handleAddressBlur = async (preFetchedCoords = null, forcedMethod = null) => {
+    const method = forcedMethod || form.deliveryType;
+    if (method !== 'own' && method !== 'uber' && method !== 'delivery') return;
+    const isUberMethod = method === 'uber';
     if (!form.deliveryAddress?.trim() && !preFetchedCoords) return;
-    if (isValidatedAddress && !preFetchedCoords) return;
-    // Para modo 'own': necesita store_lat/lng solo si no hay ninguna zona de polígono activa
-    if (deliveryMode !== 'uber_direct') {
+    if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
+    // Para delivery propio: necesita store_lat/lng solo si no hay ninguna zona de polígono activa
+    if (!isUberMethod) {
       const allZones = org?.delivery_zones || org?.settings?.delivery_zones || [];
       const activeZones = allZones.filter(z => z.is_active !== false);
       const hasPolygonZone = activeZones.some(z => z.type === 'polygon' && z.polygon?.length >= 3);
@@ -409,7 +457,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     try {
       const coords = preFetchedCoords || await geocodeAddress(form.deliveryAddress);
       if (coords) {
-        if (deliveryMode === 'uber_direct') {
+        if (isUberMethod) {
           setDistanceError(null);
           setIsValidatedAddress(true);
           update('deliveryCoords', coords);
@@ -518,7 +566,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             const price = currency === 'CLP' ? Math.round(rawFee / 100) : rawFee / 100;
 
             setForm(f => {
-              if (f.deliveryType === 'pickup') return f;
+              if (f.deliveryType !== method) return f;
               return {
                 ...f,
                 quoteId: quoteRes.id,
@@ -579,7 +627,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             
             setDistanceError(errMsg);
             setIsValidatedAddress(false);
-            setForm(f => f.deliveryType === 'pickup' ? f : { ...f, deliveryFee: 0 });
+            setForm(f => (f.deliveryType !== method ? f : { ...f, deliveryFee: 0, quoteId: null, quotePrice: null }));
           } finally {
             setIsQuoting(false);
           }
@@ -593,7 +641,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           if (!matchedZone) {
             setDistanceError('Tu dirección está fuera de nuestra zona de cobertura.');
             setIsValidatedAddress(false);
-            setForm(f => f.deliveryType === 'pickup' ? f : { ...f, deliveryFee: 0, matchedZone: null });
+            setForm(f => f.deliveryType !== method ? f : { ...f, deliveryFee: 0, matchedZone: null });
           } else {
             setDistanceError(null);
             setIsValidatedAddress(true);
@@ -689,18 +737,11 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           <div className="space-y-3">
             <h2 className="text-base font-bold text-gray-900">Entrega</h2>
 
-            {org?.delivery_enabled ? (
+            {hasDeliveryOptions ? (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className={`grid gap-3 ${canOwn && canUber ? 'grid-cols-3' : 'grid-cols-2'}`}>
                   <label
-                    onClick={() => {
-                      update('deliveryType', 'pickup');
-                      update('deliveryFee', 0);
-                      update('quoteId', null);
-                      update('quotePrice', null);
-                      setDistanceError(null);
-                      setIsValidatedAddress(false);
-                    }}
+                    onClick={() => selectDeliveryMethod('pickup')}
                     className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer text-center ${form.deliveryType === 'pickup'
                         ? 'bg-white border-black shadow-sm text-black'
                         : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
@@ -710,35 +751,50 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                     <span className="text-sm font-bold">Retiro en Local</span>
                   </label>
 
-                  <label
-                    onClick={() => {
-                      update('deliveryType', 'delivery');
-                      if (!isValidatedAddress || distanceError) {
-                        update('deliveryFee', org?.delivery_fee || 0);
-                      }
-                    }}
-                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer text-center ${form.deliveryType === 'delivery'
-                        ? 'bg-white border-black shadow-sm text-black'
-                        : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
-                      }`}
-                  >
-                    {deliveryMode === 'uber_direct' ? (
-                      <PaperBag className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'delivery' ? 'text-black' : 'text-gray-400'}`} />
-                    ) : (
-                      <MapPin className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'delivery' ? 'text-black' : 'text-gray-400'}`} />
-                    )}
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold">Delivery</span>
-                      {deliveryMode === 'uber_direct' && (
+                  {canOwn && (
+                    <label
+                      onClick={() => selectDeliveryMethod('own')}
+                      className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer text-center ${form.deliveryType === 'own'
+                          ? 'bg-white border-black shadow-sm text-black'
+                          : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
+                        }`}
+                    >
+                      {canUber ? (
+                        <Truck className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'own' ? 'text-black' : 'text-gray-400'}`} />
+                      ) : (
+                        <MapPin className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'own' ? 'text-black' : 'text-gray-400'}`} />
+                      )}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-bold">Delivery</span>
+                        {canUber && (
+                          <span className="text-[10px] bg-gray-800 text-white font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">
+                            Propio
+                          </span>
+                        )}
+                      </div>
+                    </label>
+                  )}
+
+                  {canUber && (
+                    <label
+                      onClick={() => selectDeliveryMethod('uber')}
+                      className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer text-center ${form.deliveryType === 'uber'
+                          ? 'bg-white border-black shadow-sm text-black'
+                          : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
+                        }`}
+                    >
+                      <PaperBag className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'uber' ? 'text-black' : 'text-gray-400'}`} />
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-bold">Delivery</span>
                         <span className="text-[10px] bg-green-600 text-white font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">
                           Uber Direct
                         </span>
-                      )}
-                    </div>
-                  </label>
+                      </div>
+                    </label>
+                  )}
                 </div>
 
-                {form.deliveryType === 'delivery' && (
+                {isAnyDelivery && (
                   <div className="space-y-3">
                     <AddressAutocomplete
                       value={form.deliveryAddress}
@@ -769,6 +825,17 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                       </div>
                     )}
 
+                    {form.deliveryType === 'uber' && canOwn && distanceError && (
+                      <button
+                        type="button"
+                        onClick={handleFallbackToOwn}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gray-900 text-white text-sm font-bold hover:bg-black active:scale-[0.99] transition-all cursor-pointer"
+                      >
+                        <Truck className="h-4 w-4" />
+                        Probar con delivery propio
+                      </button>
+                    )}
+
                     {form.deliveryCoords && (
                       <div className="h-48 w-full rounded-xl overflow-hidden border border-gray-200 my-2 shadow-inner relative z-0">
                         <AddressMap coords={form.deliveryCoords} />
@@ -787,13 +854,13 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                     )}
 
                     {!distanceError && isValidatedAddress && (
-                      <div className={`flex items-center justify-between px-4 py-3.5 rounded-xl ${deliveryMode === 'uber_direct' ? 'bg-green-700 text-white border border-green-800' : 'bg-green-50 text-green-700 border border-green-100'}`}>
-                        {deliveryMode === 'uber_direct' && isQuoting ? (
+                      <div className={`flex items-center justify-between px-4 py-3.5 rounded-xl ${form.deliveryType === 'uber' ? 'bg-green-700 text-white border border-green-800' : 'bg-green-50 text-green-700 border border-green-100'}`}>
+                        {form.deliveryType === 'uber' && isQuoting ? (
                           <>
                             <span className="font-semibold text-xs text-green-100 pr-2">Cotizando envío con Uber…</span>
                             <Loader2 className="h-4 w-4 animate-spin shrink-0 text-white" />
                           </>
-                        ) : deliveryMode === 'uber_direct' && form.quotePrice > 0 ? (
+                        ) : form.deliveryType === 'uber' && form.quotePrice > 0 ? (
                           <>
                             <div className="flex items-center gap-2.5">
                               <span className="bg-white text-green-800 text-[10px] font-black uppercase px-2 py-0.5 rounded">Uber</span>
@@ -801,7 +868,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                             </div>
                             <span className="font-black text-base text-white shrink-0">{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
                           </>
-                        ) : deliveryMode === 'uber_direct' ? (
+                        ) : form.deliveryType === 'uber' ? (
                           <>
                             <div className="flex items-center gap-2.5">
                               <span className="bg-white text-green-800 text-[10px] font-black uppercase px-2 py-0.5 rounded">Uber</span>
@@ -995,7 +1062,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-8 pointer-events-none">
         <div className="max-w-3xl mx-auto flex flex-col items-center pointer-events-auto space-y-3">
 
-          {form.deliveryType === 'delivery' && (form.deliveryFee > 0 || deliveryMode === 'uber_direct') && (
+          {isAnyDelivery && (form.deliveryFee > 0 || form.deliveryType === 'uber') && (
             <div className="w-full flex flex-col gap-2 px-4 bg-white/80 backdrop-blur-md py-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100">
               <div className="flex justify-between items-center text-sm font-bold text-gray-700">
                 <span>Subtotal (Productos)</span>
@@ -1003,11 +1070,11 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               </div>
               <div className="flex justify-between items-center text-sm font-bold text-gray-700">
                 <span>Costo de envío</span>
-                {deliveryMode === 'uber_direct' && isQuoting ? (
+                {form.deliveryType === 'uber' && isQuoting ? (
                   <span className="text-gray-400 text-xs">Cotizando…</span>
-                ) : deliveryMode === 'uber_direct' && form.quotePrice > 0 ? (
+                ) : form.deliveryType === 'uber' && form.quotePrice > 0 ? (
                   <span>{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
-                ) : deliveryMode === 'uber_direct' ? (
+                ) : form.deliveryType === 'uber' ? (
                   <span>Gratis</span>
                 ) : (
                   <span>${fmt(form.deliveryFee)}</span>
@@ -1016,7 +1083,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             </div>
           )}
 
-          {form.deliveryType === 'delivery' && totalAmount < (org?.delivery_min_order || 0) && (
+          {isAnyDelivery && totalAmount < (org?.delivery_min_order || 0) && (
             <div className="bg-red-50 text-red-600 px-4 py-2 rounded-xl border border-red-100 w-full text-center text-xs font-bold shadow-sm">
               El pedido mínimo para delivery es de ${fmt(org.delivery_min_order)}.
             </div>
@@ -1030,11 +1097,11 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
               scheduledBlocked ||
               uberOnlineBlocked ||
               totalAmount <= 0 ||
-              (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim())) ||
-              (form.deliveryType === 'delivery' && (totalAmount < (org?.delivery_min_order || 0))) ||
-              (form.deliveryType === 'delivery' && deliveryMode === 'uber_direct' && !form.quoteId)
+              (isAnyDelivery && (!!distanceError || !form.deliveryAddress.trim())) ||
+              (isAnyDelivery && (totalAmount < (org?.delivery_min_order || 0))) ||
+              (form.deliveryType === 'uber' && !form.quoteId)
             }
-            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-all px-8 text-[17px] tracking-wide ${(isSubmitting || nowBlocked || scheduledBlocked || uberOnlineBlocked || totalAmount <= 0 || (form.deliveryType === 'delivery' && (!!distanceError || !form.deliveryAddress.trim() || totalAmount < (org?.delivery_min_order || 0) || (deliveryMode === 'uber_direct' && !form.quoteId)))) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900 active:scale-[0.98]'}`}
+            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-all px-8 text-[17px] tracking-wide ${(isSubmitting || nowBlocked || scheduledBlocked || uberOnlineBlocked || totalAmount <= 0 || (isAnyDelivery && (!!distanceError || !form.deliveryAddress.trim() || totalAmount < (org?.delivery_min_order || 0) || (form.deliveryType === 'uber' && !form.quoteId)))) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900 active:scale-[0.98]'}`}
           >
             {isSubmitting ? (
               <><Loader2 className="h-5 w-5 animate-spin" /> Enviando pedido…</>
@@ -1052,7 +1119,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                 {totalAmount != null && (
                   <>
                     <div className="w-1.5 h-1.5 rounded-full bg-white/40 mx-3"></div>
-                    <span>${fmt(totalAmount + (form.deliveryType === 'delivery' ? form.deliveryFee : 0))}</span>
+                    <span>${fmt(totalAmount + (isAnyDelivery ? form.deliveryFee : 0))}</span>
                   </>
                 )}
               </div>

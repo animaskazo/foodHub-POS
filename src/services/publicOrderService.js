@@ -5,28 +5,33 @@ import { findCustomerByPhone, upsertCustomerForOrder } from './customerService';
 import { getCartItemUnitPrice, getBundleOptionUnitPrice, getCartTotal } from '../utils/cartTotals';
 
 // ── Get organization by its name (used as public identifier) ──
+const ORG_PUBLIC_SELECT = 'id, name, slug, logo_url, cover_url, cover_is_video, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, accepts_local_payments, business_hours, pickup_hours, instant_enabled, scheduling_enabled, delivery_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, delivery_mode, delivery_modes, uber_enabled, uber_client_id, uber_client_secret, uber_customer_id, whatsapp_phone_number_id, prep_time, delivery_zones, settings, force_closed, closed_message';
+const ORG_PUBLIC_SELECT_LEGACY = ORG_PUBLIC_SELECT.replace(', delivery_modes,', ',');
+
+const isMissingColumnError = (err) =>
+  err?.code === 'PGRST204' || /delivery_modes|column .* does not exist/i.test(err?.message || '');
+
 export const getOrganizationByName = async (orgName) => {
   const decoded = decodeURIComponent(orgName).toLowerCase();
-
-  const { data, error } = await supabase
-    .from('organizations')
-    .select('id, name, slug, logo_url, cover_url, cover_is_video, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, accepts_local_payments, business_hours, pickup_hours, instant_enabled, scheduling_enabled, delivery_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, delivery_mode, uber_enabled, uber_client_id, uber_client_secret, uber_customer_id, whatsapp_phone_number_id, prep_time, delivery_zones, settings, force_closed, closed_message')
-    .ilike('name', decoded)
-    .eq('is_active', true)
-    .maybeSingle();
-  
-  if (error || !data) {
-    // Try by slug as fallback
-    const { data: bySlug, error: slugError } = await supabase
+  const queryOrg = async (field, value, withModes) => {
+    const { data, error } = await supabase
       .from('organizations')
-      .select('id, name, slug, logo_url, cover_url, cover_is_video, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, accepts_local_payments, business_hours, pickup_hours, instant_enabled, scheduling_enabled, delivery_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, delivery_mode, uber_enabled, uber_client_id, uber_client_secret, uber_customer_id, whatsapp_phone_number_id, prep_time, delivery_zones, settings, force_closed, closed_message')
-      .ilike('slug', decoded)
+      .select(withModes ? ORG_PUBLIC_SELECT : ORG_PUBLIC_SELECT_LEGACY)
+      .ilike(field, value)
       .eq('is_active', true)
       .maybeSingle();
-    if (slugError) throw slugError;
-    return bySlug;
-  }
-  return data;
+    if (error && withModes && isMissingColumnError(error)) {
+      // Fallback pre-migración 058: la columna delivery_modes aún no existe
+      return queryOrg(field, value, false);
+    }
+    if (error) throw error;
+    return data;
+  };
+
+  const byName = await queryOrg('name', decoded, true);
+  if (byName) return byName;
+  // Try by slug as fallback
+  return queryOrg('slug', decoded, true);
 };
 
 // ── Get public catalog (categories + products) ──
@@ -181,6 +186,7 @@ export const createPublicOrder = async ({
   paymentMethod = 'cash', 
   paymentStatus = 'pending',
   deliveryType = 'pickup',
+  deliveryProvider = null,
   deliveryAddress = null,
   deliveryFee = 0,
   deliveryNotes = null,
@@ -219,30 +225,59 @@ export const createPublicOrder = async ({
   const subtotal = Math.round(total / (1 + taxRate));
   const tax = total - subtotal;
 
-  // Insert order
-  const { data: order, error: orderError } = await supabase
-    .from('orders')
-    .insert([{
-      organization_id: organizationId,
-      branch_id: branch.id,
-      order_type: 'online',
-      status: status || (scheduledAt ? 'scheduled' : 'confirmed'),
-      scheduled_at: scheduledAt || null,
-      customer_name: customer.name,
-      customer_phone: customer.phone || null,
-      notes: notes || null,
-      subtotal,
-      tax_amount: tax,
-      total,
-      delivery_type: deliveryType,
-      delivery_address: deliveryAddress,
-      delivery_notes: deliveryNotes,
-      delivery_fee: deliveryFee || 0,
-    }])
-    .select()
-    .single();
+  // ── Triple deliveryType (pickup|own|uber) → columnas legacy ──
+  // delivery_type se mantiene pickup|delivery para no romper POS/emails/impresión.
+  // delivery_provider distingue own vs uber_direct (NULL = pickup).
+  const normalizedDeliveryType = deliveryType === 'pickup' ? 'pickup' : 'delivery';
+  const resolvedProvider = deliveryProvider
+    ?? (deliveryType === 'uber' ? 'uber_direct'
+      : deliveryType === 'own' ? 'own'
+      : deliveryType === 'delivery' ? 'own'
+      : null);
 
-  if (orderError) throw orderError;
+  // Insert order (con fallback si la columna delivery_provider aún no existe en DB)
+  const baseOrderPayload = {
+    organization_id: organizationId,
+    branch_id: branch.id,
+    order_type: 'online',
+    status: status || (scheduledAt ? 'scheduled' : 'confirmed'),
+    scheduled_at: scheduledAt || null,
+    customer_name: customer.name,
+    customer_phone: customer.phone || null,
+    notes: notes || null,
+    subtotal,
+    tax_amount: tax,
+    total,
+    delivery_type: normalizedDeliveryType,
+    delivery_address: deliveryAddress,
+    delivery_notes: deliveryNotes,
+    delivery_fee: deliveryFee || 0,
+  };
+  let order = null;
+  try {
+    const { data, error: orderError } = await supabase
+      .from('orders')
+      .insert([{ ...baseOrderPayload, delivery_provider: resolvedProvider }])
+      .select()
+      .single();
+    if (orderError) throw orderError;
+    order = data;
+  } catch (providerErr) {
+    // Fallback: columna delivery_provider aún no migrada
+    if (providerErr?.code === 'PGRST204' || /delivery_provider/i.test(providerErr?.message || '')) {
+      const { data, error: orderError } = await supabase
+        .from('orders')
+        .insert([baseOrderPayload])
+        .select()
+        .single();
+      if (orderError) throw orderError;
+      order = data;
+    } else {
+      throw providerErr;
+    }
+  }
+
+  if (!order) throw new Error('No se pudo crear la orden.');
 
   // Insert items, variants, ingredients, and bundle child options
   for (const item of cartItems) {
@@ -390,7 +425,7 @@ export const createPublicOrder = async ({
     cartItems,
     orgData,
     branchData: branch,
-    deliveryType,
+    deliveryType: normalizedDeliveryType,
     deliveryAddress,
     deliveryFee,
     paymentMethod,
@@ -448,9 +483,7 @@ async function sendBusinessSaleNotification({ order, cartItems, orgData, branchD
 
 // ── Get public order details by its ID (for confirmation page) ──
 export const getPublicOrderById = async (orderId) => {
-  const { data, error } = await supabase
-    .from('orders')
-    .select(`
+  const buildSelect = (withProvider) => `
       id,
       order_number,
       total,
@@ -461,7 +494,8 @@ export const getPublicOrderById = async (orderId) => {
       scheduled_at,
       delivery_type,
       delivery_address,
-      delivery_fee,
+      delivery_fee,${withProvider ? `
+      delivery_provider,` : ''}
       customer_name,
       customer_phone,
       uber_delivery_id,
@@ -482,12 +516,25 @@ export const getPublicOrderById = async (orderId) => {
           ingredient_name
         )
       )
-    `)
+    `;
+  const { data, error } = await supabase
+    .from('orders')
+    .select(buildSelect(true))
     .eq('id', orderId)
     .maybeSingle();
 
-  if (error) throw error;
-  return data;
+  if (!error) return data;
+  // Fallback si la columna delivery_provider aún no existe en DB (pre-migración 058)
+  if (error?.code === 'PGRST204' || /delivery_provider/i.test(error?.message || '')) {
+    const retry = await supabase
+      .from('orders')
+      .select(buildSelect(false))
+      .eq('id', orderId)
+      .maybeSingle();
+    if (retry.error) throw retry.error;
+    return retry.data;
+  }
+  throw error;
 };
 
 // ── Search public customer profile by organization and phone number ──

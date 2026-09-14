@@ -17,22 +17,43 @@ export const retryFailedUberDelivery = async (orderId, organizationId) => {
     
     if (orderError || !order) throw new Error('No se encontró la orden');
     if (order.uber_delivery_id) throw new Error('La orden ya tiene un delivery asignado');
+    // Triple modo: solo las órdenes Uber pueden reintentarse por aquí
+    if (order.delivery_provider && order.delivery_provider !== 'uber_direct') {
+      throw new Error('La orden es de delivery propio, no de Uber Direct');
+    }
 
-    // 2. Obtener datos de la organización
-    const { data: orgData, error: orgError } = await supabase
-      .from('organizations')
-      .select(`
+    // 2. Obtener datos de la organización (con fallback pre-migración 058)
+    const ORG_SELECT = `
         id, name, address, phone,
         store_lat, store_lng,
         uber_client_id, uber_client_secret, uber_customer_id,
-        delivery_mode, uber_enabled
-      `)
-      .eq('id', organizationId)
-      .single();
+        delivery_mode, delivery_modes, uber_enabled
+      `;
+    let orgData = null;
+    {
+      const first = await supabase
+        .from('organizations')
+        .select(ORG_SELECT)
+        .eq('id', organizationId)
+        .single();
+      if (first.error && (first.error?.code === 'PGRST204' || /delivery_modes/i.test(first.error?.message || ''))) {
+        const legacy = await supabase
+          .from('organizations')
+          .select(ORG_SELECT.replace(', delivery_modes,', ','))
+          .eq('id', organizationId)
+          .single();
+        if (legacy.error || !legacy.data) throw new Error('No se encontraron credenciales de la organización');
+        orgData = legacy.data;
+      } else {
+        if (first.error || !first.data) throw new Error('No se encontraron credenciales de la organización');
+        orgData = first.data;
+      }
+    }
 
-    if (orgError || !orgData) throw new Error('No se encontraron credenciales de la organización');
-
-    if (orgData.delivery_mode !== 'uber_direct' || !orgData.uber_enabled) {
+    const orgModes = Array.isArray(orgData.delivery_modes)
+      ? orgData.delivery_modes
+      : [orgData.delivery_mode || 'own'];
+    if (!orgData.uber_enabled || !orgModes.includes('uber_direct')) {
       throw new Error('Uber Direct no está habilitado para esta organización');
     }
 

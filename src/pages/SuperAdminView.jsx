@@ -240,7 +240,7 @@ const SuperAdminView = () => {
   const fetchOrganizations = async () => {
     const { data, error: fetchError } = await supabase
       .from('organizations')
-      .select('id, name, slug, logo_url, cover_url, cover_is_video, description, force_closed, closed_message, created_at, whatsapp_phone_number_id, whatsapp_inbox_url, whatsapp_inbox_enabled, uber_enabled, delivery_mode, uber_client_id, uber_customer_id, dine_in_enabled, orders(total)')
+      .select('id, name, slug, logo_url, cover_url, cover_is_video, description, force_closed, closed_message, created_at, whatsapp_phone_number_id, whatsapp_inbox_url, whatsapp_inbox_enabled, uber_enabled, delivery_mode, delivery_modes, uber_client_id, uber_customer_id, dine_in_enabled, orders(total)')
       .order('created_at', { ascending: false });
 
     if (fetchError) throw fetchError;
@@ -265,6 +265,7 @@ const SuperAdminView = () => {
         uberEnabled: org.uber_enabled || false,
         dineInEnabled: org.dine_in_enabled === true, // default to false
         deliveryMode: org.delivery_mode || 'own',
+        deliveryModes: org.delivery_modes || null,
         uberClientId: org.uber_client_id || '',
         uberCustomerId: org.uber_customer_id || '',
         orderCount: ordersArray.length,

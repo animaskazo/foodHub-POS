@@ -183,7 +183,7 @@ const OrderView = () => {
               // Uber Direct delivery (if applicable and not already created).
               // Importante: forzamos quoteId=null porque el quote guardado en localStorage
               // expiró mientras el usuario completaba el pago en Klap (puede tomar varios minutos).
-              if (!order.uber_delivery_id && customerForm.deliveryType === 'delivery') {
+              if (!order.uber_delivery_id && wantsUberDelivery(orgData, customerForm)) {
                 const freshCustomerForm = { ...customerForm, quoteId: null }
                 const uberInfo = await createUberDelivery(orgData, freshCustomerForm, pendingCart, scheduledAt);
                 if (uberInfo) {
@@ -387,9 +387,22 @@ const OrderView = () => {
   // por lo que no se suman selectedOptions de nuevo.
   const computeSubtotal = (items) => getCartTotal(items);
 
+  // ── Triple deliveryType (pickup|own|uber): ¿el pedido requiere Uber Direct? ──
+  // 'uber' siempre; legacy 'delivery' solo si la org es exclusivamente uber_direct
+  // (compat con pendientes guardados en localStorage antes del modo triple).
+  const wantsUberDelivery = (orgData, customerForm) => {
+    if (!customerForm) return false;
+    if (customerForm.deliveryType === 'uber') return true;
+    if (customerForm.deliveryType !== 'delivery') return false;
+    const modes = Array.isArray(orgData?.delivery_modes)
+      ? orgData.delivery_modes
+      : [orgData?.delivery_mode || 'own'];
+    return modes.length === 1 && modes[0] === 'uber_direct';
+  };
+
   // ── Uber Direct: create delivery, returns info to apply to an order ──
   const createUberDelivery = async (orgData, customerForm, cart, scheduledAt) => {
-    if (orgData.delivery_mode !== 'uber_direct' || orgData.uber_enabled === false || customerForm.deliveryType !== 'delivery') {
+    if (!wantsUberDelivery(orgData, customerForm) || orgData.uber_enabled === false) {
       return null;
     }
     try {
@@ -704,7 +717,8 @@ const OrderView = () => {
           data: {
             order_number: order.order_number,
             order_id: order.id,
-            delivery_type: customerForm.deliveryType,
+            // Triple modo: el template espera delivery_type legacy (pickup|delivery)
+            delivery_type: customerForm.deliveryType === 'pickup' ? 'pickup' : 'delivery',
             delivery_address: customerForm.deliveryAddress,
             customer_name: customerForm.name || 'Cliente',
             total: order.total,

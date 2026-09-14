@@ -30,9 +30,13 @@ const DeliverySettingsView = () => {
 
   const [uberEnabled, setUberEnabled] = useState(true);
 
+  // Navegación por método: 'own' | 'uber_direct'
+  const [activeTab, setActiveTab] = useState('own');
+
   const [deliveryData, setDeliveryData] = useState({
     delivery_enabled: false,
     delivery_mode: 'own',
+    delivery_modes: ['own'],
     store_lat: null,
     store_lng: null,
     delivery_polygon: [],
@@ -90,9 +94,22 @@ const DeliverySettingsView = () => {
         const uberAllowed = orgData.uber_enabled !== false;
         setUberEnabled(uberAllowed);
 
+        // Triple modo: delivery_modes es la fuente de verdad; fallback legacy delivery_mode
+        // solo cuando la columna aún no existe (undefined). Un arreglo vacío [] significa
+        // ambos métodos apagados y se respeta. Si Uber está bloqueado por super-admin,
+        // se excluye 'uber_direct' de los modos iniciales.
+        const initialModes = (() => {
+          if (Array.isArray(orgData.delivery_modes)) {
+            const allowed = orgData.delivery_modes.filter(m => m === 'own' || m === 'uber_direct');
+            return uberAllowed ? allowed : allowed.filter(m => m !== 'uber_direct');
+          }
+          return [(!uberAllowed && orgData.delivery_mode === 'uber_direct' ? 'own' : (orgData.delivery_mode || 'own'))];
+        })();
+
         setDeliveryData({
           delivery_enabled: orgData.delivery_enabled || false,
           delivery_mode: !uberAllowed && orgData.delivery_mode === 'uber_direct' ? 'own' : (orgData.delivery_mode || 'own'),
+          delivery_modes: initialModes,
           store_lat: initialLat,
           store_lng: initialLng,
           delivery_polygon: orgData.delivery_polygon || [],
@@ -103,6 +120,8 @@ const DeliverySettingsView = () => {
           uber_client_secret: orgData.uber_client_secret || '',
           uber_customer_id: orgData.uber_customer_id || '',
         });
+        // Pestaña inicial: Uber solo si es el único modo activo; si no, propio
+        setActiveTab(initialModes.length === 1 && initialModes[0] === 'uber_direct' && uberAllowed ? 'uber_direct' : 'own');
 
         let loadedZones = orgData.delivery_zones || rawSettings.delivery_zones || [];
         // Si el usuario ya tenía una zona/polígono o tarifa configurada previamente, migrarlo como Zona 1
@@ -139,9 +158,14 @@ const DeliverySettingsView = () => {
         delivery_zones: deliveryZones,
       };
 
+      // Se permite arreglo vacío: ambos métodos apagados (solo retiro en checkout).
+      // delivery_mode legacy se conserva por compatibilidad.
+      const modesToSave = (deliveryData.delivery_modes || [])
+        .filter(m => m === 'own' || m === 'uber_direct');
+
       const basePayload = {
         delivery_enabled: deliveryData.delivery_enabled,
-        delivery_mode: deliveryData.delivery_mode,
+        delivery_mode: modesToSave[0] || deliveryData.delivery_mode || 'own',
         store_lat: deliveryData.store_lat,
         store_lng: deliveryData.store_lng,
         delivery_polygon: deliveryData.delivery_polygon,
@@ -154,10 +178,21 @@ const DeliverySettingsView = () => {
       };
 
       try {
-        await updateOrganizationDetails(orgId, { ...basePayload, delivery_zones: deliveryZones });
+        await updateOrganizationDetails(orgId, { ...basePayload, delivery_modes: modesToSave, delivery_zones: deliveryZones });
       } catch (colErr) {
-        // Fallback: Si la columna delivery_zones aún no existe en DB, guardar en la columna settings
-        await updateOrganizationDetails(orgId, basePayload);
+        const msg = colErr?.message || '';
+        if (/delivery_modes/i.test(msg)) {
+          // Fallback: columna delivery_modes aún no existe (pre-migración 058)
+          try {
+            await updateOrganizationDetails(orgId, { ...basePayload, delivery_zones: deliveryZones });
+          } catch {
+            // Fallback: Si la columna delivery_zones aún no existe en DB, guardar en la columna settings
+            await updateOrganizationDetails(orgId, basePayload);
+          }
+        } else {
+          // Fallback: Si la columna delivery_zones aún no existe en DB, guardar en la columna settings
+          await updateOrganizationDetails(orgId, basePayload);
+        }
       }
 
       alert('Configuración de delivery guardada exitosamente.');
@@ -287,6 +322,26 @@ const DeliverySettingsView = () => {
     }
   };
 
+  // ── Navegación por método + encendido/apagado por sección ──
+  const activeModes = deliveryData.delivery_modes || [];
+  const isOwnActive = activeModes.includes('own');
+  const isUberActive = activeModes.includes('uber_direct');
+  const lockedUber = !uberEnabled;
+
+  const toggleMode = (mode, enabled) => {
+    if (mode === 'uber_direct' && lockedUber && enabled) return;
+    const next = enabled
+      ? [...new Set([...activeModes, mode])]
+      : activeModes.filter(m => m !== mode);
+    setDeliveryData({
+      ...deliveryData,
+      delivery_modes: next,
+      delivery_mode: next[0] || deliveryData.delivery_mode || 'own',
+    });
+    setHasChanges(true);
+    if (mode === 'uber_direct' && !enabled) setTestResult(null);
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -301,7 +356,7 @@ const DeliverySettingsView = () => {
         <div className="flex items-start justify-between gap-4">
           <PageHeader
             title="Configuración de Delivery"
-            subtitle="Elige cómo gestionarás las entregas a domicilio"
+            subtitle="Navega entre Delivery Propio y Uber Direct y activa cada método por separado"
           />
           <div className="flex items-center gap-4 shrink-0 pt-1">
             {hasChanges && (
@@ -340,53 +395,72 @@ const DeliverySettingsView = () => {
 
           {deliveryData.delivery_enabled && (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <p className="text-xs text-gray-500 -mt-3">
+                Navega entre cada método y actívalo por separado: el cliente elegirá en el checkout.
+              </p>
+              <div className="grid grid-cols-2 gap-2 p-1.5 bg-gray-100 rounded-2xl" role="tablist" aria-label="Método de delivery">
                 {MODES.map((mode) => {
                   const Icon = mode.icon;
-                  const isActive = deliveryData.delivery_mode === mode.value;
                   const isUber = mode.value === 'uber_direct';
-                  const locked = isUber && !uberEnabled;
+                  const locked = isUber && lockedUber;
+                  const selected = activeTab === mode.value;
+                  const enabled = isUber ? isUberActive : isOwnActive;
                   return (
                     <button
                       key={mode.value}
+                      type="button"
+                      role="tab"
+                      aria-selected={selected}
                       disabled={locked}
-                      onClick={() => {
-                        if (locked) return;
-                        setDeliveryData({ ...deliveryData, delivery_mode: mode.value });
-                        setHasChanges(true);
-                        setTestResult(null);
-                      }}
-                      className={`flex items-start gap-4 p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
+                      onClick={() => setActiveTab(mode.value)}
+                      title={locked ? 'Disponible solo con permiso del super admin' : mode.label}
+                      className={`flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${
                         locked
-                          ? 'border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed'
-                          : isActive
-                            ? 'border-blue-500 bg-blue-50/50'
-                            : 'border-gray-200 bg-white hover:border-gray-300'
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : selected
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-800'
                       }`}
                     >
-                      <div className={`p-2.5 rounded-xl ${isActive ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`font-bold text-sm ${isActive ? 'text-blue-800' : 'text-gray-800'}`}>
-                          {mode.label}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {locked ? 'Disponible solo con permiso del super admin' : mode.desc}
-                        </p>
-                      </div>
-                      {isActive && !locked && (
-                        <div className="h-5 w-5 rounded-full bg-blue-600 flex items-center justify-center shrink-0 mt-0.5">
-                          <CheckCircle2 className="h-3 w-3 text-white" />
-                        </div>
-                      )}
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{mode.label}</span>
+                      <span className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 ${
+                        locked
+                          ? 'bg-gray-200 text-gray-500'
+                          : enabled
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-gray-200 text-gray-500'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${locked ? 'bg-gray-400' : enabled ? 'bg-green-500' : 'bg-gray-400'}`} />
+                        {locked ? 'Bloqueado' : enabled ? 'Activado' : 'Apagado'}
+                      </span>
                     </button>
                   );
                 })}
               </div>
 
-                           {deliveryData.delivery_mode === 'own' && (
+                          {activeTab === 'own' && (
                 <div className="pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl mb-6">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Truck className="h-4 w-4 text-gray-700" />
+                        <h4 className="font-bold text-sm text-gray-800">Delivery Propio</h4>
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${isOwnActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
+                          {isOwnActive ? 'Activado' : 'Desactivado'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
+                        Tus propios repartidores gestionan las entregas. Apágalo para ofrecer solo Uber Direct o retiro.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={isOwnActive}
+                      onCheckedChange={(checked) => toggleMode('own', checked)}
+                    />
+                  </div>
+                  {isOwnActive ? (
+                  <>
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                     
                     {/* Columna Izquierda: Listado de Zonas y Controles (col-span-5) */}
@@ -764,12 +838,51 @@ const DeliverySettingsView = () => {
                     </div>
                   </div>
                 )}
+                  </>
+                  ) : (
+                    <div className="p-6 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                      <p className="text-sm font-semibold text-gray-600">Delivery propio desactivado.</p>
+                      <p className="text-xs text-gray-400 mt-1">Actívalo con el interruptor para ofrecerlo en el checkout. Tu configuración de zonas se conserva.</p>
+                    </div>
+                  )}
                 </div>
               )}
-
-
-              {deliveryData.delivery_mode === 'uber_direct' && (
-                <div className="space-y-5">
+              {activeTab === 'uber_direct' && (
+                <div className="space-y-5 pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Globe className="h-4 w-4 text-gray-700" />
+                        <h4 className="font-bold text-sm text-gray-800">Uber Direct</h4>
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${lockedUber ? 'bg-gray-200 text-gray-500' : isUberActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
+                          {lockedUber ? 'Bloqueado' : isUberActive ? 'Activado' : 'Desactivado'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
+                        {lockedUber
+                          ? 'Disponible solo con permiso del super admin.'
+                          : 'Usa la red de repartidores de Uber para las entregas. Apágalo para ofrecer solo delivery propio o retiro.'}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={isUberActive}
+                      disabled={lockedUber}
+                      onCheckedChange={(checked) => toggleMode('uber_direct', checked)}
+                    />
+                  </div>
+                  {(!isUberActive || lockedUber) ? (
+                    <div className="p-6 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                      <p className="text-sm font-semibold text-gray-600">
+                        {lockedUber ? 'Uber Direct bloqueado.' : 'Uber Direct desactivado.'}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {lockedUber
+                          ? 'Pide al super admin que habilite Uber Direct para tu local.'
+                          : 'Actívalo con el interruptor para ofrecerlo en el checkout. Tus credenciales se conservan.'}
+                      </p>
+                    </div>
+                  ) : (
+                  <div className="space-y-5">
                   <div>
                     <h4 className="text-sm font-semibold text-gray-800 mb-1">Credenciales de Uber Direct</h4>
                     <p className="text-xs text-gray-500 mb-4">
@@ -1007,6 +1120,8 @@ const DeliverySettingsView = () => {
                         </div>
                       )}
                     </div>
+                  )}
+                  </div>
                   )}
                 </div>
               )}

@@ -254,6 +254,75 @@ console.log('\n═══ Deducción de inventario (deductInventoryForOrder) ═�
   assert(mv.every(m => m.quantity < 0), 'movimientos son de salida (sale)');
 }
 
+console.log('\n═══ Escenario 4: MODO TRIPLE (pickup|own|uber) → delivery_provider ═══');
+{
+  const cart = [
+    { id: P3, name: 'Papas Fritas', price: 2500, quantity: 2, selectedIngredients: [] },
+  ]; // subtotal 5000
+
+  // 4a) pickup → provider NULL
+  const pickupOrder = await createPublicOrder({
+    organizationId: ORG_ID,
+    cartItems: cart,
+    customer: { name: 'Test Pickup', phone: '56900000001' },
+    paymentMethod: 'cash',
+    paymentStatus: 'pending',
+    deliveryType: 'pickup',
+    deliveryFee: 0,
+  });
+  assert(pickupOrder.delivery_type === 'pickup', "pickup: delivery_type='pickup'");
+  assert(pickupOrder.delivery_provider == null, 'pickup: delivery_provider NULL');
+
+  // 4b) own → delivery + provider own
+  const ownOrder = await createPublicOrder({
+    organizationId: ORG_ID,
+    cartItems: cart,
+    customer: { name: 'Test Propio', phone: '56900000002' },
+    paymentMethod: 'cash',
+    paymentStatus: 'pending',
+    deliveryType: 'own',
+    deliveryAddress: 'Av. Pajaritos 1500, Maipú',
+    deliveryFee: 1500,
+  });
+  assert(ownOrder.delivery_type === 'delivery', "own: delivery_type='delivery' (legacy intacto)");
+  assert(ownOrder.delivery_provider === 'own', "own: delivery_provider='own'");
+  assertClose(ownOrder.total, 6500, 'own: total = 5000+1500');
+
+  // 4c) uber → delivery + provider uber_direct
+  const uberOrder = await createPublicOrder({
+    organizationId: ORG_ID,
+    cartItems: cart,
+    customer: { name: 'Test Uber', phone: '56900000003', email: 'uber@test.cl' },
+    paymentMethod: 'online_gateway',
+    paymentStatus: 'paid',
+    deliveryType: 'uber',
+    deliveryAddress: 'Av. Pajaritos 1500, Maipú',
+    deliveryFee: 2500,
+  });
+  assert(uberOrder.delivery_type === 'delivery', "uber: delivery_type='delivery' (legacy intacto)");
+  assert(uberOrder.delivery_provider === 'uber_direct', "uber: delivery_provider='uber_direct'");
+  assertClose(uberOrder.total, 7500, 'uber: total = 5000+2500');
+
+  // 4d) legacy 'delivery' → provider own (compat hacia atrás)
+  const legacyOrder = await createPublicOrder({
+    organizationId: ORG_ID,
+    cartItems: cart,
+    customer: { name: 'Test Legacy', phone: '56900000004' },
+    paymentMethod: 'cash',
+    paymentStatus: 'pending',
+    deliveryType: 'delivery',
+    deliveryAddress: 'Av. Pajaritos 1500, Maipú',
+    deliveryFee: 2000,
+  });
+  assert(legacyOrder.delivery_type === 'delivery', "legacy: delivery_type='delivery'");
+  assert(legacyOrder.delivery_provider === 'own', "legacy 'delivery': delivery_provider='own'");
+
+  // 4e) getPublicOrderById expone delivery_provider
+  const { getPublicOrderById } = await import('./src/services/publicOrderService.js');
+  const fetched = await getPublicOrderById(uberOrder.id);
+  assert(fetched.delivery_provider === 'uber_direct', 'getPublicOrderById expone delivery_provider');
+}
+
 console.log('\n═══ Resumen ═══');
 console.log(`  PASADOS: ${passed}  FALLADOS: ${failed}`);
 if (failed > 0) process.exit(1);

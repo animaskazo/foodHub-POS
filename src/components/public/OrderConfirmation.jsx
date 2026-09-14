@@ -140,8 +140,12 @@ const OrderConfirmation = ({ order, org }) => {
             </div>
             <div>
               <p className="font-bold text-gray-900 text-sm">
-                {dbOrder?.delivery_type === 'delivery' 
-                  ? 'Despacho a Domicilio' 
+                {dbOrder?.delivery_type === 'delivery'
+                  ? (dbOrder?.delivery_provider === 'uber_direct'
+                    ? 'Despacho a Domicilio · Uber Direct'
+                    : dbOrder?.delivery_provider === 'own'
+                      ? 'Despacho a Domicilio · Delivery propio'
+                      : 'Despacho a Domicilio')
                   : 'Retiro en local'} 
                 {' · '} 
                 {dbOrder?.payments?.[0]?.method === 'online_gateway' ? 'Pagado online' : 'Pago al recibir'}

@@ -16,14 +16,12 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
   const [retrying, setRetrying] = useState(null);
   const [results, setResults] = useState({});
 
-  // Fetch orders sin uber_delivery_id pero con delivery_type='delivery'
+  // Fetch orders Uber sin uber_delivery_id (con fallback pre-migración 058)
   useEffect(() => {
     const fetchFailedOrders = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('orders')
-          .select(`
+        const cols = `
             id,
             order_number,
             status,
@@ -32,20 +30,37 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
             delivery_address,
             delivery_notes,
             delivery_fee,
+            delivery_provider,
             total,
             created_at,
             organization_id,
             branch_id
-          `)
-          .eq('organization_id', organizationId)
-          .eq('branch_id', branchId)
-          .eq('delivery_type', 'delivery')
-          .is('uber_delivery_id', null)
-          .order('created_at', { ascending: false })
-          .limit(20);
+          `;
+        const colsLegacy = cols.replace('delivery_provider,', '');
+        const baseQuery = (selectCols, onlyUber) => {
+          let q = supabase
+            .from('orders')
+            .select(selectCols)
+            .eq('organization_id', organizationId)
+            .eq('branch_id', branchId)
+            .eq('delivery_type', 'delivery')
+            .is('uber_delivery_id', null)
+            .order('created_at', { ascending: false })
+            .limit(20);
+          if (onlyUber) q = q.eq('delivery_provider', 'uber_direct');
+          return q;
+        };
 
+        let { data, error } = await baseQuery(cols, true);
+        if (error && (error?.code === 'PGRST204' || /delivery_provider/i.test(error?.message || ''))) {
+          // Pre-migración: sin columna delivery_provider, listar como antes
+          const legacy = await baseQuery(colsLegacy, false);
+          data = legacy.data;
+          error = legacy.error;
+        }
         if (error) throw error;
-        setOrders(data || []);
+        // Belt-and-braces: excluir delivery propio si el filtro no aplicó
+        setOrders((data || []).filter(o => !o.delivery_provider || o.delivery_provider === 'uber_direct'));
       } catch (err) {
         console.error('Error fetching failed orders:', err);
       } finally {
@@ -61,21 +76,40 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
   const retryDelivery = async (order) => {
     setRetrying(order.id);
     try {
-      // Obtener datos de la organización
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .select(`
+      // Obtener datos de la organización (con fallback pre-migración 058)
+      const ORG_RETRY_SELECT = `
           id, name, address, phone,
           store_lat, store_lng,
           uber_client_id, uber_client_secret, uber_customer_id,
-          delivery_mode, uber_enabled
-        `)
-        .eq('id', organizationId)
-        .single();
+          delivery_mode, delivery_modes, uber_enabled
+        `;
+      let orgData = null;
+      {
+        const first = await supabase
+          .from('organizations')
+          .select(ORG_RETRY_SELECT)
+          .eq('id', organizationId)
+          .single();
+        if (first.error && (first.error?.code === 'PGRST204' || /delivery_modes/i.test(first.error?.message || ''))) {
+          const legacy = await supabase
+            .from('organizations')
+            .select(ORG_RETRY_SELECT.replace(', delivery_modes,', ','))
+            .eq('id', organizationId)
+            .single();
+          if (legacy.error || !legacy.data) throw new Error('No se encontraron credenciales de la organización');
+          orgData = legacy.data;
+        } else {
+          if (first.error || !first.data) throw new Error('No se encontraron credenciales de la organización');
+          orgData = first.data;
+        }
+      }
 
-      if (orgError || !orgData) throw new Error('No se encontraron credenciales de la organización');
-
-      if (orgData.delivery_mode !== 'uber_direct' || !orgData.uber_enabled) {
+      const orgModes = Array.isArray(orgData.delivery_modes)
+        ? orgData.delivery_modes
+        : [orgData.delivery_mode || 'own'];
+      // Triple modo: basta con que Uber esté habilitado y la orden sea Uber.
+      // (La orden ya viene filtrada por delivery_provider='uber_direct'.)
+      if (!orgData.uber_enabled || !orgModes.includes('uber_direct')) {
         throw new Error('Uber Direct no está habilitado para esta organización');
       }
 

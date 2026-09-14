@@ -55,8 +55,11 @@ export const UberDeliveryCard = ({ order, organization }) => {
   }, [fetchUberData]);
 
   // Si no hay delivery de Uber, verificamos si debería haber uno (fallido)
+  // Triple modo: solo las órdenes Uber muestran el reintento (pre-migración: cualquier delivery).
   if (!order?.uber_delivery_id && !order?.uber_tracking_url) {
-    if (order?.delivery_type === 'delivery' && organization?.uber_enabled) {
+    const provider = order?.delivery_provider;
+    const looksUber = provider ? provider === 'uber_direct' : order?.delivery_type === 'delivery';
+    if (looksUber && organization?.uber_enabled) {
       return (
         <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-4 text-xs">
           <div className="flex items-start gap-3">
