@@ -8,7 +8,7 @@ import {
   getStaff 
 } from '../services/organizationService';
 import { uploadImage } from '../services/storageService';
-import { Store, User, Clock, CalendarClock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2, Timer, CreditCard, Image as ImageIcon, Sparkles, Globe, QrCode, Apple, Tag } from 'lucide-react';
+import { Store, User, Clock, CalendarClock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2, Timer, CreditCard, Image as ImageIcon, Sparkles, Globe, QrCode, Apple } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -525,7 +525,7 @@ const SettingsView = () => {
         />
 
         <div className="pb-24">
-          <div className={activeTab === 'general' ? 'space-y-6' : 'bg-white rounded-2xl border border-gray-200 overflow-hidden'}>
+          <div className={activeTab === 'general' || activeTab === 'coupons' ? 'space-y-6' : 'bg-white rounded-2xl border border-gray-200 overflow-hidden'}>
             {activeTab === 'general' && (
               <div className="space-y-6">
                 
@@ -1403,18 +1403,8 @@ const SettingsView = () => {
 
           {/* Coupons Tab */}
           {activeTab === 'coupons' && (
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-              <div className="p-6 md:p-8 border-b border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-green-50 text-green-600 rounded-xl">
-                    <Tag className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-gray-900">Cupones de Descuento</h3>
-                    <p className="text-xs text-gray-500">Crea y gestiona cupones para tus clientes.</p>
-                  </div>
-                </div>
-              </div>
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-4">
+              <h2 className="text-lg font-semibold text-gray-900">Cupones de descuento</h2>
               <CouponsSection orgId={orgId} />
             </div>
           )}

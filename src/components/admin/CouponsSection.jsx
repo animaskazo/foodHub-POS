@@ -26,6 +26,7 @@ const CouponsSection = ({ orgId }) => {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [copiedCode, setCopiedCode] = useState(null);
 
   useEffect(() => {
     if (!orgId) return;
@@ -125,18 +126,14 @@ const CouponsSection = ({ orgId }) => {
     }
   };
 
-  const handleDuplicate = (coupon) => {
-    setForm({
-      code: coupon.code + '-COPIA',
-      type: coupon.type,
-      value: coupon.value.toString(),
-      min_total: coupon.min_total?.toString() || '',
-      max_uses: '',
-      expires_at: null,
-      is_active: true,
-    });
-    setEditingCoupon(null);
-    setModalOpen(true);
+  const handleCopyCode = async (code) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCode(code);
+      setTimeout(() => setCopiedCode(null), 1500);
+    } catch (err) {
+      console.error('Error copying code:', err);
+    }
   };
 
   const fmt = (n) => Number(n || 0).toLocaleString('es-CL');
@@ -156,7 +153,7 @@ const CouponsSection = ({ orgId }) => {
   }
 
   return (
-    <div className="p-6 md:p-8 space-y-4">
+    <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-sm">
@@ -180,24 +177,23 @@ const CouponsSection = ({ orgId }) => {
 
       {/* Empty state */}
       {coupons.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-          <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Tag className="h-7 w-7 text-gray-400" />
+        <div className="text-center py-12">
+          <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+            <Tag className="h-6 w-6 text-gray-400" />
           </div>
-          <h3 className="text-base font-bold text-gray-900 mb-1">No hay cupones</h3>
-          <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
-            Los cupones te permiten ofrecer descuentos a tus clientes. Crea uno para empezar.
+          <p className="text-sm text-gray-500 max-w-sm mx-auto">
+            No hay cupones aún. Crea el primero para ofrecer descuentos a tus clientes.
           </p>
           <Button
             onClick={openCreate}
-            className="flex items-center gap-2 px-6 py-2.5 bg-black text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors mx-auto"
+            className="mt-4 flex items-center gap-2 px-5 py-2.5 bg-black text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors mx-auto"
           >
             <Plus className="h-4 w-4" />
             Crear primer cupón
           </Button>
         </div>
       ) : filteredCoupons.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
+        <div className="text-center py-10 text-gray-400">
           <p className="text-sm text-gray-500">No se encontraron cupones con "{search}"</p>
         </div>
       ) : (
@@ -229,6 +225,13 @@ const CouponsSection = ({ orgId }) => {
                     <div className="min-w-0">
                       <span className="font-bold text-sm text-gray-900 truncate block">{coupon.code}</span>
                     </div>
+                    <button
+                      onClick={() => handleCopyCode(coupon.code)}
+                      className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors shrink-0"
+                      title="Copiar código"
+                    >
+                      {copiedCode === coupon.code ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
                   </div>
 
                   {/* Discount */}
@@ -266,13 +269,6 @@ const CouponsSection = ({ orgId }) => {
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                       </svg>
-                    </button>
-                    <button
-                      onClick={() => handleDuplicate(coupon)}
-                      className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="Duplicar"
-                    >
-                      <Copy className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleDelete(coupon.id)}
