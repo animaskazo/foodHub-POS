@@ -808,7 +808,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                         <span className="text-sm font-bold">Delivery</span>
                         {canUber && (
                           <span className="text-[10px] bg-gray-800 text-white font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">
-                            Propio
+                            Negocio
                           </span>
                         )}
                       </div>
@@ -836,7 +836,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
 
                 {isAnyDelivery && (
                   <div className="space-y-3">
-                    {org?.settings?.delivery_info && (
+                    {!isUberDelivery && org?.settings?.delivery_info && (
                       <div className="flex items-start gap-2 bg-blue-50 text-blue-800 p-3 rounded-xl border border-blue-100">
                         <Info className="h-4 w-4 shrink-0 mt-0.5" />
                         <p className="text-xs font-semibold leading-relaxed">{org.settings.delivery_info}</p>
