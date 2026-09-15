@@ -804,7 +804,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                       ) : (
                         <MapPin className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'own' ? 'text-black' : 'text-gray-400'}`} />
                       )}
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-wrap items-center justify-center gap-1.5">
                         <span className="text-sm font-bold">Delivery</span>
                         {canUber && (
                           <span className="text-[10px] bg-gray-800 text-white font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">
@@ -824,7 +824,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                         }`}
                     >
                       <PaperBag className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'uber' ? 'text-black' : 'text-gray-400'}`} />
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-wrap items-center justify-center gap-1.5">
                         <span className="text-sm font-bold">Delivery</span>
                         <span className="text-[10px] bg-green-600 text-white font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">
                           Uber Direct
