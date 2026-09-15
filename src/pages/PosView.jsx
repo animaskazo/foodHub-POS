@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import ProductGrid from '../components/pos/ProductGrid';
@@ -96,6 +96,15 @@ const PosView = () => {
     
     loadShiftData();
   }, [organization?.id]);
+
+  // Al entrar al punto de venta, preguntar en qué mesa se tomará la orden
+  const tablePromptShownRef = useRef(false);
+  useEffect(() => {
+    if (hasTables && !tablePromptShownRef.current) {
+      tablePromptShownRef.current = true;
+      setIsTableModalOpen(true);
+    }
+  }, [hasTables]);
 
   useEffect(() => {
     if (!posPrintOrder) return;
@@ -404,6 +413,11 @@ const PosView = () => {
   };
 
   const handleNewOrder = () => {
+    if (hasTables) {
+      setIsTableModalOpen(true);
+      setIsMobileCartOpen(false);
+      return;
+    }
     setCartItems([]);
     setIsMobileCartOpen(false);
     setAppliedCoupon(null);
