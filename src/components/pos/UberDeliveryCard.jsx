@@ -8,6 +8,7 @@ export const UberDeliveryCard = ({ order, organization }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [deliveryMode, setDeliveryMode] = useState(organization?.delivery_mode);
 
   const fetchUberData = useCallback(async () => {
     if (!order?.uber_delivery_id) return;
@@ -23,13 +24,14 @@ export const UberDeliveryCard = ({ order, organization }) => {
         const orgId = order?.organization_id || organization?.id;
         const { data: orgData } = await supabase
           .from('organizations')
-          .select('uber_customer_id, uber_client_id, uber_client_secret')
+          .select('uber_customer_id, uber_client_id, uber_client_secret, delivery_mode')
           .eq('id', orgId)
           .single();
         if (orgData) {
           cid = orgData.uber_customer_id;
           clientId = orgData.uber_client_id;
           clientSecret = orgData.uber_client_secret;
+          if (orgData.delivery_mode) setDeliveryMode(orgData.delivery_mode);
         }
       }
 
@@ -56,7 +58,8 @@ export const UberDeliveryCard = ({ order, organization }) => {
 
   // Si no hay delivery de Uber, verificamos si debería haber uno (fallido)
   if (!order?.uber_delivery_id && !order?.uber_tracking_url) {
-    if (order?.delivery_type === 'delivery' && organization?.uber_enabled) {
+    const shouldBeUber = order?.delivery_type === 'delivery' && organization?.uber_enabled && deliveryMode === 'uber_direct';
+    if (shouldBeUber) {
       return (
         <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-4 text-xs">
           <div className="flex items-start gap-3">
