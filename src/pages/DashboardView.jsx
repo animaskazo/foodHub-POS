@@ -361,6 +361,34 @@ const DashboardView = () => {
   // Filter orders based on selected channel and kitchen status
   const filteredOrders = useMemo(() => {
     let result = orders;
+
+    // Re-filter by the selected range: fetch extends 1 day back to compensate timezone,
+    // so the list must exclude orders outside the real local window.
+    const startLocal = new Date();
+    const endLocal = new Date();
+    if (rangeFrom && rangeTo && !activePreset) {
+      startLocal.setTime(rangeFrom.getTime());
+      startLocal.setHours(0, 0, 0, 0);
+      endLocal.setTime(rangeTo.getTime());
+      endLocal.setHours(23, 59, 59, 999);
+    } else if (activePreset === '7days') {
+      startLocal.setDate(startLocal.getDate() - 6);
+      startLocal.setHours(0, 0, 0, 0);
+      endLocal.setHours(23, 59, 59, 999);
+    } else if (activePreset === '30days') {
+      startLocal.setDate(startLocal.getDate() - 29);
+      startLocal.setHours(0, 0, 0, 0);
+      endLocal.setHours(23, 59, 59, 999);
+    } else {
+      startLocal.setHours(0, 0, 0, 0);
+      endLocal.setHours(23, 59, 59, 999);
+    }
+
+    result = result.filter(order => {
+      const t = new Date(order.created_at).getTime();
+      return t >= startLocal.getTime() && t <= endLocal.getTime();
+    });
+
     const hideCancelled = organization?.hide_cancelled_orders === true;
     if (hideCancelled) {
       result = result.filter(order => order.status !== 'cancelled');
@@ -381,7 +409,7 @@ const DashboardView = () => {
       result = result.filter(order => order.status === kitchenStatusFilter);
     }
     return result;
-  }, [orders, channelFilter, kitchenStatusFilter, showScheduled, organization?.hide_cancelled_orders]);
+  }, [orders, channelFilter, kitchenStatusFilter, showScheduled, organization?.hide_cancelled_orders, activePreset, rangeFrom, rangeTo]);
 
   const scheduledCount = useMemo(() => {
     const now = Date.now();
