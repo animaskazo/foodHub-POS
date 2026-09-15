@@ -1586,6 +1586,7 @@ const SuperAdminView = () => {
         order={selectedOrder}
         organization={selectedOrganization}
         canCancel={false}
+        userRole="superadmin"
       />
     </div>
   );

@@ -13,6 +13,7 @@ const OrderDetailModal = ({
   order,
   organization,
   canCancel = false,
+  userRole = '',
   onCancel,
   onPrint,
   onConfirmPayment,
@@ -21,6 +22,8 @@ const OrderDetailModal = ({
   const [isPrinting, setIsPrinting] = useState(false);
 
   if (!order) return null;
+
+  const canRequestUber = ['owner', 'admin', 'superadmin'].includes(userRole);
 
   return (
     <Modal
@@ -122,7 +125,7 @@ const OrderDetailModal = ({
                       </div>
                     </div>
                   )}
-                  <UberDeliveryCard order={order} organization={organization} />
+                  <UberDeliveryCard order={order} organization={organization} canRequestUber={canRequestUber} />
                 </div>
               ) : (
                 <div>

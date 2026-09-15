@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, Check, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock, Ban, Trash2, CheckSquare, Square, XCircle } from 'lucide-react';
+import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, Check, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock, Ban, Trash2, CheckSquare, Square, XCircle, Truck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Tooltip from '../ui/tooltip';
@@ -331,9 +331,15 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                               <Store className="h-3.5 w-3.5 shrink-0" /> Local
                             </span>
                           ) : order.delivery_type === 'delivery' ? (
-                            <span className="text-[11px] px-2 py-1 rounded font-black uppercase tracking-wider bg-amber-500 text-black flex items-center gap-1 w-fit">
-                              <Van className="h-3.5 w-3.5 shrink-0" /> Delivery
-                            </span>
+                            order.uber_delivery_id ? (
+                              <span className="text-[11px] px-2 py-1 rounded font-black uppercase tracking-wider bg-[#06C167] text-white flex items-center gap-1 w-fit">
+                                <Truck className="h-3.5 w-3.5 shrink-0" /> Uber
+                              </span>
+                            ) : (
+                              <span className="text-[11px] px-2 py-1 rounded font-black uppercase tracking-wider bg-amber-500 text-black flex items-center gap-1 w-fit">
+                                <Van className="h-3.5 w-3.5 shrink-0" /> Delivery
+                              </span>
+                            )
                           ) : (
                             <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1 w-fit">
                               <ShoppingBag className="h-3.5 w-3.5 shrink-0" /> Retiro
@@ -434,9 +440,15 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                               <Store className="h-3.5 w-3.5 shrink-0" /> Local
                             </span>
                           ) : order.delivery_type === 'delivery' ? (
-                            <span className="text-[11px] px-2 py-1 rounded font-black uppercase tracking-wider bg-amber-500 text-black flex items-center gap-1">
-                              <Van className="h-3.5 w-3.5 shrink-0" /> Delivery
-                            </span>
+                            order.uber_delivery_id ? (
+                              <span className="text-[11px] px-2 py-1 rounded font-black uppercase tracking-wider bg-[#06C167] text-white flex items-center gap-1">
+                                <Truck className="h-3.5 w-3.5 shrink-0" /> Uber
+                              </span>
+                            ) : (
+                              <span className="text-[11px] px-2 py-1 rounded font-black uppercase tracking-wider bg-amber-500 text-black flex items-center gap-1">
+                                <Van className="h-3.5 w-3.5 shrink-0" /> Delivery
+                              </span>
+                            )
                           ) : (
                             <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1">
                               <PaperBag className="h-3.5 w-3.5 shrink-0" /> Retiro
@@ -576,6 +588,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
         order={selectedOrder}
         organization={organization}
         canCancel={canCancel}
+        userRole={role}
         onCancel={() => setIsCancelConfirmOpen(true)}
         onPrint={async () => {
           let orderToPrint = selectedOrder;

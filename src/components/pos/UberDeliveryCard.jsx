@@ -3,12 +3,15 @@ import { Truck, Phone, User, ExternalLink, RefreshCw, AlertCircle, Clock, Chevro
 import { supabase } from '../../lib/supabase';
 import { getAccessToken, getDelivery } from '../../services/uberDirectService';
 
-export const UberDeliveryCard = ({ order, organization }) => {
+export const UberDeliveryCard = ({ order, organization, canRequestUber = false }) => {
   const [deliveryData, setDeliveryData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [deliveryMode, setDeliveryMode] = useState(organization?.delivery_mode);
+  const [requestingUber, setRequestingUber] = useState(false);
+  const [quotingUber, setQuotingUber] = useState(false);
+  const [emergencyQuote, setEmergencyQuote] = useState(null);
 
   const fetchUberData = useCallback(async () => {
     if (!order?.uber_delivery_id) return;
@@ -66,8 +69,8 @@ export const UberDeliveryCard = ({ order, organization }) => {
             <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
             <div className="flex-1">
               <h4 className="font-bold text-red-800 text-sm mb-1">Error al asignar repartidor</h4>
-              <p className="text-red-600 mb-3 leading-relaxed">
-                El pedido fue confirmado pero hubo un problema al solicitar el repartidor en Uber Direct.
+              <p className="text-red-800 mb-3 leading-relaxed">
+                El pedido se confirmó pero Uber no pudo asignar un repartidor.
               </p>
               <button
                 onClick={async (e) => {
@@ -100,6 +103,129 @@ export const UberDeliveryCard = ({ order, organization }) => {
         </div>
       );
     }
+
+    // Pedido de delivery sin Uber asignado → el admin puede solicitar uno por emergencia
+    if (order?.delivery_type === 'delivery' && canRequestUber) {
+      const orgId = order?.organization_id || organization?.id;
+
+      const formatQuotePrice = (quote) => {
+        const rawFee = quote?.fee || 0;
+        const currency = (quote?.currency_type || quote?.currency || 'USD').toUpperCase();
+        return currency === 'CLP' ? Math.round(rawFee / 100) : rawFee / 100;
+      };
+
+      const reload = () => {
+        if (window.location.pathname.includes('superadmin')) {
+          window.dispatchEvent(new Event('reload-orders'));
+        } else {
+          window.location.reload();
+        }
+      };
+
+      const handleQuoteUber = async () => {
+        if (!orgId) return;
+        const { toast } = await import('sonner');
+        const { quoteUberDelivery } = await import('../../utils/uberDeliveryRetry');
+        setQuotingUber(true);
+        const toastId = toast.loading('Cotizando despacho con Uber Direct...');
+        try {
+          const result = await quoteUberDelivery(order.id, orgId, { allowEmergency: true });
+          if (result.success) {
+            setEmergencyQuote({ prepared: result.prepared, quote: result.quote });
+            toast.success('Cotización obtenida. Revisa el costo estimado antes de confirmar.', { id: toastId });
+          } else {
+            toast.error(result.message, { id: toastId, duration: 5000 });
+          }
+        } catch (err) {
+          toast.error(err.message || 'No se pudo cotizar el despacho con Uber', { id: toastId, duration: 5000 });
+        } finally {
+          setQuotingUber(false);
+        }
+      };
+
+      const handleConfirmUber = async () => {
+        if (!orgId || !emergencyQuote) return;
+        if (!confirm('¿Confirmar la solicitud del repartidor de Uber? Se cobrará el costo de envío mostrado.')) return;
+        const { toast } = await import('sonner');
+        const { confirmUberQuote } = await import('../../utils/uberDeliveryRetry');
+        setRequestingUber(true);
+        const toastId = toast.loading('Solicitando repartidor en Uber Direct...');
+        try {
+          const result = await confirmUberQuote(order.id, orgId, emergencyQuote.prepared);
+          if (result.success) {
+            toast.success('Repartidor de Uber solicitado con éxito', { id: toastId });
+            reload();
+          } else {
+            toast.error(result.message, { id: toastId, duration: 5000 });
+            setEmergencyQuote(null);
+          }
+        } catch (err) {
+          toast.error(err.message || 'Error al solicitar el repartidor', { id: toastId, duration: 5000 });
+        } finally {
+          setRequestingUber(false);
+        }
+      };
+
+      const quotePrice = emergencyQuote ? formatQuotePrice(emergencyQuote.quote) : null;
+      const quoteCurrency = emergencyQuote ? (emergencyQuote.quote?.currency_type || emergencyQuote.quote?.currency || 'USD').toUpperCase() : null;
+
+      return (
+        <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs">
+          <div className="flex items-start gap-3">
+            <Truck className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h4 className="font-bold text-blue-900 text-sm mb-1">Delivery con repartidor propio</h4>
+
+              {!emergencyQuote ? (
+                <>
+                  <p className="text-blue-900 mb-3 leading-relaxed">
+                    Este pedido usa repartidor propio. Si no hay repartidor disponible, cotiza un despacho con Uber.
+                  </p>
+                  <button
+                    onClick={handleQuoteUber}
+                    disabled={quotingUber}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+                  >
+                    {quotingUber ? <Clock className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
+                    {quotingUber ? 'Cotizando...' : 'Cotizar repartidor Uber'}
+                  </button>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-blue-900 leading-relaxed">
+                    Costo estimado del envío. Confirma para solicitar el repartidor.
+                  </p>
+                  <div className="bg-white rounded-lg border border-blue-200 p-3 flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Envío estimado</span>
+                    <span className="font-black text-blue-900 text-sm">
+                      ${quotePrice?.toLocaleString('es-CL')} {quoteCurrency}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleConfirmUber}
+                      disabled={requestingUber}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded-md text-[11px] flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                    >
+                      {requestingUber ? <Clock className="h-3 w-3 animate-spin" /> : <Truck className="h-3 w-3" />}
+                      {requestingUber ? 'Solicitando...' : 'Confirmar y solicitar'}
+                    </button>
+                    <button
+                      onClick={() => setEmergencyQuote(null)}
+                      disabled={requestingUber}
+                      className="flex-1 bg-white hover:bg-gray-100 text-blue-700 font-bold py-1.5 px-3 rounded-md text-[11px] border border-blue-200 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return null;
   }
 
@@ -196,9 +322,9 @@ export const UberDeliveryCard = ({ order, organization }) => {
               )}
             </div>
           ) : !loading && (
-            <div className="bg-white p-2.5 rounded-lg border border-gray-200 text-gray-500 text-[11px] flex items-center gap-2">
+            <div className="bg-amber-50 p-2.5 rounded-lg border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
-              <span>Uber está asignando el repartidor para esta orden. Vuelve a presionar "Actualizar" en unos momentos.</span>
+              <span>Uber está asignando un repartidor. Presiona "Actualizar" en unos momentos.</span>
             </div>
           )}
 
@@ -216,7 +342,7 @@ export const UberDeliveryCard = ({ order, organization }) => {
             </a>
           )}
 
-          {error && <p className="text-[11px] text-red-600 italic">{error}</p>}
+          {error && <p className="text-xs text-red-600 font-medium">{error}</p>}
         </div>
       )}
     </div>
