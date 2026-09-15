@@ -460,6 +460,15 @@ const PosView = () => {
         
         const { supabase } = await import('../lib/supabase');
         
+        // Persistir el descuento del cupón y los totales finales en la orden de mesa
+        await supabase.from('orders').update({
+          total,
+          subtotal,
+          tax_amount: tax,
+          discount_amount: discountAmount,
+          coupon_id: appliedCoupon?.id || null,
+        }).eq('id', activeOrder.id);
+        
         const { data: existingPayments } = await supabase.from('payments').select('id').eq('order_id', activeOrder.id).eq('status', 'pending');
         if (existingPayments && existingPayments.length > 0) {
            await supabase.from('payments').update({ method, status: 'paid', amount: total, paid_at: new Date().toISOString() }).eq('id', existingPayments[0].id);
