@@ -43,6 +43,8 @@ const DeliverySettingsView = () => {
     uber_customer_id: '',
   });
 
+  const [deliveryInfo, setDeliveryInfo] = useState('');
+
   const [deliveryZones, setDeliveryZones] = useState([]);
   const [showZoneModal, setShowZoneModal] = useState(false);
   const [editingZone, setEditingZone] = useState(null);
@@ -89,6 +91,7 @@ const DeliverySettingsView = () => {
         const rawSettings = orgData.settings || {};
         const uberAllowed = orgData.uber_enabled !== false;
         setUberEnabled(uberAllowed);
+        setDeliveryInfo(rawSettings.delivery_info || '');
 
         setDeliveryData({
           delivery_enabled: orgData.delivery_enabled || false,
@@ -137,6 +140,7 @@ const DeliverySettingsView = () => {
       const updatedSettings = {
         ...(deliveryData.raw_settings || {}),
         delivery_zones: deliveryZones,
+        delivery_info: deliveryInfo,
       };
 
       const basePayload = {
@@ -387,6 +391,21 @@ const DeliverySettingsView = () => {
 
                            {deliveryData.delivery_mode === 'own' && (
                 <div className="pt-4 border-t border-gray-100">
+                  {/* Información que verán los clientes en checkout */}
+                  <div className="space-y-2 mb-6">
+                    <div>
+                      <h4 className="text-base font-bold text-gray-900">Información del despacho</h4>
+                      <p className="text-xs text-gray-500 mt-0.5">Este mensaje lo verán todos tus clientes al seleccionar Delivery.</p>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={deliveryInfo}
+                      onChange={(e) => { setDeliveryInfo(e.target.value); setHasChanges(true); }}
+                      placeholder="Ej: Tu pedido llega en 30-45 minutos. Recíbelo en portería."
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-black transition-colors resize-none"
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                     
                     {/* Columna Izquierda: Listado de Zonas y Controles (col-span-5) */}

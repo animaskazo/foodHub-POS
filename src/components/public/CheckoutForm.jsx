@@ -780,6 +780,12 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
 
                 {form.deliveryType === 'delivery' && (
                   <div className="space-y-3">
+                    {org?.settings?.delivery_info && (
+                      <div className="flex items-start gap-2 bg-blue-50 text-blue-800 p-3 rounded-xl border border-blue-100">
+                        <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                        <p className="text-xs font-semibold leading-relaxed">{org.settings.delivery_info}</p>
+                      </div>
+                    )}
                     <AddressAutocomplete
                       value={form.deliveryAddress}
                       onChange={val => {
