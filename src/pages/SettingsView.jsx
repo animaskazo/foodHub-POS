@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { getPrinters } from '../services/printerService';
 import StoreLocationPicker from '../components/admin/StoreLocationPicker';
+import CouponsSection from '../components/admin/CouponsSection';
 const daysTranslations = {
   mon: 'Lunes',
   tue: 'Martes',
@@ -524,7 +525,7 @@ const SettingsView = () => {
         />
 
         <div className="pb-24">
-          <div className={activeTab === 'general' ? 'space-y-6' : 'bg-white rounded-2xl border border-gray-200 overflow-hidden'}>
+          <div className={activeTab === 'general' || activeTab === 'coupons' ? 'space-y-6' : 'bg-white rounded-2xl border border-gray-200 overflow-hidden'}>
             {activeTab === 'general' && (
               <div className="space-y-6">
                 
@@ -1399,6 +1400,14 @@ const SettingsView = () => {
               </div>
             )}
           </div>
+
+          {/* Coupons Tab */}
+          {activeTab === 'coupons' && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-4">
+              <h2 className="text-lg font-semibold text-gray-900">Cupones de descuento</h2>
+              <CouponsSection orgId={orgId} />
+            </div>
+          )}
         </div>
       </div>
     </div>

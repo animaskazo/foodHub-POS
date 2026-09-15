@@ -3,7 +3,7 @@ import { checkInventoryStock, deductInventoryForOrder } from './inventoryService
 import { upsertCustomerForOrder } from './customerService';
 import { getCartItemUnitPrice, getBundleOptionUnitPrice } from '../utils/cartTotals';
 
-export const createOrder = async (cartItems, paymentMethod, orderType, total, subtotal, tax, deliveryInfo = null, orderNotes = '', deliveryFee = 0, tableId = null) => {
+export const createOrder = async (cartItems, paymentMethod, orderType, total, subtotal, tax, deliveryInfo = null, orderNotes = '', deliveryFee = 0, tableId = null, discountAmount = 0, couponId = null) => {
   try {
     // 1. Get the current logged-in user's organization and branch
     const { data: { session } } = await supabase.auth.getSession();
@@ -48,6 +48,8 @@ export const createOrder = async (cartItems, paymentMethod, orderType, total, su
       subtotal: subtotal,
       tax_amount: tax,
       total: total,
+      discount_amount: discountAmount || 0,
+      coupon_id: couponId || null,
       notes: orderNotes,
       delivery_fee: deliveryFee,
       table_id: tableId
@@ -275,20 +277,34 @@ supabase.auth.onAuthStateChange(() => {
   cachedUserBranchId = null;
 });
 
-export const getOrders = async () => {
+export const getOrders = async (startDate, endDate) => {
   try {
     const branchId = await getUserBranchId();
     if (!branchId) return [];
     
-    const { data, error } = await supabase
+    let query = supabase
       .from('orders')
       .select(`
-        *,
+        id, organization_id, branch_id, order_type, order_number, delivery_type,
+        status, subtotal, tax_amount, discount_amount, total, notes,
+        estimated_ready_at, confirmed_at, ready_at, delivered_at, cancelled_at,
+        created_at, updated_at, table_id, customer_name, customer_phone,
+        customer_id, delivery_address, delivery_notes, delivery_fee,
+        coupon_id, scheduled_at, uber_delivery_id, uber_tracking_url, uber_status,
+        whatsapp_msg_id,
         payments(*),
         order_items(*, order_item_variants(*), order_item_ingredients(*))
       `)
-      .eq('branch_id', branchId)
-      .order('created_at', { ascending: false });
+      .eq('branch_id', branchId);
+
+    if (startDate) {
+      query = query.gte('created_at', startDate);
+    }
+    if (endDate) {
+      query = query.lte('created_at', endDate);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) throw error;
     return data;
@@ -306,7 +322,7 @@ export const getKitchenOrders = async () => {
     const { data, error } = await supabase
       .from('orders')
       .select(`
-        *,
+        *, discount_amount,
         payments(*),
         restaurant_tables(name, table_zones(name)),
         order_items(*, order_item_variants(variant_option_name), order_item_ingredients(ingredient_name))

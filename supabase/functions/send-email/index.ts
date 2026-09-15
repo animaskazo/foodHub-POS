@@ -519,6 +519,12 @@ serve(async (req) => {
                   <td style="font-size: 15px; color: #333333; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Subtotal</td>
                   <td align="right" style="font-size: 15px; color: #333333; font-weight: 500; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${subtotalFormatted2}</td>
                 </tr>
+                ${data.discount_amount > 0 ? `
+                <tr>
+                  <td style="font-size: 15px; color: #16a34a; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Descuento</td>
+                  <td align="right" style="font-size: 15px; color: #16a34a; font-weight: 500; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">-$${Number(data.discount_amount || 0).toLocaleString('es-CL')}</td>
+                </tr>
+                ` : ''}
                 <tr>
                   <td style="font-size: 15px; color: #333333; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Envío</td>
                   <td align="right" style="font-size: 15px; color: #333333; font-weight: 500; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${isDelivery2 && data.delivery_fee ? deliveryFeeFormatted2 : '$0'}</td>
@@ -771,6 +777,12 @@ serve(async (req) => {
                   <td style="font-size: 15px; color: #333333; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Subtotal</td>
                   <td align="right" style="font-size: 15px; color: #333333; font-weight: 500; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${subtotalFormatted}</td>
                 </tr>
+                ${data.discount_amount > 0 ? `
+                <tr>
+                  <td style="font-size: 15px; color: #16a34a; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Descuento</td>
+                  <td align="right" style="font-size: 15px; color: #16a34a; font-weight: 500; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">-$${Number(data.discount_amount || 0).toLocaleString('es-CL')}</td>
+                </tr>
+                ` : ''}
                 <tr>
                   <td style="font-size: 15px; color: #333333; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Envío</td>
                   <td align="right" style="font-size: 15px; color: #333333; font-weight: 500; padding: 6px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">${isDelivery && data.delivery_fee ? deliveryFeeFormatted : '$0'}</td>

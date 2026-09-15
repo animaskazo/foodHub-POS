@@ -88,6 +88,46 @@ export const isPointInPolygon = (point, vs) => {
   return inside;
 };
 
+// Tolerancia en km para considerar una dirección dentro de un polígono aunque el
+// geocoding la ubique unos metros fuera del borde (los puntos de OSM caen en el eje de la calle).
+const POLYGON_TOLERANCE_KM = 0.06;
+
+const toXYZ = ({ lat, lng }) => {
+  const phi = lat * Math.PI / 180;
+  const lam = lng * Math.PI / 180;
+  return [
+    Math.cos(phi) * Math.cos(lam),
+    Math.cos(phi) * Math.sin(lam),
+    Math.sin(phi),
+  ];
+};
+
+// Distancia en km desde un punto al segmento formado por a-b (proyección en la esfera).
+export const distanceToSegmentKm = (point, a, b) => {
+  const P = toXYZ(point);
+  const A = toXYZ(a);
+  const B = toXYZ(b);
+  const ab = [B[0] - A[0], B[1] - A[1], B[2] - A[2]];
+  const ap = [P[0] - A[0], P[1] - A[1], P[2] - A[2]];
+  const abLen2 = ab[0] * ab[0] + ab[1] * ab[1] + ab[2] * ab[2];
+  if (abLen2 === 0) return calculateDistance(point.lat, point.lng, a.lat, a.lng);
+  let t = (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / abLen2;
+  t = Math.max(0, Math.min(1, t));
+  const nearest = { lat: a.lat + (b.lat - a.lat) * t, lng: a.lng + (b.lng - a.lng) * t };
+  return calculateDistance(point.lat, point.lng, nearest.lat, nearest.lng);
+};
+
+// Distancia en km desde un punto al perímetro de un polígono.
+export const distanceToPolygonKm = (point, vs) => {
+  if (!vs || vs.length < 2) return Infinity;
+  let min = Infinity;
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const d = distanceToSegmentKm(point, vs[j], vs[i]);
+    if (d < min) min = d;
+  }
+  return min;
+};
+
 // Encuentra la zona de entrega que corresponde a una ubicación dada
 export const findDeliveryZoneForLocation = (point, storePoint, zones = []) => {
   if (!point || point.lat === undefined || point.lng === undefined) return null;
@@ -98,7 +138,7 @@ export const findDeliveryZoneForLocation = (point, storePoint, zones = []) => {
     // 1. Priorizar zonas de polígono
     for (const zone of activeZones) {
       if (zone.type === 'polygon' && zone.polygon?.length >= 3) {
-        if (isPointInPolygon(point, zone.polygon)) {
+        if (isPointInPolygon(point, zone.polygon) || distanceToPolygonKm(point, zone.polygon) <= POLYGON_TOLERANCE_KM) {
           return zone;
         }
       }

@@ -247,6 +247,12 @@ const OrderConfirmation = ({ order, org }) => {
                     </div>
                   );
                 })}
+              {dbOrder?.discount_amount > 0 && (
+                <div className="pt-2 border-t border-gray-100 flex justify-between text-sm">
+                  <span className="font-semibold text-green-600">Descuento</span>
+                  <span className="font-semibold text-green-600">-${fmt(dbOrder.discount_amount)}</span>
+                </div>
+              )}
               {(dbOrder?.delivery_fee > 0 || (dbOrder?.delivery_type === 'delivery' && dbOrder?.delivery_fee === 0)) && (
                 <div className="pt-2 border-t border-gray-100 flex justify-between text-sm">
                   <span className="font-semibold text-gray-600">Costo de envío</span>

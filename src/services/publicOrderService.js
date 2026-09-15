@@ -194,7 +194,8 @@ export const createPublicOrder = async ({
   deliveryNotes = null,
   scheduledAt = null,
   referenceCode = null,
-  status = null
+  status = null,
+  couponCode = null
 }) => {
   // Get first active branch
   const { data: branch, error: branchError } = await supabase
@@ -215,7 +216,35 @@ export const createPublicOrder = async ({
   // Calculate totals (all prices already include IVA for display)
   // Nota: para combos, item.price YA incluye las opciones seleccionadas
   // (calculateBundleTotalGross en ProductDetailView), por lo que no se suman selectedOptions.
-  const total = getCartTotal(cartItems) + (deliveryFee || 0);
+  const cartTotal = getCartTotal(cartItems);
+  
+  // Validar y aplicar cupón si se proporciona
+  let discountAmount = 0;
+  let couponId = null;
+  if (couponCode) {
+    const { data: coupon } = await supabase
+      .from('coupons')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .eq('code', couponCode.trim().toUpperCase())
+      .single();
+    
+    if (coupon && coupon.is_active) {
+      const now = new Date();
+      const isValid = !coupon.expires_at || new Date(coupon.expires_at) > now;
+      const hasUses = coupon.max_uses == null || coupon.used_count < coupon.max_uses;
+      const meetsMin = cartTotal >= (coupon.min_total || 0);
+      
+      if (isValid && hasUses && meetsMin) {
+        discountAmount = coupon.type === 'percentage' 
+          ? Math.round(cartTotal * (coupon.value / 100))
+          : Math.min(Math.round(coupon.value), cartTotal);
+        couponId = coupon.id;
+      }
+    }
+  }
+  
+  const total = cartTotal - discountAmount + (deliveryFee || 0);
 
   const { data: orgData } = await supabase
     .from('organizations')
@@ -227,7 +256,7 @@ export const createPublicOrder = async ({
   const subtotal = Math.round(total / (1 + taxRate));
   const tax = total - subtotal;
 
-  // ── Triple deliveryType (pickup|own|uber) → columnas legacy ──
+// ── Triple deliveryType (pickup|own|uber) → columnas legacy ──
   // delivery_type se mantiene pickup|delivery para no romper POS/emails/impresión.
   // delivery_provider distingue own vs uber_direct (NULL = pickup).
   const normalizedDeliveryType = deliveryType === 'pickup' ? 'pickup' : 'delivery';
@@ -250,6 +279,8 @@ export const createPublicOrder = async ({
     subtotal,
     tax_amount: tax,
     total,
+    discount_amount: discountAmount,
+    coupon_id: couponId,
     delivery_type: normalizedDeliveryType,
     delivery_address: deliveryAddress,
     delivery_notes: deliveryNotes,
@@ -402,6 +433,16 @@ export const createPublicOrder = async ({
     reference_code: referenceCode || null,
   }]);
 
+  // Increment coupon usage (non-blocking)
+  if (couponId) {
+    try {
+      const { incrementCouponUsage } = await import('./couponService');
+      await incrementCouponUsage(couponId);
+    } catch (couponErr) {
+      console.error("Error incrementing coupon usage:", couponErr);
+    }
+  }
+
   // Deduct inventory (non-blocking)
   try {
     await deductInventoryForOrder(order.id, organizationId, branch.id);
@@ -463,6 +504,7 @@ async function sendBusinessSaleNotification({ order, cartItems, orgData, branchD
         customer_phone: order.customer_phone || null,
         total: order.total,
         subtotal: order.subtotal,
+        discount_amount: order.discount_amount || 0,
         payment_method: paymentMethod || 'cash',
         notes: notes || null,
         items,
@@ -491,6 +533,7 @@ export const getPublicOrderById = async (orderId) => {
       total,
       subtotal,
       tax_amount,
+      discount_amount,
       notes,
       status,
       scheduled_at,

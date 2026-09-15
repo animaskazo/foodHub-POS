@@ -13,6 +13,7 @@ const OrderDetailModal = ({
   order,
   organization,
   canCancel = false,
+  userRole = '',
   onCancel,
   onPrint,
   onConfirmPayment,
@@ -21,6 +22,8 @@ const OrderDetailModal = ({
   const [isPrinting, setIsPrinting] = useState(false);
 
   if (!order) return null;
+
+  const canRequestUber = ['owner', 'admin', 'superadmin'].includes(userRole);
 
   return (
     <Modal
@@ -122,7 +125,7 @@ const OrderDetailModal = ({
                       </div>
                     </div>
                   )}
-                  <UberDeliveryCard order={order} organization={organization} />
+                  <UberDeliveryCard order={order} organization={organization} canRequestUber={canRequestUber} />
                 </div>
               ) : (
                 <div>
@@ -285,6 +288,12 @@ const OrderDetailModal = ({
                 <span>Subtotal</span>
                 <span>${fmt(order.subtotal || 0)}</span>
               </div>
+              {Number(order.discount_amount) > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Descuento (cupón)</span>
+                  <span>-${fmt(order.discount_amount)}</span>
+                </div>
+              )}
               {order.delivery_fee > 0 && (
                 <div className="flex justify-between text-gray-500">
                   <span>Despacho</span>

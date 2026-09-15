@@ -30,8 +30,16 @@ import TransactionList from '../components/pos/TransactionList';
 import PrintableReceipt from '../components/pos/PrintableReceipt';
 import Sparkline from '../components/ui/Sparkline';
 import Tooltip from '../components/ui/tooltip';
+import DateRangePicker from '../components/ui/DateRangePicker';
 import { useKitchenOrders } from '../hooks/useKitchenOrders';
 import { testAlertSound, unlockAudio } from '../utils/soundAlerts';
+
+const toLocalDateStr = (date) => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
 
 const MobileMetricsSlider = ({ children }) => {
   const [active, setActive] = useState(0);
@@ -92,7 +100,9 @@ const DashboardView = () => {
   const [channelFilter, setChannelFilter] = useState('all'); // all, table, pickup, online, whatsapp
   const [showScheduled, setShowScheduled] = useState(false);
   const [kitchenStatusFilter, setKitchenStatusFilter] = useState('all'); // all, pending, preparing, ready, delivered, cancelled
-  const [dateRange, setDateRange] = useState('today'); // today, 7days, 30days
+  const [activePreset, setActivePreset] = useState('today');
+  const [rangeFrom, setRangeFrom] = useState(null);
+  const [rangeTo, setRangeTo] = useState(null);
   
   // Shifts State
   const [shiftSettings, setShiftSettings] = useState(null);
@@ -111,24 +121,35 @@ const DashboardView = () => {
     let startOfRange = new Date();
     let numPoints = 7;
 
-    if (dateRange === 'today') {
+    if (rangeFrom && rangeTo && !activePreset) {
+      startOfRange = new Date(rangeFrom);
+      startOfRange.setHours(0, 0, 0, 0);
+      endOfDay.setTime(rangeTo.getTime());
+      endOfDay.setHours(23, 59, 59, 999);
+      const diffDays = Math.round((endOfDay.getTime() - startOfRange.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      numPoints = Math.min(diffDays, 90);
+    } else if (activePreset === 'today') {
       startOfRange.setHours(0, 0, 0, 0);
       numPoints = 24;
-    } else if (dateRange === '7days') {
+    } else if (activePreset === '7days') {
       startOfRange.setDate(startOfRange.getDate() - 6);
       startOfRange.setHours(0, 0, 0, 0);
       numPoints = 7;
-    } else if (dateRange === '30days') {
+    } else if (activePreset === '30days') {
       startOfRange.setDate(startOfRange.getDate() - 29);
       startOfRange.setHours(0, 0, 0, 0);
       numPoints = 30;
     }
 
+    // Extender inicio 1 día hacia atrás para compensar offset de timezone
+    const queryStart = new Date(startOfRange);
+    queryStart.setDate(queryStart.getDate() - 1);
+
     const { data } = await supabase
       .from('orders')
       .select('created_at, total, status')
       .eq('organization_id', organization.id)
-      .gte('created_at', startOfRange.toISOString())
+      .gte('created_at', queryStart.toISOString())
       .lte('created_at', endOfDay.toISOString())
       .order('created_at', { ascending: true });
 
@@ -141,11 +162,12 @@ const DashboardView = () => {
       const orderDate = new Date(order.created_at);
       let pointIndex = 0;
 
-      if (dateRange === 'today') {
+      if (activePreset === 'today') {
         pointIndex = orderDate.getHours();
       } else {
-        orderDate.setHours(0, 0, 0, 0);
-        pointIndex = Math.floor((orderDate.getTime() - startOfRange.getTime()) / (1000 * 60 * 60 * 24));
+        const orderLocalDate = toLocalDateStr(orderDate);
+        const startLocalDate = toLocalDateStr(startOfRange);
+        pointIndex = Math.floor((new Date(orderLocalDate).getTime() - new Date(startLocalDate).getTime()) / (1000 * 60 * 60 * 24));
       }
 
       if (pointIndex >= 0 && pointIndex < numPoints) {
@@ -161,15 +183,15 @@ const DashboardView = () => {
       .from('store_visits')
       .select('date, visit_count')
       .eq('organization_id', organization.id)
-      .gte('date', startOfRange.toISOString().split('T')[0])
-      .lte('date', endOfDay.toISOString().split('T')[0]);
+      .gte('date', toLocalDateStr(startOfRange))
+      .lte('date', toLocalDateStr(endOfDay));
 
     const dailyVisits = new Array(numPoints).fill(0);
     if (visitsData) {
       visitsData.forEach(visit => {
         const visitDate = new Date(visit.date + 'T00:00:00');
         let pointIndex = 0;
-        if (dateRange === 'today') {
+        if (activePreset === 'today') {
           pointIndex = 12;
         } else {
           pointIndex = Math.floor((visitDate.getTime() - startOfRange.getTime()) / (1000 * 60 * 60 * 24));
@@ -186,7 +208,7 @@ const DashboardView = () => {
       ticket: dailyTicket,
       visits: dailyVisits
     });
-  }, [organization?.id, dateRange]);
+  }, [organization?.id, activePreset, rangeFrom, rangeTo]);
 
   useEffect(() => {
     fetchSparklines();
@@ -233,7 +255,7 @@ const DashboardView = () => {
       setLoading(false);
       setError('No tienes una organización asignada.');
     }
-  }, [organization?.id, authLoading, dateRange, fetchSparklines]);
+  }, [organization?.id, authLoading, activePreset, rangeFrom, rangeTo, fetchSparklines]);
 
   const loadShiftData = async () => {
     try {
@@ -262,15 +284,24 @@ const DashboardView = () => {
       endOfDay.setHours(23, 59, 59, 999);
 
       const startOfRange = new Date();
-      if (dateRange === 'today') {
+      if (rangeFrom && rangeTo && !activePreset) {
+        startOfRange.setTime(rangeFrom.getTime());
         startOfRange.setHours(0, 0, 0, 0);
-      } else if (dateRange === '7days') {
+        endOfDay.setTime(rangeTo.getTime());
+        endOfDay.setHours(23, 59, 59, 999);
+      } else if (activePreset === 'today') {
+        startOfRange.setHours(0, 0, 0, 0);
+      } else if (activePreset === '7days') {
         startOfRange.setDate(startOfRange.getDate() - 6);
         startOfRange.setHours(0, 0, 0, 0);
-      } else if (dateRange === '30days') {
+      } else if (activePreset === '30days') {
         startOfRange.setDate(startOfRange.getDate() - 29);
         startOfRange.setHours(0, 0, 0, 0);
       }
+
+      // Extender inicio 1 día hacia atrás para compensar offset de timezone
+      const queryStart = new Date(startOfRange);
+      queryStart.setDate(queryStart.getDate() - 1);
 
       const { data, error: fetchError } = await supabase
         .from('orders')
@@ -282,6 +313,7 @@ const DashboardView = () => {
           total,
           subtotal,
           tax_amount,
+          discount_amount,
           created_at,
           scheduled_at,
           ready_at,
@@ -298,7 +330,7 @@ const DashboardView = () => {
           payments (*)
         `)
         .eq('organization_id', organization.id)
-        .gte('created_at', startOfRange.toISOString())
+        .gte('created_at', queryStart.toISOString())
         .lte('created_at', endOfDay.toISOString())
         .order('created_at', { ascending: false });
 
@@ -312,8 +344,8 @@ const DashboardView = () => {
         .from('store_visits')
         .select('visit_count')
         .eq('organization_id', organization.id)
-        .gte('date', startOfRange.toISOString().split('T')[0])
-        .lte('date', endOfDay.toISOString().split('T')[0]);
+        .gte('date', toLocalDateStr(startOfRange))
+        .lte('date', toLocalDateStr(endOfDay));
       
       const totalVisitsCount = (visitsData || []).reduce((sum, v) => sum + (v.visit_count || 0), 0);
       setTotalVisits(totalVisitsCount);
@@ -377,14 +409,23 @@ const DashboardView = () => {
   };
 
   const sparklineDateRangeText = useMemo(() => {
+    if (rangeFrom && rangeTo && !activePreset) {
+      const sMonth = rangeFrom.toLocaleDateString('es-ES', { month: 'long' });
+      const eMonth = rangeTo.toLocaleDateString('es-ES', { month: 'long' });
+      const sDay = rangeFrom.toLocaleDateString('es-ES', { day: 'numeric' });
+      const eDay = rangeTo.toLocaleDateString('es-ES', { day: 'numeric' });
+      if (sMonth === eMonth) return `Del ${sDay} al ${eDay} de ${eMonth}`;
+      return `Del ${sDay} de ${sMonth} al ${eDay} de ${eMonth}`;
+    }
+
     const end = new Date();
     const start = new Date();
 
-    if (dateRange === 'today') {
+    if (activePreset === 'today') {
       return `Hoy, ${end.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`;
     }
 
-    if (dateRange === '7days') {
+    if (activePreset === '7days') {
       start.setDate(start.getDate() - 6);
     } else {
       start.setDate(start.getDate() - 29);
@@ -400,7 +441,7 @@ const DashboardView = () => {
     } else {
       return `Del ${startDay} de ${startMonth} al ${endDay} de ${endMonth}`;
     }
-  }, [dateRange]);
+  }, [activePreset, rangeFrom, rangeTo]);
 
   useDocumentTitle('Dashboard');
 
@@ -444,8 +485,8 @@ const DashboardView = () => {
             </div>
           }
           subtitle={
-            dateRange === 'today' ? 'Resumen de ventas del día de hoy.' :
-              dateRange === '7days' ? 'Resumen de ventas de los últimos 7 días.' :
+            activePreset === 'today' ? 'Resumen de ventas del día de hoy.' :
+              activePreset === '7days' ? 'Resumen de ventas de los últimos 7 días.' :
                 'Resumen de ventas de los últimos 30 días.'
           }
           actions={
@@ -533,34 +574,6 @@ const DashboardView = () => {
                 </span>
               )}
             </Button>
-          </div>
-
-          {/* Selector de Período (Hoy | 7 días | 30 días) */}
-          <div className="flex items-center gap-1 bg-gray-200/80 p-1 rounded-xl shrink-0 self-start sm:self-auto shadow-inner">
-            <button
-              onClick={() => setDateRange('today')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
-                dateRange === 'today' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Hoy
-            </button>
-            <button
-              onClick={() => setDateRange('7days')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
-                dateRange === '7days' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              7 días
-            </button>
-            <button
-              onClick={() => setDateRange('30days')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-extrabold transition-all ${
-                dateRange === '30days' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              30 días
-            </button>
           </div>
         </div>
 
@@ -728,17 +741,23 @@ const DashboardView = () => {
           {/* Toolbar */}
           <div className="pb-4 md:p-6 md:border-b flex items-center gap-2">
             <h2 className="text-base font-semibold text-gray-900 whitespace-nowrap">Registro Diario</h2>
-            <div className="flex items-center gap-1.5 ml-auto">
-              <select
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
-                className="bg-white border border-gray-200 text-gray-700 rounded-lg px-2 py-1.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer appearance-none pr-6 transition-all"
-                style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.25rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.2em 1.2em' }}
-              >
-                <option value="today">Hoy</option>
-                <option value="7days">7 días</option>
-                <option value="30days">30 días</option>
-              </select>
+            <div className="flex items-center gap-2 ml-auto flex-wrap justify-end">
+              <DateRangePicker
+                from={rangeFrom}
+                to={rangeTo}
+                activePreset={activePreset}
+                onSelect={(from, to) => {
+                  setRangeFrom(from);
+                  setRangeTo(to);
+                }}
+                onPresetChange={(preset) => {
+                  setActivePreset(preset);
+                  if (preset) {
+                    setRangeFrom(null);
+                    setRangeTo(null);
+                  }
+                }}
+              />
               <select
                 value={kitchenStatusFilter}
                 onChange={(e) => setKitchenStatusFilter(e.target.value)}

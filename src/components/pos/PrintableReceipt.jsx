@@ -138,8 +138,14 @@ const PrintableReceipt = React.forwardRef(({ order, organization }, ref) => {
         <div className="receipt-totals">
           <div className="flex justify-between mb-1">
             <span>Subtotal</span>
-            <span>${fmt(order.total - (order.delivery_fee || 0))}</span>
+            <span>${fmt(order.total - (order.delivery_fee || 0) + (order.discount_amount || 0))}</span>
           </div>
+          {order.discount_amount > 0 && (
+            <div className="flex justify-between mb-1 text-green-600">
+              <span>Descuento</span>
+              <span>-${fmt(order.discount_amount)}</span>
+            </div>
+          )}
           {order.delivery_fee > 0 && (
             <div className="flex justify-between mb-1">
               <span>Despacho</span>

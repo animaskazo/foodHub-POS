@@ -47,6 +47,8 @@ const DeliverySettingsView = () => {
     uber_customer_id: '',
   });
 
+  const [deliveryInfo, setDeliveryInfo] = useState('');
+
   const [deliveryZones, setDeliveryZones] = useState([]);
   const [showZoneModal, setShowZoneModal] = useState(false);
   const [editingZone, setEditingZone] = useState(null);
@@ -93,6 +95,7 @@ const DeliverySettingsView = () => {
         const rawSettings = orgData.settings || {};
         const uberAllowed = orgData.uber_enabled !== false;
         setUberEnabled(uberAllowed);
+        setDeliveryInfo(rawSettings.delivery_info || '');
 
         // Triple modo: delivery_modes es la fuente de verdad; fallback legacy delivery_mode
         // solo cuando la columna aún no existe (undefined). Un arreglo vacío [] significa
@@ -123,7 +126,7 @@ const DeliverySettingsView = () => {
         // Pestaña inicial: Uber solo si es el único modo activo; si no, propio
         setActiveTab(initialModes.length === 1 && initialModes[0] === 'uber_direct' && uberAllowed ? 'uber_direct' : 'own');
 
-        let loadedZones = orgData.delivery_zones || rawSettings.delivery_zones || [];
+        let loadedZones = (orgData.delivery_zones?.length ? orgData.delivery_zones : rawSettings.delivery_zones) || [];
         // Si el usuario ya tenía una zona/polígono o tarifa configurada previamente, migrarlo como Zona 1
         if (loadedZones.length === 0 && (orgData.delivery_polygon?.length > 0 || orgData.delivery_fee > 0)) {
           loadedZones = [{
@@ -156,6 +159,7 @@ const DeliverySettingsView = () => {
       const updatedSettings = {
         ...(deliveryData.raw_settings || {}),
         delivery_zones: deliveryZones,
+        delivery_info: deliveryInfo,
       };
 
       // Se permite arreglo vacío: ambos métodos apagados (solo retiro en checkout).
@@ -424,7 +428,7 @@ const DeliverySettingsView = () => {
 
                           {activeTab === 'own' && (
                 <div className="pt-4 border-t border-gray-100">
-                  <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl mb-6">
+<div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl mb-6">
                     <div>
                       <div className="flex items-center gap-2">
                         <Truck className="h-4 w-4 text-gray-700" />
@@ -444,7 +448,22 @@ const DeliverySettingsView = () => {
                   </div>
                   {isOwnActive ? (
                   <>
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                  {/* Información que verán los clientes en checkout */}
+                  <div className="space-y-2 mb-6">
+                    <div>
+                      <h4 className="text-base font-bold text-gray-900">Información del despacho</h4>
+                      <p className="text-xs text-gray-500 mt-0.5">Este mensaje lo verán todos tus clientes al seleccionar Delivery.</p>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={deliveryInfo}
+                      onChange={(e) => { setDeliveryInfo(e.target.value); setHasChanges(true); }}
+                      placeholder="Ej: Tu pedido llega en 30-45 minutos. Recíbelo en portería."
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-black transition-colors resize-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
                     
                     {/* Columna Izquierda: Listado de Zonas y Controles (col-span-5) */}
                     <div className="lg:col-span-5 space-y-4">
@@ -487,7 +506,7 @@ const DeliverySettingsView = () => {
                           <p className="text-xs text-gray-400 mt-1">Presiona "+ Nueva Zona" para agregar tu primer sector de reparto.</p>
                         </div>
                       ) : (
-                        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                        <div className="space-y-3">
                           {deliveryZones.map((zone) => (
                             <div
                               key={zone.id}
@@ -513,59 +532,35 @@ const DeliverySettingsView = () => {
                                   />
                                 </div>
 
-                                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold mt-3">
-                                  <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg border border-emerald-200/80">
-                                    Envío: ${Number(zone.fee || 0).toLocaleString('es-CL')}
-                                  </span>
-                                  {zone.min_order > 0 && (
-                                    <span className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg border border-amber-200/80">
-                                      Min: ${Number(zone.min_order).toLocaleString('es-CL')}
-                                    </span>
-                                  )}
-                                  <span className="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg">
-                                    {zone.type === 'radius' ? `Radio ${zone.radius_km || 0} km` : `Polígono (${zone.polygon?.length || 0} ptos)`}
-                                  </span>
+                                <div className="mt-3">
+                                  <p className="text-[11px] font-bold text-gray-400 uppercase">Envío</p>
+                                  <p className="text-lg font-extrabold text-gray-900">${Number(zone.fee || 0).toLocaleString('es-CL')}</p>
                                 </div>
                               </div>
 
-                              <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-gray-100">
-                                {zone.type === 'polygon' && (
-                                  <Button
-                                    type="button"
-                                    onClick={() => setDrawingZoneId(zone.id)}
-                                    className={`text-xs font-bold px-3 py-1.5 h-auto rounded-lg flex items-center gap-1.5 ${
-                                      drawingZoneId === zone.id ? 'bg-amber-500 text-black font-extrabold' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                                    }`}
-                                  >
-                                    <MousePointer2 className="w-3.5 h-3.5" />
-                                    {drawingZoneId === zone.id ? 'Dibujando...' : 'Dibujar en mapa'}
-                                  </Button>
-                                )}
-                                <div className="flex items-center gap-2 ml-auto">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setEditingZone({ ...zone });
-                                      setShowZoneModal(true);
-                                    }}
-                                    className="text-xs font-bold px-3 py-1.5 h-auto rounded-lg"
-                                  >
-                                    Editar
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => {
-                                      if (drawingZoneId === zone.id) setDrawingZoneId(null);
-                                      setDeliveryZones(deliveryZones.filter(z => z.id !== zone.id));
-                                      setHasChanges(true);
-                                    }}
-                                    className="text-xs font-bold px-3 py-1.5 h-auto rounded-lg text-red-600 border-red-100 hover:bg-red-50"
-                                  >
-                                    Eliminar
-                                  </Button>
-                                </div>
+                              <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-gray-100">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    if (drawingZoneId === zone.id) setDrawingZoneId(null);
+                                    setDeliveryZones(deliveryZones.filter(z => z.id !== zone.id));
+                                    setHasChanges(true);
+                                  }}
+                                  className="text-xs font-bold px-3 py-1.5 h-auto rounded-lg"
+                                >
+                                  Eliminar
+                                </Button>
+                                <Button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingZone({ ...zone });
+                                    setShowZoneModal(true);
+                                  }}
+                                  className="bg-black text-white font-bold text-xs px-3 py-1.5 h-auto rounded-lg"
+                                >
+                                  Editar
+                                </Button>
                               </div>
                             </div>
                           ))}

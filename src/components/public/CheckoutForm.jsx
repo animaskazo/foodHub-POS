@@ -230,6 +230,13 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       scheduledAt: '',
     };
   });
+  
+  // ── Cupón de descuento ─────────────────────────────────
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  
   const nowBlocked = form.scheduleType === 'now' && (isClosed || !instantAvailable);
   const scheduledBlocked = showScheduleSection && form.scheduleType === 'scheduled' && !form.scheduledAt;
   // Triple deliveryType: 'pickup' | 'own' | 'uber' (legacy 'delivery' = propio)
@@ -417,6 +424,39 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     return `${dayLabel} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
   })() : null;
 
+  // ── Cupón de descuento ─────────────────────────────────
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim() || !organizationId) return;
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const { applyCouponCode } = await import('../../services/couponService');
+      const result = await applyCouponCode(couponCode, organizationId, totalAmount);
+      if (result.valid) {
+        setAppliedCoupon(result.coupon);
+        setCouponError('');
+      } else {
+        setCouponError(result.error);
+        setAppliedCoupon(null);
+      }
+    } catch (err) {
+      setCouponError('Error al validar el cupón.');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    setCouponError('');
+  };
+
+  const discountAmount = appliedCoupon 
+    ? (appliedCoupon.type === 'percentage' ? Math.round(totalAmount * (appliedCoupon.value / 100)) : Math.min(appliedCoupon.value, totalAmount))
+    : 0;
+  const finalTotal = totalAmount - discountAmount;
+
   const handleSubmit = () => {
     const errs = validate();
     if (Object.keys(errs).length > 0) {
@@ -434,7 +474,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       }));
     } catch (e) { }
 
-    onSubmit(form);
+    onSubmit({ ...form, couponCode: appliedCoupon?.code || null });
   };
 
   const handleAddressBlur = async (preFetchedCoords = null, forcedMethod = null) => {
@@ -442,10 +482,10 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     if (method !== 'own' && method !== 'uber' && method !== 'delivery') return;
     const isUberMethod = method === 'uber';
     if (!form.deliveryAddress?.trim() && !preFetchedCoords) return;
-    if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
+if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
     // Para delivery propio: necesita store_lat/lng solo si no hay ninguna zona de polígono activa
     if (!isUberMethod) {
-      const allZones = org?.delivery_zones || org?.settings?.delivery_zones || [];
+      const allZones = (org?.delivery_zones?.length ? org.delivery_zones : org?.settings?.delivery_zones) || [];
       const activeZones = allZones.filter(z => z.is_active !== false);
       const hasPolygonZone = activeZones.some(z => z.type === 'polygon' && z.polygon?.length >= 3);
       const needsStoreCoords = !hasPolygonZone;
@@ -635,7 +675,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           const storeCoords = (org.store_lat && org.store_lng)
             ? { lat: org.store_lat, lng: org.store_lng }
             : null;
-          const zones = org.delivery_zones || org.settings?.delivery_zones || [];
+          const zones = (org.delivery_zones?.length ? org.delivery_zones : org.settings?.delivery_zones) || [];
           const matchedZone = findDeliveryZoneForLocation(coords, storeCoords, zones);
 
           if (!matchedZone) {
@@ -796,6 +836,12 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
 
                 {isAnyDelivery && (
                   <div className="space-y-3">
+                    {org?.settings?.delivery_info && (
+                      <div className="flex items-start gap-2 bg-blue-50 text-blue-800 p-3 rounded-xl border border-blue-100">
+                        <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                        <p className="text-xs font-semibold leading-relaxed">{org.settings.delivery_info}</p>
+                      </div>
+                    )}
                     <AddressAutocomplete
                       value={form.deliveryAddress}
                       onChange={val => {
@@ -1053,6 +1099,54 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
             </div>
           </div>
 
+          {/* Cupón de descuento */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
+              Cupón de descuento (opcional)
+            </label>
+            {!appliedCoupon ? (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  placeholder="Ingresa tu código"
+                  className="flex-1 px-4 py-3.5 bg-white border-2 border-gray-200 rounded-2xl text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-black transition-colors uppercase"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && couponCode.trim()) {
+                      handleApplyCoupon();
+                    }
+                  }}
+                />
+                <button
+                  onClick={handleApplyCoupon}
+                  disabled={!couponCode.trim() || couponLoading}
+                  className="px-6 py-3.5 bg-gray-900 text-white text-sm font-bold rounded-2xl disabled:opacity-40 hover:bg-gray-800 transition-colors"
+                >
+                  {couponLoading ? '...' : 'Aplicar'}
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between bg-green-50 border-2 border-green-200 rounded-2xl px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-green-700">{couponCode}</span>
+                  <span className="text-xs text-green-600">
+                    {appliedCoupon.type === 'percentage' ? `-${appliedCoupon.value}%` : `-$${appliedCoupon.value.toLocaleString('es-CL')}`}
+                  </span>
+                </div>
+                <button
+                  onClick={handleRemoveCoupon}
+                  className="text-xs text-gray-400 hover:text-red-500 transition-colors font-medium"
+                >
+                  Quitar
+                </button>
+              </div>
+            )}
+            {couponError && !appliedCoupon && (
+              <p className="text-xs text-red-500">{couponError}</p>
+            )}
+          </div>
+
           <div className="h-40" />
           </div>
         </div>
@@ -1062,26 +1156,34 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
       <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-8 pointer-events-none">
         <div className="max-w-3xl mx-auto flex flex-col items-center pointer-events-auto space-y-3">
 
-          {isAnyDelivery && (form.deliveryFee > 0 || form.deliveryType === 'uber') && (
+{(isAnyDelivery && (form.deliveryFee > 0 || form.deliveryType === 'uber')) || discountAmount > 0 ? (
             <div className="w-full flex flex-col gap-2 px-4 bg-white/80 backdrop-blur-md py-3 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100">
               <div className="flex justify-between items-center text-sm font-bold text-gray-700">
                 <span>Subtotal (Productos)</span>
                 <span>${fmt(totalAmount)}</span>
               </div>
-              <div className="flex justify-between items-center text-sm font-bold text-gray-700">
-                <span>Costo de envío</span>
-                {form.deliveryType === 'uber' && isQuoting ? (
-                  <span className="text-gray-400 text-xs">Cotizando…</span>
-                ) : form.deliveryType === 'uber' && form.quotePrice > 0 ? (
-                  <span>{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
-                ) : form.deliveryType === 'uber' ? (
-                  <span>Gratis</span>
-                ) : (
-                  <span>${fmt(form.deliveryFee)}</span>
-                )}
-              </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between items-center text-sm font-bold text-green-600">
+                  <span>Descuento ({appliedCoupon.code})</span>
+                  <span>-${fmt(discountAmount)}</span>
+                </div>
+              )}
+              {isAnyDelivery && (
+                <div className="flex justify-between items-center text-sm font-bold text-gray-700">
+                  <span>Costo de envío</span>
+                  {form.deliveryType === 'uber' && isQuoting ? (
+                    <span className="text-gray-400 text-xs">Cotizando…</span>
+                  ) : form.deliveryType === 'uber' && form.quotePrice > 0 ? (
+                    <span>{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
+                  ) : form.deliveryType === 'uber' ? (
+                    <span>Gratis</span>
+                  ) : (
+                    <span>${fmt(form.deliveryFee)}</span>
+                  )}
+                </div>
+              )}
             </div>
-          )}
+          ) : null}
 
           {isAnyDelivery && totalAmount < (org?.delivery_min_order || 0) && (
             <div className="bg-red-50 text-red-600 px-4 py-2 rounded-xl border border-red-100 w-full text-center text-xs font-bold shadow-sm">
@@ -1119,7 +1221,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
                 {totalAmount != null && (
                   <>
                     <div className="w-1.5 h-1.5 rounded-full bg-white/40 mx-3"></div>
-                    <span>${fmt(totalAmount + (isAnyDelivery ? form.deliveryFee : 0))}</span>
+<span>${fmt(finalTotal + (isAnyDelivery ? form.deliveryFee : 0))}</span>
                   </>
                 )}
               </div>

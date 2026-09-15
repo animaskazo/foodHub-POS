@@ -40,9 +40,26 @@ export const getCartItemLineTotal = (item) =>
 export const getCartTotal = (items = []) =>
   items.reduce((acc, i) => acc + getCartItemLineTotal(i), 0);
 
-export const getCartTotalsWithTax = (items = [], taxRate = 0.19) => {
+export const getCartTotalsWithTax = (items = [], taxRate = 0.19, discountAmount = 0) => {
   const total = getCartTotal(items);
-  const subtotal = Math.round(total / (1 + taxRate));
-  const tax = total - subtotal;
-  return { total, subtotal, tax };
+  const discountedTotal = Math.max(0, total - discountAmount);
+  const subtotal = Math.round(discountedTotal / (1 + taxRate));
+  const tax = discountedTotal - subtotal;
+  return { total: discountedTotal, subtotal, tax, originalTotal: total };
+};
+
+// ── Cupones ───────────────────────────────────────────────
+
+export const calculateDiscount = (coupon, cartTotal) => {
+  if (!coupon) return 0;
+  if (coupon.type === 'percentage') {
+    return Math.round(cartTotal * (coupon.value / 100));
+  }
+  return Math.min(Math.round(coupon.value), cartTotal);
+};
+
+export const getCartTotalsWithCoupon = (items = [], coupon = null, taxRate = 0.19) => {
+  const cartTotal = getCartTotal(items);
+  const discountAmount = coupon ? calculateDiscount(coupon, cartTotal) : 0;
+  return getCartTotalsWithTax(items, taxRate, discountAmount);
 };

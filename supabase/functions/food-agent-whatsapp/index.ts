@@ -85,6 +85,68 @@ function isPointInPolygon(point: { lat: number; lng: number }, vs: Array<{ lat: 
   return inside;
 }
 
+interface DeliveryZone {
+  id?: string;
+  name?: string;
+  fee?: number;
+  type?: string;
+  radius_km?: number;
+  polygon?: Array<{ lat: number; lng: number }>;
+  is_active?: boolean;
+}
+
+const POLYGON_TOLERANCE_KM = 0.06;
+
+function toXYZ(point: { lat: number; lng: number }): [number, number, number] {
+  const phi = point.lat * Math.PI / 180;
+  const lam = point.lng * Math.PI / 180;
+  return [
+    Math.cos(phi) * Math.cos(lam),
+    Math.cos(phi) * Math.sin(lam),
+    Math.sin(phi),
+  ];
+}
+
+function distanceToSegmentKm(point: { lat: number; lng: number }, a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const P = toXYZ(point);
+  const A = toXYZ(a);
+  const B = toXYZ(b);
+  const ab = [B[0] - A[0], B[1] - A[1], B[2] - A[2]];
+  const ap = [P[0] - A[0], P[1] - A[1], P[2] - A[2]];
+  const abLen2 = ab[0] * ab[0] + ab[1] * ab[1] + ab[2] * ab[2];
+  if (abLen2 === 0) return calculateDistance(point.lat, point.lng, a.lat, a.lng);
+  const t = Math.max(0, Math.min(1, (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / abLen2));
+  const nearest = { lat: a.lat + (b.lat - a.lat) * t, lng: a.lng + (b.lng - a.lng) * t };
+  return calculateDistance(point.lat, point.lng, nearest.lat, nearest.lng);
+}
+
+function distanceToPolygonKm(point: { lat: number; lng: number }, vs: Array<{ lat: number; lng: number }>): number {
+  if (!vs || vs.length < 2) return Infinity;
+  let min = Infinity;
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const d = distanceToSegmentKm(point, vs[j], vs[i]);
+    if (d < min) min = d;
+  }
+  return min;
+}
+
+function findZoneForLocation(point: { lat: number; lng: number }, storePoint: { lat: number; lng: number } | null, zones: DeliveryZone[]): DeliveryZone | null {
+  const activeZones = (zones || []).filter((z) => z.is_active !== false);
+  if (activeZones.length === 0) return null;
+  for (const zone of activeZones) {
+    if (zone.type === "polygon" && Array.isArray(zone.polygon) && zone.polygon.length >= 3) {
+      if (isPointInPolygon(point, zone.polygon) || distanceToPolygonKm(point, zone.polygon) <= POLYGON_TOLERANCE_KM) return zone;
+    }
+  }
+  if (storePoint) {
+    const dist = calculateDistance(storePoint.lat, storePoint.lng, point.lat, point.lng);
+    for (const zone of activeZones) {
+      if (zone.type === "radius" && typeof zone.radius_km === "number" && zone.radius_km > 0 && dist <= zone.radius_km) return zone;
+    }
+  }
+  return null;
+}
+
 async function geocodeAddress(address: string) {
   try {
     const q = encodeURIComponent(`${address}, Chile`);
@@ -509,24 +571,32 @@ async function processMessage(
       } else {
         const coords = await geocodeAddress(userText);
         const supabase = getSupabase();
-        const { data: orgData } = await supabase.from("organizations").select("store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee").eq("slug", session.org_slug).maybeSingle();
+        const { data: orgData } = await supabase.from("organizations").select("store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_zones, delivery_fee").eq("slug", session.org_slug).maybeSingle();
         
-        if (coords && orgData?.store_lat && orgData?.store_lng) {
-          let isInside = false;
+        if (coords) {
+          const storeCoords = (orgData?.store_lat && orgData?.store_lng) ? { lat: orgData.store_lat, lng: orgData.store_lng } : null;
+          const zones = (orgData?.delivery_zones || []) as DeliveryZone[];
+          let matchedZone: DeliveryZone | null = null;
           let distStr = "";
-          
-          if (Array.isArray(orgData.delivery_polygon) && orgData.delivery_polygon.length > 0) {
-            isInside = isPointInPolygon(coords, orgData.delivery_polygon as Array<{ lat: number; lng: number }>);
-          } else {
-            const dist = calculateDistance(orgData.store_lat, orgData.store_lng, coords.lat, coords.lng);
-            const maxDist = orgData.delivery_radius_km || 5;
-            isInside = dist <= maxDist;
-            distStr = ` (distancia calculada: ${dist.toFixed(1)}km, límite: ${maxDist}km)`;
+
+          if (zones.length > 0) {
+            matchedZone = findZoneForLocation(coords, storeCoords, zones);
+          } else if (storeCoords) {
+            if (Array.isArray(orgData.delivery_polygon) && orgData.delivery_polygon.length > 0) {
+              if (isPointInPolygon(coords, orgData.delivery_polygon as Array<{ lat: number; lng: number }>)) {
+                matchedZone = { fee: orgData.delivery_fee || 0 };
+              }
+            } else {
+              const dist = calculateDistance(storeCoords.lat, storeCoords.lng, coords.lat, coords.lng);
+              const maxDist = orgData.delivery_radius_km || 5;
+              if (dist <= maxDist) matchedZone = { fee: orgData.delivery_fee || 0 };
+              distStr = ` (distancia calculada: ${dist.toFixed(1)}km, límite: ${maxDist}km)`;
+            }
           }
 
-          if (isInside) {
+          if (matchedZone) {
             session.delivery_address = userText;
-            session.delivery_fee = orgData.delivery_fee || 0;
+            session.delivery_fee = matchedZone.fee || orgData?.delivery_fee || 0;
             collect.step = "confirm_prompt";
             replyText = "¡Cobertura confirmada! 🛵\n\n" + buildConfirmSummary(session);
           } else {
@@ -622,22 +692,32 @@ async function processMessage(
       if (session.delivery_type === "delivery") {
         const coords = await geocodeAddress(session.delivery_address!);
         const supabase = getSupabase();
-        const { data: orgData } = await supabase.from("organizations").select("store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee").eq("slug", session.org_slug).maybeSingle();
+        const { data: orgData } = await supabase.from("organizations").select("store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_zones, delivery_fee").eq("slug", session.org_slug).maybeSingle();
         
-        let isInside = false;
+        const storeCoords = (orgData?.store_lat && orgData?.store_lng) ? { lat: orgData.store_lat, lng: orgData.store_lng } : null;
+        const zones = (orgData?.delivery_zones || []) as DeliveryZone[];
+        let matchedZone: DeliveryZone | null = null;
         let distStr = "";
-        if (coords && orgData?.store_lat && orgData?.store_lng) {
-          if (Array.isArray(orgData.delivery_polygon) && orgData.delivery_polygon.length > 0) {
-            isInside = isPointInPolygon(coords, orgData.delivery_polygon as Array<{ lat: number; lng: number }>);
-          } else {
-            const dist = calculateDistance(orgData.store_lat, orgData.store_lng, coords.lat, coords.lng);
-            const maxDist = orgData.delivery_radius_km || 5;
-            isInside = dist <= maxDist;
-            distStr = ` (distancia calculada: ${dist.toFixed(1)}km, límite: ${maxDist}km)`;
+
+        if (coords) {
+          if (zones.length > 0) {
+            matchedZone = findZoneForLocation(coords, storeCoords, zones);
+          } else if (storeCoords) {
+            if (Array.isArray(orgData.delivery_polygon) && orgData.delivery_polygon.length > 0) {
+              if (isPointInPolygon(coords, orgData.delivery_polygon as Array<{ lat: number; lng: number }>)) {
+                matchedZone = { fee: orgData.delivery_fee || 0 };
+              }
+            } else {
+              const dist = calculateDistance(storeCoords.lat, storeCoords.lng, coords.lat, coords.lng);
+              const maxDist = orgData.delivery_radius_km || 5;
+              if (dist <= maxDist) matchedZone = { fee: orgData.delivery_fee || 0 };
+              distStr = ` (distancia calculada: ${dist.toFixed(1)}km, límite: ${maxDist}km)`;
+            }
           }
         }
-        if (isInside) {
-          session.delivery_fee = orgData?.delivery_fee || 0;
+
+        if (matchedZone) {
+          session.delivery_fee = matchedZone.fee || orgData?.delivery_fee || 0;
           collect.step = "confirm_prompt";
           replyText = buildConfirmSummary(session);
         } else {
