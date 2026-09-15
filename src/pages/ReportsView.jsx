@@ -11,6 +11,13 @@ import { ChevronLeft, ChevronRight, Loader2, FileDown, CalendarDays, FileText, F
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DAYS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado']
 
+const toLocalDateStr = (date) => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 const fmt = (n) => {
   if (!n && n !== 0) return '—'
   return '$' + Number(n).toLocaleString('es-CL')
@@ -157,8 +164,8 @@ const ReportsView = () => {
     const dc = new Date(cy, cm + 1, 0).getDate()
     for (let d = 1; d <= dc; d++) {
       const ds = `${cy}-${String(cm + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-      const ss = shifts.filter(s => new Date(s.start_time).toISOString().slice(0, 10) === ds)
-      const os = orders.filter(o => new Date(o.created_at).toISOString().slice(0, 10) === ds)
+      const ss = shifts.filter(s => toLocalDateStr(new Date(s.start_time)) === ds)
+      const os = orders.filter(o => toLocalDateStr(new Date(o.created_at)) === ds)
       if (ss.length > 0 || os.length > 0) r.push({ date: ds, shifts: ss, orders: os })
     }
     return r.reverse()
@@ -171,7 +178,7 @@ const ReportsView = () => {
     for (let i = 0; i < 90; i++) {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)
       const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-      const dayOrders = recentRollingOrders.filter(o => o.created_at?.slice(0, 10) === ds)
+      const dayOrders = recentRollingOrders.filter(o => toLocalDateStr(new Date(o.created_at)) === ds)
       const { rev, cnt, avg } = calcDay(dayOrders)
       r.push({ fecha: ds, ventas: rev, ordenes: cnt, ticketPromedio: avg })
     }

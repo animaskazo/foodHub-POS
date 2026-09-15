@@ -275,20 +275,28 @@ supabase.auth.onAuthStateChange(() => {
   cachedUserBranchId = null;
 });
 
-export const getOrders = async () => {
+export const getOrders = async (startDate, endDate) => {
   try {
     const branchId = await getUserBranchId();
     if (!branchId) return [];
     
-    const { data, error } = await supabase
+    let query = supabase
       .from('orders')
       .select(`
         *,
         payments(*),
         order_items(*, order_item_variants(*), order_item_ingredients(*))
       `)
-      .eq('branch_id', branchId)
-      .order('created_at', { ascending: false });
+      .eq('branch_id', branchId);
+
+    if (startDate) {
+      query = query.gte('created_at', startDate);
+    }
+    if (endDate) {
+      query = query.lte('created_at', endDate);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) throw error;
     return data;
