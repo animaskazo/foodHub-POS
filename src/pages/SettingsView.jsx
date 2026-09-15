@@ -779,16 +779,9 @@ const SettingsView = () => {
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="font-bold text-sm text-gray-800">Habilitar Pago en Línea (Klap)</p>
-                          {!formData.online_payments_allowed && (
-                            <span className="text-[10px] bg-gray-200 text-gray-600 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                              Pronto
-                            </span>
-                          )}
                         </div>
                         <p className="text-xs text-gray-500 max-w-sm mt-0.5">
-                          {!formData.online_payments_allowed 
-                            ? 'Esta característica estará disponible próximamente en tu cuenta.' 
-                            : 'Permite que tus clientes paguen con tarjetas de crédito o débito a través de la web.'}
+                          Permite que tus clientes paguen con tarjetas de crédito o débito a través de la web.
                         </p>
                       </div>
                       <Switch 

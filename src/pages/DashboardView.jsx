@@ -141,10 +141,8 @@ const DashboardView = () => {
       numPoints = 30;
     }
 
-    // Extender inicio 1 día hacia atrás para compensar offset de timezone
+    // Los límites se convierten con toISOString() (local → UTC exacto); no extender un día.
     const queryStart = new Date(startOfRange);
-    queryStart.setDate(queryStart.getDate() - 1);
-
     const { data } = await supabase
       .from('orders')
       .select('created_at, total, status')
@@ -299,9 +297,8 @@ const DashboardView = () => {
         startOfRange.setHours(0, 0, 0, 0);
       }
 
-      // Extender inicio 1 día hacia atrás para compensar offset de timezone
+      // Los límites se convierten con toISOString() (local → UTC exacto); no extender un día.
       const queryStart = new Date(startOfRange);
-      queryStart.setDate(queryStart.getDate() - 1);
 
       const { data, error: fetchError } = await supabase
         .from('orders')

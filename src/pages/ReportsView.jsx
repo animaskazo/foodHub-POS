@@ -584,7 +584,7 @@ const ReportsView = () => {
                       {days.map(d => {
                         const { rev, cnt } = calcDay(d.orders)
                         const dt = new Date(d.date + 'T12:00:00')
-                        const isToday = d.date === new Date().toISOString().slice(0, 10)
+                        const isToday = d.date === toLocalDateStr(new Date())
                         return (
                           <button key={d.date} onClick={() => setSelected(d.date)}
                             className={`relative w-full text-left px-3 py-2.5 rounded-xl transition-all duration-150 hover:bg-neutral-50 ${

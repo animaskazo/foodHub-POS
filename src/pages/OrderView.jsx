@@ -903,7 +903,7 @@ const OrderView = () => {
             onSubmit={handleCheckout}
             isSubmitting={isSubmitting}
             totalAmount={totalAmount}
-            acceptsOnlinePayments={org?.online_payments_allowed === true && org?.accepts_online_payments !== false}
+            acceptsOnlinePayments={org?.accepts_online_payments !== false}
             acceptsLocalPayments={org?.accepts_local_payments !== false}
             organizationId={org?.id}
             isOpen={isOpen}
