@@ -285,6 +285,12 @@ const OrderDetailModal = ({
                 <span>Subtotal</span>
                 <span>${fmt(order.subtotal || 0)}</span>
               </div>
+              {Number(order.discount_amount) > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Descuento (cupón)</span>
+                  <span>-${fmt(order.discount_amount)}</span>
+                </div>
+              )}
               {order.delivery_fee > 0 && (
                 <div className="flex justify-between text-gray-500">
                   <span>Despacho</span>

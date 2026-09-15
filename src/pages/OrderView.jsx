@@ -228,7 +228,8 @@ const OrderView = () => {
                     delivery_address: order.delivery_address,
                     customer_name: order.customer_name || customerForm.name || 'Cliente',
                     total: order.total,
-                    subtotal: order.total - (order.delivery_fee || 0),
+                    subtotal: (order.total + (order.discount_amount || 0)) - (order.delivery_fee || 0),
+                    discount_amount: order.discount_amount || 0,
                     delivery_fee: order.delivery_fee || 0,
                     uber_tracking_url: order.uber_tracking_url,
                     payment_method: 'online_gateway',
@@ -588,6 +589,7 @@ const OrderView = () => {
           deliveryFee: customerForm.deliveryFee,
           scheduledAt,
           status: 'pending', // The order itself is pending payment
+          couponCode: customerForm.couponCode || null,
         });
 
         const pendingData = {
@@ -648,6 +650,7 @@ const OrderView = () => {
         deliveryNotes: customerForm.deliveryNotes,
         deliveryFee: customerForm.deliveryFee,
         scheduledAt,
+        couponCode: customerForm.couponCode || null,
       });
 
       // ── Uber Direct: create delivery if mode is uber_direct (immediate or scheduled) ──
@@ -708,7 +711,8 @@ const OrderView = () => {
             delivery_address: customerForm.deliveryAddress,
             customer_name: customerForm.name || 'Cliente',
             total: order.total,
-            subtotal: order.total - finalDeliveryFee,
+            subtotal: (order.total + (order.discount_amount || 0)) - finalDeliveryFee,
+            discount_amount: order.discount_amount || 0,
             delivery_fee: finalDeliveryFee,
             uber_tracking_url: order.uber_tracking_url,
             payment_method: 'cash',

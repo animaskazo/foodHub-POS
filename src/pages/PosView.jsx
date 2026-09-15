@@ -49,6 +49,11 @@ const PosView = () => {
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
+  // ── Cupón de descuento ─────────────────────────────────
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+
   const showToast = (message) => {
     setToastMessage(message);
     setTimeout(() => setToastMessage(null), 3000);
@@ -401,6 +406,34 @@ const PosView = () => {
   const handleNewOrder = () => {
     setCartItems([]);
     setIsMobileCartOpen(false);
+    setAppliedCoupon(null);
+    setCouponError('');
+  };
+
+  const handleApplyCoupon = async (code) => {
+    if (!organization?.id) return;
+    setCouponLoading(true);
+    setCouponError('');
+    try {
+      const { applyCouponCode } = await import('../services/couponService');
+      const result = await applyCouponCode(code, organization.id, getCartTotal(cartItems));
+      if (result.valid) {
+        setAppliedCoupon(result.coupon);
+        setCouponError('');
+        showToast(`Cupón ${result.coupon.code} aplicado`);
+      } else {
+        setCouponError(result.error);
+      }
+    } catch (err) {
+      setCouponError('Error al validar el cupón.');
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError('');
   };
 
   const handleCharge = () => {
@@ -411,9 +444,10 @@ const PosView = () => {
     try {
       const cartTotal = getCartTotal(cartItems);
       const deliveryFee = deliveryInfo?.deliveryFee || 0;
-      const total = cartTotal + deliveryFee;
-      const subtotal = Math.round(cartTotal / (1 + taxRate));
-      const tax = cartTotal - subtotal;
+      const discountAmount = appliedCoupon ? (appliedCoupon.type === 'percentage' ? Math.round(cartTotal * (appliedCoupon.value / 100)) : Math.min(appliedCoupon.value, cartTotal)) : 0;
+      const total = cartTotal - discountAmount + deliveryFee;
+      const subtotal = Math.round(total / (1 + taxRate));
+      const tax = total - subtotal;
       
       let finalOrder;
       
@@ -438,13 +472,21 @@ const PosView = () => {
         }
         finalOrder = activeOrder;
       } else {
-        finalOrder = await createOrder(cartItems, method, orderType, total, subtotal, tax, deliveryInfo, orderNotes, deliveryFee, activeTable?.id);
+        finalOrder = await createOrder(cartItems, method, orderType, total, subtotal, tax, deliveryInfo, orderNotes, deliveryFee, activeTable?.id, discountAmount, appliedCoupon?.id);
       }
       
       setCartItems([]);
       setIsMobileCartOpen(false);
       setActiveTable(null);
       setActiveOrder(null);
+      
+      // Incrementar uso del cupón si se aplicó
+      if (appliedCoupon?.id) {
+        const { incrementCouponUsage } = await import('../services/couponService');
+        incrementCouponUsage(appliedCoupon.id).catch(() => {});
+      }
+      setAppliedCoupon(null);
+      setCouponError('');
       
       // Auto-impresión (servidor Python). Admin/Owner imprimen siempre; el resto depende del toggle.
       const wantsAutoPrint = localStorage.getItem('pos_auto_print_enabled') === 'true' ||
@@ -454,7 +496,7 @@ const PosView = () => {
         const { data: fullOrder } = await supabase
           .from('orders')
           .select(`
-            *,
+            *, discount_amount,
             payments(method, status),
             order_items(*, order_item_variants(variant_option_name), order_item_ingredients(ingredient_name))
           `)
@@ -603,6 +645,11 @@ const PosView = () => {
                     setEditingCartItem(item);
                   }
                 }}
+                coupon={appliedCoupon}
+                onApplyCoupon={handleApplyCoupon}
+                onRemoveCoupon={handleRemoveCoupon}
+                couponError={couponError}
+                couponLoading={couponLoading}
               />
             </div>
           </div>

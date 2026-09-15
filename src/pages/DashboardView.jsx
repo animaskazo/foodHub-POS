@@ -313,6 +313,7 @@ const DashboardView = () => {
           total,
           subtotal,
           tax_amount,
+          discount_amount,
           created_at,
           scheduled_at,
           ready_at,

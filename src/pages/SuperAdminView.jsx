@@ -113,6 +113,7 @@ const SuperAdminView = () => {
           total,
           subtotal,
           tax_amount,
+          discount_amount,
           delivery_fee,
           delivery_notes,
           notes,
