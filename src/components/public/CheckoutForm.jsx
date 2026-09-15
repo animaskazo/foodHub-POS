@@ -437,7 +437,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     if (isValidatedAddress && !preFetchedCoords) return;
     // Para modo 'own': necesita store_lat/lng solo si no hay ninguna zona de polígono activa
     if (deliveryMode !== 'uber_direct') {
-      const allZones = org?.delivery_zones || org?.settings?.delivery_zones || [];
+      const allZones = (org?.delivery_zones?.length ? org.delivery_zones : org?.settings?.delivery_zones) || [];
       const activeZones = allZones.filter(z => z.is_active !== false);
       const hasPolygonZone = activeZones.some(z => z.type === 'polygon' && z.polygon?.length >= 3);
       const needsStoreCoords = !hasPolygonZone;
@@ -627,7 +627,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
           const storeCoords = (org.store_lat && org.store_lng)
             ? { lat: org.store_lat, lng: org.store_lng }
             : null;
-          const zones = org.delivery_zones || org.settings?.delivery_zones || [];
+          const zones = (org.delivery_zones?.length ? org.delivery_zones : org.settings?.delivery_zones) || [];
           const matchedZone = findDeliveryZoneForLocation(coords, storeCoords, zones);
 
           if (!matchedZone) {
