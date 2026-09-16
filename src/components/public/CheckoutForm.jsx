@@ -243,6 +243,14 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
   const isUberDelivery = form.deliveryType === 'uber';
   const isOwnDelivery = form.deliveryType === 'own' || form.deliveryType === 'delivery';
   const isAnyDelivery = isUberDelivery || isOwnDelivery;
+  // Pedido mínimo: la zona emparejada manda; el global solo aplica si no hay zona
+  // (min_order 0 en la zona = sin mínimo).
+  const matchedZone = form.matchedZone || null;
+  const effectiveDeliveryMin =
+    isOwnDelivery && matchedZone && matchedZone.min_order != null
+      ? matchedZone.min_order
+      : (org?.delivery_min_order || 0);
+  const belowDeliveryMin = isAnyDelivery && effectiveDeliveryMin > 0 && totalAmount < effectiveDeliveryMin;
   const uberOnlineBlocked = isUberDelivery && acceptsOnlinePayments !== true;
   const [scheduleDate, setScheduleDate] = useState(() => dateInput(new Date()));
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -1185,9 +1193,9 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
             </div>
           ) : null}
 
-          {isAnyDelivery && totalAmount < (org?.delivery_min_order || 0) && (
+          {belowDeliveryMin && (
             <div className="bg-red-50 text-red-600 px-4 py-2 rounded-xl border border-red-100 w-full text-center text-xs font-bold shadow-sm">
-              El pedido mínimo para delivery es de ${fmt(org.delivery_min_order)}.
+              El pedido mínimo para delivery es de ${fmt(effectiveDeliveryMin)}.
             </div>
           )}
 
@@ -1200,10 +1208,10 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
               uberOnlineBlocked ||
               totalAmount <= 0 ||
               (isAnyDelivery && (!!distanceError || !form.deliveryAddress.trim())) ||
-              (isAnyDelivery && (totalAmount < (org?.delivery_min_order || 0))) ||
+              belowDeliveryMin ||
               (form.deliveryType === 'uber' && !form.quoteId)
             }
-            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-all px-8 text-[17px] tracking-wide ${(isSubmitting || nowBlocked || scheduledBlocked || uberOnlineBlocked || totalAmount <= 0 || (isAnyDelivery && (!!distanceError || !form.deliveryAddress.trim() || totalAmount < (org?.delivery_min_order || 0) || (form.deliveryType === 'uber' && !form.quoteId)))) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900 active:scale-[0.98]'}`}
+            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-all px-8 text-[17px] tracking-wide ${(isSubmitting || nowBlocked || scheduledBlocked || uberOnlineBlocked || totalAmount <= 0 || belowDeliveryMin || (isAnyDelivery && (!!distanceError || !form.deliveryAddress.trim())) || (form.deliveryType === 'uber' && !form.quoteId)) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900 active:scale-[0.98]'}`}
           >
             {isSubmitting ? (
               <><Loader2 className="h-5 w-5 animate-spin" /> Enviando pedido…</>

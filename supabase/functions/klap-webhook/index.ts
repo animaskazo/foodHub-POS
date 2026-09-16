@@ -134,9 +134,25 @@ serve(async (req) => {
         }
       }
     } else {
-      // ── Pago rechazado: solo registrar en logs ──
+      // ── Pago rechazado: registrar detalle en el pago y en logs ──
       console.log(`Klap REJECT: orden ${orderId} | code: ${code} | message: ${message}`);
-      // Aquí podrías actualizar el estado de la orden a 'rejected' si quisieras.
+      try {
+        await supabase
+          .from('payments')
+          .update({
+            status: 'failed',
+            error_details: JSON.stringify({
+              paso: 'webhook_reject',
+              klap_order_id: order_id,
+              reference_id,
+              code,
+              message,
+            }).slice(0, 4000),
+          })
+          .eq('order_id', orderId);
+      } catch (pe) {
+        console.error("Webhook: no se pudo registrar el rechazo:", pe.message);
+      }
     }
 
     // Klap requiere respuesta JSON entre 200-299 dentro de 10 segundos

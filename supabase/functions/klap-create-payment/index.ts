@@ -59,11 +59,27 @@ serve(async (req) => {
     const globalApiKey = Deno.env.get("KLAP_API_KEY") || "mKaTZ4yBm3rVFapqNctziKCvXsjD6fDO";
     let apiKey = globalApiKey;
 
-    try {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-      const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") || "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""
+    );
 
+    // Persistir el detalle del error directamente en la fila del pago (para soporte)
+    const persistPaymentError = async (payload: Record<string, unknown>) => {
+      try {
+        await supabase
+          .from('payments')
+          .update({
+            status: 'failed',
+            error_details: JSON.stringify(payload).slice(0, 4000),
+          })
+          .eq('order_id', orderId);
+      } catch (e) {
+        console.error("[Klap] No se pudo persistir detalle de error:", e.message);
+      }
+    };
+
+    try {
       console.log("[Klap] Buscando orden:", orderId);
 
       const { data: orderData, error: orderErr } = await supabase
@@ -97,6 +113,7 @@ serve(async (req) => {
     }
 
     // Llamada estándar a la API de Klap (Multicaja) — producción
+    const referenceId = `${orderId}-${Date.now()}`;
     const klapResponse = await fetch("https://api.pasarela.multicaja.cl/payment-gateway/v1/orders", {
       method: "POST",
       headers: {
@@ -105,7 +122,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         // Klap no permite reutilizar el mismo reference_id en múltiples intentos.
-        reference_id: `${orderId}-${Date.now()}`,
+        reference_id: referenceId,
         description: `Pago de Orden ${orderId}`,
         amount: {
           currency: "CLP",
@@ -135,6 +152,12 @@ serve(async (req) => {
 
     if (!klapResponse.ok) {
       console.error("Error desde Klap:", data);
+      await persistPaymentError({
+        paso: "create",
+        http_status: klapResponse.status,
+        reference_id: referenceId,
+        klap_response: data,
+      });
       // Retornamos 200 con success:false para que el cliente pueda leer el error
       return new Response(JSON.stringify({ success: false, error: "Error al crear pago en Klap", details: data }), {
         status: 200,
@@ -147,6 +170,12 @@ serve(async (req) => {
 
     if (!redirectUrl) {
       console.error("Klap no retornó redirect_url. Data:", data);
+      await persistPaymentError({
+        paso: "create_sin_redirect",
+        http_status: klapResponse.status,
+        reference_id: referenceId,
+        klap_response: data,
+      });
       return new Response(JSON.stringify({ success: false, error: "Klap no retornó una URL de redirección válida", data }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
