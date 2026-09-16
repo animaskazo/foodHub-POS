@@ -764,9 +764,9 @@ const DashboardView = () => {
         {/* Sales Record */}
         <div className="md:bg-white md:rounded-2xl md:border md:border-gray-200 overflow-hidden flex flex-col">
           {/* Toolbar */}
-          <div className="pb-4 md:p-6 md:border-b flex items-center gap-2">
+          <div className="pb-4 md:p-6 md:border-b flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-2">
             <h2 className="text-base font-semibold text-gray-900 whitespace-nowrap">Registro Diario</h2>
-            <div className="flex items-center gap-2 ml-auto flex-wrap justify-end">
+            <div className="flex items-center gap-2 sm:ml-auto flex-wrap justify-start sm:justify-end">
               <DateRangePicker
                 from={rangeFrom}
                 to={rangeTo}
