@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Modal from '../components/ui/Modal';
 import ConfirmDeleteModal from '../components/ui/ConfirmDeleteModal';
-import PageHeader from '../components/ui/PageHeader';
 import { resolveCategoryIcon } from '../utils/expenseCategoryIcons';
 import {
   Plus, Search, Loader2, ChevronLeft, ChevronRight, Repeat,
@@ -375,57 +374,59 @@ const ExpensesView = () => {
   return (
     <div className="min-h-full bg-gray-50 p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        <PageHeader
-          title="Gastos"
-          subtitle="Registra gastos fijos y variables de tu negocio de comida y cruza con ventas en Reportes."
-          actions={
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => setCatManagerOpen(true)}>
-                <Settings2 className="h-4 w-4 mr-2" /> Categorías
-              </Button>
-              <Button onClick={() => openModal()}>
-                <Plus className="h-4 w-4 mr-2" /> Nuevo gasto
-              </Button>
-            </div>
-          }
-        />
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Gastos</h1>
+            <p className="text-gray-500 text-sm md:text-[15px] leading-relaxed mt-1">
+              Registra gastos fijos y variables de tu negocio de comida y cruza con ventas en Reportes.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" onClick={() => setCatManagerOpen(true)} className="hidden sm:inline-flex">
+              <Settings2 className="h-4 w-4 mr-2" /> Categorías
+            </Button>
+            <Button onClick={() => openModal()}>
+              <Plus className="h-4 w-4 mr-2" /> Nuevo gasto
+            </Button>
+          </div>
+        </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-2xl border border-gray-200/80 p-5">
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2"><Wallet className="h-4 w-4" /> Total mes</div>
-            <div className="text-2xl font-black text-gray-900">{fmt(summary.total)}</div>
-            <div className="text-xs text-gray-400 mt-1">{summary.count} movimientos · {pctOfSales.toFixed(1)}% de ventas</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="bg-white rounded-xl border border-gray-200/80 px-4 py-3">
+            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5"><Wallet className="h-3.5 w-3.5" /> Total mes</div>
+            <div className="text-xl font-black text-gray-900 mt-0.5">{fmt(summary.total)}</div>
+            <div className="text-[11px] text-gray-400">{summary.count} mov. · {pctOfSales.toFixed(1)}% ventas</div>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-200/80 p-5">
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Fijos</div>
-            <div className="text-2xl font-black text-gray-900">{fmt(summary.fixed)}</div>
-            <div className="text-xs text-gray-400 mt-1">Arriendo, sueldos, servicios</div>
+          <div className="bg-white rounded-xl border border-gray-200/80 px-4 py-3">
+            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Fijos</div>
+            <div className="text-xl font-black text-gray-900 mt-0.5">{fmt(summary.fixed)}</div>
+            <div className="text-[11px] text-gray-400">Recurrentes del mes</div>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-200/80 p-5">
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Variables</div>
-            <div className="text-2xl font-black text-gray-900">{fmt(summary.variable)}</div>
-            <div className="text-xs text-gray-400 mt-1">Insumos, delivery, extras</div>
+          <div className="bg-white rounded-xl border border-gray-200/80 px-4 py-3">
+            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Variables</div>
+            <div className="text-xl font-black text-gray-900 mt-0.5">{fmt(summary.variable)}</div>
+            <div className="text-[11px] text-gray-400">Puntuales del mes</div>
           </div>
-          <div className={`rounded-2xl border p-5 ${monthSales - summary.total >= 0 ? 'bg-emerald-50/60 border-emerald-100' : 'bg-red-50/60 border-red-100'}`}>
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-2">
-              {(monthSales - summary.total) >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />} Utilidad est.
+          <div className={`rounded-xl border px-4 py-3 ${monthSales - summary.total >= 0 ? 'bg-emerald-50/60 border-emerald-100' : 'bg-red-50/60 border-red-100'}`}>
+            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+              {(monthSales - summary.total) >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />} Utilidad est.
             </div>
-            <div className={`text-2xl font-black ${(monthSales - summary.total) >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>{fmt(monthSales - summary.total)}</div>
-            <div className="text-xs text-gray-400 mt-1">Ventas {fmt(monthSales)} − gastos</div>
+            <div className={`text-xl font-black mt-0.5 ${(monthSales - summary.total) >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>{fmt(monthSales - summary.total)}</div>
+            <div className="text-[11px] text-gray-400">Ventas {fmt(monthSales)} − gastos</div>
           </div>
         </div>
 
         {/* Filtros + tabla */}
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 flex flex-col lg:flex-row gap-3 lg:items-center justify-between border-b">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative">
+          <div className="px-4 sm:px-6 py-4 flex flex-col lg:flex-row gap-3 lg:items-center justify-between border-b">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+              <div className="relative w-full sm:w-auto">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input className="pl-9 w-64" placeholder="Buscar por descripción o proveedor" value={search} onChange={(e) => setSearch(e.target.value)} />
+                <Input className="pl-9 w-full sm:w-64" placeholder="Buscar por descripción o proveedor" value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-40"><SelectDisplay value={typeFilter} placeholder="Tipo" options={[{ value: 'all', label: 'Todos' }, { value: 'fijo', label: 'Fijos' }, { value: 'variable', label: 'Variables' }]} /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-40"><SelectDisplay value={typeFilter} placeholder="Tipo" options={[{ value: 'all', label: 'Todos' }, { value: 'fijo', label: 'Fijos' }, { value: 'variable', label: 'Variables' }]} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="fijo">Fijos</SelectItem>
@@ -433,7 +434,7 @@ const ExpensesView = () => {
                 </SelectContent>
               </Select>
               <Select value={catFilter} onValueChange={setCatFilter}>
-                <SelectTrigger className="w-56"><SelectDisplay value={catFilter} placeholder="Categoría" options={[{ value: 'all', label: 'Todas las categorías' }, ...categoryOptions(categories)]} /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-56"><SelectDisplay value={catFilter} placeholder="Categoría" options={[{ value: 'all', label: 'Todas las categorías' }, ...categoryOptions(categories)]} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas las categorías</SelectItem>
                   {categories.filter((c) => c.is_active !== false).map((c) => (
@@ -442,14 +443,15 @@ const ExpensesView = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-2 bg-gray-50 rounded-xl border border-gray-200/80 px-2 py-1.5 w-fit">
+            <div className="flex items-center justify-between sm:justify-start gap-2 bg-gray-50 rounded-xl border border-gray-200/80 px-2 py-1.5 w-full sm:w-fit">
               <button onClick={prev} className="p-1.5 hover:bg-white rounded-lg transition-colors"><ChevronLeft className="h-4 w-4 text-gray-500" /></button>
               <span className="text-sm font-semibold text-gray-900 min-w-[130px] text-center select-none">{MONTHS[cm]} {cy}</span>
               <button onClick={next} className="p-1.5 hover:bg-white rounded-lg transition-colors"><ChevronRight className="h-4 w-4 text-gray-500" /></button>
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Tabla en desktop */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-white border-b text-gray-500 font-medium">
                 <tr>
@@ -466,49 +468,95 @@ const ExpensesView = () => {
                   <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-500"><Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" /> Cargando gastos...</td></tr>
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-500">Sin gastos este mes. Registra el arriendo como recurrente para partir.</td></tr>
-                ) : filtered.map((e) => (
-                  <tr key={`${e.id}-${e.expense_date}`} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-gray-600 whitespace-nowrap">
-                      {new Date(e.expense_date + 'T12:00:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}
-                      {e.is_recurring && <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-semibold text-violet-700 bg-violet-50 px-2 py-0.5 rounded-full"><Repeat className="h-3 w-3" />{e._virtual ? 'Auto' : 'Mensual'}</span>}
-                    </td>
-                    <td className="px-6 py-4">
-                      {(() => {
-                        const CatIcon = resolveCategoryIcon({ name: e.expense_categories?.name, icon: categories.find((c) => c.id === e.category_id)?.icon });
-                        return (
-                          <Badge variant="secondary" className="border font-semibold inline-flex items-center gap-1.5" style={{ backgroundColor: `${e.expense_categories?.color || '#6b7280'}15`, color: e.expense_categories?.color || '#374151', borderColor: `${e.expense_categories?.color || '#6b7280'}30` }}>
-                            <CatIcon className="h-3.5 w-3.5" />
-                            {e.expense_categories?.name || 'Sin categoría'}
-                          </Badge>
-                        );
-                      })()}
-                      <span className="ml-2 text-[11px] text-gray-400 uppercase">{e.is_recurring ? 'fijo' : 'variable'}</span>
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-900">
-                      <span className="inline-flex items-center gap-1.5">
+                ) : filtered.map((e) => {
+                  const RowIcon = resolveCategoryIcon({ name: e.expense_categories?.name, icon: categories.find((c) => c.id === e.category_id)?.icon });
+                  return (
+                    <tr key={`${e.id}-${e.expense_date}`} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 text-gray-600 whitespace-nowrap">
+                        {new Date(e.expense_date + 'T12:00:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}
+                        {e.is_recurring && <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-semibold text-violet-700 bg-violet-50 px-2 py-0.5 rounded-full"><Repeat className="h-3 w-3" />{e._virtual ? 'Auto' : 'Mensual'}</span>}
+                      </td>
+                      <td className="px-6 py-4">
+                        <Badge variant="secondary" className="border font-semibold inline-flex items-center gap-1.5" style={{ backgroundColor: `${e.expense_categories?.color || '#6b7280'}15`, color: e.expense_categories?.color || '#374151', borderColor: `${e.expense_categories?.color || '#6b7280'}30` }}>
+                          <RowIcon className="h-3.5 w-3.5" />
+                          {e.expense_categories?.name || 'Sin categoría'}
+                        </Badge>
+                        <span className="ml-2 text-[11px] text-gray-400 uppercase">{e.is_recurring ? 'fijo' : 'variable'}</span>
+                      </td>
+                      <td className="px-6 py-4 font-medium text-gray-900">
+                        <span className="inline-flex items-center gap-1.5">
+                          {e.description}
+                          {e.receipt_url && <Paperclip className="h-3.5 w-3.5 text-gray-400 shrink-0" />}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-500">{e.supplier || '—'}</td>
+                      <td className="px-6 py-4 text-right font-bold text-gray-900 font-mono">{fmt(e.amount)}</td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button title="Ver gasto" onClick={() => setViewing(e)} className="p-2 text-black hover:bg-gray-100 rounded-lg transition-colors">
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button title="Editar" onClick={() => openModal(e)} className="p-2 text-black hover:bg-gray-100 rounded-lg transition-colors">
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button title="Eliminar" onClick={() => setDeleteModal({ isOpen: true, target: e, isDeleting: false })} className="p-2 text-black hover:bg-gray-100 rounded-lg transition-colors">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Tarjetas solo en móvil */}
+          <div className="p-3 grid gap-2.5 md:hidden">
+            {loading ? (
+              <div className="py-10 text-center text-gray-500 text-sm">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" /> Cargando gastos...
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="py-10 text-center text-gray-500 text-sm">Sin gastos este mes. Registra el arriendo como recurrente para partir.</div>
+            ) : filtered.map((e) => {
+              const CatIcon = resolveCategoryIcon({ name: e.expense_categories?.name, icon: categories.find((c) => c.id === e.category_id)?.icon });
+              const catColor = e.expense_categories?.color || '#6b7280';
+              return (
+                <div key={`${e.id}-${e.expense_date}`} className="flex items-center gap-3 p-3 rounded-2xl border border-gray-100 bg-white hover:bg-gray-50/70 transition-colors">
+                  <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${catColor}15`, color: catColor }}>
+                    <CatIcon className="h-5 w-5" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-gray-900 truncate">
                         {e.description}
-                        {e.receipt_url && <Paperclip className="h-3.5 w-3.5 text-gray-400 shrink-0" />}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500">{e.supplier || '—'}</td>
-                    <td className="px-6 py-4 text-right font-bold text-gray-900 font-mono">{fmt(e.amount)}</td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button title="Ver gasto" onClick={() => setViewing(e)} className="p-2 text-black hover:bg-gray-100 rounded-lg transition-colors">
+                        {e.receipt_url && <Paperclip className="inline h-3.5 w-3.5 text-gray-400 ml-1.5 -mt-0.5" />}
+                      </p>
+                      <span className="text-sm font-bold text-gray-900 font-mono whitespace-nowrap">{fmt(e.amount)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 mt-0.5">
+                      <p className="text-xs text-gray-400 truncate">
+                        <span className="font-semibold" style={{ color: catColor }}>{e.expense_categories?.name || 'Sin categoría'}</span>
+                        <span className="mx-1.5">·</span>{new Date(e.expense_date + 'T12:00:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}
+                        {e.is_recurring && <span className="ml-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-violet-700 bg-violet-50 px-1.5 py-0.5 rounded-md"><Repeat className="h-2.5 w-2.5" />{e._virtual ? 'Auto' : 'Mensual'}</span>}
+                      </p>
+                      <div className="flex items-center shrink-0">
+                        <button title="Ver gasto" onClick={() => setViewing(e)} className="p-1.5 text-black hover:bg-gray-200/70 rounded-lg transition-colors">
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button title="Editar" onClick={() => openModal(e)} className="p-2 text-black hover:bg-gray-100 rounded-lg transition-colors">
+                        <button title="Editar" onClick={() => openModal(e)} className="p-1.5 text-black hover:bg-gray-200/70 rounded-lg transition-colors">
                           <Pencil className="h-4 w-4" />
                         </button>
-                        <button title="Eliminar" onClick={() => setDeleteModal({ isOpen: true, target: e, isDeleting: false })} className="p-2 text-black hover:bg-gray-100 rounded-lg transition-colors">
+                        <button title="Eliminar" onClick={() => setDeleteModal({ isOpen: true, target: e, isDeleting: false })} className="p-1.5 text-black hover:bg-gray-200/70 rounded-lg transition-colors">
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
