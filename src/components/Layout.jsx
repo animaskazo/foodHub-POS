@@ -29,7 +29,8 @@ import {
   BarChart3,
   ShoppingBag,
   ClipboardList,
-  LayoutGrid
+  LayoutGrid,
+  Wallet
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import FeedbackBubble from './FeedbackBubble';
@@ -253,6 +254,20 @@ const Layout = () => {
               >
                 <Users className="h-[18px] w-[18px]" />
                 Clientes
+              </NavLink>
+            </li>
+
+            <li className="pt-2">
+              <NavLink
+                to="/expenses"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                  }`
+                }
+              >
+                <Wallet className="h-[18px] w-[18px]" />
+                Gastos
               </NavLink>
             </li>
 

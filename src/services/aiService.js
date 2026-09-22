@@ -163,8 +163,7 @@ export const generateJoke = async () => {
   }
 };
 
-export const analyzeReportWithAI = async (question, summaryData, chatHistory = []) => {
-  try {
+export const analyzeReportWithAI = async (question, summaryData, chatHistory = []) => {  try {
     const { data, error } = await supabase.functions.invoke('claude', {
       body: {
         action: 'analyze_sales',
@@ -190,5 +189,61 @@ export const analyzeReportWithAI = async (question, summaryData, chatHistory = [
   } catch (error) {
     console.error("Error en analyzeReportWithAI:", error);
     throw error;
+  }
+};
+
+/**
+ * Analiza una boleta o factura (foto o PDF) con Claude via Edge Function.
+ * @param {File} file - imagen o PDF del comprobante (máx ~8 MB para análisis).
+ * @returns {Promise<{business_name: string, amount: number, date: string, detail: string, suggested_type: 'fijo'|'variable', suggested_category: string}>}
+ */
+export const extractReceiptData = async (file) => {
+  if (!file) throw new Error("Sin archivo");
+  const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
+  if (!isPdf && !file.type.startsWith('image/')) {
+    throw new Error("Solo se aceptan fotos o PDF");
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    throw new Error("El archivo supera los 8 MB para análisis con IA");
+  }
+
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  try {
+    const { data, error } = await supabase.functions.invoke('claude', {
+      body: {
+        action: 'extract_receipt',
+        payload: {
+          imageBase64: base64,
+          mimeType: file.type || (isPdf ? 'application/pdf' : 'image/jpeg'),
+        },
+      },
+    });
+
+    if (error) throw new Error(error.message || "Error al invocar la función de Supabase");
+    if (data && data.success === false) {
+      if (data.error === 'Acción no soportada') {
+        throw new Error("La función IA no está actualizada: despliega con 'supabase functions deploy claude'");
+      }
+      throw new Error(data.error || "Error devuelto por la IA");
+    }
+
+    const r = data.data || data;
+    return {
+      business_name: r.business_name || '',
+      amount: parsePriceToCLP(r.amount),
+      date: r.date || '',
+      detail: r.detail || '',
+      suggested_type: r.suggested_type === 'fijo' ? 'fijo' : 'variable',
+      suggested_category: r.suggested_category || 'Otros',
+    };
+  } catch (error) {
+    console.error("Error extrayendo boleta con Claude via Edge Function:", error);
+    throw new Error(error.message || "Error al comunicarse con la función de Supabase.");
   }
 };

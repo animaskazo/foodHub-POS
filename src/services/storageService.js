@@ -113,3 +113,61 @@ export const uploadImage = async (file, path = 'general') => {
 
   return publicUrl;
 };
+
+/**
+ * Sube un comprobante de gasto (foto o PDF) SIN recortar ni convertir.
+ * Los comprobantes deben conservarse legibles para auditoría e IA.
+ * @param {File} file - imagen o PDF.
+ * @returns {Promise<{url: string, type: 'image'|'pdf', name: string}>}
+ */
+export const uploadReceipt = async (file) => {
+  if (!file) throw new Error('No file provided');
+
+  const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
+  const isImage = file.type.startsWith('image/');
+  if (!isPdf && !isImage) throw new Error('Solo se aceptan fotos o PDF');
+
+  // Límite 10 MB para no saturar storage ni la edge function de IA
+  if (file.size > 10 * 1024 * 1024) throw new Error('El archivo supera los 10 MB');
+
+  const ext = isPdf ? 'pdf' : (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${ext}`;
+  const filePath = `receipts/${fileName}`;
+
+  const { error } = await supabase.storage
+    .from('images')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: file.type || (isPdf ? 'application/pdf' : 'image/jpeg'),
+    });
+
+  if (error) {
+    console.error('Error uploading receipt:', error);
+    throw error;
+  }
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('images')
+    .getPublicUrl(filePath);
+
+  return { url: publicUrl, type: isPdf ? 'pdf' : 'image', name: file.name || fileName };
+};
+
+/**
+ * Elimina un comprobante previamente subido a partir de su URL pública.
+ * No falla si el archivo ya no existe (limpieza best-effort).
+ */
+export const deleteReceipt = async (publicUrl) => {
+  if (!publicUrl) return;
+  try {
+    const marker = '/images/';
+    const idx = String(publicUrl).indexOf(marker);
+    if (idx === -1) return;
+    const filePath = String(publicUrl).slice(idx + marker.length);
+    if (!filePath.startsWith('receipts/')) return;
+    await supabase.storage.from('images').remove([filePath]);
+  } catch (err) {
+    console.warn('No se pudo eliminar el comprobante anterior:', err);
+  }
+};

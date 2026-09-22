@@ -502,6 +502,101 @@ PREGUNTA DEL ADMINISTRADOR:
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
 
+    } else if (action === 'extract_receipt') {
+      const { imageBase64, mimeType } = payload;
+      if (!imageBase64 || !mimeType) {
+        return new Response(JSON.stringify({ success: false, error: "Faltan parámetros imageBase64 o mimeType" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const isPdf = mimeType === 'application/pdf';
+      if (!isPdf && !mimeType.startsWith('image/')) {
+        return new Response(JSON.stringify({ success: false, error: "Solo se aceptan fotos o PDF" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const prompt = `
+Eres un sistema experto en lectura de boletas y facturas chilenas para un software de gastos de restaurantes.
+Analiza el documento (boleta, factura, ticket o comprobante de pago) y extrae la información base en JSON estricto.
+
+Reglas:
+1. "business_name": nombre del comercio o razón social tal como aparece (ej: "Santa Isabel", "Copec", "Uber Eats"). Si no es legible, usa "".
+2. "amount": TOTAL pagado en PESOS CHILENOS (CLP) como número entero, sin decimales ni símbolos. "$12.990" → 12990. Si hay IVA incluido, usa el total final. Si no es legible, usa 0.
+3. "date": fecha de emisión en formato "YYYY-MM-DD". Si solo se ve día/mes, asume el año actual. Si no es legible, usa "".
+4. "detail": resumen en una línea de lo comprado (ej: "Carne, pollo y verduras", "Arriendo local mayo", "Comisión delivery Uber Eats"). Máximo 120 caracteres.
+5. "suggested_type": "fijo" si parece un gasto mensual recurrente (arriendo, sueldos, luz, agua, internet, patentes, seguros), "variable" en caso contrario (compras de insumos, delivery, mantenciones puntuales).
+6. "suggested_category": la categoría más probable entre: Arriendo, Sueldos base, Luz, Agua, Gas, Internet / Teléfono, Contador / Patente, Patente municipal, Seguro del local, Alarma / Monitoreo, Software / Suscripciones, Insumos / Mercadería, Carnes y pollo, Pescados y mariscos, Frutas y verduras, Lácteos y huevos, Pan y masas, Bebidas y jugos, Cervezas y licores, Café y té, Aceite y abarrotes, Especias y salsas, Hielo y carbón, Packaging / Desechables, Comisiones delivery, Flete y combustible, Horas extra, Mantención equipos, Control de plagas, Uniformes personal, Lavandería / Manteles, Marketing, Limpieza, Otros.
+7. Devuelve SOLO un objeto JSON válido, sin bloques de código ni markdown:
+{ "business_name": "", "amount": 0, "date": "", "detail": "", "suggested_type": "variable", "suggested_category": "Otros" }
+      `;
+
+      const fileBlock = isPdf
+        ? {
+            type: "document",
+            source: { type: "base64", media_type: "application/pdf", data: imageBase64 },
+          }
+        : {
+            type: "image",
+            source: { type: "base64", media_type: mimeType, data: imageBase64 },
+          };
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 1024,
+          temperature: 0,
+          messages: [
+            {
+              role: "user",
+              content: [{ type: "text", text: prompt }, fileBlock]
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return new Response(JSON.stringify({ success: false, error: `Anthropic API error: ${response.status} - ${errorText}` }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      const resData = await response.json();
+      const responseText = resData.content[0].text;
+      const cleanedText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      let parsedData: Record<string, unknown>;
+      try {
+        parsedData = JSON.parse(cleanedText);
+      } catch {
+        const match = cleanedText.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error("La IA no devolvió un JSON válido");
+        parsedData = JSON.parse(match[0]);
+      }
+      // Normalizar monto a entero CLP aunque la IA devuelva strings ("$12.990")
+      parsedData = {
+        business_name: String((parsedData as { business_name?: unknown }).business_name ?? ""),
+        amount: parsePriceToCLP((parsedData as { amount?: unknown }).amount),
+        date: String((parsedData as { date?: unknown }).date ?? ""),
+        detail: String((parsedData as { detail?: unknown }).detail ?? "").slice(0, 200),
+        suggested_type: (parsedData as { suggested_type?: unknown }).suggested_type === "fijo" ? "fijo" : "variable",
+        suggested_category: String((parsedData as { suggested_category?: unknown }).suggested_category ?? "Otros"),
+      };
+
+      return new Response(JSON.stringify({ success: true, data: parsedData }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+
     } else {
       return new Response(JSON.stringify({ success: false, error: "Acción no soportada" }), {
         status: 200,

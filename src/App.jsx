@@ -19,6 +19,7 @@ import ShiftsSettingsView from './pages/ShiftsSettingsView';
 import TablesSettingsView from './pages/TablesSettingsView';
 import OrderView from './pages/OrderView';
 import CustomersView from './pages/CustomersView';
+import ExpensesView from './pages/ExpensesView';
 import ConversationsView from './pages/ConversationsView';
 import ReportsView from './pages/ReportsView';
 import SubscriptionConfirmation from './components/public/SubscriptionConfirmation';
@@ -98,6 +99,7 @@ function App() {
           <Route path="shifts-settings" element={<ShiftsSettingsView />} />
           <Route path="tables" element={<TablesSettingsView />} />
           <Route path="customers" element={<CustomersView />} />
+          <Route path="expenses" element={<ExpensesView />} />
           <Route path="conversations" element={<ConversationsView />} />
           <Route path="reports" element={<ReportsView />} />
         </Route>

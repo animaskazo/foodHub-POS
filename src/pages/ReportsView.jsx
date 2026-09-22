@@ -6,6 +6,8 @@ import PageHeader from '../components/ui/PageHeader'
 import SalesAreaChart from '../components/charts/SalesAreaChart'
 import DonutChart from '../components/charts/DonutChart'
 import ReportsChatDrawer from '../components/reports/ReportsChatDrawer'
+import { getMonthExpenses, getAnnualExpenses, summarizeExpenses } from '../services/expenseService'
+import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Loader2, FileDown, CalendarDays, FileText, FileSpreadsheet, Store, ShoppingBag, Globe, MessageCircle, Van, LineChart, TrendingUp, TrendingDown, Minus, Trophy, Clock, Ban, Wallet, Sparkles, Send, Receipt } from 'lucide-react'
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
@@ -69,7 +71,9 @@ const ReportsView = () => {
   const [openDropdown, setOpenDropdown] = useState(null)
   const [annualYear, setAnnualYear] = useState(() => today.getFullYear())
   const [annual, setAnnual] = useState(null)
+  const [annualExpenseMonths, setAnnualExpenseMonths] = useState(null)
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [monthExpenses, setMonthExpenses] = useState([])
   const dropdownRef = useRef(null)
   const printRef = useRef()
 
@@ -118,6 +122,11 @@ const ReportsView = () => {
         setCancelledCount(monthOrders.filter(o => o.status === 'cancelled').length)
         // Solo incluir órdenes pagadas en el mes
         setOrders(monthOrders.filter(o => o.status !== 'cancelled' && o.status !== 'refunded' && o.payments?.some(p => p.status === 'paid')))
+        // Gastos del mes (puntuales + recurrentes expandidos). No bloquea ventas si falla.
+        try {
+          const mExp = await getMonthExpenses(organization.id, cy, cm)
+          setMonthExpenses(mExp)
+        } catch (expErr) { console.warn('Gastos no disponibles (¿migración 064 pendiente?):', expErr?.message); setMonthExpenses([]) }
       } catch (err) { console.error(err); setError('Error al cargar los datos.') }
       finally { setLoading(false) }
     })()
@@ -151,6 +160,10 @@ const ReportsView = () => {
           return m
         }
         setAnnual({ year: annualYear, current: bucket(clean(cr.data)), previous: bucket(clean(pr.data)) })
+        try {
+          const { byMonth } = await getAnnualExpenses(organization.id, annualYear)
+          setAnnualExpenseMonths(byMonth)
+        } catch (expErr) { console.warn('Gastos anuales no disponibles:', expErr?.message); setAnnualExpenseMonths(null) }
       } catch (err) { console.error(err); setError('Error al cargar los datos anuales.') }
       finally { setLoading(false) }
     })()
@@ -191,6 +204,20 @@ const ReportsView = () => {
   const mOrd = validOrders.length
   const mFees = validOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0)
   const mNetRev = mRev - mFees
+
+  // Utilidad del mes: ventas pagadas − gastos (fijos + variables, con recurrentes expandidos)
+  const expenseSummary = useMemo(() => summarizeExpenses(monthExpenses), [monthExpenses])
+  const mExpTotal = expenseSummary.total
+  const mExpFixed = expenseSummary.fixed
+  const mExpVariable = expenseSummary.variable
+  const mProfit = mRev - mExpTotal
+  const mMargin = mRev > 0 ? (mProfit / mRev) * 100 : 0
+  const expenseDonutData = useMemo(() => (expenseSummary.byCategory || []).map((c) => ({
+    key: c.categoryId || c.name,
+    label: c.name,
+    value: c.total,
+    color: c.color,
+  })), [expenseSummary])
 
   // KPI: Top productos del mes
   const topProducts = useMemo(() => {
@@ -266,6 +293,12 @@ const ReportsView = () => {
       ticketPromedioMes: mOrd > 0 ? Math.round(mRev / mOrd) : 0,
       ingresoNetoMes: mNetRev,
       totalDeliveryFeesMes: mFees,
+      gastosTotalesMes: mExpTotal,
+      gastosFijosMes: mExpFixed,
+      gastosVariablesMes: mExpVariable,
+      utilidadMes: mProfit,
+      margenUtilidadMes: `${mMargin.toFixed(1)}%`,
+      gastosPorCategoria: (expenseSummary.byCategory || []).map((c) => ({ categoria: c.name, tipo: c.type, montoTotal: c.total })),
       tasaCancelacionMes: `${cancellationRate.toFixed(1)}%`,
       ordenesCanceladasMes: cancelledCount,
       horaPico: peakHour.count > 0 ? `${String(peakHour.hour).padStart(2, '0')}:00 (${peakHour.count} órdenes)` : 'N/A',
@@ -281,10 +314,12 @@ const ReportsView = () => {
         mes: MONTHS[idx],
         ventas: m.sales,
         ordenes: m.orders,
+        gastos: annualExpenseMonths?.[idx]?.total || 0,
+        utilidad: m.sales - (annualExpenseMonths?.[idx]?.total || 0),
         ventasAnoAnterior: annual.previous[idx]?.sales || 0
       })) : []
     };
-  }, [cm, cy, mRev, mOrd, mNetRev, mFees, cancellationRate, cancelledCount, peakHour, topProducts, paymentDonutData, ticketByChannel, days, ultimos90Dias, annual]);
+  }, [cm, cy, mRev, mOrd, mNetRev, mFees, mExpTotal, mExpFixed, mExpVariable, mProfit, mMargin, expenseSummary, cancellationRate, cancelledCount, peakHour, topProducts, paymentDonutData, ticketByChannel, days, ultimos90Dias, annual, annualExpenseMonths]);
 
   const annualStats = useMemo(() => {
     if (!annual) return null
@@ -301,8 +336,10 @@ const ReportsView = () => {
       if (m.orders > 0 && (worst === -1 || m.sales < cur[worst].sales)) worst = i
     })
     const pct = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : null
-    return { total, ordersCount, avg, best, worst, pct, prevTotal }
-  }, [annual])
+    const expTotal = (annualExpenseMonths || []).reduce((s, m) => s + (m?.total || 0), 0)
+    const profit = total - expTotal
+    return { total, ordersCount, avg, best, worst, pct, prevTotal, expTotal, profit }
+  }, [annual, annualExpenseMonths])
 
   const annualChange = (i) => {
     if (!annual || i === 0) return null
@@ -408,6 +445,11 @@ const ReportsView = () => {
       ['Órdenes', totalOrd],
       ['Ticket Promedio', totalAvg],
       ['Delivery Fees', totalFees],
+      ['Gastos fijos', mExpFixed],
+      ['Gastos variables', mExpVariable],
+      ['Gastos totales', mExpTotal],
+      ['Utilidad (ventas − gastos)', mProfit],
+      ['Margen utilidad %', Number(mMargin.toFixed(1))],
     ]
     Object.entries(paymentMeta).forEach(([key, m]) => {
       const amt = allPayments[key] || 0
@@ -419,6 +461,21 @@ const ReportsView = () => {
     // Daily sheet
     const dailyWs = XLSX.utils.json_to_sheet(dayRows)
     XLSX.utils.book_append_sheet(wb, dailyWs, 'Detalle Diario')
+
+    // Gastos sheet (cruce utilidades)
+    const expenseRows = (expenseSummary.byCategory || []).map((c) => ({
+      'Categoría': c.name,
+      'Tipo': c.tipo || c.type,
+      'Movimientos': c.count,
+      'Monto': c.total,
+    }))
+    if (expenseRows.length > 0) {
+      expenseRows.push({ 'Categoría': 'TOTAL GASTOS', 'Tipo': '', 'Movimientos': expenseSummary.count, 'Monto': mExpTotal })
+      expenseRows.push({ 'Categoría': 'UTILIDAD (ventas − gastos)', 'Tipo': '', 'Movimientos': '', 'Monto': mProfit })
+      const expWs = XLSX.utils.json_to_sheet(expenseRows)
+      expWs['!cols'] = [{ wch: 28 }, { wch: 12 }, { wch: 12 }, { wch: 14 }]
+      XLSX.utils.book_append_sheet(wb, expWs, 'Gastos y Utilidad')
+    }
 
     // Column widths
     dailyWs['!cols'] = [
@@ -453,6 +510,11 @@ const ReportsView = () => {
       ['Órdenes', totalOrd],
       ['Ticket Promedio', totalAvg],
       ['Delivery Fees', totalFees],
+      ['Gastos fijos', mExpFixed],
+      ['Gastos variables', mExpVariable],
+      ['Gastos totales', mExpTotal],
+      ['Utilidad (ventas - gastos)', mProfit],
+      ['Margen utilidad %', Number(mMargin.toFixed(1))],
       ...Object.entries(paymentMeta)
         .filter(([key]) => allPayments[key])
         .map(([key, m]) => [m.label, allPayments[key]]),
@@ -651,14 +713,14 @@ const ReportsView = () => {
                           )}
                         </div>
                         <div>
-                          <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{annualStats.ordersCount}</div>
-                          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Órdenes</div>
-                          <div className="text-[11px] text-gray-400 mt-1.5">{annualStats.active} {annualStats.active === 1 ? 'mes' : 'meses'} con actividad</div>
+                          <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{fmt(annualStats.expTotal)}</div>
+                          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Gastos totales {annualYear}</div>
+                          <div className="text-[11px] text-gray-400 mt-1.5">fijos + variables</div>
                         </div>
                         <div>
-                          <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{fmt(annualStats.avg)}</div>
-                          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Promedio mensual</div>
-                          <div className="text-[11px] text-gray-400 mt-1.5">por mes con actividad</div>
+                          <div className={`text-2xl sm:text-3xl font-bold tracking-tight ${annualStats.profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{fmt(annualStats.profit)}</div>
+                          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Utilidad {annualYear}</div>
+                          <div className="text-[11px] text-gray-400 mt-1.5">ventas − gastos</div>
                         </div>
                         <div>
                           <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{annualStats.best !== -1 ? MONTHS[annualStats.best] : '—'}</div>
@@ -702,8 +764,9 @@ const ReportsView = () => {
                           <tr className="border-b border-gray-100">
                             <th className="text-left px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Mes</th>
                             <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Ventas</th>
+                            <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Gastos</th>
+                            <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Utilidad</th>
                             <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Órdenes</th>
-                            <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Ticket</th>
                             <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">vs mes anterior</th>
                           </tr>
                         </thead>
@@ -712,6 +775,8 @@ const ReportsView = () => {
                             const change = annualChange(i)
                             const best = annualStats?.best === i
                             const worst = annualStats?.worst === i
+                            const mExp = annualExpenseMonths?.[i]?.total || 0
+                            const mProfit = m.sales - mExp
                             return (
                               <tr key={i} className={`hover:bg-gray-50/50 transition-colors ${best ? 'bg-emerald-50/40' : worst ? 'bg-red-50/30' : ''}`}>
                                 <td className="px-5 py-3 font-medium text-gray-900 flex items-center gap-2">
@@ -720,8 +785,9 @@ const ReportsView = () => {
                                   {worst && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-md leading-none">MÁS BAJO</span>}
                                 </td>
                                 <td className="px-5 py-3 text-right font-semibold text-gray-900">{fmt(m.sales)}</td>
+                                <td className="px-5 py-3 text-right text-gray-600">{fmt(mExp)}</td>
+                                <td className={`px-5 py-3 text-right font-semibold ${mProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{fmt(mProfit)}</td>
                                 <td className="px-5 py-3 text-right text-gray-600">{m.orders}</td>
-                                <td className="px-5 py-3 text-right text-gray-600">{m.orders > 0 ? fmt(Math.round(m.sales / m.orders)) : '—'}</td>
                                 <td className="px-5 py-3 text-right">{pctBadge(change)}</td>
                               </tr>
                             )
@@ -820,6 +886,37 @@ const ReportsView = () => {
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Utilidad del mes: ventas − gastos */}
+                  <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-semibold text-gray-900">Utilidad del mes</h3>
+                      <Link to="/expenses" className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors">Ver gastos</Link>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <div className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">{fmt(mRev)}</div>
+                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Ventas</div>
+                      </div>
+                      <div>
+                        <div className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">{fmt(mExpTotal)}</div>
+                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Gastos · fijos {fmt(mExpFixed)}</div>
+                      </div>
+                      <div>
+                        <div className={`text-xl sm:text-2xl font-black tracking-tight ${mProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{fmt(mProfit)}</div>
+                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Utilidad</div>
+                      </div>
+                      <div>
+                        <div className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">{mMargin.toFixed(1)}%</div>
+                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Margen · variables {fmt(mExpVariable)}</div>
+                      </div>
+                    </div>
+                    {expenseDonutData.length > 0 ? (
+                      <div className="mt-5"><DonutChart data={expenseDonutData} total={mExpTotal} /></div>
+                    ) : (
+                      <p className="mt-4 text-sm text-gray-400">Aún no hay gastos registrados este mes. <Link to="/expenses" className="font-semibold text-emerald-700 hover:underline">Registrar el primero</Link></p>
+                    )}
                   </div>
 
                   {/* Top Products */}
