@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
-  <url>
-    <loc>https://foodhub.work/</loc>
-    <xhtml:link rel="alternate" hreflang="es" href="https://foodhub.work/" />
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-    <lastmod>2026-09-22</lastmod>
-  </url>
+  <!--
+    Este sitemap es para las tiendas de tenants (subdominios de foodhub.work).
+    La landing principal (www.foodhub.work) tiene su propio proyecto y sitemap.
+  -->
 </urlset>

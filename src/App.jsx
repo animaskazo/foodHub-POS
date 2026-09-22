@@ -22,7 +22,6 @@ import CustomersView from './pages/CustomersView';
 import ConversationsView from './pages/ConversationsView';
 import ReportsView from './pages/ReportsView';
 import SubscriptionConfirmation from './components/public/SubscriptionConfirmation';
-import MarketingLanding from './pages/MarketingLanding';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import UpdatePasswordView from './pages/UpdatePasswordView';
 import ForgotPasswordView from './pages/ForgotPasswordView';
@@ -79,8 +78,7 @@ function App() {
       <BrowserRouter>
         <SeoNoIndex />
         <Routes>
-        <Route path="/" element={<MarketingLanding />} />
-        <Route path="/dashboard" element={
+        <Route path="/" element={
           <ProtectedRoute>
             <Layout />
           </ProtectedRoute>

@@ -110,7 +110,7 @@ export default function SignupView() {
       });
 
       toast.success('Cuenta creada exitosamente');
-      navigate('/dashboard');
+      navigate('/');
     } catch (err) {
       console.error('Signup error:', err);
       setError(err.message);

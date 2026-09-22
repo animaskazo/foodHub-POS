@@ -282,7 +282,7 @@ const KitchenView = () => {
           </Button>
 
           <Button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/')}
             className="px-3 py-2 bg-white text-black hover:bg-gray-100 rounded-xl transition-colors flex items-center justify-center shrink-0 shadow-sm gap-2 font-bold text-sm"
             title="Dashboard Admin"
           >
