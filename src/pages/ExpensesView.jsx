@@ -561,8 +561,8 @@ const ExpensesView = () => {
         </div>
 
         {/* Modal crear/editar */}
-        <Modal isOpen={isModalOpen} onClose={closeModal} title={editing ? 'Editar gasto' : 'Nuevo gasto'} maxWidth="max-w-lg">
-          <form onSubmit={handleSave} className="p-6 space-y-4">
+        <Modal isOpen={isModalOpen} onClose={closeModal} title={editing ? 'Editar gasto' : 'Nuevo gasto'} maxWidth="max-w-lg" fullScreenOnMobile>
+          <form onSubmit={handleSave} className="p-4 sm:p-6 space-y-4">
             {editing?.is_recurring && <p className="text-xs text-violet-700 bg-violet-50 border border-violet-100 rounded-xl px-3 py-2">Estás editando una serie mensual: el cambio aplica a todos los meses.</p>}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Comprobante (opcional)</label>
@@ -610,9 +610,10 @@ const ExpensesView = () => {
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
-                  <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm font-semibold text-gray-500 hover:border-gray-300 hover:text-gray-700 cursor-pointer transition-colors">
-                    <Paperclip className="h-4 w-4" />
-                    Subir foto o PDF de boleta / factura
+                  <label className="flex-1 flex flex-col items-center justify-center gap-2 px-4 py-10 border-2 border-dashed border-gray-200 rounded-xl text-sm font-semibold text-gray-500 hover:border-gray-300 hover:text-gray-700 cursor-pointer transition-colors">
+                    <Paperclip className="h-8 w-8" />
+                    <span>Subir foto o PDF de boleta / factura</span>
+                    <span className="text-xs font-normal text-gray-400">Toca para elegir el archivo</span>
                     <input
                       type="file"
                       accept="image/*,application/pdf"

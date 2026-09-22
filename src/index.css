@@ -2,6 +2,21 @@
 
 @plugin "tailwindcss-animate";
 
+/* Modal pantalla completa en móvil: pegado a los bordes, sin margen exterior */
+@media (max-width: 767.98px) {
+  .modal-fullscreen-mobile-wrap {
+    padding: 0 !important;
+  }
+  .modal-fullscreen-mobile {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    max-height: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {
