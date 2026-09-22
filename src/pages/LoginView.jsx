@@ -22,7 +22,7 @@ export default function LoginView() {
       const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) throw authError;
       toast.success('¡Bienvenido!');
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       console.error('Error al iniciar sesión:', err);
       setError(err.message === 'Invalid login credentials' ? 'Credenciales incorrectas' : err.message);

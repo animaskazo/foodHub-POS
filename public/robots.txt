@@ -1,0 +1,25 @@
+User-agent: *
+Allow: /order/
+Allow: /
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /update-password
+Disallow: /pos
+Disallow: /kitchen
+Disallow: /superadmin
+Disallow: /categories/
+Disallow: /ingredients/
+Disallow: /inventory
+Disallow: /products/
+Disallow: /settings
+Disallow: /delivery
+Disallow: /shifts-settings
+Disallow: /tables
+Disallow: /customers
+Disallow: /conversations
+Disallow: /reports
+Disallow: /subscription-confirmation
+
+Sitemap: https://foodhub.work/sitemap.xml
+Sitemap: https://foodhub.work/sitemap-tenants.xml

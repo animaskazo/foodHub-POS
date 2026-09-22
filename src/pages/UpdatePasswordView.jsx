@@ -38,7 +38,7 @@ export default function UpdatePasswordView() {
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) throw updateError;
       toast.success('Contraseña actualizada correctamente');
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       console.error('Error al actualizar contraseña:', err);
       setError(err.message);

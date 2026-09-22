@@ -22,10 +22,12 @@ import CustomersView from './pages/CustomersView';
 import ConversationsView from './pages/ConversationsView';
 import ReportsView from './pages/ReportsView';
 import SubscriptionConfirmation from './components/public/SubscriptionConfirmation';
+import MarketingLanding from './pages/MarketingLanding';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import UpdatePasswordView from './pages/UpdatePasswordView';
 import ForgotPasswordView from './pages/ForgotPasswordView';
 import ProtectedRoute from './components/ProtectedRoute';
+import SeoNoIndex from './components/SeoNoIndex';
 import { Toaster } from 'sonner';
 import { getTenantSlug } from './utils/tenant';
 
@@ -75,8 +77,10 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <SeoNoIndex />
         <Routes>
-        <Route path="/" element={
+        <Route path="/" element={<MarketingLanding />} />
+        <Route path="/dashboard" element={
           <ProtectedRoute>
             <Layout />
           </ProtectedRoute>

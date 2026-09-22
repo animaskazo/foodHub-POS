@@ -581,7 +581,7 @@ const PosView = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Caja Cerrada</h2>
           <p className="text-gray-500 mb-8">El terminal de ventas está bloqueado porque el turno actual se encuentra cerrado. Para poder recibir pagos y procesar órdenes, por favor abre la caja desde el Dashboard administrativo.</p>
           <Button 
-            onClick={() => navigate('/')} 
+            onClick={() => navigate('/dashboard')} 
             className="w-full bg-black hover:bg-gray-800 text-white font-bold h-12"
           >
             Ir al Dashboard
@@ -729,7 +729,7 @@ const PosView = () => {
                     if (id === 'cocina') {
                       navigate('/kitchen');
                     } else if (id === 'dashboard') {
-                      navigate('/');
+                      navigate('/dashboard');
                     } else {
                       setActiveTab(id);
                     }

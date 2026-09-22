@@ -1,4 +1,4 @@
-const CRAWLER_RE = /bot|crawler|spider|facebook|twitter|whatsapp|telegram|slack|discord|preview|linkedin|pinterest|vkShare|embedly|skype|quora/i
+const CRAWLER_RE = /bot|crawler|spider|googlebot|facebook|twitter|whatsapp|telegram|slack|discord|preview|linkedin|pinterest|vkShare|embedly|skype|quora/i
 
 const SOCIAL_PREVIEW_URL = 'https://fgvhbniauzjvzeuespmf.supabase.co/functions/v1/social-preview'
 

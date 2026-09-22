@@ -45,7 +45,7 @@ const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false }) =
     <div className="bg-[#111111] text-white hidden md:flex items-center px-6 h-16 shrink-0 z-50">
       {/* Left: Session info */}
       <button
-        onPointerDown={() => navigate('/')}
+        onPointerDown={() => navigate('/dashboard')}
         className="flex items-center gap-2 text-gray-400 active:text-white select-none mr-8"
         style={{ WebkitTapHighlightColor: 'transparent' }}
       >
@@ -65,7 +65,7 @@ const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false }) =
                 // Reset animation after showing
                 if (triggerAnimation) setTriggerAnimation(false);
               } else if (id === 'dashboard') {
-                navigate('/');
+                navigate('/dashboard');
                 onChange && onChange(id);
               } else {
                 onChange && onChange(id);

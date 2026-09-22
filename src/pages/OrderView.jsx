@@ -807,15 +807,33 @@ const OrderView = () => {
         {org && (
           <>
             <meta name="description" content={org.description || `Pide online en ${org.name}`} />
+            <link rel="canonical" href={`https://${slug}.foodhub.work/`} />
             <meta property="og:title" content={org.name} />
             <meta property="og:description" content={org.description || `Pide online en ${org.name}`} />
             <meta property="og:image" content={org.logo_url || org.cover_url} />
-            <meta property="og:url" content={isTenantStore ? window.location.origin : `${window.location.origin}/order/${slug}`} />
+            <meta property="og:url" content={`https://${slug}.foodhub.work/`} />
             <meta property="og:type" content="website" />
             <meta name="twitter:card" content="summary_large_image" />
             <meta name="twitter:title" content={org.name} />
             <meta name="twitter:description" content={org.description || `Pide online en ${org.name}`} />
             <meta name="twitter:image" content={org.logo_url || org.cover_url} />
+            <script type="application/ld+json">
+              {JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Restaurant",
+                "name": org.name,
+                "description": org.description || `Pide online en ${org.name}`,
+                "image": org.logo_url || org.cover_url,
+                "url": `https://${slug}.foodhub.work`,
+                "telephone": org.phone || undefined,
+                "address": org.address ? {
+                  "@type": "PostalAddress",
+                  "streetAddress": org.address
+                } : undefined,
+                "priceRange": "$$",
+                "hasMenu": `https://${slug}.foodhub.work/#menu`
+              })}
+            </script>
           </>
         )}
       </Helmet>
