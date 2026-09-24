@@ -104,8 +104,21 @@ const Layout = () => {
     await supabase.auth.signOut();
   };
 
+  // Cerrar el menú móvil al cambiar de ruta (incluye atrás/adelante)
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // Bloquear el scroll del contenido cuando el drawer móvil está abierto
+  useEffect(() => {
+    document.body.style.overflow = isMobileMenuOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-gray-50" style={{ height: '100dvh' }}>
       <NewOrderAlert />
 
       {/* Mobile Menu Overlay */}
@@ -506,8 +519,10 @@ const Layout = () => {
           )}
         </header>
 
-        {/* General scroll container */}
-        <div className="flex-1 overflow-y-auto relative">
+        {/* General scroll container — único scroll de la app */}
+        <div
+          className={`min-h-0 flex-1 overflow-y-auto overscroll-contain relative touch-pan-y [\\-webkit-overflow-scrolling:touch] ${isMobileMenuOpen ? 'overflow-hidden' : ''}`}
+        >
           <Outlet />
         </div>
       </main>
