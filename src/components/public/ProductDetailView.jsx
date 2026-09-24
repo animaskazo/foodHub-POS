@@ -295,10 +295,10 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
   return (
     <div
       onClick={handleClose}
-      className={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 bg-gray-50/20 sm:bg-black/40 sm:backdrop-blur-sm ${isClosing ? 'animate-out fade-out duration-200 opacity-0' : 'animate-in fade-in duration-200'}`}>
+      className={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 bg-gray-50/20 sm:bg-black/40 sm:backdrop-blur-sm ${isClosing ? 'opacity-0 transition-opacity duration-200 ease-out' : 'animate-in fade-in duration-200'}`}>
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`w-full max-w-2xl h-[100dvh] sm:h-[90dvh] sm:max-h-[800px] sm:rounded-3xl bg-gray-50 flex flex-col overflow-hidden relative shadow-2xl ${isClosing ? 'animate-out slide-out-to-bottom-4 fade-out duration-200 opacity-0' : 'animate-in slide-in-from-bottom-8 zoom-in-95 fade-in duration-300'}`}>
+        className={`w-full max-w-2xl h-[100dvh] sm:h-[90dvh] sm:max-h-[800px] sm:rounded-3xl bg-gray-50 flex flex-col overflow-hidden relative shadow-2xl ${isClosing ? 'opacity-0 translate-y-8 transition-all duration-200 ease-in' : 'animate-in slide-in-from-bottom-8 zoom-in-95 fade-in duration-300'}`}>
         {/* Botón atrás fijo — fuera del scroll para que no se pierda al bajar */}
         <button
           onClick={handleClose}
