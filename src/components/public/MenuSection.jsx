@@ -38,10 +38,10 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
   return (
     <div
       onClick={handleTap}
-      className={`group bg-white rounded-2xl overflow-hidden border border-gray-200/60 transition-all duration-200 ${isOutOfStock ? 'opacity-70 grayscale' : 'active:scale-[0.97] cursor-pointer'} flex flex-col h-full ${tapped ? 'scale-[0.97]' : ''}`}
+      className={`group bg-white rounded-2xl overflow-hidden isolate border border-gray-200/60 transition-all duration-200 ${isOutOfStock ? 'opacity-70 grayscale' : 'active:scale-[0.97] cursor-pointer'} flex flex-col h-full ${tapped ? 'scale-[0.97]' : ''}`}
     >
       {/* Image */}
-      <div className="aspect-square bg-gray-100 relative overflow-hidden shrink-0">
+      <div className="aspect-square bg-gray-100 relative overflow-hidden shrink-0 rounded-t-2xl isolate">
         {product.image ? (
           (product.video || product.videoUrl) ? (
             <ProductMedia
@@ -489,7 +489,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
 
                 return (
                   <div key={cat.id} id={`category-${cat.id}`} className="space-y-4">
-                    <h3 className={`font-extrabold text-xl text-gray-900 pb-2 mb-1 px-1 sticky bg-white/90 backdrop-blur-sm z-10 pt-2 ${effectiveOpen ? 'top-0' : 'top-8'}`}>
+                    <h3 className="font-extrabold text-xl text-gray-900 pb-2 mb-1 px-1 sticky bg-white z-10 pt-2 top-0">
                       {cat.name}
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -515,7 +515,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
 
               {renderFallback && (
                 <div id="category-other" className="space-y-4">
-                  <h3 className={`font-extrabold text-xl text-gray-900 pb-2 mb-1 px-1 sticky bg-white/90 backdrop-blur-sm z-10 pt-2 ${effectiveOpen ? 'top-0' : 'top-8'}`}>
+                  <h3 className="font-extrabold text-xl text-gray-900 pb-2 mb-1 px-1 sticky bg-white z-10 pt-2 top-0">
                     Otros
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
