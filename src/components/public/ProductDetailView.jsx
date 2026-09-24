@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ArrowLeft, Plus, Minus } from 'lucide-react';
 import IngredientIcon from '../ui/IngredientIcon';
 import ProductImageFallback from '../ui/ProductImageFallback';
@@ -23,6 +23,12 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
   const [selectedExtras, setSelectedExtras] = useState(initialExtras);
   const [quantity, setQuantity] = useState(initialQuantity);
   const [isClosing, setIsClosing] = useState(false);
+  const closeTimer = useRef(null);
+
+  // Limpia el timer si el padre desmonta antes de que termine la animación
+  useEffect(() => () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  }, []);
 
   // Bundle selection state
   const [selections, setSelections] = useState(() => {
@@ -210,17 +216,15 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
       })
     : true;
 
-  const handleClose = () => {
+  const scheduleClose = (fn, payload) => {
     if (isClosing) return;
     setIsClosing(true);
-    setTimeout(() => onBack(), 200);
+    closeTimer.current = setTimeout(() => fn(payload), 200);
   };
 
-  const handleAddWithClose = (payload) => {
-    if (isClosing) return;
-    setIsClosing(true);
-    setTimeout(() => onAdd(payload), 200);
-  };
+  const handleClose = () => scheduleClose(onBack);
+
+  const handleAddWithClose = (payload) => scheduleClose(onAdd, payload);
 
   const handleConfirm = () => {
     if (isBundle) {
@@ -289,9 +293,21 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
   };
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 bg-gray-50/20 sm:bg-black/40 sm:backdrop-blur-sm ${isClosing ? 'animate-out fade-out duration-200' : 'animate-in fade-in duration-200'}`}>
-      <div className={`w-full max-w-2xl h-[100dvh] sm:h-[90dvh] sm:max-h-[800px] sm:rounded-3xl bg-gray-50 flex flex-col overflow-hidden relative shadow-2xl ${isClosing ? 'animate-out slide-out-to-bottom-8 zoom-out-95 fade-out duration-200' : 'animate-in slide-in-from-bottom-8 zoom-in-95 fade-in duration-300'}`}>
-        
+    <div
+      onClick={handleClose}
+      className={`fixed inset-0 z-50 flex items-center justify-center sm:p-4 bg-gray-50/20 sm:bg-black/40 sm:backdrop-blur-sm ${isClosing ? 'animate-out fade-out duration-200' : 'animate-in fade-in duration-200'}`}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={`w-full max-w-2xl h-[100dvh] sm:h-[90dvh] sm:max-h-[800px] sm:rounded-3xl bg-gray-50 flex flex-col overflow-hidden relative shadow-2xl ${isClosing ? 'animate-out slide-out-to-bottom-4 fade-out duration-200' : 'animate-in slide-in-from-bottom-8 zoom-in-95 fade-in duration-300'}`}>
+        {/* Botón atrás fijo — fuera del scroll para que no se pierda al bajar */}
+        <button
+          onClick={handleClose}
+          aria-label="Volver"
+          className="absolute top-4 left-4 z-30 p-2.5 bg-white/95 backdrop-blur-md rounded-full hover:bg-white transition-colors border border-black/10 shadow-[0_2px_12px_rgba(0,0,0,0.28)]"
+        >
+          <ArrowLeft className="h-6 w-6 text-gray-900" />
+        </button>
+
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto pb-28">
           {/* Header / Image Area */}
@@ -312,22 +328,10 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                 ) : (
                   <img src={product.image} alt={product.name} className="w-full h-full object-cover object-center block" />
                 )}
-                <button 
-                  onClick={handleClose} 
-                  className="absolute top-4 left-4 p-2.5 bg-white/90 backdrop-blur-md rounded-full hover:bg-white transition-colors shadow-sm z-10"
-                >
-                  <ArrowLeft className="h-6 w-6 text-gray-900" />
-                </button>
               </div>
             ) : (
               <div className="w-full h-[280px] sm:h-[340px] relative bg-gray-100 overflow-hidden">
                 <ProductImageFallback logoUrl={logoUrl} alt={product.name} className="w-full h-full" />
-                <button
-                  onClick={handleClose}
-                  className="absolute top-4 left-4 p-2.5 bg-white/90 backdrop-blur-md rounded-full hover:bg-white transition-colors shadow-sm z-10"
-                >
-                  <ArrowLeft className="h-6 w-6 text-gray-900" />
-                </button>
               </div>
             )}
 
