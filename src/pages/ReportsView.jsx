@@ -610,9 +610,10 @@ const ReportsView = () => {
               {/* AI Chat button */}
               <button
                 onClick={() => setIsChatOpen(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 rounded-xl text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+                aria-label="Asistente IA"
+                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 bg-emerald-600 rounded-xl text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
               >
-                <Sparkles className="h-4 w-4" /> Asistente IA
+                <Sparkles className="h-4 w-4" /> <span className="hidden sm:inline">Asistente IA</span>
               </button>
             </div>
           }
