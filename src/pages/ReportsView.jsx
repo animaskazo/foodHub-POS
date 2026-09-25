@@ -3,12 +3,12 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/AuthContext'
 import PageHeader from '../components/ui/PageHeader'
+import { resolveCategoryIcon } from '../utils/expenseCategoryIcons'
 import SalesAreaChart from '../components/charts/SalesAreaChart'
-import DonutChart from '../components/charts/DonutChart'
 import ReportsChatDrawer from '../components/reports/ReportsChatDrawer'
 import { getMonthExpenses, getAnnualExpenses, summarizeExpenses } from '../services/expenseService'
 import { Link } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Loader2, FileDown, CalendarDays, FileText, FileSpreadsheet, Store, ShoppingBag, Globe, MessageCircle, Van, LineChart, TrendingUp, TrendingDown, Minus, Trophy, Clock, Ban, Wallet, Sparkles, Send, Receipt } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, FileDown, FileText, FileSpreadsheet, Store, Globe, MessageCircle, Van, TrendingUp, TrendingDown, Minus, Trophy, Sparkles, Send, Banknote, CreditCard, ArrowLeftRight, Truck } from 'lucide-react'
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DAYS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado']
@@ -25,18 +25,19 @@ const fmt = (n) => {
   return '$' + Number(n).toLocaleString('es-CL')
 }
 
-const paymentMeta = {
-  cash:          { label: 'Efectivo',   bar: 'bg-emerald-500', color: '#10b981' },
-  card:          { label: 'Tarjeta',    bar: 'bg-blue-500',    color: '#3b82f6' },
-  transfer:      { label: 'Transfer.',  bar: 'bg-violet-500',  color: '#8b5cf6' },
-  online_gateway:{ label: 'Online',     bar: 'bg-cyan-500',    color: '#06b6d4' },
+const paymentMeta = {  cash:          { label: 'Efectivo',   bar: 'bg-emerald-500', color: '#10b981', icon: Banknote },
+  card:          { label: 'Tarjeta',    bar: 'bg-blue-500',    color: '#3b82f6', icon: CreditCard },
+  transfer:      { label: 'Transfer.',  bar: 'bg-violet-500',  color: '#8b5cf6', icon: ArrowLeftRight },
+  online_gateway:{ label: 'Online',     bar: 'bg-cyan-500',    color: '#06b6d4', icon: Globe },
 }
-
 const channelMeta = {
   pos:      { label: 'POS',      icon: Store,         bg: 'bg-orange-50',   iconColor: 'text-orange-600' },
   online:   { label: 'Online',   icon: Globe,         bg: 'bg-indigo-50',   iconColor: 'text-indigo-600' },
   whatsapp: { label: 'WhatsApp', icon: MessageCircle, bg: 'bg-emerald-50', iconColor: 'text-emerald-600' },
 }
+
+// Precio mínimo para entrar al top de productos: deja fuera salsas y extras
+const MIN_TOP_PRODUCT_PRICE = 1000
 
 const calcDay = (orders) => {
   const rev = orders.reduce((s, o) => s + Number(o.total || 0), 0)
@@ -101,7 +102,7 @@ const ReportsView = () => {
       try {
         const [sr, or] = await Promise.all([
           supabase.from('shifts').select('*').eq('organization_id', organization.id).gte('start_time', queryStart.toISOString()).lte('start_time', e.toISOString()).order('start_time', { ascending: false }),
-          supabase.from('orders').select('id, order_number, order_type, delivery_type, status, total, delivery_fee, created_at, payments ( method, amount, status ), order_items ( product_name, quantity, unit_price )').eq('organization_id', organization.id).gte('created_at', queryStart.toISOString()).lte('created_at', e.toISOString()).order('created_at', { ascending: false }),
+          supabase.from('orders').select('id, order_number, order_type, delivery_type, status, total, delivery_fee, created_at, payments ( method, amount, status ), order_items ( product_id, product_name, quantity, unit_price )').eq('organization_id', organization.id).gte('created_at', queryStart.toISOString()).lte('created_at', e.toISOString()).order('created_at', { ascending: false }),
         ])
         if (sr.error) throw sr.error
         if (or.error) throw or.error
@@ -169,8 +170,8 @@ const ReportsView = () => {
     })()
   }, [organization?.id, authLoading, annualYear, selected])
 
-  const prev = () => { if (cm === 0) { setCm(11); setCy(y => y - 1) } else setCm(m => m - 1) }
-  const next = () => { if (cm === 11) { setCm(0); setCy(y => y + 1) } else setCm(m => m + 1) }
+  const prev = () => { setSelected('resumen'); if (cm === 0) { setCm(11); setCy(y => y - 1) } else setCm(m => m - 1) }
+  const next = () => { setSelected('resumen'); if (cm === 11) { setCm(0); setCy(y => y + 1) } else setCm(m => m + 1) }
 
   const days = useMemo(() => {
     const r = []
@@ -198,6 +199,20 @@ const ReportsView = () => {
     return r
   }, [recentRollingOrders])
 
+  // Serie diaria del mes para la curva de ventas (todos los días, con ceros)
+  const monthDailySales = useMemo(() => {
+    const dc = new Date(cy, cm + 1, 0).getDate()
+    const labels = []
+    const values = []
+    for (let d = 1; d <= dc; d++) {
+      const ds = `${cy}-${String(cm + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+      const dayOrders = orders.filter(o => toLocalDateStr(new Date(o.created_at)) === ds)
+      labels.push(`${d} ${MONTHS[cm].slice(0, 3)}`)
+      values.push(dayOrders.reduce((s, o) => s + Number(o.total || 0), 0))
+    }
+    return { labels, values }
+  }, [orders, cm, cy])
+
   const isCm = cm === today.getMonth() && cy === today.getFullYear()
   const validOrders = orders // ya filtrados al cargar (solo pagados, no cancelados/reembolsados)
   const mRev = validOrders.reduce((s, o) => s + Number(o.total || 0), 0)
@@ -212,26 +227,42 @@ const ReportsView = () => {
   const mExpVariable = expenseSummary.variable
   const mProfit = mRev - mExpTotal
   const mMargin = mRev > 0 ? (mProfit / mRev) * 100 : 0
-  const expenseDonutData = useMemo(() => (expenseSummary.byCategory || []).map((c) => ({
-    key: c.categoryId || c.name,
-    label: c.name,
-    value: c.total,
-    color: c.color,
-  })), [expenseSummary])
 
-  // KPI: Top productos del mes
+  // KPI: Top productos del mes (sin extras baratos como salsas)
   const topProducts = useMemo(() => {
     const map = {}
     validOrders.forEach(o => {
       if (o.order_items) o.order_items.forEach(item => {
+        if (Number(item.unit_price || 0) < MIN_TOP_PRODUCT_PRICE) return
         const name = item.product_name || 'Sin nombre'
-        if (!map[name]) map[name] = { name, qty: 0, revenue: 0 }
+        if (!map[name]) map[name] = { name, qty: 0, revenue: 0, productId: item.product_id || null }
         map[name].qty += Number(item.quantity || 1)
         map[name].revenue += Number(item.unit_price || 0) * Number(item.quantity || 1)
       })
     })
     return Object.values(map).sort((a, b) => b.qty - a.qty).slice(0, 5)
   }, [validOrders])
+
+  // Fotos de los top productos (opcionales, no bloquean)
+  const [topProductImages, setTopProductImages] = useState({})
+  useEffect(() => {
+    const ids = [...new Set(topProducts.map(p => p.productId).filter(Boolean))]
+    if (ids.length === 0) { setTopProductImages({}); return }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data, error } = await supabase.from('product_images').select('product_id, url, is_primary').in('product_id', ids)
+        if (error || cancelled) return
+        const byProduct = {}
+        ;(data || []).forEach(img => {
+          if (!img?.url) return
+          if (!byProduct[img.product_id] || img.is_primary) byProduct[img.product_id] = img.url
+        })
+        if (!cancelled) setTopProductImages(byProduct)
+      } catch { /* imagen opcional */ }
+    })()
+    return () => { cancelled = true }
+  }, [topProducts])
 
   // KPI: Hora pico
   const peakHour = useMemo(() => {
@@ -280,6 +311,7 @@ const ReportsView = () => {
         label: meta.label,
         value: totals[key] || 0,
         color: meta.color,
+        icon: meta.icon,
       }))
       .filter((item) => item.value > 0);
   }, [days]);
@@ -553,22 +585,35 @@ const ReportsView = () => {
         {/* ── Header ── */}
         <PageHeader
           title="Reportes"
-          subtitle="Resumen de ventas diarias"
+          subtitle={selected === 'anual' ? `Ventas mes a mes de ${annualYear}` : `Resumen de ventas de ${MONTHS[cm]} ${cy}`}
           actions={
-            <div className="flex items-center gap-2" ref={dropdownRef}>
+            <div className="flex flex-wrap items-center gap-2 justify-end" ref={dropdownRef}>
+              <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-200/80 p-1">
+                <button onClick={() => setSelected('resumen')} className={`px-3.5 py-1.5 text-sm font-semibold rounded-lg transition-colors ${selected !== 'anual' ? 'bg-black text-white' : 'text-gray-500 hover:text-gray-900'}`}>Mes</button>
+                <button onClick={() => setSelected('anual')} className={`px-3.5 py-1.5 text-sm font-semibold rounded-lg transition-colors ${selected === 'anual' ? 'bg-black text-white' : 'text-gray-500 hover:text-gray-900'}`}>Año</button>
+              </div>
+
+              {selected === 'anual' ? (
+                <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200/80 px-2 py-1.5 w-fit">
+                  <button onClick={() => setAnnualYear(y => y - 1)} aria-label="Año anterior" className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><ChevronLeft className="h-4 w-4 text-gray-500" /></button>
+                  <span className="text-sm font-semibold text-gray-900 min-w-[60px] text-center select-none">{annualYear}</span>
+                  <button onClick={() => setAnnualYear(y => y + 1)} disabled={annualYear >= today.getFullYear()} aria-label="Año siguiente" className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"><ChevronRight className="h-4 w-4 text-gray-500" /></button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200/80 px-2 py-1.5">
+                  <button onClick={prev} aria-label="Mes anterior" className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><ChevronLeft className="h-4 w-4 text-gray-500" /></button>
+                  <span className="text-sm font-semibold text-gray-900 min-w-[130px] text-center select-none">{MONTHS[cm]} {cy}</span>
+                  <button onClick={next} disabled={isCm} aria-label="Mes siguiente" className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"><ChevronRight className="h-4 w-4 text-gray-500" /></button>
+                </div>
+              )}
+
               {/* AI Chat button */}
               <button
                 onClick={() => setIsChatOpen(true)}
-                className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 rounded-xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 rounded-xl text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
               >
                 <Sparkles className="h-4 w-4" /> Asistente IA
               </button>
-
-              <div className="flex items-center gap-2 bg-white rounded-xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 px-2 py-1.5">
-                <button onClick={prev} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><ChevronLeft className="h-4 w-4 text-gray-500" /></button>
-                <span className="text-sm font-semibold text-gray-900 min-w-[130px] text-center select-none">{MONTHS[cm]} {cy}</span>
-                <button onClick={next} disabled={isCm} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"><ChevronRight className="h-4 w-4 text-gray-500" /></button>
-              </div>
             </div>
           }
         />
@@ -578,127 +623,14 @@ const ReportsView = () => {
         {loading ? (
           <div className="flex justify-center py-32"><Loader2 className="h-6 w-6 animate-spin text-gray-300" /></div>
         ) : (
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* ── Left: day list ── */}
-            <div className="lg:w-[280px] shrink-0">
-              <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 overflow-hidden">
-                <div className="max-h-[calc(100vh-220px)] overflow-y-auto hide-scrollbar">
-                  {/* Ventas anuales */}
-                  <button onClick={() => setSelected('anual')}
-                    className={`relative w-full text-left px-5 py-4 transition-all duration-150 hover:bg-neutral-50/80 ${
-                      selected === 'anual' 
-                        ? 'bg-neutral-50/50 after:absolute after:left-0 after:top-1/2 after:-translate-y-1/2 after:w-[3px] after:h-6 after:bg-black after:rounded-r-full' 
-                        : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
-                        selected === 'anual' ? 'bg-black text-white' : 'bg-neutral-100 text-neutral-500'
-                      }`}>
-                        <LineChart className="h-[18px] w-[18px]" />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className={`text-sm font-semibold ${selected === 'anual' ? 'text-black' : 'text-neutral-900'}`}>Ventas anuales</div>
-                        <div className="text-xs text-neutral-400">Mes a mes</div>
-                      </div>
-                    </div>
-                    {annual && (
-                      <div className="flex items-center justify-between mt-2.5 pl-12">
-                        <span className="text-[11px] text-neutral-400 font-medium">{annualYear}</span>
-                        <span className={`text-sm font-bold ${selected === 'anual' ? 'text-black' : 'text-neutral-900'}`}>{fmt(annual.current.reduce((s, m) => s + m.sales, 0))}</span>
-                      </div>
-                    )}
-                  </button>
-
-                  <div className="mx-5 h-px bg-neutral-100" />
-
-                  {/* Resumen del mes */}
-                  <button onClick={() => setSelected('resumen')}
-                    className={`relative w-full text-left px-5 py-4 transition-all duration-150 hover:bg-neutral-50/80 ${
-                      selected === 'resumen' 
-                        ? 'bg-neutral-50/50 after:absolute after:left-0 after:top-1/2 after:-translate-y-1/2 after:w-[3px] after:h-6 after:bg-black after:rounded-r-full' 
-                        : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
-                        selected === 'resumen' ? 'bg-black text-white' : 'bg-neutral-100 text-neutral-500'
-                      }`}>
-                        <CalendarDays className="h-[18px] w-[18px]" />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className={`text-sm font-semibold ${selected === 'resumen' ? 'text-black' : 'text-neutral-900'}`}>Resumen del mes</div>
-                        <div className="text-xs text-neutral-400">{MONTHS[cm]} {cy}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between mt-2.5 pl-12">
-                      <span className="text-[11px] text-neutral-400 font-medium">{mOrd} órdenes</span>
-                      <span className={`text-sm font-bold ${selected === 'resumen' ? 'text-black' : 'text-neutral-900'}`}>{fmt(mRev)}</span>
-                    </div>
-                  </button>
-
-                  <div className="mx-5 h-px bg-neutral-100" />
-
-                  {/* Day list */}
-                  <div className="pt-1 pb-2">
-                    <div className="px-5 py-2.5 text-[10px] font-semibold text-neutral-400 uppercase tracking-widest">Días</div>
-                    <div className="space-y-0.5 px-2">
-                      {days.map(d => {
-                        const { rev, cnt } = calcDay(d.orders)
-                        const dt = new Date(d.date + 'T12:00:00')
-                        const isToday = d.date === toLocalDateStr(new Date())
-                        return (
-                          <button key={d.date} onClick={() => setSelected(d.date)}
-                            className={`relative w-full text-left px-3 py-2.5 rounded-xl transition-all duration-150 hover:bg-neutral-50 ${
-                              selected === d.date 
-                                ? 'bg-neutral-100/70 shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.04)]' 
-                                : ''
-                            }`}
-                          >
-                            {selected === d.date && (
-                              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-black rounded-r-full" />
-                            )}
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-sm font-semibold ${selected === d.date ? 'text-black' : 'text-neutral-700'}`}>
-                                  {DAYS[dt.getDay()].slice(0, 3)}
-                                </span>
-                                {isToday && (
-                                  <span className="text-[10px] font-bold text-white bg-black px-1.5 py-0.5 rounded-md leading-none">Hoy</span>
-                                )}
-                              </div>
-                              <span className={`text-sm font-bold ${selected === d.date ? 'text-black' : 'text-neutral-900'}`}>{fmt(rev)}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-xs text-neutral-400">{dt.getDate()} {MONTHS[dt.getMonth()].slice(0, 3)}</span>
-                              <span className="text-[8px] text-neutral-300">·</span>
-                              <span className="text-xs text-neutral-400">{cnt} {cnt === 1 ? 'orden' : 'órdenes'}</span>
-                            </div>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Right panel ── */}
-            <div className="flex-1 space-y-4" ref={printRef}>
+          <div className="space-y-4" ref={printRef}>
               {selected === 'anual' ? (
                 <div className="space-y-4">
                   {/* Annual hero */}
-                  <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
-                      <div>
-                        <h2 className="text-lg font-bold text-gray-900 mb-0.5">Ventas anuales</h2>
-                        <p className="text-sm text-gray-500">Compara las ventas mes a mes y con el año anterior.</p>
-                      </div>
-                      <div className="flex items-center gap-2 bg-white rounded-xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 px-2 py-1.5 w-fit">
-                        <button onClick={() => setAnnualYear(y => y - 1)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><ChevronLeft className="h-4 w-4 text-gray-500" /></button>
-                        <span className="text-sm font-semibold text-gray-900 min-w-[60px] text-center select-none">{annualYear}</span>
-                        <button onClick={() => setAnnualYear(y => y + 1)} disabled={annualYear >= today.getFullYear()} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"><ChevronRight className="h-4 w-4 text-gray-500" /></button>
-                      </div>
+                  <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6">
+                    <div className="mb-5">
+                      <h2 className="text-lg font-bold text-gray-900 mb-0.5">Ventas anuales</h2>
+                      <p className="text-sm text-gray-500">Compara las ventas mes a mes y con el año anterior.</p>
                     </div>
                     {annualStats && (
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -734,7 +666,7 @@ const ReportsView = () => {
                   </div>
 
                   {/* Chart */}
-                  <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
+                  <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-sm font-semibold text-gray-900">Ventas mensuales {annualYear}</h3>
                       <div className="flex items-center gap-4 text-xs text-gray-500">
@@ -754,7 +686,7 @@ const ReportsView = () => {
                   </div>
 
                   {/* Monthly table */}
-                  <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 overflow-hidden">
+                  <div className="bg-white rounded-2xl border border-gray-200/80 overflow-hidden">
                     <div className="px-5 py-4 border-b border-gray-100">
                       <h3 className="text-sm font-semibold text-gray-900">Detalle mensual</h3>
                     </div>
@@ -801,140 +733,127 @@ const ReportsView = () => {
                 <div className="text-center py-32"><p className="text-gray-400 font-medium">No hay ventas en este período.</p></div>
               ) : selected === 'resumen' ? (
                 <>
-                  {/* Month hero summary cards */}
-                  <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-6 sm:p-7">
+                  {/* Respuesta del mes — un solo panel: ventas, gastos y utilidad */}
+                  <div className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-7">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
                       <div>
-                        <h2 className="text-xl font-black text-gray-900 tracking-tight">Resumen de {MONTHS[cm]} {cy}</h2>
+                        <h2 className="text-xl font-bold text-gray-900 tracking-tight">Resumen de {MONTHS[cm]} {cy}</h2>
                         <p className="text-sm font-medium text-gray-500 mt-1 flex items-center gap-2">
                           <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                           {mOrd} {mOrd === 1 ? 'orden registrada' : 'órdenes registradas'} en {days.length} {days.length === 1 ? 'día' : 'días'} con actividad
                         </p>
                       </div>
+                      <Link to="/expenses" className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors w-fit">Ver gastos</Link>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5">
-                      {/* Ventas Totales */}
-                      <div className="bg-gray-50/70 hover:bg-gray-50 border border-gray-100 rounded-2xl p-5 transition-all flex flex-col justify-between">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ventas totales</span>
-                          <TrendingUp className="h-4 w-4 text-gray-900" />
-                        </div>
-                        <div className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">{fmt(mRev)}</div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                      <div className="min-w-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight tabular-nums truncate">{fmt(mRev)}</div>
+                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Ventas</div>
+                        <div className="text-[11px] text-gray-400 mt-1.5">neto {fmt(mNetRev)} tras delivery</div>
                       </div>
-
-                      {/* Órdenes */}
-                      <div className="bg-gray-50/70 hover:bg-gray-50 border border-gray-100 rounded-2xl p-5 transition-all flex flex-col justify-between">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Órdenes</span>
-                          <ShoppingBag className="h-4 w-4 text-gray-900" />
-                        </div>
-                        <div className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">{mOrd}</div>
+                      <div className="min-w-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight tabular-nums truncate">{fmt(mExpTotal)}</div>
+                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Gastos</div>
+                        <div className="text-[11px] text-gray-400 mt-1.5">{mExpTotal > 0 ? `fijos ${fmt(mExpFixed)} · variables ${fmt(mExpVariable)}` : 'sin gastos registrados'}</div>
                       </div>
-
-                      {/* Ticket Promedio */}
-                      <div className="bg-gray-50/70 hover:bg-gray-50 border border-gray-100 rounded-2xl p-5 transition-all flex flex-col justify-between">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ticket promedio</span>
-                          <Receipt className="h-4 w-4 text-gray-900" />
-                        </div>
-                        <div className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
-                          {fmt(mOrd > 0 ? Math.round(mRev / mOrd) : 0)}
-                        </div>
+                      <div className="min-w-0">
+                        <div className={`text-2xl sm:text-3xl font-bold tracking-tight tabular-nums truncate ${mProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{fmt(mProfit)}</div>
+                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Utilidad</div>
+                        <div className="text-[11px] text-gray-400 mt-1.5">margen {mMargin.toFixed(1)}%</div>
                       </div>
-
-                      {/* Ingreso Neto */}
-                      <div className="bg-gray-50/70 hover:bg-gray-50 border border-gray-100 rounded-2xl p-5 transition-all flex flex-col justify-between">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Ingreso neto</span>
-                          <Wallet className="h-4 w-4 text-gray-900" />
-                        </div>
-                        <div className="text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight">{fmt(mNetRev)}</div>
-                      </div>
-
-                      {/* Hora Pico */}
-                      <div className="bg-gray-50/70 hover:bg-gray-50 border border-gray-100 rounded-2xl p-5 transition-all flex flex-col justify-between">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Hora pico</span>
-                          <Clock className="h-4 w-4 text-gray-900" />
-                        </div>
-                        <div>
-                          <div className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
-                            {peakHour.count > 0 ? `${String(peakHour.hour).padStart(2, '0')}:00` : '—'}
-                          </div>
-                          {peakHour.count > 0 && (
-                            <span className="text-xs font-semibold text-gray-500 mt-1 block">
-                              {peakHour.count} {peakHour.count === 1 ? 'orden' : 'órdenes'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Cancelaciones */}
-                      <div className="bg-gray-50/70 hover:bg-gray-50 border border-gray-100 rounded-2xl p-5 transition-all flex flex-col justify-between">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Cancelaciones</span>
-                          <Ban className="h-4 w-4 text-gray-900" />
-                        </div>
-                        <div>
-                          <div className={`text-2xl sm:text-3xl font-black tracking-tight ${cancellationRate > 5 ? 'text-rose-600' : 'text-gray-900'}`}>
-                            {cancellationRate.toFixed(1)}%
-                          </div>
-                          <span className="text-xs font-semibold text-gray-500 mt-1 block">
-                            {cancelledCount} de {totalOrderCount} órdenes
-                          </span>
-                        </div>
+                      <div className="min-w-0">
+                        <div className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight tabular-nums truncate">{fmt(mOrd > 0 ? Math.round(mRev / mOrd) : 0)}</div>
+                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Ticket promedio</div>
+                        <div className="text-[11px] text-gray-400 mt-1.5">{mOrd} {mOrd === 1 ? 'orden' : 'órdenes'}</div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Utilidad del mes: ventas − gastos */}
-                  <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
+                  {/* Ventas del mes — curva diaria */}
+                  <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6">
+                    <div className="flex items-baseline justify-between gap-2 mb-4">
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-900">Ventas del mes</h3>
+                        <p className="text-xs text-gray-500 mt-0.5">Día a día en {MONTHS[cm]}.</p>
+                      </div>
+                      <span className="text-sm font-bold text-gray-900 tabular-nums shrink-0">{fmt(mRev)}</span>
+                    </div>
+                    <SalesAreaChart
+                      labels={monthDailySales.labels}
+                      current={monthDailySales.values}
+                      height={150}
+                      smooth
+                      showDots={false}
+                      labelEvery={5}
+                    />
+                  </div>
+
+                  {/* En qué se fue — gastos por categoría en barras */}
+                  <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-sm font-semibold text-gray-900">Utilidad del mes</h3>
-                      <Link to="/expenses" className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors">Ver gastos</Link>
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-900">En qué se fue</h3>
+                        <p className="text-xs text-gray-500 mt-0.5">{expenseSummary.count} movimientos este mes.</p>
+                      </div>
+                      <Link to="/expenses" className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors shrink-0">Ver gastos</Link>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div>
-                        <div className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">{fmt(mRev)}</div>
-                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Ventas</div>
+                    {(expenseSummary.byCategory || []).length > 0 ? (
+                      <div className="space-y-4">
+                        {(expenseSummary.byCategory || []).slice(0, 5).map((c) => {
+                          const pct = mExpTotal > 0 ? (c.total / mExpTotal) * 100 : 0
+                          const CatIcon = resolveCategoryIcon({ name: c.name })
+                          return (
+                            <div key={c.categoryId || c.name} className="flex items-center gap-3">
+                              <CatIcon className="h-5 w-5 text-black shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
+                                  <span className="text-sm font-semibold text-gray-900 tabular-nums shrink-0">{fmt(c.total)}</span>
+                                </div>
+                                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                  <div className="h-full rounded-full" style={{ backgroundColor: c.color, width: `${pct}%` }} />
+                                </div>
+                              </div>
+                              <span className="text-xs text-gray-400 tabular-nums shrink-0 w-10 text-right">{pct.toFixed(0)}%</span>
+                            </div>
+                          )
+                        })}
+                        {(expenseSummary.byCategory || []).length > 5 && (
+                          <p className="text-xs text-gray-400 pt-1">
+                            + {(expenseSummary.byCategory || []).length - 5} categorías más por {fmt((expenseSummary.byCategory || []).slice(5).reduce((s, c) => s + c.total, 0))}
+                          </p>
+                        )}
                       </div>
-                      <div>
-                        <div className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">{fmt(mExpTotal)}</div>
-                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Gastos · fijos {fmt(mExpFixed)}</div>
-                      </div>
-                      <div>
-                        <div className={`text-xl sm:text-2xl font-black tracking-tight ${mProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{fmt(mProfit)}</div>
-                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Utilidad</div>
-                      </div>
-                      <div>
-                        <div className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">{mMargin.toFixed(1)}%</div>
-                        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-1">Margen · variables {fmt(mExpVariable)}</div>
-                      </div>
-                    </div>
-                    {expenseDonutData.length > 0 ? (
-                      <div className="mt-5"><DonutChart data={expenseDonutData} total={mExpTotal} /></div>
                     ) : (
-                      <p className="mt-4 text-sm text-gray-400">Aún no hay gastos registrados este mes. <Link to="/expenses" className="font-semibold text-emerald-700 hover:underline">Registrar el primero</Link></p>
+                      <p className="text-sm text-gray-400">Aún no hay gastos registrados este mes. <Link to="/expenses" className="font-semibold text-emerald-700 hover:underline">Registrar el primero</Link></p>
                     )}
                   </div>
 
                   {/* Top Products */}
                   {topProducts.length > 0 && (
-                    <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Trophy className="h-4 w-4 text-amber-500" />
-                        <h3 className="text-sm font-semibold text-gray-900">Productos más vendidos</h3>
+                    <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6">
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2">
+                          <Trophy className="h-4 w-4 text-black" />
+                          <h3 className="text-sm font-semibold text-gray-900">Productos más vendidos</h3>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">Sin extras bajo {fmt(MIN_TOP_PRODUCT_PRICE)}.</p>
                       </div>
-                      <div className="space-y-2.5">
+                      <div className="space-y-4">
                         {topProducts.map((p, i) => {
                           const maxQty = topProducts[0].qty
                           const pct = maxQty > 0 ? (p.qty / maxQty) * 100 : 0
+                          const img = p.productId ? topProductImages[p.productId] : null
                           return (
                             <div key={p.name} className="flex items-center gap-3">
-                              <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
-                                i === 0 ? 'bg-amber-100 text-amber-700' : i === 1 ? 'bg-gray-200 text-gray-600' : i === 2 ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-500'
-                              }`}>{i + 1}</span>
+                              {img ? (
+                                <img src={img} alt={p.name} loading="lazy" className="w-10 h-10 rounded-xl object-cover bg-gray-100 border border-gray-100 shrink-0" />
+                              ) : (
+                                <span className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${
+                                  i === 0 ? 'bg-amber-100 text-amber-700' : i === 1 ? 'bg-gray-200 text-gray-600' : i === 2 ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-500'
+                                }`}>{i + 1}</span>
+                              )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between mb-0.5">
                                   <span className="text-sm font-medium text-gray-900 truncate">{p.name}</span>
@@ -952,61 +871,71 @@ const ReportsView = () => {
                     </div>
                   )}
 
-                  {/* Ticket promedio por canal */}
-                  {ticketByChannel.length > 1 && (
-                    <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-4">Ticket promedio por canal</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-                        {ticketByChannel.map(ch => (
-                          <div key={ch.key} className="flex items-center gap-2.5 px-3.5 py-2.5 bg-gray-50 rounded-xl">
-                            {React.createElement(ch.icon, { className: `h-4 w-4 ${ch.iconColor}` })}
-                            <div>
-                              <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{ch.label}</div>
-                              <div className="text-sm font-bold text-gray-900">{fmt(ch.avg)}</div>
-                              <div className="text-[10px] text-gray-400">{ch.count} orden{ch.count !== 1 ? 'es' : ''}</div>
+                  {/* Cómo entró la plata — métodos de pago y canales en un panel */}
+                  <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6">
+                    <h3 className="text-sm font-semibold text-gray-900">Cómo entró la plata</h3>
+                    <p className="text-xs text-gray-500 mt-0.5 mb-4">Métodos de pago y canales del mes.</p>
+                    {paymentDonutData.length > 0 ? (
+                      <div className="space-y-4">
+                        {paymentDonutData.map((item) => {
+                          const pct = mRev > 0 ? (item.value / mRev) * 100 : 0
+                          const PayIcon = item.icon
+                          return (
+                            <div key={item.key} className="flex items-center gap-3">
+                              {PayIcon && (
+                                <PayIcon className="h-5 w-5 text-black shrink-0" />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <span className="text-sm font-medium text-gray-900 truncate">{item.label}</span>
+                                  <span className="text-sm font-semibold text-gray-900 tabular-nums shrink-0">{fmt(item.value)}</span>
+                                </div>
+                                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                  <div className="h-full rounded-full" style={{ backgroundColor: item.color, width: `${pct}%` }} />
+                                </div>
+                              </div>
+                              <span className="text-xs text-gray-400 tabular-nums shrink-0 w-10 text-right">{pct.toFixed(0)}%</span>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
-                    </div>
-                  )}
-
-                  {/* Month payments Donut Chart */}
-                  <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-4">Desglose de métodos de pago</h3>
-                    <DonutChart data={paymentDonutData} total={mRev} />
+                    ) : (
+                      <p className="text-sm text-gray-400">Sin movimientos este mes.</p>
+                    )}
                     {mFees > 0 && (
-                      <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-sm">
-                        <span className="text-gray-500">Delivery fees</span>
-                        <span className="font-semibold text-gray-900">{fmt(mFees)}</span>
+                      <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2.5 text-sm">
+                        <Truck className="h-5 w-5 text-black shrink-0" />
+                        <span className="flex-1 text-gray-700 font-medium">Delivery fees</span>
+                        <span className="font-semibold text-gray-900 tabular-nums shrink-0">{fmt(mFees)}</span>
                       </div>
                     )}
-                  </div>
-
-                  {/* Month channels */}
-                  <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-4">Canales de venta</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-                      {Object.entries(channelMeta).map(([key, m]) => {
-                        const c = days.reduce((s, d) => s + (calcDay(d.orders).channels[key] || 0), 0)
-                        if (!c) return null
-                        return (
-                          <div key={key} className="flex items-center gap-2.5 px-3.5 py-2.5 bg-gray-50 rounded-xl">
-                            {React.createElement(m.icon, { className: `h-4 w-4 ${m.iconColor}` })}
-                            <div>
-                              <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{m.label}</div>
-                              <div className="text-sm font-bold text-gray-900">{c} orden{c !== 1 ? 'es' : ''}</div>
+                      {ticketByChannel.length > 0 && (
+                        <div className="mt-5 pt-4 border-t border-gray-100 min-w-0">
+                          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Canales</p>
+                          <div className="divide-y divide-gray-50">
+                          {ticketByChannel.map(ch => (
+                            <div key={ch.key} className="flex items-center gap-3 py-3">
+                              {React.createElement(ch.icon, { className: 'h-5 w-5 text-black shrink-0' })}
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-semibold text-gray-900">{ch.label}</div>
+                                <div className="text-xs text-gray-400">{ch.count} orden{ch.count !== 1 ? 'es' : ''}</div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="text-sm font-bold text-gray-900 tabular-nums">{fmt(ch.avg)}</div>
+                                <div className="text-[11px] text-gray-400">ticket</div>
+                              </div>
                             </div>
+                          ))}
                           </div>
-                        )
-                      })}
-                    </div>
+                        </div>
+                      )}
                   </div>
 
                   {/* Daily table summary */}
-                  <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 overflow-hidden">
+                  <div className="bg-white rounded-2xl border border-gray-200/80 overflow-hidden">
                     <div className="px-5 py-4 border-b border-gray-100">
                       <h3 className="text-sm font-semibold text-gray-900">Resumen por día</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">El detalle de pagos está arriba, en Cómo entró la plata.</p>
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
@@ -1016,26 +945,18 @@ const ReportsView = () => {
                             <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Ventas</th>
                             <th className="text-center px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Ord.</th>
                             <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Ticket</th>
-                            <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Efectivo</th>
-                            <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Tarjeta</th>
-                            <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Transfer.</th>
-                            <th className="text-right px-5 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Online</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                           {days.map(d => {
-                            const { rev, cnt, avg, payments } = calcDay(d.orders)
+                            const { rev, cnt, avg } = calcDay(d.orders)
                             const dt = new Date(d.date + 'T12:00:00')
                             return (
-                              <tr key={d.date} className="hover:bg-gray-50/50 transition-colors">
+                              <tr key={d.date} onClick={() => setSelected(d.date)} title="Ver detalle del día" className="hover:bg-gray-50/50 transition-colors cursor-pointer">
                                 <td className="px-5 py-3 font-medium text-gray-900">{DAYS[dt.getDay()].slice(0, 3)} {dt.getDate()}</td>
-                                <td className="px-5 py-3 text-right font-semibold text-gray-900">{fmt(rev)}</td>
-                                <td className="px-5 py-3 text-center text-gray-600">{cnt}</td>
-                                <td className="px-5 py-3 text-right text-gray-600">{fmt(avg)}</td>
-                                <td className="px-5 py-3 text-right text-gray-600">{fmt(payments.cash || 0)}</td>
-                                <td className="px-5 py-3 text-right text-gray-600">{fmt(payments.card || 0)}</td>
-                                <td className="px-5 py-3 text-right text-gray-600">{fmt(payments.transfer || 0)}</td>
-                                <td className="px-5 py-3 text-right text-gray-600">{fmt(payments.online_gateway || 0)}</td>
+                                <td className="px-5 py-3 text-right font-semibold text-gray-900 tabular-nums">{fmt(rev)}</td>
+                                <td className="px-5 py-3 text-center text-gray-600 tabular-nums">{cnt}</td>
+                                <td className="px-5 py-3 text-right text-gray-600 tabular-nums">{fmt(avg)}</td>
                               </tr>
                             )
                           })}
@@ -1043,13 +964,9 @@ const ReportsView = () => {
                         <tfoot>
                           <tr className="border-t border-gray-200 bg-gray-50/50">
                             <td className="px-5 py-3 font-bold text-gray-900">Total</td>
-                            <td className="px-5 py-3 text-right font-bold text-gray-900">{fmt(mRev)}</td>
-                            <td className="px-5 py-3 text-center font-bold text-gray-900">{mOrd}</td>
-                            <td className="px-5 py-3 text-right font-bold text-gray-900">{fmt(mOrd > 0 ? Math.round(mRev / mOrd) : 0)}</td>
-                            <td className="px-5 py-3 text-right font-bold text-gray-900">{fmt(days.reduce((s, d) => s + (calcDay(d.orders).payments.cash || 0), 0))}</td>
-                            <td className="px-5 py-3 text-right font-bold text-gray-900">{fmt(days.reduce((s, d) => s + (calcDay(d.orders).payments.card || 0), 0))}</td>
-                            <td className="px-5 py-3 text-right font-bold text-gray-900">{fmt(days.reduce((s, d) => s + (calcDay(d.orders).payments.transfer || 0), 0))}</td>
-                            <td className="px-5 py-3 text-right font-bold text-gray-900">{fmt(days.reduce((s, d) => s + (calcDay(d.orders).payments.online_gateway || 0), 0))}</td>
+                            <td className="px-5 py-3 text-right font-bold text-gray-900 tabular-nums">{fmt(mRev)}</td>
+                            <td className="px-5 py-3 text-center font-bold text-gray-900 tabular-nums">{mOrd}</td>
+                            <td className="px-5 py-3 text-right font-bold text-gray-900 tabular-nums">{fmt(mOrd > 0 ? Math.round(mRev / mOrd) : 0)}</td>
                           </tr>
                         </tfoot>
                       </table>
@@ -1064,7 +981,10 @@ const ReportsView = () => {
 
                 return (
                   <>
-                    <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
+                    <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6">
+                      <button onClick={() => setSelected('resumen')} className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-900 transition-colors mb-4">
+                        <ChevronLeft className="h-3.5 w-3.5" /> Volver al resumen
+                      </button>
                       <div className="flex items-center justify-between mb-4">
                         <div>
                           <h2 className="text-lg font-bold text-gray-900">{DAYS[dt.getDay()]}</h2>
@@ -1099,7 +1019,7 @@ const ReportsView = () => {
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
+                    <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6">
                       <h3 className="text-sm font-semibold text-gray-900 mb-4">Métodos de pago</h3>
                       <div className="space-y-3">
                         {Object.entries(paymentMeta).map(([key, m]) => {
@@ -1127,7 +1047,7 @@ const ReportsView = () => {
                       )}
                     </div>
 
-                    <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 p-5 sm:p-6">
+                    <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6">
                       <h3 className="text-sm font-semibold text-gray-900 mb-4">Canales de venta</h3>
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {Object.entries(channelMeta).map(([key, m]) => {
@@ -1135,7 +1055,7 @@ const ReportsView = () => {
                           if (!c) return null
                           return (
                             <div key={key} className="flex items-center gap-2.5 px-3.5 py-2.5 bg-gray-50 rounded-xl">
-                              <span className={`w-2 h-2 rounded-full ${m.dot} shrink-0`} />
+                              {React.createElement(m.icon, { className: `h-4 w-4 ${m.iconColor}` })}
                               <div>
                                 <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">{m.label}</div>
                                 <div className="text-sm font-bold text-gray-900">{c} orden{c !== 1 ? 'es' : ''}</div>
@@ -1149,7 +1069,6 @@ const ReportsView = () => {
                 )
               })()}
             </div>
-          </div>
         )}
       </div>
 
