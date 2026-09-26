@@ -217,7 +217,7 @@ const CatalogManager = () => {
           subtitle="Administra la lista de comida, bebidas y adiciones de tu local."
         />
 
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex flex-col">
+        <div className="md:bg-white md:rounded-2xl md:border md:border-gray-200 md:overflow-hidden flex flex-col">
         {/* Action Bar */}
         {selectedIds.length > 0 ? (
           <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b bg-blue-50/50">
@@ -238,39 +238,35 @@ const CatalogManager = () => {
             </div>
           </div>
         ) : (
-        <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative w-full sm:w-auto">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input 
-                className="pl-9 w-full sm:w-64 border-gray-300" 
-                placeholder="Buscar" 
-              />
-            </div>
+        <div className="py-4 md:px-6 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3 md:border-b">
+          <Button className="order-1 w-full sm:w-auto sm:order-5" onClick={() => setIsTypeSelectionModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" /> Nuevo artículo
+          </Button>
+          <Button variant="outline" className="order-2 w-full sm:w-auto sm:order-3 sm:ml-auto text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => setIsAIModalOpen(true)}>
+            <Sparkles className="h-4 w-4 mr-2" /> Importar menú
+          </Button>
+          <div className="relative order-3 w-full sm:w-auto sm:order-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              className="pl-9 w-full sm:w-64 border-gray-300"
+              placeholder="Buscar"
+            />
+          </div>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px] border-gray-200">
-                <span className="font-normal text-gray-500 mr-1">Estado:</span>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="available">Activo</SelectItem>
-                <SelectItem value="unavailable">Inactivo</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:gap-3">
-            <Button variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => setIsAIModalOpen(true)}>
-              <Sparkles className="h-4 w-4 mr-2" /> Importar menú
-            </Button>
-            <Button variant="outline" className="">
-              Acciones <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-            <Button className="col-span-2 sm:col-span-1" onClick={() => setIsTypeSelectionModalOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" /> Nuevo artículo
-            </Button>
-          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="order-4 w-full sm:w-[180px] sm:order-2 border-gray-200 hidden sm:flex">
+              <span className="font-normal text-gray-500 mr-1">Estado:</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="available">Activo</SelectItem>
+              <SelectItem value="unavailable">Inactivo</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" className="hidden sm:inline-flex sm:order-4">
+            Acciones <ChevronDown className="ml-2 h-4 w-4" />
+          </Button>
         </div>
       )}
 
@@ -495,8 +491,8 @@ const CatalogManager = () => {
           const isCollapsed = collapsedCategories[catName];
           const allChecked = prods.every(p => selectedIds.includes(p.id));
           return (
-            <div key={catName} className="border-b border-gray-100 last:border-0">
-              <div className="flex items-center gap-2 pl-4 pr-2 py-2.5 bg-gray-50/70">
+            <div key={catName} className="border-b border-gray-200 last:border-0">
+              <div className="flex items-center gap-2 py-2.5">
                 <input
                   type="checkbox"
                   aria-label={`Seleccionar ${catName}`}
@@ -524,7 +520,7 @@ const CatalogManager = () => {
                 <div
                   key={product.id}
                   onClick={() => navigate(`/products/${product.id}`)}
-                  className="flex items-center gap-3 pl-4 pr-2 py-3 border-t border-gray-50 active:bg-gray-50 cursor-pointer"
+                  className="flex items-center gap-3 py-3.5 border-t border-gray-200 active:bg-gray-100/60 cursor-pointer"
                 >
                   <input
                     type="checkbox"
@@ -544,19 +540,12 @@ const CatalogManager = () => {
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{product.name}</p>
-                    <p className="text-sm font-bold text-gray-900 tabular-nums mt-0.5">${Math.round(product.price).toLocaleString('es-CL')}</p>
-                  </div>
-                  <div onClick={(e) => e.stopPropagation()} className="shrink-0">
-                    <Switch
-                      checked={product.status === 'Disponible' || product.status === 'available'}
-                      onCheckedChange={(checked) => handleStatusChange(product.id, checked ? 'available' : 'unavailable')}
-                    />
-                  </div>
-                  <div onClick={(e) => e.stopPropagation()} className="shrink-0 -mr-2">
-                    <ActionMenu
-                      onDelete={() => setDeleteModal({ isOpen: true, mode: 'single', targetId: product.id, isDeleting: false })}
-                      onDuplicate={() => handleDuplicate(product.id)}
-                    />
+                    <p className="text-sm font-bold text-gray-900 tabular-nums mt-0.5">
+                      ${Math.round(product.price).toLocaleString('es-CL')}
+                      {(product.status !== 'Disponible' && product.status !== 'available') && (
+                        <span className="ml-2 text-[11px] font-semibold text-gray-400">Inactivo</span>
+                      )}
+                    </p>
                   </div>
                 </div>
               ))}
