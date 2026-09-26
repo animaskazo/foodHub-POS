@@ -74,6 +74,11 @@ const ReportsView = () => {
   const [annual, setAnnual] = useState(null)
   const [annualExpenseMonths, setAnnualExpenseMonths] = useState(null)
   const [isChatOpen, setIsChatOpen] = useState(false)
+
+  // Avisar al bubble de incidencias para que se oculte con el chat abierto
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('ai-chat', { detail: { open: isChatOpen } }))
+  }, [isChatOpen])
   const [monthExpenses, setMonthExpenses] = useState([])
   const dropdownRef = useRef(null)
   const printRef = useRef()
@@ -580,7 +585,7 @@ const ReportsView = () => {
   }
 
   return (
-    <div className="bg-gray-50 p-6 md:p-8">
+    <div className="bg-gray-50 p-6 pb-24 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* ── Header ── */}
         <PageHeader
@@ -607,13 +612,13 @@ const ReportsView = () => {
                 </div>
               )}
 
-              {/* AI Chat button */}
+              {/* AI Chat button (desktop; en móvil va fijo abajo) */}
               <button
                 onClick={() => setIsChatOpen(true)}
                 aria-label="Asistente IA"
-                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 bg-emerald-600 rounded-xl text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 rounded-xl text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
               >
-                <Sparkles className="h-4 w-4" /> <span className="hidden sm:inline">Asistente IA</span>
+                <Sparkles className="h-4 w-4" /> Asistente IA
               </button>
             </div>
           }
@@ -1072,6 +1077,15 @@ const ReportsView = () => {
             </div>
         )}
       </div>
+
+      {/* AI CTA fijo solo móvil */}
+      <button
+        onClick={() => setIsChatOpen(true)}
+        aria-label="Asistente IA"
+        className="md:hidden fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-emerald-600 text-white text-sm font-semibold shadow-[0_8px_24px_-6px_rgba(5,150,105,0.5)] active:scale-95 transition-transform whitespace-nowrap"
+      >
+        <Sparkles className="h-4 w-4" /> Asistente IA
+      </button>
 
       {/* AI Reports Chat Drawer */}
       <ReportsChatDrawer

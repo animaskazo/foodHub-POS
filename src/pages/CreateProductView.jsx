@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import EditorHeader from '../components/ui/EditorHeader';
+import EditorHeader, { EditorFooter } from '../components/ui/EditorHeader';
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 
@@ -12,7 +12,7 @@ import { supabase } from '../lib/supabase';
 import { getFirstOrganizationId, createProduct, getProductById, updateProduct, getCategories, getIngredients, getProducts } from '../services/catalogService';
 import { getInventoryItems, getProductRecipes, replaceProductRecipes } from '../services/inventoryService';
 import { uploadImage } from '../services/storageService';
-import { generateProductDescription, generateProductImage } from '../services/aiService';
+import { generateProductDescription } from '../services/aiService';
 import IngredientIcon from '../components/ui/IngredientIcon';
 import {
   Select,
@@ -84,8 +84,6 @@ const CreateProductView = () => {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  const [imageDetails, setImageDetails] = useState('');
   const [showImageModal, setShowImageModal] = useState(false);
   const [recipeItems, setRecipeItems] = useState([]);
   const [recipeEntries, setRecipeEntries] = useState([]);
@@ -309,31 +307,6 @@ const CreateProductView = () => {
     } finally {
       setIsUploadingVideo(false);
       e.target.value = '';
-    }
-  };
-
-  const handleGenerateAIImage = async () => {
-    if (!formData.name.trim()) {
-      toast.error("Ingresa un nombre para poder generar la imagen.");
-      return;
-    }
-
-    setIsGeneratingImage(true);
-    try {
-      const comboItems = formData.type === 'Combo / Promoción'
-        ? bundleSlots.flatMap(s => s.options?.map(o => o.name).filter(Boolean) || [])
-        : [];
-
-      toast.info("Generando imagen gastronómica con IA...");
-      const url = await generateProductImage(formData.name, formData.description, comboItems, imageDetails);
-
-      setFormData(prev => ({ ...prev, imageUrl: url }));
-      setHasChanges(true);
-      toast.success("Imagen generada y cargada exitosamente");
-    } catch (error) {
-      toast.error(error.message || "Error al generar la imagen");
-    } finally {
-      setIsGeneratingImage(false);
     }
   };
 
@@ -600,82 +573,44 @@ const CreateProductView = () => {
                 </div>
               </div>
 
-              {/* Imagen URL */}
-              <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-4">
+              {/* Imagen */}
+              <div className="bg-white rounded-xl border border-gray-100 p-5 space-y-3">
                 <p className="font-semibold text-[15px] text-gray-900">Imagen del artículo</p>
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`w-24 h-24 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden relative ${formData.imageUrl ? 'cursor-pointer group' : ''}`}
-                    style={formData.imageUrl ? { backgroundImage: `url(${formData.imageUrl})` } : {}}
-                    onClick={() => formData.imageUrl && setShowImageModal(true)}
-                    title={formData.imageUrl ? "Click para ampliar" : ""}
-                  >
-                    {!formData.imageUrl ? (
-                      <ImageIcon className="h-6 w-6 text-gray-400" />
-                    ) : (
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
-                        <Search className="h-4.5 w-4.5 text-white" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 space-y-2">
-                    <Button variant="outline" className="w-full relative">
-                      {isUploadingImage ? (
-                        <span className="flex items-center gap-2">
-                          <Loader2 className="animate-spin h-4 w-4" />
-                          Subiendo...
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-2">
-                          <ImageIcon className="h-4 w-4" />
-                          {formData.imageUrl ? 'Cambiar imagen' : 'Subir imagen'}
-                        </span>
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        disabled={isUploadingImage || isGeneratingImage}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
-                    </Button>
-
-                    <Button
-                      type="button"
-                      onClick={handleGenerateAIImage}
-                      disabled={isUploadingImage || isGeneratingImage}
-                      className="w-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700"
-                    >
-                      {isGeneratingImage ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Generando imagen...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-4 w-4 fill-current" />
-                          Generar imagen con IA
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                <div
+                  className={`w-full aspect-square rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center bg-cover bg-center overflow-hidden relative ${formData.imageUrl ? 'cursor-pointer group' : ''}`}
+                  style={formData.imageUrl ? { backgroundImage: `url(${formData.imageUrl})` } : {}}
+                  onClick={() => formData.imageUrl && setShowImageModal(true)}
+                  title={formData.imageUrl ? "Click para ampliar" : ""}
+                >
+                  {!formData.imageUrl ? (
+                    <ImageIcon className="h-10 w-10 text-gray-300" />
+                  ) : (
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
+                      <Search className="h-6 w-6 text-white" />
+                    </div>
+                  )}
                 </div>
 
-                {/* Input de detalles adicionales */}
-                <div className="pt-1">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Detalles de estilo para la imagen (opcional)</label>
-                  <Input
-                    type="text"
-                    placeholder="Ej: Plato rústico de greda, fondo de madera oscura, humo saliendo, estilo gourmet"
-                    value={imageDetails}
-                    onChange={(e) => setImageDetails(e.target.value)}
-                    className="w-full rounded-md"
+                <Button variant="outline" className="w-full relative">
+                  {isUploadingImage ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="animate-spin h-4 w-4" />
+                      Subiendo...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4" />
+                      {formData.imageUrl ? 'Cambiar imagen' : 'Subir imagen'}
+                    </span>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={isUploadingImage}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
-                  <p className="text-[10px] text-gray-400 mt-1.5 leading-normal">
-                    La IA tomará el nombre del producto, la descripción, los artículos del combo y estas instrucciones adicionales para crear la foto gastronómica perfecta.
-                  </p>
-                </div>
+                </Button>
               </div>
 
               {/* Video del artículo (hover en tienda pública) */}
@@ -1604,6 +1539,15 @@ const CreateProductView = () => {
           document.body
         )}
       </main>
+
+      {/* Guardar a todo ancho, fijo solo en móvil */}
+      <EditorFooter
+        onSave={handleSave}
+        isSaving={isSaving}
+        isLoading={isLoading}
+        isUploadingImage={isUploadingImage || isUploadingVideo}
+        hasChanges={hasChanges}
+      />
     </div>
   );
 };

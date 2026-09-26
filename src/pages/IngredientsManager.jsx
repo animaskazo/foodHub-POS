@@ -315,7 +315,7 @@ const IngredientsManager = () => {
         ) : (
         <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input 
                 className="pl-9 w-full sm:w-64 border-gray-300" 
@@ -325,7 +325,7 @@ const IngredientsManager = () => {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px] border-gray-200">
+              <SelectTrigger className="w-full sm:w-[180px] border-gray-200">
                 <span className="font-normal text-gray-500 mr-1">Estado:</span>
                 <SelectValue />
               </SelectTrigger>
@@ -340,7 +340,7 @@ const IngredientsManager = () => {
               <ListFilter className="h-4 w-4 mr-2" /> Todos los filtros
             </Button>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:gap-3">
             <Button variant="outline" className="" onClick={() => setIsExcelModalOpen(true)}>
               <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" /> Importar Excel
             </Button>
@@ -351,8 +351,8 @@ const IngredientsManager = () => {
         </div>
       )}
 
-      {/* Table Section */}
-      <div>
+      {/* Tabla en desktop / cards en móvil */}
+      <div className="hidden md:block">
         <table className="w-full text-sm text-left">
           <thead className="bg-white border-b text-gray-500 font-medium sticky top-0 z-10">
             <tr>
@@ -487,6 +487,97 @@ const IngredientsManager = () => {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Cards solo en móvil: tap edita, stock y acciones directas */}
+      <div className="md:hidden divide-y divide-gray-100">
+        {loading ? (
+          <div className="px-4 py-8 text-center text-gray-500 text-sm">
+            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+            Cargando ingredientes...
+          </div>
+        ) : filteredIngredients.length === 0 ? (
+          <div className="px-4 py-8 text-center text-gray-500 text-sm">
+            No se encontraron ingredientes.
+          </div>
+        ) : filteredIngredients.map((ingredient) => (
+          <div
+            key={ingredient.id}
+            onClick={() => openModal(ingredient)}
+            className="px-4 py-3.5 active:bg-gray-50 cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                aria-label={`Seleccionar ${ingredient.name}`}
+                className="h-5 w-5 rounded border-gray-300 cursor-pointer shrink-0"
+                checked={selectedIds.includes(ingredient.id)}
+                onClick={(e) => e.stopPropagation()}
+                onChange={() => handleToggleSelect(ingredient.id)}
+              />
+              <IngredientIcon
+                icon={ingredient.icon}
+                className={`h-6 w-6 shrink-0 ${ingredient.icon ? 'text-gray-900' : 'text-gray-400'}`}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">{ingredient.name}</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  +${ingredient.price}
+                  {parseFloat(ingredient.portion_quantity || 0) > 0 && (
+                    <span> · {parseFloat(ingredient.portion_quantity).toFixed(ingredient.unit === 'unit' ? 0 : 3)} {getUnitShort(ingredient.unit)}</span>
+                  )}
+                </p>
+              </div>
+              <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+                <Switch
+                  checked={ingredient.is_active}
+                  onCheckedChange={(checked) => handleStatusChange(ingredient.id, checked ? 'active' : 'inactive')}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-2.5 pl-8" onClick={(e) => e.stopPropagation()}>
+              <span
+                className={`font-bold text-xs px-2.5 py-1 rounded-lg shrink-0 ${
+                  isLowStock(ingredient)
+                    ? 'bg-red-50 text-red-700 border border-red-200'
+                    : parseFloat(ingredient.stock_quantity || 0) === 0
+                    ? 'bg-gray-100 text-gray-500'
+                    : 'bg-green-50 text-green-700 border border-green-200'
+                }`}
+              >
+                {parseFloat(ingredient.stock_quantity || 0).toFixed(ingredient.unit === 'unit' ? 0 : 1)} {getUnitShort(ingredient.unit)}
+              </span>
+              <div className="flex-1 min-w-0">
+                <UsageBar ingredient={ingredient} usage={usageMap[ingredient.id]} />
+              </div>
+            </div>
+            <div className="flex items-center gap-1 mt-1.5 pl-6" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => {
+                  setAdjustModal({ isOpen: true, item: ingredient });
+                  setAdjustQuantity('');
+                  setAdjustNotes('');
+                  setAdjustType('adjustment');
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-2.5 -ml-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <Package className="h-4 w-4" /> Ajustar
+              </button>
+              <button
+                onClick={() => openMovements(ingredient)}
+                className="flex items-center gap-1.5 px-2.5 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <History className="h-4 w-4" /> Historial
+              </button>
+              <div className="ml-auto -mr-2">
+                <ActionMenu
+                  onDelete={() => setDeleteModal({ isOpen: true, mode: 'single', targetId: ingredient.id, isDeleting: false })}
+                  onDuplicate={() => handleDuplicate(ingredient.id)}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
       </div>
 

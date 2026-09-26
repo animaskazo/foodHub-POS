@@ -119,11 +119,10 @@ const ReportsChatDrawer = ({ isOpen, onClose, reportData }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs transition-opacity">
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col">
+    <div className="fixed inset-0 z-50 bg-white flex flex-col">
           {/* Header */}
-          <div className="p-4 sm:p-5 bg-gradient-to-r from-gray-900 to-gray-800 text-white flex items-center justify-between border-b border-gray-800">
+          <div className="p-4 sm:p-5 bg-gradient-to-r from-gray-900 to-gray-800 text-white border-b border-gray-800 shrink-0">
+            <div className="w-full max-w-3xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
                 <Sparkles className="w-5 h-5" />
@@ -141,10 +140,12 @@ const ReportsChatDrawer = ({ isOpen, onClose, reportData }) => {
             >
               <X className="w-5 h-5" />
             </button>
+            </div>
           </div>
 
           {/* Messages container */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
+          <div className="flex-1 overflow-y-auto bg-gray-50/50 min-h-0">
+            <div className="w-full max-w-3xl mx-auto p-4 space-y-4">
             {messages.map((msg) => (
               <div
                 key={msg.id}
@@ -191,10 +192,12 @@ const ReportsChatDrawer = ({ isOpen, onClose, reportData }) => {
             )}
 
             <div ref={messagesEndRef} />
+            </div>
           </div>
 
           {/* Suggested Prompts */}
-          <div className="p-3 bg-white border-t border-gray-100 overflow-x-auto hide-scrollbar">
+          <div className="bg-white border-t border-gray-100 shrink-0">
+            <div className="w-full max-w-3xl mx-auto p-3 overflow-x-auto hide-scrollbar">
             <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 mb-2">
               <HelpCircle className="w-3.5 h-3.5" />
               <span>Preguntas sugeridas:</span>
@@ -211,10 +214,12 @@ const ReportsChatDrawer = ({ isOpen, onClose, reportData }) => {
                 </button>
               ))}
             </div>
+            </div>
           </div>
 
           {/* Input area */}
-          <div className="p-3 bg-white border-t border-gray-200">
+          <div className="bg-white border-t border-gray-200 shrink-0">
+            <div className="w-full max-w-3xl mx-auto p-3">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -238,9 +243,8 @@ const ReportsChatDrawer = ({ isOpen, onClose, reportData }) => {
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </button>
             </form>
+            </div>
           </div>
-        </div>
-      </div>
     </div>
   );
 };

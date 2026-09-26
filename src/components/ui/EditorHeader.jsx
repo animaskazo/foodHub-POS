@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { Button } from './button';
 
@@ -41,7 +41,7 @@ const EditorHeader = ({
         <Button
           onClick={onSave}
           disabled={!hasChanges || isSaving || isLoading || isUploadingImage || saveDisabled}
-          className="px-6 font-semibold"
+          className="px-6 font-semibold hidden md:inline-flex disabled:opacity-100 disabled:bg-gray-200 disabled:text-gray-400"
         >
           {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           {isSaving ? 'Guardando...' : 'Guardar'}
@@ -52,3 +52,35 @@ const EditorHeader = ({
 };
 
 export default EditorHeader;
+
+// Footer fijo solo móvil con guardar a todo ancho.
+// Avisa al bubble de incidencias para que se oculte mientras el editor está abierto.
+export const EditorFooter = ({
+  onSave,
+  isSaving,
+  isLoading,
+  isUploadingImage,
+  hasChanges,
+  saveDisabled,
+  label,
+}) => {
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('editor-footer', { detail: { open: true } }));
+    return () => window.dispatchEvent(new CustomEvent('editor-footer', { detail: { open: false } }));
+  }, []);
+
+  const disabled = !hasChanges || isSaving || isLoading || isUploadingImage || saveDisabled;
+
+  return (
+    <div className="md:hidden fixed bottom-4 inset-x-4 z-40 pb-[env(safe-area-inset-bottom)]">
+      <Button
+        onClick={onSave}
+        disabled={disabled}
+        className="w-full h-12 text-base font-semibold shadow-[0_8px_24px_-6px_rgba(0,0,0,0.4)] disabled:opacity-100 disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none"
+      >
+        {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+        {isSaving ? 'Guardando...' : (label || 'Guardar')}
+      </Button>
+    </div>
+  );
+};

@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabase';
 import { getFirstOrganizationId, createCategory, getCategoryById, updateCategory, getProducts } from '../services/catalogService';
 import CategoryProductsModal from '../components/admin/CategoryProductsModal';
 import { Button } from '@/components/ui/button';
-import EditorHeader from '../components/ui/EditorHeader';
+import EditorHeader, { EditorFooter } from '../components/ui/EditorHeader';
 
 const SectionRow = ({ icon: Icon, title, description, children }) => (
   <div className="flex items-start justify-between gap-4 py-4">
@@ -277,6 +277,14 @@ const CreateCategoryView = () => {
           </div>
         )}
       </main>
+
+      {/* Guardar a todo ancho, fijo solo en móvil */}
+      <EditorFooter
+        onSave={handleSave}
+        isSaving={isSaving}
+        isLoading={isLoading}
+        hasChanges={hasChanges}
+      />
 
       {/* Modal */}
       <CategoryProductsModal

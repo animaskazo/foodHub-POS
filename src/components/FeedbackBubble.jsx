@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Camera, Loader2 } from 'lucide-react';
 import { toBlob } from 'html-to-image';
 import { supabase } from '../lib/supabase';
@@ -10,7 +10,25 @@ const FeedbackBubble = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [aiChatOpen, setAiChatOpen] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
   const popoverRef = useRef(null);
+
+  // Ocultar el bubble mientras el chat IA de Reportes está abierto
+  useEffect(() => {
+    const handler = (e) => setAiChatOpen(!!e.detail?.open);
+    window.addEventListener('ai-chat', handler);
+    return () => window.removeEventListener('ai-chat', handler);
+  }, []);
+
+  // Ocultar el bubble mientras un editor (categoría/producto) está abierto
+  useEffect(() => {
+    const handler = (e) => setEditorOpen(!!e.detail?.open);
+    window.addEventListener('editor-footer', handler);
+    return () => window.removeEventListener('editor-footer', handler);
+  }, []);
+
+  if (aiChatOpen || editorOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();

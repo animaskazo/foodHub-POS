@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -190,6 +190,24 @@ const CatalogManager = () => {
 
   useDocumentTitle('Productos');
 
+  // Agrupación por categoría para las cards móvil (misma lógica que la tabla)
+  const mobileGroups = useMemo(() => {
+    const filtered = products.filter(p => statusFilter === 'all' || (statusFilter === 'available' ? (p.status === 'Disponible' || p.status === 'available') : (p.status === 'No disponible' || p.status === 'unavailable')));
+    const grouped = filtered.reduce((acc, product) => {
+      const cat = product.category || 'General';
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(product);
+      return acc;
+    }, {});
+    const catOrderMap = new Map(categories.map(c => [c.name, c.sort_order ?? Number.MAX_SAFE_INTEGER]));
+    const sorted = Object.keys(grouped).sort((a, b) => {
+      if (a === 'General') return 1;
+      if (b === 'General') return -1;
+      return (catOrderMap.get(a) ?? Number.MAX_SAFE_INTEGER) - (catOrderMap.get(b) ?? Number.MAX_SAFE_INTEGER);
+    });
+    return { filtered, grouped, sorted };
+  }, [products, categories, statusFilter]);
+
 
   return (
     <div className="min-h-full bg-gray-50 p-6 md:p-8">
@@ -222,7 +240,7 @@ const CatalogManager = () => {
         ) : (
         <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input 
                 className="pl-9 w-full sm:w-64 border-gray-300" 
@@ -231,7 +249,7 @@ const CatalogManager = () => {
             </div>
 
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px] border-gray-200">
+              <SelectTrigger className="w-full sm:w-[180px] border-gray-200">
                 <span className="font-normal text-gray-500 mr-1">Estado:</span>
                 <SelectValue />
               </SelectTrigger>
@@ -242,22 +260,22 @@ const CatalogManager = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:gap-3">
             <Button variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => setIsAIModalOpen(true)}>
               <Sparkles className="h-4 w-4 mr-2" /> Importar menú
             </Button>
             <Button variant="outline" className="">
               Acciones <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
-            <Button className="" onClick={() => setIsTypeSelectionModalOpen(true)}>
+            <Button className="col-span-2 sm:col-span-1" onClick={() => setIsTypeSelectionModalOpen(true)}>
               <Plus className="h-4 w-4 mr-2" /> Nuevo artículo
             </Button>
           </div>
         </div>
       )}
 
-      {/* Table Section */}
-      <div>
+      {/* Tabla en desktop / cards en móvil */}
+      <div className="hidden md:block">
         <table className="w-full text-left border-collapse text-sm">
           <thead>
             <tr className="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider border-b border-gray-150 sticky top-0 z-10">
@@ -460,6 +478,91 @@ const CatalogManager = () => {
             })()}
           </tbody>
         </table>
+      </div>
+
+      {/* Cards agrupadas solo en móvil: tap edita, switch y menú directos */}
+      <div className="md:hidden">
+        {loading ? (
+          <div className="px-4 py-8 text-center text-gray-500 text-sm">
+            Cargando artículos...
+          </div>
+        ) : mobileGroups.filtered.length === 0 ? (
+          <div className="px-4 py-8 text-center text-gray-500 text-sm">
+            No se encontraron artículos con ese filtro.
+          </div>
+        ) : mobileGroups.sorted.map(catName => {
+          const prods = mobileGroups.grouped[catName];
+          const isCollapsed = collapsedCategories[catName];
+          const allChecked = prods.every(p => selectedIds.includes(p.id));
+          return (
+            <div key={catName} className="border-b border-gray-100 last:border-0">
+              <div className="flex items-center gap-2 pl-4 pr-2 py-2.5 bg-gray-50/70">
+                <input
+                  type="checkbox"
+                  aria-label={`Seleccionar ${catName}`}
+                  className="h-5 w-5 rounded border-gray-300 cursor-pointer shrink-0"
+                  checked={allChecked}
+                  onChange={(e) => {
+                    const prodIds = prods.map(p => p.id);
+                    if (e.target.checked) {
+                      setSelectedIds(prev => Array.from(new Set([...prev, ...prodIds])));
+                    } else {
+                      setSelectedIds(prev => prev.filter(id => !prodIds.includes(id)));
+                    }
+                  }}
+                />
+                <button
+                  onClick={() => toggleCategory(catName)}
+                  className="flex-1 flex items-center gap-2 text-left min-w-0 py-1"
+                >
+                  <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform shrink-0 ${isCollapsed ? '-rotate-90' : ''}`} />
+                  <span className="text-sm font-semibold text-gray-900 truncate">{catName}</span>
+                  <span className="text-xs text-gray-400 shrink-0">({prods.length})</span>
+                </button>
+              </div>
+              {!isCollapsed && prods.map((product) => (
+                <div
+                  key={product.id}
+                  onClick={() => navigate(`/products/${product.id}`)}
+                  className="flex items-center gap-3 pl-4 pr-2 py-3 border-t border-gray-50 active:bg-gray-50 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    aria-label={`Seleccionar ${product.name}`}
+                    className="h-5 w-5 rounded border-gray-300 cursor-pointer shrink-0"
+                    checked={selectedIds.includes(product.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={() => handleToggleSelect(product.id)}
+                  />
+                  {product.image ? (
+                    <div
+                      className="w-11 h-11 rounded-xl overflow-hidden bg-gray-100 bg-cover bg-center shrink-0 border border-gray-100"
+                      style={{ backgroundImage: `url(${product.image})` }}
+                    />
+                  ) : (
+                    <ProductImageFallback logoUrl={organization?.logo_url} alt={product.name} className="w-11 h-11 rounded-xl shrink-0 border" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{product.name}</p>
+                    <p className="text-sm font-bold text-gray-900 tabular-nums mt-0.5">${Math.round(product.price).toLocaleString('es-CL')}</p>
+                  </div>
+                  <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+                    <Switch
+                      checked={product.status === 'Disponible' || product.status === 'available'}
+                      onCheckedChange={(checked) => handleStatusChange(product.id, checked ? 'available' : 'unavailable')}
+                    />
+                  </div>
+                  <div onClick={(e) => e.stopPropagation()} className="shrink-0 -mr-2">
+                    <ActionMenu
+                      onDelete={() => setDeleteModal({ isOpen: true, mode: 'single', targetId: product.id, isDeleting: false })}
+                      onDuplicate={() => handleDuplicate(product.id)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })}
       </div>
       </div>
       <AIImportModal 
