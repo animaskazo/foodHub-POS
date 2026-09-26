@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronDown, ListFilter, Plus, MoreHorizontal, Trash2, GripVertical } from 'lucide-react';
+import { Search, ChevronDown, Plus, MoreHorizontal, Trash2, GripVertical } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getFirstOrganizationId, getCategories, quickUpdateCategoryStatus, deleteCategory, bulkDeleteCategories, duplicateCategory, reorderCategories } from '../services/catalogService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +18,7 @@ const CategoriesList = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all'); // all, active, inactive
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, mode: 'single', targetId: null, isDeleting: false });
   const [dragId, setDragId] = useState(null);
@@ -133,8 +134,25 @@ const CategoriesList = () => {
     }
   };
 
+  const handleBulkStatusChange = async (isActive) => {
+    const count = selectedIds.length;
+    try {
+      await Promise.all(selectedIds.map((id) => quickUpdateCategoryStatus(id, isActive)));
+      setCategories(prev => prev.map(c =>
+        selectedIds.includes(c.id) ? { ...c, is_active: isActive } : c
+      ));
+      setSelectedIds([]);
+      toast.success(`Se actualizaron ${count} categorías`);
+    } catch (err) {
+      toast.error("Error al actualizar estados");
+    }
+  };
 
-  const visibleCategories = categories.filter(c => statusFilter === 'all' || (statusFilter === 'active' ? c.is_active : !c.is_active));
+
+  const visibleCategories = categories.filter(c =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+    (statusFilter === 'all' || (statusFilter === 'active' ? c.is_active : !c.is_active))
+  );
 
   return (
     <div className="min-h-full bg-gray-50 p-6 md:p-8">
@@ -144,55 +162,55 @@ const CategoriesList = () => {
           subtitle="Organiza tus artículos de comida en grupos y categorías."
         />
 
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex flex-col">
+        <div className="md:bg-white md:rounded-2xl md:border md:border-gray-200 md:overflow-hidden flex flex-col">
         {/* Action Bar */}
         {selectedIds.length > 0 ? (
-        <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b bg-blue-50/50">
+        <div className="py-4 md:px-6 flex flex-col sm:flex-row gap-3 md:gap-4 md:items-center justify-between md:border-b bg-blue-50/50 md:bg-blue-50/50 rounded-2xl md:rounded-none px-4 md:px-6">
           <div className="flex items-center gap-3">
             <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none font-medium text-sm px-3 py-1">
               {selectedIds.length} seleccionadas
             </Badge>
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="destructive" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
-              <Trash2 className="h-4 w-4 mr-2" /> Eliminar seleccionadas
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => handleBulkStatusChange(true)} className="flex-1 sm:flex-none justify-center">
+              Activar
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleBulkStatusChange(false)} className="flex-1 sm:flex-none justify-center">
+              Desactivar
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })} className="flex-1 sm:flex-none justify-center">
+              <Trash2 className="h-4 w-4 mr-2" /> Eliminar
             </Button>
           </div>
         </div>
       ) : (
-        <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative w-full sm:w-auto">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input 
-                className="pl-9 w-full sm:w-64 border-gray-300" 
-                placeholder="Buscar categoría" 
+        <div className="py-4 md:px-6 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3 md:border-b">
+          <Button className="order-1 w-full sm:w-auto sm:order-4" onClick={() => navigate('/categories/new')}>
+            <Plus className="h-4 w-4 mr-2" /> Nueva categoría
+          </Button>
+          <div className="relative order-2 w-full sm:w-auto sm:order-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                className="pl-9 w-full sm:w-64 border-gray-300"
+                placeholder="Buscar categoría"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px] border-gray-200">
-                <span className="font-normal text-gray-500 mr-1">Estado:</span>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="active">Activo</SelectItem>
-                <SelectItem value="inactive">Inactivo</SelectItem>
-              </SelectContent>
-            </Select>
-  
-            <Button variant="outline" className="font-normal hidden sm:flex">
-              <ListFilter className="h-4 w-4 mr-2" /> Todos los filtros
-            </Button>
           </div>
-          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:gap-3">
-            <Button variant="outline" className="">
-              Acciones <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-            <Button className="" onClick={() => navigate('/categories/new')}>
-              <Plus className="h-4 w-4 mr-2" /> Nueva categoría
-            </Button>
-          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="order-3 w-full sm:w-[180px] sm:order-2 border-gray-200 hidden sm:flex">
+              <span className="font-normal text-gray-500 mr-1">Estado:</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="active">Activo</SelectItem>
+              <SelectItem value="inactive">Inactivo</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" className="hidden sm:inline-flex sm:order-3 sm:ml-auto">
+            Acciones <ChevronDown className="ml-2 h-4 w-4" />
+          </Button>
         </div>
       )}
 
@@ -324,8 +342,8 @@ const CategoriesList = () => {
         </table>
       </div>
 
-      {/* Cards solo en móvil: tap edita, switch y menú directos */}
-      <div className="md:hidden divide-y divide-gray-100">
+      {/* Cards solo en móvil: tap edita */}
+      <div className="md:hidden divide-y divide-gray-200">
         {loading ? (
           <div className="px-4 py-8 text-center text-gray-500 text-sm">
             Cargando categorías...
@@ -359,12 +377,6 @@ const CategoriesList = () => {
                 <Switch
                   checked={category.is_active}
                   onCheckedChange={(checked) => handleStatusChange(category.id, checked ? 'active' : 'inactive')}
-                />
-              </div>
-              <div onClick={(e) => e.stopPropagation()} className="shrink-0 -mr-2">
-                <ActionMenu
-                  onDelete={() => setDeleteModal({ isOpen: true, mode: 'single', targetId: category.id, isDeleting: false })}
-                  onDuplicate={() => handleDuplicate(category.id)}
                 />
               </div>
             </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Loader2, ListFilter, ChevronDown, Trash2, Package, History, Shapes, Wand2, FileSpreadsheet } from 'lucide-react';
+import { Search, Plus, Loader2, Trash2, Package, History, Shapes, Wand2, FileSpreadsheet } from 'lucide-react';
 import { getFirstOrganizationId, getIngredients, createIngredient, updateIngredient, deleteIngredient, bulkDeleteIngredients, duplicateIngredient } from '../services/catalogService';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -193,6 +193,20 @@ const IngredientsManager = () => {
     }
   };
 
+  const handleBulkStatusChange = async (isActive) => {
+    const count = selectedIds.length;
+    try {
+      await Promise.all(selectedIds.map((id) => updateIngredient(id, { is_active: isActive })));
+      setIngredients(prev => prev.map(i =>
+        selectedIds.includes(i.id) ? { ...i, is_active: isActive } : i
+      ));
+      setSelectedIds([]);
+      toast.success(`Se actualizaron ${count} ingredientes`);
+    } catch (err) {
+      toast.error("Error al actualizar estados");
+    }
+  };
+
   const openModal = (ingredient = null) => {
     if (ingredient) {
       setEditingIngredient(ingredient);
@@ -297,57 +311,55 @@ const IngredientsManager = () => {
           subtitle="Agrega extras, aderezos o ingredientes opcionales a tus comidas."
         />
 
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex flex-col">
+        <div className="md:bg-white md:rounded-2xl md:border md:border-gray-200 md:overflow-hidden flex flex-col">
         {/* Action Bar */}
         {selectedIds.length > 0 ? (
-          <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b bg-blue-50/50">
+          <div className="py-4 md:px-6 flex flex-col sm:flex-row gap-3 md:gap-4 md:items-center justify-between md:border-b bg-blue-50/50 rounded-2xl md:rounded-none px-4 md:px-6">
             <div className="flex items-center gap-3">
               <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none font-medium text-sm px-3 py-1">
                 {selectedIds.length} seleccionados
               </Badge>
             </div>
-            <div className="flex items-center gap-3">
-              <Button variant="destructive" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
-                <Trash2 className="h-4 w-4 mr-2" /> Eliminar seleccionados
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => handleBulkStatusChange(true)} className="flex-1 sm:flex-none justify-center">
+                Activar
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => handleBulkStatusChange(false)} className="flex-1 sm:flex-none justify-center">
+                Desactivar
+              </Button>
+              <Button variant="destructive" size="sm" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })} className="flex-1 sm:flex-none justify-center">
+                <Trash2 className="h-4 w-4 mr-2" /> Eliminar
               </Button>
             </div>
           </div>
         ) : (
-        <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative w-full sm:w-auto">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input 
-                className="pl-9 w-full sm:w-64 border-gray-300" 
-                placeholder="Buscar ingrediente"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px] border-gray-200">
-                <span className="font-normal text-gray-500 mr-1">Estado:</span>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="active">Activo</SelectItem>
-                <SelectItem value="inactive">Inactivo</SelectItem>
-              </SelectContent>
-            </Select>
-  
-            <Button variant="outline" className="font-normal hidden sm:flex">
-              <ListFilter className="h-4 w-4 mr-2" /> Todos los filtros
-            </Button>
+        <div className="py-4 md:px-6 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3 md:border-b">
+          <Button className="order-1 w-full sm:w-auto sm:order-4" onClick={() => openModal()}>
+            <Plus className="h-4 w-4 mr-2" /> Crear ingrediente
+          </Button>
+          <Button variant="outline" className="order-2 w-full sm:w-auto sm:order-3 sm:ml-auto" onClick={() => setIsExcelModalOpen(true)}>
+            <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" /> Importar Excel
+          </Button>
+          <div className="relative order-3 w-full sm:w-auto sm:order-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              className="pl-9 w-full sm:w-64 border-gray-300"
+              placeholder="Buscar ingrediente"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:gap-3">
-            <Button variant="outline" className="" onClick={() => setIsExcelModalOpen(true)}>
-              <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" /> Importar Excel
-            </Button>
-            <Button className="" onClick={() => openModal()}>
-              <Plus className="h-4 w-4 mr-2" /> Crear ingrediente
-            </Button>
-          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="order-4 w-full sm:w-[180px] sm:order-2 border-gray-200 hidden sm:flex">
+              <span className="font-normal text-gray-500 mr-1">Estado:</span>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="active">Activo</SelectItem>
+              <SelectItem value="inactive">Inactivo</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       )}
 
@@ -489,8 +501,8 @@ const IngredientsManager = () => {
         </table>
       </div>
 
-      {/* Cards solo en móvil: tap edita, stock y acciones directas */}
-      <div className="md:hidden divide-y divide-gray-100">
+      {/* Cards solo en móvil: tap edita, badge ajusta stock */}
+      <div className="md:hidden divide-y divide-gray-200">
         {loading ? (
           <div className="px-4 py-8 text-center text-gray-500 text-sm">
             <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
@@ -504,7 +516,7 @@ const IngredientsManager = () => {
           <div
             key={ingredient.id}
             onClick={() => openModal(ingredient)}
-            className="px-4 py-3.5 active:bg-gray-50 cursor-pointer"
+            className="px-0 py-3.5 active:bg-gray-100/60 cursor-pointer"
           >
             <div className="flex items-center gap-3">
               <input
@@ -535,9 +547,17 @@ const IngredientsManager = () => {
                 />
               </div>
             </div>
-            <div className="flex items-center gap-2 mt-2.5 pl-8" onClick={(e) => e.stopPropagation()}>
-              <span
-                className={`font-bold text-xs px-2.5 py-1 rounded-lg shrink-0 ${
+            <div className="flex items-center gap-2 mt-2.5 pl-8">
+              <button
+                title="Ajustar stock"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAdjustModal({ isOpen: true, item: ingredient });
+                  setAdjustQuantity('');
+                  setAdjustNotes('');
+                  setAdjustType('adjustment');
+                }}
+                className={`font-bold text-xs px-2.5 py-1.5 rounded-lg shrink-0 cursor-pointer active:scale-95 transition-transform ${
                   isLowStock(ingredient)
                     ? 'bg-red-50 text-red-700 border border-red-200'
                     : parseFloat(ingredient.stock_quantity || 0) === 0
@@ -546,34 +566,9 @@ const IngredientsManager = () => {
                 }`}
               >
                 {parseFloat(ingredient.stock_quantity || 0).toFixed(ingredient.unit === 'unit' ? 0 : 1)} {getUnitShort(ingredient.unit)}
-              </span>
-              <div className="flex-1 min-w-0">
+              </button>
+              <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
                 <UsageBar ingredient={ingredient} usage={usageMap[ingredient.id]} />
-              </div>
-            </div>
-            <div className="flex items-center gap-1 mt-1.5 pl-6" onClick={(e) => e.stopPropagation()}>
-              <button
-                onClick={() => {
-                  setAdjustModal({ isOpen: true, item: ingredient });
-                  setAdjustQuantity('');
-                  setAdjustNotes('');
-                  setAdjustType('adjustment');
-                }}
-                className="flex items-center gap-1.5 px-2.5 py-2.5 -ml-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <Package className="h-4 w-4" /> Ajustar
-              </button>
-              <button
-                onClick={() => openMovements(ingredient)}
-                className="flex items-center gap-1.5 px-2.5 py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <History className="h-4 w-4" /> Historial
-              </button>
-              <div className="ml-auto -mr-2">
-                <ActionMenu
-                  onDelete={() => setDeleteModal({ isOpen: true, mode: 'single', targetId: ingredient.id, isDeleting: false })}
-                  onDuplicate={() => handleDuplicate(ingredient.id)}
-                />
               </div>
             </div>
           </div>

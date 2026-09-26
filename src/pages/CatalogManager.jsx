@@ -24,6 +24,7 @@ const CatalogManager = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all'); // all, available, unavailable
+  const [searchQuery, setSearchQuery] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState({});
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -192,7 +193,11 @@ const CatalogManager = () => {
 
   // Agrupación por categoría para las cards móvil (misma lógica que la tabla)
   const mobileGroups = useMemo(() => {
-    const filtered = products.filter(p => statusFilter === 'all' || (statusFilter === 'available' ? (p.status === 'Disponible' || p.status === 'available') : (p.status === 'No disponible' || p.status === 'unavailable')));
+    const q = searchQuery.toLowerCase();
+    const filtered = products.filter(p =>
+      (p.name || '').toLowerCase().includes(q) &&
+      (statusFilter === 'all' || (statusFilter === 'available' ? (p.status === 'Disponible' || p.status === 'available') : (p.status === 'No disponible' || p.status === 'unavailable')))
+    );
     const grouped = filtered.reduce((acc, product) => {
       const cat = product.category || 'General';
       if (!acc[cat]) acc[cat] = [];
@@ -206,7 +211,7 @@ const CatalogManager = () => {
       return (catOrderMap.get(a) ?? Number.MAX_SAFE_INTEGER) - (catOrderMap.get(b) ?? Number.MAX_SAFE_INTEGER);
     });
     return { filtered, grouped, sorted };
-  }, [products, categories, statusFilter]);
+  }, [products, categories, statusFilter, searchQuery]);
 
 
   return (
@@ -247,10 +252,12 @@ const CatalogManager = () => {
           </Button>
           <div className="relative order-3 w-full sm:w-auto sm:order-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              className="pl-9 w-full sm:w-64 border-gray-300"
-              placeholder="Buscar"
-            />
+              <Input
+                className="pl-9 w-full sm:w-64 border-gray-300"
+                placeholder="Buscar"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
           </div>
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -298,7 +305,10 @@ const CatalogManager = () => {
                 </td>
               </tr>
             ) : (() => {
-              const filteredProducts = products.filter(p => statusFilter === 'all' || (statusFilter === 'available' ? (p.status === 'Disponible' || p.status === 'available') : (p.status === 'No disponible' || p.status === 'unavailable')));
+              const filteredProducts = products.filter(p =>
+                (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) &&
+                (statusFilter === 'all' || (statusFilter === 'available' ? (p.status === 'Disponible' || p.status === 'available') : (p.status === 'No disponible' || p.status === 'unavailable')))
+              );
               
               if (filteredProducts.length === 0) {
                 return (
@@ -540,12 +550,13 @@ const CatalogManager = () => {
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{product.name}</p>
-                    <p className="text-sm font-bold text-gray-900 tabular-nums mt-0.5">
-                      ${Math.round(product.price).toLocaleString('es-CL')}
-                      {(product.status !== 'Disponible' && product.status !== 'available') && (
-                        <span className="ml-2 text-[11px] font-semibold text-gray-400">Inactivo</span>
-                      )}
-                    </p>
+                    <p className="text-sm font-bold text-gray-900 tabular-nums mt-0.5">${Math.round(product.price).toLocaleString('es-CL')}</p>
+                  </div>
+                  <div onClick={(e) => e.stopPropagation()} className="shrink-0">
+                    <Switch
+                      checked={product.status === 'Disponible' || product.status === 'available'}
+                      onCheckedChange={(checked) => handleStatusChange(product.id, checked ? 'available' : 'unavailable')}
+                    />
                   </div>
                 </div>
               ))}
