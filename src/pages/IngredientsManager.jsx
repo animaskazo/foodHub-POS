@@ -3,7 +3,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Loader2, Trash2, Package, History, Shapes, Wand2, FileSpreadsheet } from 'lucide-react';
-import { getFirstOrganizationId, getIngredients, createIngredient, updateIngredient, deleteIngredient, bulkDeleteIngredients, duplicateIngredient } from '../services/catalogService';
+import { getFirstOrganizationId, getCachedIngredients, createIngredient, updateIngredient, deleteIngredient, bulkDeleteIngredients, duplicateIngredient } from '../services/catalogService';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -12,6 +12,7 @@ import Modal from '../components/ui/Modal';
 import ActionMenu from '../components/ui/ActionMenu';
 import ConfirmDeleteModal from '../components/ui/ConfirmDeleteModal';
 import PageHeader from '../components/ui/PageHeader';
+import { CatalogSkeleton } from '../components/ui/Skeleton';
 import Tooltip from '../components/ui/tooltip';
 import IngredientIcon from '../components/ui/IngredientIcon';
 import { getIngredientUsage, getIngredientMovements, adjustIngredientStock } from '../services/inventoryService';
@@ -60,12 +61,12 @@ const IngredientsManager = () => {
   const [adjustType, setAdjustType] = useState('adjustment');
   const [isAdjusting, setIsAdjusting] = useState(false);
 
-  const loadIngredients = async (showLoading = true) => {
+  const loadIngredients = async (showLoading = true, force = false) => {
     if (showLoading) setLoading(true);
     const orgId = await getFirstOrganizationId();
     if (orgId) {
       const [data, usage] = await Promise.all([
-        getIngredients(orgId),
+        getCachedIngredients(orgId, { force }),
         getIngredientUsage(orgId),
       ]);
       setIngredients(data);
@@ -363,7 +364,11 @@ const IngredientsManager = () => {
         </div>
       )}
 
-      {/* Tabla en desktop / cards en móvil */}
+      {/* Tabla en desktop / cards en móvil / skeleton cargando */}
+      {loading ? (
+        <CatalogSkeleton rows={6} />
+      ) : (
+        <>
       <div className="hidden md:block">
         <table className="w-full text-sm text-left">
           <thead className="bg-white border-b text-gray-500 font-medium sticky top-0 z-10">
@@ -386,14 +391,7 @@ const IngredientsManager = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {loading ? (
-              <tr>
-                <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                  Cargando ingredientes...
-                </td>
-              </tr>
-            ) : filteredIngredients.length === 0 ? (
+            {filteredIngredients.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
                   No se encontraron ingredientes.
@@ -503,12 +501,7 @@ const IngredientsManager = () => {
 
       {/* Cards solo en móvil: tap edita, badge ajusta stock */}
       <div className="md:hidden divide-y divide-gray-200">
-        {loading ? (
-          <div className="px-4 py-8 text-center text-gray-500 text-sm">
-            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-            Cargando ingredientes...
-          </div>
-        ) : filteredIngredients.length === 0 ? (
+        {filteredIngredients.length === 0 ? (
           <div className="px-4 py-8 text-center text-gray-500 text-sm">
             No se encontraron ingredientes.
           </div>
@@ -574,6 +567,8 @@ const IngredientsManager = () => {
           </div>
         ))}
       </div>
+        </>
+      )}
       </div>
 
       {/* Modal Crear/Editar */}

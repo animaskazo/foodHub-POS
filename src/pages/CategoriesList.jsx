@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, ChevronDown, Plus, MoreHorizontal, Trash2, GripVertical } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getFirstOrganizationId, getCategories, quickUpdateCategoryStatus, deleteCategory, bulkDeleteCategories, duplicateCategory, reorderCategories } from '../services/catalogService';
+import { getFirstOrganizationId, getCachedCategories, quickUpdateCategoryStatus, deleteCategory, bulkDeleteCategories, duplicateCategory, reorderCategories } from '../services/catalogService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,7 @@ import ConfirmDeleteModal from '../components/ui/ConfirmDeleteModal';
 import { toast } from 'sonner';
 
 import PageHeader from '../components/ui/PageHeader';
+import { CatalogSkeleton } from '../components/ui/Skeleton';
 
 const CategoriesList = () => {
   const [categories, setCategories] = useState([]);
@@ -65,11 +66,11 @@ const CategoriesList = () => {
     setDragOverId(null);
   };
 
-  const loadCategories = async (showLoading = true) => {
+  const loadCategories = async (showLoading = true, force = false) => {
     if (showLoading) setLoading(true);
     const orgId = await getFirstOrganizationId();
     if (orgId) {
-      const data = await getCategories(orgId);
+      const data = await getCachedCategories(orgId, { force });
       setCategories(data);
     }
     if (showLoading) setLoading(false);
@@ -214,7 +215,11 @@ const CategoriesList = () => {
         </div>
       )}
 
-      {/* Tabla en desktop / cards en móvil */}
+      {/* Tabla en desktop / cards en móvil / skeleton cargando */}
+      {loading ? (
+        <CatalogSkeleton rows={5} media={false} />
+      ) : (
+        <>
       <div className="hidden md:block">
         <table className="w-full text-sm text-left">
           <thead className="bg-white border-b text-gray-500 font-medium sticky top-0 z-10">
@@ -238,13 +243,7 @@ const CategoriesList = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                  Cargando categorías...
-                </td>
-              </tr>
-            ) : visibleCategories.length === 0 ? (
+            {visibleCategories.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                   No se encontraron categorías con ese filtro.
@@ -344,11 +343,7 @@ const CategoriesList = () => {
 
       {/* Cards solo en móvil: tap edita */}
       <div className="md:hidden divide-y divide-gray-200">
-        {loading ? (
-          <div className="px-4 py-8 text-center text-gray-500 text-sm">
-            Cargando categorías...
-          </div>
-        ) : visibleCategories.length === 0 ? (
+        {visibleCategories.length === 0 ? (
           <div className="px-4 py-8 text-center text-gray-500 text-sm">
             No se encontraron categorías con ese filtro.
           </div>
@@ -383,6 +378,8 @@ const CategoriesList = () => {
           ))
         )}
       </div>
+        </>
+      )}
       </div>
       <ConfirmDeleteModal 
         isOpen={deleteModal.isOpen}

@@ -98,8 +98,61 @@ export const getFirstOrganizationId = async () => {
   return data.id;
 };
 
-export const getCategories = async (organizationId) => {
-  const { data, error } = await supabase
+// ── Caché en memoria para catálogo (productos + categorías) ──
+// Evita reconsultar todo al volver de editar. Se invalida en cada mutación
+// de este mismo servicio, así nunca sirve datos rancios dentro de la sesión.
+let productsCache = { orgId: null, data: null };
+let categoriesCache = { orgId: null, data: null };
+// Ingredientes: las ventas descuentan stock, así que el caché vive poco (TTL)
+// además de invalidarse en cada mutación local.
+let ingredientsCache = { orgId: null, data: null, ts: 0 };
+const INGREDIENTS_CACHE_TTL = 60 * 1000;
+
+export const invalidateCatalogCache = () => {
+  productsCache = { orgId: null, data: null };
+  categoriesCache = { orgId: null, data: null };
+};
+
+export const invalidateIngredientsCache = () => {
+  ingredientsCache = { orgId: null, data: null, ts: 0 };
+};
+
+export const getCachedProducts = async (organizationId, { force = false } = {}) => {
+  if (!organizationId) return [];
+  if (!force && productsCache.orgId === organizationId && productsCache.data) {
+    return productsCache.data;
+  }
+  const data = await getProducts(organizationId);
+  productsCache = { orgId: organizationId, data };
+  return data;
+};
+
+export const getCachedCategories = async (organizationId, { force = false } = {}) => {
+  if (!organizationId) return [];
+  if (!force && categoriesCache.orgId === organizationId && categoriesCache.data) {
+    return categoriesCache.data;
+  }
+  const data = await getCategories(organizationId);
+  categoriesCache = { orgId: organizationId, data };
+  return data;
+};
+
+export const getCachedIngredients = async (organizationId, { force = false } = {}) => {
+  if (!organizationId) return [];
+  if (
+    !force &&
+    ingredientsCache.orgId === organizationId &&
+    ingredientsCache.data &&
+    Date.now() - ingredientsCache.ts < INGREDIENTS_CACHE_TTL
+  ) {
+    return ingredientsCache.data;
+  }
+  const data = await getIngredients(organizationId);
+  ingredientsCache = { orgId: organizationId, data, ts: Date.now() };
+  return data;
+};
+
+export const getCategories = async (organizationId) => {  const { data, error } = await supabase
     .from('categories')
     .select('id, name, is_active, image_url, sort_order, show_in_pos, show_online, show_in_whatsapp, product_categories(product_id)')
     .eq('organization_id', organizationId)
@@ -309,6 +362,7 @@ export const getProducts = async (organizationId, filters = {}) => {
 };
 
 export const createCategory = async (organizationId, categoryData) => {
+  invalidateCatalogCache();
   if (!organizationId) throw new Error("No organization ID");
 
   // Las categorías nuevas se agregan al final del orden
@@ -361,6 +415,7 @@ export const createCategory = async (organizationId, categoryData) => {
 };
 
 export const createProduct = async (organizationId, productData) => {
+  invalidateCatalogCache();
   if (!organizationId) throw new Error("No organization ID");
 
   // Los productos nuevos se agregan al final del orden
@@ -527,6 +582,7 @@ export const getCategoryById = async (id) => {
 };
 
 export const updateCategory = async (id, categoryData) => {
+  invalidateCatalogCache();
   const { data, error } = await supabase
     .from('categories')
     .update({ 
@@ -665,6 +721,7 @@ export const getProductById = async (id) => {
 };
 
 export const updateProduct = async (id, productData) => {
+  invalidateCatalogCache();
   const updatePayload = {
     name: productData.name,
     description: formatDescriptionWithLimits(productData.description, productData.bundleMinTotal, productData.bundleMaxTotal),
@@ -823,6 +880,7 @@ export const updateProduct = async (id, productData) => {
 };
 
 export const reorderProducts = async (orderedProducts) => {
+  invalidateCatalogCache();
   if (!orderedProducts || orderedProducts.length === 0) return;
   const updates = orderedProducts.map(p => (
     supabase.from('products').update({ sort_order: p.sort_order }).eq('id', p.id)
@@ -833,6 +891,7 @@ export const reorderProducts = async (orderedProducts) => {
 };
 
 export const reorderCategories = async (orderedCategories) => {
+  invalidateCatalogCache();
   if (!orderedCategories || orderedCategories.length === 0) return;
   const updates = orderedCategories.map(c => (
     supabase.from('categories').update({ sort_order: c.sort_order }).eq('id', c.id)
@@ -843,6 +902,7 @@ export const reorderCategories = async (orderedCategories) => {
 };
 
 export const quickUpdateProductStatus = async (id, status) => {
+  invalidateCatalogCache();
   const enumStatus = typeof status === 'boolean' ? (status ? 'available' : 'unavailable') : status;
   const { error } = await supabase
     .from('products')
@@ -852,6 +912,7 @@ export const quickUpdateProductStatus = async (id, status) => {
 };
 
 export const quickUpdateProductCategory = async (id, categoryId) => {
+  invalidateCatalogCache();
   await supabase.from('product_categories').delete().eq('product_id', id);
   if (categoryId !== 'none') {
     const { error } = await supabase
@@ -862,6 +923,7 @@ export const quickUpdateProductCategory = async (id, categoryId) => {
 };
 
 export const quickUpdateCategoryStatus = async (id, isActive) => {
+  invalidateCatalogCache();
   const { error } = await supabase
     .from('categories')
     .update({ is_active: isActive })
@@ -886,6 +948,7 @@ export const getIngredients = async (organizationId) => {
 };
 
 export const createIngredient = async (organizationId, ingredientData) => {
+  invalidateIngredientsCache();
   const { data, error } = await supabase
     .from('ingredients')
     .insert([
@@ -923,6 +986,7 @@ export const createIngredient = async (organizationId, ingredientData) => {
 };
 
 export const updateIngredient = async (id, ingredientData) => {
+  invalidateIngredientsCache();
   const { data, error } = await supabase
     .from('ingredients')
     .update({ 
@@ -944,6 +1008,7 @@ export const updateIngredient = async (id, ingredientData) => {
 };
 
 export const deleteIngredient = async (id) => {
+  invalidateIngredientsCache();
   const { error } = await supabase
     .from('ingredients')
     .delete()
@@ -955,17 +1020,20 @@ export const deleteIngredient = async (id) => {
 // ── BULK CRUD & DUPLICATION ──────────────────────────────────────────────
 
 export const deleteCategory = async (id) => {
+  invalidateCatalogCache();
   const { error } = await supabase.from('categories').delete().eq('id', id);
   if (error) throw error;
 };
 
 export const bulkDeleteCategories = async (ids) => {
+  invalidateCatalogCache();
   if (!ids || ids.length === 0) return;
   const { error } = await supabase.from('categories').delete().in('id', ids);
   if (error) throw error;
 };
 
 export const duplicateCategory = async (id) => {
+  invalidateCatalogCache();
   const cat = await getCategoryById(id);
   const { data, error } = await supabase
     .from('categories')
@@ -981,17 +1049,20 @@ export const duplicateCategory = async (id) => {
 };
 
 export const deleteProduct = async (id) => {
+  invalidateCatalogCache();
   const { error } = await supabase.from('products').delete().eq('id', id);
   if (error) throw error;
 };
 
 export const bulkDeleteProducts = async (ids) => {
+  invalidateCatalogCache();
   if (!ids || ids.length === 0) return;
   const { error } = await supabase.from('products').delete().in('id', ids);
   if (error) throw error;
 };
 
 export const bulkUpdateProductCategory = async (ids, categoryId) => {
+  invalidateCatalogCache();
   if (!ids || ids.length === 0) return;
   await supabase.from('product_categories').delete().in('product_id', ids);
   
@@ -1003,12 +1074,14 @@ export const bulkUpdateProductCategory = async (ids, categoryId) => {
 };
 
 export const bulkUpdateProductStatus = async (ids, status) => {
+  invalidateCatalogCache();
   if (!ids || ids.length === 0) return;
   const { error } = await supabase.from('products').update({ status }).in('id', ids);
   if (error) throw error;
 };
 
 export const duplicateProduct = async (id) => {
+  invalidateCatalogCache();
   const prod = await getProductById(id);
   const newProductData = {
     name: `DUPLICADO de "${prod.name}"`,
@@ -1032,12 +1105,14 @@ export const duplicateProduct = async (id) => {
 };
 
 export const bulkDeleteIngredients = async (ids) => {
+  invalidateIngredientsCache();
   if (!ids || ids.length === 0) return;
   const { error } = await supabase.from('ingredients').delete().in('id', ids);
   if (error) throw error;
 };
 
 export const duplicateIngredient = async (id) => {
+  invalidateIngredientsCache();
   const { data: ing, error: fetchErr } = await supabase
     .from('ingredients')
     .select('*')

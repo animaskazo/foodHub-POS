@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, ChevronDown, ListFilter, Plus, MoreHorizontal, Sparkles, Trash2, FolderInput, CheckCircle, XCircle, Tag, GripVertical } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getFirstOrganizationId, getProducts, getCategories, quickUpdateProductStatus, quickUpdateProductCategory, deleteProduct, bulkDeleteProducts, duplicateProduct, bulkUpdateProductCategory, bulkUpdateProductStatus, reorderProducts } from '../services/catalogService';
+import { getFirstOrganizationId, getCachedProducts, getCachedCategories, quickUpdateProductStatus, quickUpdateProductCategory, deleteProduct, bulkDeleteProducts, duplicateProduct, bulkUpdateProductCategory, bulkUpdateProductStatus, reorderProducts } from '../services/catalogService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import ActionMenu from '../components/ui/ActionMenu';
@@ -16,6 +16,7 @@ import Modal from '../components/ui/Modal';
 import { toast } from 'sonner';
 import PageHeader from '../components/ui/PageHeader';
 import ProductImageFallback from '../components/ui/ProductImageFallback';
+import { CatalogSkeleton } from '../components/ui/Skeleton';
 import { useAuth } from '../components/AuthContext';
 
 const CatalogManager = () => {
@@ -83,13 +84,13 @@ const CatalogManager = () => {
     }));
   };
 
-  const loadData = async (showLoading = true) => {
+  const loadData = async (showLoading = true, force = false) => {
     if (showLoading) setLoading(true);
     const orgId = await getFirstOrganizationId();
     if (orgId) {
       const [prods, cats] = await Promise.all([
-        getProducts(orgId),
-        getCategories(orgId)
+        getCachedProducts(orgId, { force }),
+        getCachedCategories(orgId, { force }),
       ]);
       setProducts(prods);
       setCategories(cats);
@@ -277,7 +278,11 @@ const CatalogManager = () => {
         </div>
       )}
 
-      {/* Tabla en desktop / cards en móvil */}
+      {/* Tabla en desktop / cards en móvil / skeleton cargando */}
+      {loading ? (
+        <CatalogSkeleton rows={6} />
+      ) : (
+        <>
       <div className="hidden md:block">
         <table className="w-full text-left border-collapse text-sm">
           <thead>
@@ -298,13 +303,7 @@ const CatalogManager = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {loading ? (
-              <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                  Cargando artículos...
-                </td>
-              </tr>
-            ) : (() => {
+            {(() => {
               const filteredProducts = products.filter(p =>
                 (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) &&
                 (statusFilter === 'all' || (statusFilter === 'available' ? (p.status === 'Disponible' || p.status === 'available') : (p.status === 'No disponible' || p.status === 'unavailable')))
@@ -486,13 +485,9 @@ const CatalogManager = () => {
         </table>
       </div>
 
-      {/* Cards agrupadas solo en móvil: tap edita, switch y menú directos */}
+      {/* Cards agrupadas solo en móvil: tap edita, switch directo */}
       <div className="md:hidden">
-        {loading ? (
-          <div className="px-4 py-8 text-center text-gray-500 text-sm">
-            Cargando artículos...
-          </div>
-        ) : mobileGroups.filtered.length === 0 ? (
+        {mobileGroups.filtered.length === 0 ? (
           <div className="px-4 py-8 text-center text-gray-500 text-sm">
             No se encontraron artículos con ese filtro.
           </div>
@@ -564,6 +559,8 @@ const CatalogManager = () => {
           );
         })}
       </div>
+        </>
+      )}
       </div>
       <AIImportModal 
         isOpen={isAIModalOpen} 

@@ -108,3 +108,42 @@ export const EcommerceSkeleton = () => (
 
 export default Skeleton
 
+// Catálogo: misma estructura que la tabla en desktop y que la lista en móvil
+// (foto, nombre y switch). Se usa mientras cargan productos/categorías.
+// Con media={false} omite foto y columnas de precio (ej. categorías).
+export const CatalogSkeleton = ({ rows = 6, media = true }) => (
+  <div>
+    {/* Desktop: filas como la tabla */}
+    <div className="hidden md:block">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 px-6 py-4 border-b border-gray-100 last:border-0">
+          <Skeleton className="h-5 w-5 rounded-md shrink-0" />
+          {media && <Skeleton className="h-12 w-12 rounded-xl shrink-0" />}
+          <div className="flex-1 min-w-0 space-y-2">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+          {media && <Skeleton className="h-8 w-36 rounded-lg shrink-0" />}
+          <Skeleton className="h-6 w-11 rounded-full shrink-0" />
+          {media && <Skeleton className="h-4 w-20 shrink-0" />}
+          <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
+        </div>
+      ))}
+    </div>
+    {/* Móvil: filas como la lista (foto, nombre, switch) */}
+    <div className="md:hidden divide-y divide-gray-200">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 py-3.5">
+          <Skeleton className="h-5 w-5 rounded-md shrink-0" />
+          {media && <Skeleton className="h-11 w-11 rounded-xl shrink-0" />}
+          <div className="flex-1 min-w-0 space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-1/3" />
+          </div>
+          <Skeleton className="h-6 w-11 rounded-full shrink-0" />
+        </div>
+      ))}
+    </div>
+  </div>
+)
+

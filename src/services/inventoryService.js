@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { invalidateIngredientsCache } from './catalogService';
 
 export const getFirstOrganizationId = async () => {
   const { data: { user } } = await supabase.auth.getUser();
@@ -648,6 +649,7 @@ export const getIngredientMovements = async (ingredientId) => {
 };
 
 export const adjustIngredientStock = async (id, organizationId, quantity, notes, movementType = 'adjustment') => {
+  invalidateIngredientsCache();
   const { data: item, error: fetchError } = await supabase
     .from('ingredients')
     .select('stock_quantity')
