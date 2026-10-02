@@ -414,8 +414,11 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
         )}
 
         {/* Action Buttons — en el flujo del footer: el footer crece cuando
-            aparece el segundo botón y la lista de arriba se acorta sola. */}
-        <div className="flex flex-col gap-3 mt-3 md:mt-0 md:flex-row">
+            aparece el segundo botón y la lista de arriba se acorta sola.
+            El inset de 16px recupera el margen que tenía la barra cuando iba
+            en `fixed left-4 right-4`, y alinea los botones con el cupón y los
+            totales, que también usan px-4. */}
+        <div className="flex flex-col gap-3 mt-3 mx-4 mb-2 md:mt-0 md:mx-0 md:mb-0 md:flex-row">
           {(() => {
             const hasNewItems = items.some(i => !i.isSaved) && activeTable;
             
