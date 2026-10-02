@@ -120,6 +120,14 @@
   }
 }
 
+/* ── Safe area ────────────────────────────────────────
+   pb-safe se usaba en tres barras fijas (carrito, botón "Ver Pedido", avisos de
+   transacciones) pero nunca estuvo definida, así que era una clase muerta y los
+   botones quedaban bajo el indicador inferior del iPhone. */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* ── Modal animations ──────────────────────────────── */
 @keyframes modal-in {
   from {

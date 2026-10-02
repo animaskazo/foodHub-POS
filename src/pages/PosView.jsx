@@ -17,7 +17,7 @@ import { X, LogOut, Menu, Home, ChefHat, Clock } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import NewOrderAlert from '../components/ui/NewOrderAlert';
 import { createOrder, updateOrderCustomer, getOpenOrdersForTable, appendItemsToOrder } from '../services/orderService';
-import { getTableZones, getRestaurantTables } from '../services/tableService';
+import { getTableZones, getRestaurantTables, notifyTablesChanged } from '../services/tableService';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
 import { getShiftSettings, getCurrentShift } from '../services/shiftService';
@@ -578,6 +578,9 @@ const PosView = () => {
       setIsMobileCartOpen(false);
       setActiveTable(null);
       setActiveOrders([]);
+      // Mapa, modal y desplegable muestran el total de las órdenes abiertas: hay
+      // que recargarlos o seguirían pintando el monto ya cobrado (en rojo).
+      notifyTablesChanged();
       
       // Incrementar uso del cupón si se aplicó
       if (appliedCoupon?.id) {
@@ -640,6 +643,8 @@ const PosView = () => {
 
       // Refrescar las órdenes abiertas (el append cambió la canónica)
       setActiveOrders(await getOpenOrdersForTable(activeTable.id));
+      // El total de la mesa en el mapa y los selectores también cambió
+      notifyTablesChanged();
 
       showToast("¡Productos enviados a cocina!");
     } catch (error) {
@@ -696,8 +701,10 @@ const PosView = () => {
                 logoUrl={organization?.logo_url}
               />
               
-              {/* Floating Cart Button for Mobile */}
-              {cartItems.length > 0 && (
+              {/* Floating Cart Button for Mobile — se oculta con el carrito
+                  abierto: queda en z-40 sobre el drawer (también z-40) y en la
+                  misma posición, tapando los botones de Cobrar / Agregar. */}
+              {cartItems.length > 0 && !isMobileCartOpen && (
                 <div className="fixed bottom-6 left-4 right-4 z-40 md:hidden pb-safe">
                   <Button
                     onPointerDown={() => setIsMobileCartOpen(true)}

@@ -5,7 +5,7 @@ import { getOpenOrders, sumOpenOrdersTotal } from '../../services/orderService';
 import { Button } from "../ui/button";
 import { getFirstOrganizationId } from '../../services/organizationService';
 import { supabase } from '../../lib/supabase';
-import { getRestaurantTables } from '../../services/tableService';
+import { getRestaurantTables, onTablesChanged } from '../../services/tableService';
 import { getCartItemUnitPrice, getCartTotal } from '../../utils/cartTotals';
 
 const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, onResetOrder, isMobile, onCloseMobile, onChangeTableMobile, onItemClick, onSaveOrder, onTableSelect, taxRate = 0.19, coupon, onApplyCoupon, onRemoveCoupon, couponError, couponLoading }) => {
@@ -15,23 +15,27 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
   const [couponCode, setCouponCode] = React.useState('');
   const [couponOpen, setCouponOpen] = React.useState(false);
 
-  React.useEffect(() => {
+  const loadTables = React.useCallback(async () => {
     if (!dineInEnabled) return;
-    const loadTables = async () => {
-      try {
-        const orgId = await getFirstOrganizationId();
-        if (!orgId) return;
-        const { data: branchData } = await supabase.from('branches').select('id').eq('organization_id', orgId).limit(1).single();
-        if (branchData) {
-          const loaded = await getRestaurantTables(branchData.id);
-          setTables(loaded);
-        }
-      } catch (err) {
-        console.error("Error loading tables in CartPanel", err);
+    try {
+      const orgId = await getFirstOrganizationId();
+      if (!orgId) return;
+      const { data: branchData } = await supabase.from('branches').select('id').eq('organization_id', orgId).limit(1).single();
+      if (branchData) {
+        const loaded = await getRestaurantTables(branchData.id);
+        setTables(loaded);
       }
-    };
+    } catch (err) {
+      console.error("Error loading tables in CartPanel", err);
+    }
+  }, [dineInEnabled]);
+
+  React.useEffect(() => {
     loadTables();
-  }, []);
+    // El POS avisa tras cobrar o enviar a cocina; sin esto el monto de la mesa
+    // quedaba desactualizado hasta recargar la página.
+    return onTablesChanged(loadTables);
+  }, [loadTables]);
 
   // `getCartTotal`: estándar = base + extras; combo = `price` ya es el total
   // (no se suman `selectedOptions` de nuevo para no duplicar).
@@ -324,8 +328,11 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
         )}
       </div>
 
-      {/* Footer Area (Sticky at bottom) */}
-      <div className="shrink-0 flex flex-col bg-white border-t border-gray-100 pb-24 md:p-4 md:pb-4 z-20">
+      {/* Footer Area — su alto depende de lo que renderice (cupón, totales y
+          1 o 2 botones). Va en el flujo, no fixed: así el `flex-1 overflow-y-auto`
+          de la lista se encoge solo cuando aparece el segundo botón y nada queda
+          tapado. */}
+      <div className="shrink-0 flex flex-col bg-white border-t border-gray-100 pb-safe md:px-4 md:pt-4 md:pb-4 z-20">
         
         {/* Cupón de descuento */}
         {items.length > 0 && (
@@ -406,8 +413,9 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="fixed bottom-6 left-4 right-4 z-30 flex flex-col gap-3 md:static md:w-full md:transform-none md:z-auto md:flex-row pb-safe">
+        {/* Action Buttons — en el flujo del footer: el footer crece cuando
+            aparece el segundo botón y la lista de arriba se acorta sola. */}
+        <div className="flex flex-col gap-3 mt-3 md:mt-0 md:flex-row">
           {(() => {
             const hasNewItems = items.some(i => !i.isSaved) && activeTable;
             
@@ -417,7 +425,7 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                   <Button
                     onClick={onSaveOrder}
                     disabled={items.length === 0}
-                    className="w-full md:flex-1 flex items-center justify-center h-14 bg-black hover:bg-gray-900 text-white rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] font-bold text-[17px] tracking-wide px-5"
+                    className="w-full md:flex-1 flex items-center justify-center h-14 bg-black hover:bg-gray-900 text-white rounded-full shadow-sm transition-transform active:scale-[0.98] font-bold text-[17px] tracking-wide px-5"
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
                     <ChefHat className="h-5 w-5 mr-2" />
@@ -428,7 +436,7 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                   onClick={onCharge}
                   disabled={items.length === 0}
                   variant={hasNewItems ? "outline" : "default"}
-                  className={`w-full md:flex-1 flex items-center justify-center h-14 rounded-full shadow-2xl md:shadow-sm transition-transform active:scale-[0.98] font-bold text-[17px] tracking-wide px-5 ${
+                  className={`w-full md:flex-1 flex items-center justify-center h-14 rounded-full shadow-sm transition-transform active:scale-[0.98] font-bold text-[17px] tracking-wide px-5 ${
                     hasNewItems 
                       ? "bg-white border-gray-200 hover:bg-gray-50 text-gray-900" 
                       : "bg-black hover:bg-gray-900 text-white"
