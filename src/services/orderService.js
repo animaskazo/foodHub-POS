@@ -830,3 +830,80 @@ export const bulkCancelOrders = async (orderIds) => {
   }
 };
 
+// Cierra en cocina varias órdenes de una vez (botón "Todos listos").
+// Devuelve un conteo porque cada orden se procesa por separado y una falla no
+// debe abortar el resto. `onProgress(done, total)` permite mostrar avance: con
+// decenas de pedidos la operación tarda y sin eso parece colgada.
+export const bulkMarkOrdersReady = async (orderIds, onProgress) => {
+  const empty = { updated: 0, skipped: 0, failed: 0 };
+  if (!orderIds || orderIds.length === 0) return empty;
+
+  const { data: orders, error: fetchError } = await supabase
+    .from('orders')
+    .select('id, status, scheduled_at, order_items(id, status, parent_item_id)')
+    .in('id', orderIds);
+
+  if (fetchError) throw fetchError;
+
+  const now = Date.now();
+  const pendingByOrder = new Map();
+  let skipped = 0;
+
+  for (const order of orders || []) {
+    // Un pedido programado cuya hora todavía no llega no se marca como listo:
+    // la cocina lo cerraría como entregado antes de tiempo.
+    const isFutureScheduled =
+      order.status === 'scheduled' &&
+      order.scheduled_at &&
+      new Date(order.scheduled_at).getTime() > now;
+
+    if (isFutureScheduled) {
+      skipped++;
+      continue;
+    }
+
+    // Solo los ítems padre pendientes: updateOrderItemsStatus se encarga de
+    // propagar el estado a los hijos de cada combo.
+    const itemIds = (order.order_items || [])
+      .filter((i) => !i.parent_item_id && i.status !== 'ready')
+      .map((i) => i.id);
+
+    if (itemIds.length > 0) pendingByOrder.set(order.id, itemIds);
+  }
+
+  if (pendingByOrder.size === 0) return { ...empty, skipped };
+
+  // updateOrderItemsStatus, al dejar la orden completa, llama a
+  // updateOrderStatus: eso dispara el email de "pedido listo" y el webhook de
+  // Uber Direct, igual que cuando se marca un ticket a mano.
+  //
+  //(updateOrderItemsStatus hace varias consultas más, entre ellas el envío del
+  // email, por eso se limita la concurrencia en vez de disparar las N de una.)
+  const entries = [...pendingByOrder.entries()];
+  const CONCURRENCY = 5;
+  let next = 0;
+  let done = 0;
+  let failed = 0;
+
+  const worker = async () => {
+    while (next < entries.length) {
+      const [orderId, itemIds] = entries[next++];
+      try {
+        await updateOrderItemsStatus(itemIds, 'ready', orderId);
+      } catch (error) {
+        console.error('Error marking order as ready:', orderId, error);
+        failed++;
+      } finally {
+        done++;
+        onProgress?.(done, entries.length);
+      }
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(CONCURRENCY, entries.length) }, () => worker())
+  );
+
+  return { updated: entries.length - failed, skipped, failed };
+};
+

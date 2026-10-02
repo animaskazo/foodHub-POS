@@ -5,3 +5,4 @@
 alter table expenses add column if not exists receipt_url text;
 alter table expenses add column if not exists receipt_type text check (receipt_type in ('image', 'pdf'));
 alter table expenses add column if not exists receipt_name text;
+w

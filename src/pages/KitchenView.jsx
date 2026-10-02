@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { 
   Clock, 
   ChefHat, 
   CheckCircle2, 
+  CheckCheck,
+  Loader2,
   Play, 
   RefreshCw, 
   Volume2, 
@@ -19,7 +21,8 @@ import {
   Van 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getKitchenOrders, updateOrderStatus, activateDueScheduledOrders, updateOrderItemsStatus } from '../services/orderService';
+import { toast } from 'sonner';
+import { getKitchenOrders, updateOrderStatus, activateDueScheduledOrders, updateOrderItemsStatus, bulkMarkOrdersReady } from '../services/orderService';
 import { useAuth } from '../components/AuthContext';
 import { Button } from '@/components/ui/button';
 import { supabase } from '../lib/supabase';
@@ -47,6 +50,9 @@ const KitchenView = () => {
   const scrollContainerRef = useRef(null);
   const [leavingOrders, setLeavingOrders] = useState(new Set());
   const [newOrderIds, setNewOrderIds] = useState(new Set());
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [bulkWorking, setBulkWorking] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
 
   // Smoothly scroll the container to make the newest / target ticket visible
   const scrollToNewOrder = useCallback((ticketId) => {
@@ -247,6 +253,149 @@ const KitchenView = () => {
     }
   };
 
+  // Un pedido programado cuya hora aún no llega se muestra en la pantalla pero
+  // no entra en el "todos listos": cerrarlo antes de tiempo lo marca como
+  // entregado sin que se haya preparado.
+  const isFutureScheduled = useCallback((order) => {
+    return order.status === 'scheduled'
+      && !!order.scheduled_at
+      && new Date(order.scheduled_at).getTime() > Date.now();
+  }, []);
+
+  const ordersToMarkReady = useMemo(
+    () => orders.filter((o) => {
+      if (isFutureScheduled(o)) return false;
+      return (o.order_items || []).some((i) => !i.parent_item_id && i.status !== 'ready');
+    }),
+    [orders, isFutureScheduled]
+  );
+
+  const scheduledSkippedCount = useMemo(
+    () => orders.filter(isFutureScheduled).length,
+    [orders, isFutureScheduled]
+  );
+
+  const itemsToMarkCount = useMemo(
+    () => ordersToMarkReady.reduce(
+      (acc, o) => acc + (o.order_items || []).filter((i) => !i.parent_item_id && i.status !== 'ready').length,
+      0
+    ),
+    [ordersToMarkReady]
+  );
+
+  // El rail muestra *rondas*, no órdenes: una mesa que pide dos veces produce
+  // dos tickets. Por eso los contadores de la barra se derivan de aquí y no de
+  // y no de `orders`: el número de arriba siempre es el número de tickets que
+  // hay abajo, aunque la cuenta por orden y la cuenta por ronda difieran.
+  const tickets = useMemo(() => {
+    const all = [];
+    orders.forEach((order) => {
+      const parents = (order.order_items || [])
+        .filter((item) => !item.parent_item_id && item.status !== 'ready')
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      if (parents.length === 0) return;
+
+      const rounds = [];
+      let currentRound = [];
+      parents.forEach((item) => {
+        if (currentRound.length === 0) {
+          currentRound.push(item);
+        } else {
+          const prevItem = currentRound[currentRound.length - 1];
+          const diffMs = new Date(item.created_at) - new Date(prevItem.created_at);
+          if (diffMs > 60000) { // 1 minuto de diferencia separa rondas
+            rounds.push(currentRound);
+            currentRound = [item];
+          } else {
+            currentRound.push(item);
+          }
+        }
+      });
+      if (currentRound.length > 0) rounds.push(currentRound);
+
+      rounds.forEach((round, rIdx) => {
+        all.push({
+          ...order,
+          roundItems: round,
+          roundIdx: rIdx,
+          totalRounds: rounds.length,
+          // El ticket nace con su primer producto, no con el primer pedido
+          created_at: round[0]?.created_at || order.created_at,
+          ticketId: `${order.id}-round-${rIdx}`
+        });
+      });
+    });
+
+    // De más antiguo a más nuevo: lo primero que se encuentra es lo que más
+    // lleva esperando.
+    return all.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  }, [orders]);
+
+  const kitchenStats = useMemo(() => {
+    let dishes = 0;
+    let notStarted = 0;
+    let preparing = 0;
+    let later = 0;
+    let oldestMins = 0;
+
+    const now = Date.now();
+    tickets.forEach((t) => {
+      dishes += t.roundItems.length;
+      if (t.status === 'preparing') {
+        preparing += 1;
+      } else if (isFutureScheduled(t)) {
+        // Un programado cuya hora no llega todavía no es trabajo pendiente:
+        // se cuenta aparte para que no infle la cola.
+        later += 1;
+      } else {
+        notStarted += 1;
+      }
+      const mins = Math.floor((now - new Date(t.created_at).getTime()) / 60000);
+      if (mins > oldestMins) oldestMins = mins;
+    });
+
+    return { dishes, notStarted, preparing, later, oldestMins };
+  }, [tickets, isFutureScheduled]);
+
+  const handleBulkMarkReady = async () => {
+    setBulkWorking(true);
+    setBulkProgress({ done: 0, total: ordersToMarkReady.length });
+    try {
+      const { updated, skipped, failed } = await bulkMarkOrdersReady(
+        ordersToMarkReady.map((o) => o.id),
+        (done, total) => setBulkProgress({ done, total })
+      );
+      setBulkConfirmOpen(false);
+      await fetchOrders(true);
+
+      const parts = [];
+      if (updated > 0) parts.push(`${updated} ${updated === 1 ? 'pedido listo' : 'pedidos listos'}`);
+      if (skipped > 0) parts.push(`${skipped} ${skipped === 1 ? 'programado sin marcar' : 'programados sin marcar'}`);
+      if (failed > 0) parts.push(`${failed} con error`);
+
+      if (updated > 0) toast.success(parts.join(' · '));
+      else if (failed > 0) toast.error(parts.join(' · '));
+      else toast.info('No había pedidos pendientes por marcar.');
+    } catch (error) {
+      console.error('Error marcando pedidos como listos:', error);
+      toast.error('Hubo un error al marcar los pedidos como listos.');
+    } finally {
+      setBulkWorking(false);
+      setBulkProgress({ done: 0, total: 0 });
+    }
+  };
+
+  // Escape cierra, salvo mientras la operación corre: a medio marcar no se
+  // abandona la acción, porque los pedidos que faltan sí se guardaron.
+  useEffect(() => {
+    if (!bulkConfirmOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape' && !bulkWorking) setBulkConfirmOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [bulkConfirmOpen, bulkWorking]);
+
   // Helper para mostrar el tiempo transcurrido
   const getElapsedTime = (createdAt) => {
     const start = new Date(createdAt);
@@ -263,155 +412,262 @@ const KitchenView = () => {
     return new Date(scheduledAt).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
   };
 
-  const pendingCount = orders.filter(o => o.status === 'confirmed' || o.status === 'pending' || o.status === 'scheduled').length;
-  const preparingCount = orders.filter(o => o.status === 'preparing').length;
+  // El tiempo más largo que algo lleva esperando, que es lo que decide si hay
+  // que apurarse. Pasa de 59 a "1 h" para que la barra no se quede sin señal.
+  const formatWait = (mins) => {
+    if (mins < 60) return `${mins} min`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m ? `${h} h ${m}` : `${h} h`;
+  };
+
+  // El reloj lleva su propio intervalo porque el resto de la pantalla solo se
+  // re-renderiza cada 12s: sin esto mostraría el minuto anterior a las 18:38:59
+  // durante casi todo el minuto. El intervalo despierta cada segundo pero solo
+  // actualiza el estado cuando cambia el minuto, porque un setState por segundo
+  // re-renderiza los 47 tickets de la fila y en una tablet de cocina eso se nota.
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    let lastMinute = '';
+    const tick = () => {
+      const d = new Date();
+      const key = `${d.getHours()}:${d.getMinutes()}`;
+      if (key !== lastMinute) {
+        lastMinute = key;
+        setNow(d);
+      }
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const clockLabel = now.toLocaleTimeString('es-CL', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
 
   return (
     <div className="flex flex-col h-screen bg-black text-gray-100 overflow-hidden font-sans" onClick={unlockAudio}>
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-[#111] border-b border-[#222]">
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={() => navigate('/pos')}
-            className="px-3 py-2 bg-blue-600 text-white hover:bg-blue-500 rounded-xl transition-colors flex items-center justify-center shrink-0 shadow-sm gap-2 font-bold text-sm"
-            title="Punto de Venta"
+      {/* Header en dos bandas. La primera es identidad y lleva el nombre del
+          local en grande, porque en una cocina con varias sucursales lo primero
+          que hay que confirmar es en cuál se está trabajando; antes iba en
+          minúscula apretado entre dos botones. La segunda son los controles, y
+          es un flex-wrap: en móvil el reloj y "marcar todo listo" bajan a una
+          tercera línea, en desktop queda todo en la misma. Un nodo para las dos
+          disposiciones. */}
+      <header className="bg-[#111] border-b border-[#222] shrink-0">
+        <div className="flex items-end justify-between gap-3 px-3 md:px-4 py-2.5 md:py-3">
+          {/* Nombre del local y hora, alineados por abajo para que ambos se
+              apoyen en la misma línea base, como un cartel y no dos sueltos. */}
+          <h1 className="text-2xl md:text-4xl font-black text-white truncate tracking-tight leading-tight min-w-0">
+            {organization?.name || 'Local'}
+          </h1>
+
+          {/* Reloj en la misma línea que el nombre. Fuera de los controles porque
+              ahí competía por el ancho; fijo al extremo derecho porque es la hora
+              de referencia del local. tabular-nums porque en cualquier otra
+              tipografía las cifras saltan al cambiar de minuto, y el sufijo
+              "hrs" es lo que lo distingue de un número más de la cola. */}
+          <time
+            dateTime={now.toISOString()}
+            className="shrink-0 flex items-end gap-1.5 pl-3 border-l border-zinc-800 select-none"
+            title="Hora local"
           >
-            <ArrowLeft className="h-5 w-5" />
-            <span className="hidden sm:inline">Volver al POS</span>
-            <span className="inline sm:hidden">POS</span>
-          </Button>
+            <span className="text-3xl md:text-5xl font-black text-white tabular-nums tracking-tight leading-none">
+              {clockLabel}
+            </span>
+            <span className="text-xs md:text-sm font-bold text-zinc-500 mb-1.5">hrs</span>
+          </time>
+        </div>
+
+        <div className="flex flex-wrap md:flex-nowrap items-center gap-2 px-3 md:px-4 pb-2.5 md:pb-3">
+          {/* Navegación: salir al POS, ir al admin */}
+          <div className="order-1 flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+            <Button
+              onClick={() => navigate('/pos')}
+              className="px-2.5! md:px-3! py-2 min-h-10 bg-blue-600 text-white hover:bg-blue-500 rounded-xl! transition-colors flex items-center justify-center shrink-0 gap-1.5 font-bold text-sm"
+              title="Volver al punto de venta"
+            >
+              <ArrowLeft className="size-5" />
+              <span className="hidden sm:inline">Volver al POS</span>
+              <span className="sm:hidden">POS</span>
+            </Button>
+
+            <Button
+              onClick={() => navigate('/')}
+              size="icon"
+              className="bg-white text-black hover:bg-gray-100 rounded-xl!"
+              title="Dashboard admin"
+              aria-label="Ir al dashboard admin"
+            >
+              <Home className="size-5" />
+            </Button>
+          </div>
+
+        {/* Controles del servicio: sonido primero, porque silenciar las alertas
+            es lo que más se toca durante un turno. */}
+        <div className="order-2 flex items-center gap-1.5 md:gap-2">
+          {/* Sonido: dos controles porque son dos gestos distintos y ninguno
+              reemplaza al otro. Probar es una comprobación de que el parlante
+              del local funciona; silenciar es lo que se hace cuando el ruido se
+              vuelve insoportable. Se mantienen separados pero chicos, y el icono
+              del silenciador es el que lleva el estado, para que no haya dos
+              botones distintos que parezcan el mismo. */}
+          <button
+            onClick={handleToggleSound}
+            className={`flex items-center gap-1.5 h-10 w-10 sm:w-auto sm:px-3 rounded-xl text-xs md:text-sm font-bold border transition-colors shrink-0 justify-center sm:justify-start ${
+              !audioReady
+                ? 'bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/25'
+                : 'bg-[#222] text-zinc-300 border-[#333] hover:bg-[#2b2b2b] hover:text-white'
+            }`}
+            title={audioReady ? 'Probar el sonido de la cocina' : 'Tocar para permitir el audio en el navegador'}
+            aria-label={audioReady ? 'Probar el sonido de la cocina' : 'Activar el sonido'}
+          >
+            <Volume2 className="h-5 w-5" />
+            <span className="hidden sm:inline">{audioReady ? 'Probar' : 'Activar sonido'}</span>
+          </button>
+
+          <button
+            onClick={handleMuteToggle}
+            className={`flex items-center justify-center w-10 h-10 shrink-0 rounded-xl border transition-colors ${
+              muted
+                ? 'bg-red-500/15 text-red-300 border-red-500/40 hover:bg-red-500/25'
+                : 'bg-[#222] text-zinc-400 border-[#333] hover:bg-[#2b2b2b] hover:text-white'
+            }`}
+            title={muted ? 'Activar el sonido de las alertas' : 'Silenciar las alertas'}
+            aria-label={muted ? 'Activar el sonido de las alertas' : 'Silenciar las alertas'}
+          >
+            {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+          </button>
+
+          {/* Sin indicador de "en vivo": era un adorno estático que ocupaba
+              espacio en la barra sin ayudar a hacer nada. Cuando hay algo que
+              actualizar, lo dice el spinner del botón de refrescar. */}
 
           <Button
-            onClick={() => navigate('/')}
-            className="px-3 py-2 bg-white text-black hover:bg-gray-100 rounded-xl transition-colors flex items-center justify-center shrink-0 shadow-sm gap-2 font-bold text-sm"
-            title="Dashboard Admin"
-          >
-            <Home className="h-5 w-5" />
-            <span className="hidden sm:inline">Admin</span>
-          </Button>
-          <div className="flex flex-col justify-center">
-            <span className="text-[10px] md:text-xs text-gray-400 font-bold uppercase tracking-wider">Cocina</span>
-            <h1 className="text-sm md:text-lg font-bold text-white leading-tight truncate max-w-[130px] md:max-w-xs">
-              {organization?.name || 'Local'}
-            </h1>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 md:gap-4">
-          {/* Interactive Sound & Alert status button */}
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={handleToggleSound}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs md:text-sm font-bold border transition-all shadow-sm ${
-                muted 
-                  ? 'bg-red-500/20 text-red-300 border-red-500/40 hover:bg-red-500/30' 
-                  : !audioReady 
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 animate-pulse'
-                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
-              }`}
-              title={muted ? "Sonido silenciado. Clic para activar" : !audioReady ? "Haz clic para permitir audio en el navegador" : "Probar sonido de cocina"}
-            >
-              {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-              <span>
-                {muted ? 'Silenciado' : !audioReady ? 'Activar Sonido' : 'Sonido Activo'}
-              </span>
-              <span className="hidden lg:inline text-[10px] opacity-75 font-normal ml-0.5">
-                (Probar)
-              </span>
-            </button>
-            <button
-              onClick={handleMuteToggle}
-              className="p-2 text-zinc-400 hover:text-white bg-[#222] hover:bg-[#333] border border-[#333] rounded-xl transition-colors"
-              title={muted ? "Activar sonido" : "Silenciar sonido"}
-            >
-              {muted ? <VolumeX className="h-4 w-4 text-red-400" /> : <Volume2 className="h-4 w-4 text-emerald-400" />}
-            </button>
-          </div>
-          <div className="flex items-center justify-center bg-[#222] w-10 h-10 md:w-auto md:px-4 md:py-2 border border-[#333]" title="Actualización en vivo">
-            <span className="w-2.5 h-2.5 bg-green-500 animate-pulse"></span>
-            <span className="text-sm font-medium text-gray-400 hidden md:block md:ml-2">En vivo</span>
-          </div>
-          <Button
             onClick={() => fetchOrders()}
-            className="p-2.5 bg-[#222] hover:bg-[#333] border border-[#333] md:rounded-xl transition-colors shrink-0 flex items-center justify-center"
+            size="icon"
+            className="bg-[#222] hover:bg-[#333] border border-[#333] rounded-xl!"
             title="Actualizar manualmente"
+            aria-label="Actualizar manualmente"
           >
-            <RefreshCw className={`h-5 w-5 text-white ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`size-5 text-white ${loading ? 'animate-spin' : ''}`} />
           </Button>
+        </div>
+
+        {/* Marcar todo listo. En móvil ocupa la fila completa bajo los controles;
+            en desktop queda a la derecha. Como icono suelto no se entendía qué
+            marcaba ni cuántos marcaba. */}
+        <Button
+          onClick={() => setBulkConfirmOpen(true)}
+          disabled={bulkWorking || ordersToMarkReady.length === 0}
+          className="order-3 w-full md:w-auto min-h-10 px-3! py-2 bg-emerald-500 text-black hover:bg-emerald-400 disabled:bg-zinc-800 disabled:text-zinc-600 rounded-xl! transition-colors flex items-center justify-between md:justify-center gap-2 font-bold text-sm shrink-0"
+          title={
+            ordersToMarkReady.length === 0
+              ? 'No hay pedidos pendientes por marcar'
+              : `Marcar ${ordersToMarkReady.length} pedido(s) como listos`
+          }
+        >
+          <span className="flex items-center gap-2">
+            {bulkWorking
+              ? <Loader2 className="h-5 w-5 animate-spin" />
+              : <CheckCheck className="h-5 w-5" strokeWidth={2.5} />}
+            <span>Marcar todo listo</span>
+          </span>
+          {ordersToMarkReady.length > 0 && (
+            <span className="text-xs font-black bg-black/20 rounded px-1.5 py-0.5 tabular-nums">
+              {ordersToMarkReady.length}
+            </span>
+          )}
+        </Button>
         </div>
       </header>
 
       {/* Kanban Board / Grid */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6">
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
 
-        {/* Status Counters */}
-        <div className="flex items-center gap-3 mb-6 overflow-x-auto hide-scrollbar pb-1">
-          <div className="flex items-center gap-2 text-xs font-bold px-3 py-1.5   bg-[#10b981]/10 border border-[#10b981]/20 text-[#10b981] whitespace-nowrap">
-            <span className="w-1.5 h-1.5 bg-[#10b981] animate-pulse"></span>
-            Preparando: <span className="text-white ml-0.5">{preparingCount}</span>
+        {/* Barra de estado. Va fuera del rail y no scrollea con él: la cola es
+            lo que se mueve, el total de lo que falta es lo que no. */}
+        <div className="flex items-center gap-x-4 gap-y-1 px-4 md:px-6 py-1.5 md:py-2 bg-zinc-950 border-b border-zinc-900 overflow-x-auto hide-scrollbar shrink-0">
+          <div className="flex items-baseline gap-1.5 shrink-0">
+            <span className="text-lg md:text-xl font-black text-white tabular-nums leading-none">
+              {kitchenStats.notStarted}
+            </span>
+            <span className="text-[11px] font-bold text-zinc-400 whitespace-nowrap">
+              sin empezar
+            </span>
           </div>
-          <div className="flex items-center gap-2 text-xs font-bold px-3 py-1.5   bg-zinc-800 border border-zinc-700 text-zinc-300 whitespace-nowrap">
-            <span className="w-1.5 h-1.5 bg-zinc-500"></span>
-            Pendientes / Nuevos: <span className="text-white ml-0.5">{pendingCount}</span>
+          <span className="w-px h-4 bg-zinc-800 shrink-0" aria-hidden="true"></span>
+          <div className="flex items-baseline gap-1.5 shrink-0">
+            <span className={`text-lg md:text-xl font-black tabular-nums leading-none ${
+              kitchenStats.preparing > 0 ? 'text-emerald-400' : 'text-zinc-600'
+            }`}>
+              {kitchenStats.preparing}
+            </span>
+            <span className="text-[11px] font-bold text-zinc-400 whitespace-nowrap">
+              preparando
+            </span>
           </div>
+          <span className="w-px h-4 bg-zinc-800 shrink-0" aria-hidden="true"></span>
+          <div className="flex items-baseline gap-1.5 shrink-0">
+            <span className={`text-lg md:text-xl font-black tabular-nums leading-none ${
+              kitchenStats.dishes > 0 ? 'text-white' : 'text-zinc-600'
+            }`}>
+              {kitchenStats.dishes}
+            </span>
+            <span className="text-[11px] font-bold text-zinc-400 whitespace-nowrap">
+              {kitchenStats.dishes === 1 ? 'producto' : 'productos'}
+            </span>
+          </div>
+
+          {/* Lo que lleva más rato parado. Si este número está rojo, el servicio
+              ya se atrasó y da igual cuántos tickets haya. */}
+          {kitchenStats.oldestMins > 0 && (
+            <>
+              <span className="w-px h-4 bg-zinc-800 shrink-0" aria-hidden="true"></span>
+              <div className="flex items-baseline gap-1.5 shrink-0">
+                <span className={`text-lg md:text-xl font-black tabular-nums leading-none ${
+                  kitchenStats.oldestMins >= 15
+                    ? 'text-red-400'
+                    : kitchenStats.oldestMins >= 8
+                      ? 'text-amber-400'
+                      : 'text-zinc-400'
+                }`}>
+                  {formatWait(kitchenStats.oldestMins)}
+                </span>
+                <span className="text-[11px] font-bold text-zinc-500 whitespace-nowrap">
+                  de espera
+                </span>
+              </div>
+            </>
+          )}
+
+          {/* Los programados más tarde no son cola: se anotan aparte para que el
+              número de arriba no prometa trabajo que todavía no corresponde. */}
+          {kitchenStats.later > 0 && (
+            <span className="shrink-0 text-[11px] font-bold text-indigo-400/80 whitespace-nowrap">
+              {kitchenStats.later} {kitchenStats.later === 1 ? 'programado' : 'programados'} más tarde
+            </span>
+          )}
         </div>
 
-        <div 
+        <div
           ref={scrollContainerRef}
-          className="flex flex-col md:flex-row md:flex-nowrap gap-4 md:gap-6 w-full items-start pb-20 overflow-x-auto hide-scrollbar scroll-smooth"
+          className="flex-1 min-h-0 flex flex-col md:flex-row md:flex-nowrap gap-4 md:gap-6 w-full items-stretch md:items-start px-4 md:px-6 py-4 md:py-6 pb-safe md:pb-6 overflow-y-auto md:overflow-x-auto md:overflow-y-hidden hide-scrollbar scroll-smooth"
         >
 
-          {(() => {
-            const allTickets = [];
-            orders.forEach(order => {
-              const parents = order.order_items?.filter(item => !item.parent_item_id && item.status !== 'ready').sort((a,b) => new Date(a.created_at) - new Date(b.created_at)) || [];
-              if (parents.length === 0) return;
-              
-              const rounds = [];
-              let currentRound = [];
-              parents.forEach(item => {
-                if (currentRound.length === 0) {
-                  currentRound.push(item);
-                } else {
-                  const prevItem = currentRound[currentRound.length - 1];
-                  const diffMs = new Date(item.created_at) - new Date(prevItem.created_at);
-                  if (diffMs > 60000) { // 1 minute gap separates rounds
-                    rounds.push(currentRound);
-                    currentRound = [item];
-                  } else {
-                    currentRound.push(item);
-                  }
-                }
-              });
-              if (currentRound.length > 0) rounds.push(currentRound);
-              
-              rounds.forEach((round, rIdx) => {
-                 allTickets.push({
-                   ...order,
-                   roundItems: round,
-                   roundIdx: rIdx,
-                   totalRounds: rounds.length,
-                   // Determine ticket creation time based on the first item of the round
-                   created_at: round[0]?.created_at || order.created_at,
-                   // Unique ID for the ticket
-                   ticketId: `${order.id}-round-${rIdx}`
-                 });
-              });
-            });
+          {tickets.length === 0 && !loading && (
+            <div className="flex flex-col items-center justify-center w-full h-full py-20 col-span-full">
+              <ChefHat className="h-24 w-24 mb-6 text-gray-400" />
+              <p className="text-xl font-medium text-center text-gray-500">No hay órdenes pendientes en este momento.</p>
+              <p className="text-sm mt-2 text-center text-gray-400">La cocina está al día.</p>
+            </div>
+          )}
 
-            // sort allTickets by created_at (oldest first)
-            allTickets.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-            
-            if (allTickets.length === 0 && !loading) {
-              return (
-                <div className="flex flex-col items-center justify-center w-full h-full py-20 col-span-full">
-                  <ChefHat className="h-24 w-24 mb-6 text-gray-400" />
-                  <p className="text-xl font-medium text-center text-gray-500">No hay órdenes pendientes en este momento.</p>
-                  <p className="text-sm mt-2 text-center text-gray-400">La cocina está al día.</p>
-                </div>
-              );
-            }
-
-            return allTickets.map((ticket, ticketIdx) => {
+          {tickets.map((ticket) => {
               const elapsed = getElapsedTime(ticket.scheduled_at || ticket.created_at);
               const scheduledTime = formatScheduled(ticket.scheduled_at);
               const elapsedMins = elapsed.includes('min') ? parseInt(elapsed.match(/\d+/)?.[0] || 0) : 0;
@@ -469,9 +725,9 @@ const KitchenView = () => {
 
               return (
                 <div
-                  id={`ticket-${ticket.id}`}
+                  id={`ticket-${ticket.ticketId}`}
                   key={ticket.ticketId}
-                  className={`order-card ${isNew ? '' : 'transition-all'} w-full md:w-80 min-w-[300px] flex-shrink-0 flex flex-col rounded-2xl border ${cfg.border} bg-zinc-950 overflow-hidden shadow-lg md:h-[calc(100vh-170px)] ${isLeaving ? 'ticket-leave' : isNew ? 'ticket-enter-new' : (ticket.status === 'scheduled' || ticket.status === 'pending' || ticket.status === 'confirmed') ? 'ticket-enter-pending' : 'ticket-enter'}`}
+                  className={`order-card ${isNew ? '' : 'transition-all'} w-full md:w-80 min-w-[300px] flex-shrink-0 flex flex-col rounded-2xl border ${cfg.border} bg-zinc-950 overflow-hidden shadow-lg md:h-full ${isLeaving ? 'ticket-leave' : isNew ? 'ticket-enter-new' : (ticket.status === 'scheduled' || ticket.status === 'pending' || ticket.status === 'confirmed') ? 'ticket-enter-pending' : 'ticket-enter'}`}
                 >
                   {/* ── Header ── */}
                   <div className={`${cfg.headerBg} px-4 pt-4 pb-3.5 border-b border-zinc-900 shrink-0 space-y-3`}>
@@ -584,7 +840,7 @@ const KitchenView = () => {
                                   className="w-10 h-10 rounded-lg object-cover shrink-0 border border-zinc-800"
                                 />
                               ) : (
-                                <div className="w-10 h-10 rounded-lg bg-zinc-850 flex items-center justify-center shrink-0 border border-zinc-800/40">
+                                <div className="w-10 h-10 rounded-lg bg-zinc-800/60 flex items-center justify-center shrink-0 border border-zinc-800/40">
                                   <ChefHat className="h-5 w-5 text-zinc-600" />
                                 </div>
                               )}
@@ -666,7 +922,7 @@ const KitchenView = () => {
                     {(ticket.status === 'confirmed' || ticket.status === 'pending' || ticket.status === 'scheduled') ? (
                       <Button
                         onClick={() => handleUpdateStatus(ticket.id, 'preparing', ticket)}
-                        className={`w-full py-6 ${cfg.btnClass} rounded-xl font-bold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
+                        className={`w-full py-6 ${cfg.btnClass} rounded-xl! font-bold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
                       >
                         <Play className="h-4 w-4 fill-current" />
                         Empezar Preparación
@@ -674,7 +930,7 @@ const KitchenView = () => {
                     ) : (
                       <Button
                         onClick={() => handleUpdateStatus(ticket.id, 'ready', ticket)}
-                        className={`w-full py-6 ${cfg.btnClass} rounded-xl font-extrabold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
+                        className={`w-full py-6 ${cfg.btnClass} rounded-xl! font-extrabold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
                       >
                         <CheckCircle2 className="h-5 w-5" strokeWidth={2.5} />
                         Marcar como Listo
@@ -683,10 +939,127 @@ const KitchenView = () => {
                   </div>
                 </div>
               );
-            });
-          })()}
+            })}
         </div>
       </main>
+
+      {bulkConfirmOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => !bulkWorking && setBulkConfirmOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bulk-ready-title"
+            className="bg-zinc-900 rounded-2xl w-full max-w-md shadow-2xl shadow-black/60 border border-zinc-800 overflow-hidden animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 sm:p-7">
+              <h2 id="bulk-ready-title" className="text-sm font-bold text-zinc-400">
+                ¿Marcar todo como listo?
+              </h2>
+
+              {/* El número manda: el riesgo de esta acción es cuánto se cierra. */}
+              <div className="mt-1 flex items-baseline gap-2.5">
+                <span className="text-5xl font-black text-white tracking-tight leading-none tabular-nums">
+                  {ordersToMarkReady.length}
+                </span>
+                <span className="text-sm font-extrabold uppercase tracking-wider text-emerald-400">
+                  {ordersToMarkReady.length === 1 ? 'pedido' : 'pedidos'}
+                </span>
+              </div>
+
+              <div className="mt-5 border-y border-zinc-800 divide-y divide-zinc-800">
+                <div className="flex items-center justify-between py-2.5">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+                    Productos
+                  </span>
+                  <span className="font-mono text-sm font-bold text-zinc-200 tabular-nums">
+                    {itemsToMarkCount}
+                  </span>
+                </div>
+                {scheduledSkippedCount > 0 && (
+                  <div className="flex items-center justify-between py-2.5">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+                      Programados más tarde
+                    </span>
+                    <span className="font-mono text-sm font-bold text-amber-400 tabular-nums">
+                      {scheduledSkippedCount}
+                      <span className="ml-1.5 font-sans text-[10px] uppercase tracking-wider text-amber-400/70">
+                        sin marcar
+                      </span>
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <p className="mt-4 text-sm leading-relaxed text-zinc-400">
+                {scheduledSkippedCount > 0
+                  ? 'Los programados más tarde no se marcarán. Los clientes con correo reciben el aviso de pedido listo.'
+                  : 'Los clientes con correo recibirán el aviso de pedido listo.'}
+              </p>
+
+              {bulkWorking && (
+                <div className="mt-5">
+                  <div className="mb-1.5 flex items-baseline justify-between text-[11px] font-bold text-zinc-400">
+                    <span>Marcando {bulkProgress.done} de {bulkProgress.total}</span>
+                    <span className="font-mono tabular-nums">
+                      {bulkProgress.total > 0
+                        ? Math.round((bulkProgress.done / bulkProgress.total) * 100)
+                        : 0}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
+                    <div
+                      className="h-full rounded-full bg-emerald-500 transition-[width] duration-200 ease-out"
+                      style={{
+                        width: `${bulkProgress.total > 0
+                          ? (bulkProgress.done / bulkProgress.total) * 100
+                          : 0}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-zinc-500">
+                    No cierres esta pantalla: los pedidos ya marcados quedan guardados.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 border-t border-zinc-800 bg-zinc-950/60 p-4">
+              {/* Sin variant="outline": esa variante usa --background, que sin
+                  la clase .dark es blanco y convertía Cancelar en el elemento
+                  más brillante del modal. Colores explícitos para que el botón
+                  quede recesado y la atención esté en la acción principal. */}
+              <Button
+                className="flex-1 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:border-zinc-700 hover:text-zinc-200 disabled:opacity-40"
+                onClick={() => setBulkConfirmOpen(false)}
+                disabled={bulkWorking}
+              >
+                Cancelar
+              </Button>
+              <Button
+                className="flex-[1.4] rounded-xl bg-emerald-500 text-black hover:bg-emerald-400 font-extrabold"
+                onClick={handleBulkMarkReady}
+                disabled={bulkWorking}
+              >
+                {bulkWorking ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Marcando...
+                  </>
+                ) : (
+                  <>
+                    <CheckCheck className="mr-2 h-4 w-4" strokeWidth={3} />
+                    Sí, marcar todo
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
