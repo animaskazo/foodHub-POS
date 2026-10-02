@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, Plus, Minus, Monitor, X, Edit2, ChefHat, Tag, Check, RotateCcw, ArrowLeftRight } from 'lucide-react';
+import { Trash2, Plus, Minus, Monitor, X, Edit2, ChefHat, Tag, Check, RotateCcw, ArrowLeftRight, Loader2 } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { getOpenOrders, sumOpenOrdersTotal } from '../../services/orderService';
 import { Button } from "../ui/button";
@@ -8,7 +8,7 @@ import { supabase } from '../../lib/supabase';
 import { getRestaurantTables, onTablesChanged } from '../../services/tableService';
 import { getCartItemUnitPrice, getCartTotal } from '../../utils/cartTotals';
 
-const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, onResetOrder, isMobile, onCloseMobile, onChangeTableMobile, onItemClick, onSaveOrder, onTableSelect, taxRate = 0.19, coupon, onApplyCoupon, onRemoveCoupon, couponError, couponLoading }) => {
+const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, onResetOrder, isMobile, onCloseMobile, onChangeTableMobile, onItemClick, onSaveOrder, onTableSelect, taxRate = 0.19, coupon, onApplyCoupon, onRemoveCoupon, couponError, couponLoading, isSavingOrder = false }) => {
   const items = cartItems;
   const [tables, setTables] = React.useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
@@ -427,12 +427,12 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                 {hasNewItems && (
                   <Button
                     onClick={onSaveOrder}
-                    disabled={items.length === 0}
-                    className="w-full md:flex-1 flex items-center justify-center h-14 bg-black hover:bg-gray-900 text-white rounded-full shadow-sm transition-transform active:scale-[0.98] font-bold text-[17px] tracking-wide px-5"
+                    disabled={items.length === 0 || isSavingOrder}
+                    className="w-full md:flex-1 flex items-center justify-center gap-2 h-14 bg-black hover:bg-gray-900 text-white rounded-full shadow-sm transition-transform active:scale-[0.98] font-bold text-[17px] tracking-wide px-5 disabled:opacity-60"
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
-                    <ChefHat className="h-5 w-5 mr-2" />
-                    Agregar a la orden
+                    {isSavingOrder && <Loader2 className="h-5 w-5 animate-spin" />}
+                    {isSavingOrder ? 'Enviando a cocina...' : 'Agregar a la orden'}
                   </Button>
                 )}
                 <Button

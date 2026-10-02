@@ -53,6 +53,7 @@ const PosView = () => {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
 
   const showToast = (message) => {
     setToastMessage(message);
@@ -616,6 +617,11 @@ const PosView = () => {
   };
 
   const handleSaveOrder = async () => {
+    // Guarda contra doble toque: hasta que los ítems quedan marcados como
+    // guardados, un segundo toque volvería a leer los mismos ítems sin guardar
+    // y los agregaría dos veces a la orden.
+    if (isSavingOrder) return;
+    setIsSavingOrder(true);
     try {
       const newItems = cartItems.filter(i => !i.isSaved);
       if (newItems.length === 0) return;
@@ -650,6 +656,8 @@ const PosView = () => {
     } catch (error) {
       console.error('Error saving order:', error);
       alert(`Hubo un error al guardar el pedido: ${error.message || JSON.stringify(error)}`);
+    } finally {
+      setIsSavingOrder(false);
     }
   };
 
@@ -735,6 +743,7 @@ const PosView = () => {
                   setCartItems([]);
                 }}
                 onSaveOrder={handleSaveOrder}
+                isSavingOrder={isSavingOrder}
                 onTableSelect={handleTableSelect}
                 onRemove={handleRemove}
                 onUpdateQty={handleUpdateQty}
