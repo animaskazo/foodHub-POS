@@ -53,18 +53,53 @@ export const deleteTableZone = async (id) => {
 
 // ── TABLES ──────────────────────────────────────────────────
 
+/* ── Cache de mesas ─────────────────────────────────────
+   Mapa, modal de selección y desplegable del carrito piden las mesas al
+   montar, casi siempre contra la misma sucursal y en el mismo instante. La
+   lista cambia muy pocas veces (solo al agregar, renombrar o reordenar mesas),
+   así que se cachea.
+
+   Se guarda la promesa y no solo el resultado: eso además deduplica las
+   llamadas simultáneas, que de otro modo harían tres consultas idénticas. El
+   TTL es solo una red de seguridad; lo que mantiene los datos al día es la
+   invalidación explícita (notifyTablesChanged / invalidateTablesCache). */
+const TABLES_CACHE_TTL = 30_000;
+const tablesCache = new Map();
+
 export const getRestaurantTables = async (branchId) => {
   if (!branchId) throw new Error('Branch ID is required');
-  const { data, error } = await supabase
+
+  const cached = tablesCache.get(branchId);
+  if (cached && Date.now() - cached.at < TABLES_CACHE_TTL) {
+    return cached.promise;
+  }
+
+  const entry = { at: Date.now(), promise: null };
+  entry.promise = supabase
     .from('restaurant_tables')
     .select(`
       *,
       orders(id, total, status, payments(id, status))
     `)
-    .eq('branch_id', branchId);
-  if (error) throw error;
-  return data || [];
+    .eq('branch_id', branchId)
+    .then(({ data, error }) => {
+      if (error) {
+        // Un fallo no se cachea: se reintenta en la próxima llamada.
+        tablesCache.delete(branchId);
+        throw error;
+      }
+      entry.at = Date.now();
+      return data || [];
+    });
+
+  tablesCache.set(branchId, entry);
+  // Si nadie espera la promesa, este catch evita el unhandled rejection.
+  entry.promise.catch(() => {});
+
+  return entry.promise;
 };
+
+export const invalidateTablesCache = () => tablesCache.clear();
 
 /* ── Invalidación de mesas ──────────────────────────────
    El mapa, el modal de selección y el desplegable del carrito mantienen cada
@@ -83,6 +118,10 @@ export const onTablesChanged = (listener) => {
 };
 
 export const notifyTablesChanged = () => {
+  // Primero se limpia la cache: los listeners van a releer y tienen que recibir
+  // datos frescos, no la copia cacheada que acabou de quedar vieja.
+  invalidateTablesCache();
+
   tablesChangeListeners.forEach((listener) => {
     try {
       listener();

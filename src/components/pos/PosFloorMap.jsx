@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getFirstOrganizationId } from '../../services/organizationService';
 import { supabase } from '../../lib/supabase';
-import { getTableZones, getRestaurantTables, onTablesChanged } from '../../services/tableService';
+import { getTableZones, getRestaurantTables, onTablesChanged, notifyTablesChanged } from '../../services/tableService';
 import { getOpenOrders, sumOpenOrdersTotal } from '../../services/orderService';
 import { Loader2, Users, Menu } from 'lucide-react';
 
@@ -53,14 +53,15 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
   useEffect(() => {
     loadData();
 
-    // Cualquier cambio en restaurant_tables recarga la lista completa en vez de
-    // parchear la fila: `payload.new` es la fila cruda y viene sin los pedidos
-    // embebidos, así que replacing la dejaba con 0 pedidos aunque tuviera una
-    // orden abierta (pasaba al renombrar una mesa desde TablesSettings).
+    // Cualquier cambio en restaurant_tables recarga las tres vistas de mesas en
+    // vez de parchear la fila: `payload.new` es la fila cruda y viene sin los
+    // pedidos embebidos, así que replacing la dejaba con 0 pedidos aunque tuviera
+    // una orden abierta (pasaba al renombrar una mesa desde TablesSettings).
+    // notifyTablesChanged también limpia la cache antes de avisarle a nadie.
     const tablesSubscription = supabase
       .channel('public:restaurant_tables')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, () => {
-        loadData();
+        notifyTablesChanged();
       })
       .subscribe();
 
