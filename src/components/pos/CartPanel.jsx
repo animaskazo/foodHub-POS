@@ -1,13 +1,14 @@
 import React from 'react';
-import { Trash2, Plus, Minus, ChevronDown, Monitor, X, Edit2, ChefHat, Tag, Check } from 'lucide-react';
+import { Trash2, Plus, Minus, Monitor, X, Edit2, ChefHat, Tag, Check, RotateCcw, ArrowLeftRight } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
+import { getOpenOrders, sumOpenOrdersTotal } from '../../services/orderService';
 import { Button } from "../ui/button";
 import { getFirstOrganizationId } from '../../services/organizationService';
 import { supabase } from '../../lib/supabase';
 import { getRestaurantTables } from '../../services/tableService';
 import { getCartItemUnitPrice, getCartTotal } from '../../utils/cartTotals';
 
-const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, isMobile, onCloseMobile, onChangeTableMobile, onItemClick, onSaveOrder, onTableSelect, taxRate = 0.19, coupon, onApplyCoupon, onRemoveCoupon, couponError, couponLoading }) => {
+const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, onResetOrder, isMobile, onCloseMobile, onChangeTableMobile, onItemClick, onSaveOrder, onTableSelect, taxRate = 0.19, coupon, onApplyCoupon, onRemoveCoupon, couponError, couponLoading }) => {
   const items = cartItems;
   const [tables, setTables] = React.useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
@@ -32,7 +33,6 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
     loadTables();
   }, []);
 
-  const totalQty = items.reduce((acc, i) => acc + i.quantity, 0);
   // `getCartTotal`: estándar = base + extras; combo = `price` ya es el total
   // (no se suman `selectedOptions` de nuevo para no duplicar).
   const cartTotal = getCartTotal(items);
@@ -42,6 +42,8 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
   const tax = total - subtotal;
 
   const fmt = (n) => n.toLocaleString('es-CL');
+
+  const canResetOrder = items.length > 0 || !!activeTable || !!coupon;
 
   return (
     <div className="flex flex-col h-full bg-white border-l border-gray-100">
@@ -59,44 +61,60 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                 <X className="h-6 w-6" />
               </button>
             )}
-            <Monitor className="h-6 w-6 text-gray-900 hidden sm:block" />
             <div>
               <div className="relative z-50">
                 {dineInEnabled ? (
-                  <div 
-                    className="flex items-center gap-1 md:cursor-pointer select-none"
-                    onClick={() => {
-                      if (window.innerWidth >= 768) {
-                        setIsDropdownOpen(!isDropdownOpen);
-                      } else if (onChangeTableMobile) {
-                        onChangeTableMobile();
-                      }
-                    }}
-                  >
-                    {activeTable ? (
-                      <>
-                        <span className="font-bold text-[17px] leading-tight text-blue-700">Mesa: {activeTable.name}</span>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onClearTable();
-                          }}
-                          className="hidden md:inline-flex ml-1 p-0.5 text-gray-400 hover:text-red-500 rounded-full bg-gray-100 hover:bg-red-50 transition"
-                          title="Quitar mesa"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="font-bold text-[17px] leading-tight">Venta Directa</span>
-                        <ChevronDown className={`hidden md:block h-4 w-4 text-gray-400 mt-0.5 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
-                      </>
+                  <div className="flex items-stretch select-none">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.innerWidth >= 768) {
+                          setIsDropdownOpen(!isDropdownOpen);
+                        } else if (onChangeTableMobile) {
+                          onChangeTableMobile();
+                        }
+                      }}
+                      aria-expanded={isDropdownOpen}
+                      aria-haspopup="listbox"
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
+                      className={`group flex items-center gap-2.5 h-11 sm:h-12 pl-3 sm:pl-3.5 pr-3 sm:pr-3.5 border transition-all duration-75 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 active:translate-y-px ${
+                        activeTable
+                          ? 'rounded-l-xl bg-blue-50 text-blue-800 border-blue-200 border-r-0 shadow-[inset_0_1px_0_#ffffff,0_1px_2px_rgba(16,24,40,0.08)] hover:bg-blue-100 active:bg-blue-100 active:shadow-[inset_0_2px_3px_rgba(21,94,117,0.22)]'
+                          : 'rounded-xl bg-white text-gray-900 border-blue-200 shadow-[inset_0_1px_0_#ffffff,0_2px_4px_rgba(16,24,40,0.12)] hover:bg-blue-50 active:bg-blue-100 active:shadow-[inset_0_2px_4px_rgba(16,24,40,0.16)]'
+                      }`}
+                    >
+                      <Monitor className={`h-5 w-5 shrink-0 ${activeTable ? 'text-blue-600' : 'text-gray-400'}`} />
+                      {activeTable ? (
+                        <span className="flex items-baseline gap-1.5 whitespace-nowrap">
+                          {!/^mesa\b/i.test(activeTable.name) && (
+                            <span className="text-xs font-medium leading-none opacity-60">Mesa</span>
+                          )}
+                          <span className="text-base font-semibold leading-none">{activeTable.name}</span>
+                        </span>
+                      ) : (
+                        <span className="text-base font-semibold leading-none">Venta Directa</span>
+                      )}
+                      <ArrowLeftRight
+                        className={`h-4 w-4 shrink-0 transition-transform duration-150 ${isDropdownOpen ? 'rotate-180' : ''} ${activeTable ? 'text-blue-500' : 'text-gray-400'}`}
+                      />
+                    </button>
+                    {activeTable && (
+                      <button
+                        type="button"
+                        onClick={onClearTable}
+                        title="Quitar mesa"
+                        aria-label={`Quitar mesa ${activeTable.name}`}
+                        style={{ WebkitTapHighlightColor: 'transparent' }}
+                        className="flex items-center px-2.5 h-11 sm:h-12 rounded-r-xl border border-blue-200 text-blue-400 transition-all duration-75 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 shadow-[inset_0_1px_0_#ffffff,0_1px_2px_rgba(16,24,40,0.08)] hover:bg-blue-100 hover:text-blue-700 active:translate-y-px active:bg-blue-200 active:shadow-[inset_0_2px_3px_rgba(21,94,117,0.22)]"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
                     )}
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1 select-none">
-                    <span className="font-bold text-[17px] leading-tight">Venta Directa</span>
+                  <div className="flex items-center gap-2.5 h-11 sm:h-12 select-none">
+                    <Monitor className="h-5 w-5 shrink-0 text-gray-400" />
+                    <span className="text-base font-semibold leading-none text-gray-900">Venta Directa</span>
                   </div>
                 )}
                 
@@ -123,8 +141,9 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                         <div className="px-4 py-2 text-xs text-gray-500">No hay mesas configuradas</div>
                       ) : (
                         tables.map(table => {
-                          const activeOrder = table.orders?.find(o => ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status));
-                          const currentTotal = activeOrder ? activeOrder.total : 0;
+                          const openOrders = getOpenOrders(table.orders);
+                          const currentTotal = sumOpenOrdersTotal(table.orders);
+                          const isOccupied = openOrders.length > 0;
                           return (
                           <div 
                             key={table.id}
@@ -136,16 +155,16 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                           >
                             <span className="flex items-center gap-2">
                               {table.name}
-                              {table.status === 'occupied' && currentTotal > 0 && (
+                              {isOccupied && currentTotal > 0 && (
                                 <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded-md font-bold">
                                   ${fmt(currentTotal)}
                                 </span>
                               )}
                             </span>
-                            {table.status === 'occupied' && (
+                            {isOccupied && (
                               <span className="w-2 h-2 rounded-full bg-red-500"></span>
                             )}
-                            {table.status === 'free' && (
+                            {!isOccupied && table.status === 'free' && (
                               <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                             )}
                           </div>
@@ -155,16 +174,28 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                   </>
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-0.5">{totalQty} {totalQty === 1 ? 'artículo' : 'artículos'}</p>
             </div>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={onNewOrder}
-          >
-            + Nueva orden
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onResetOrder}
+              disabled={!canResetOrder}
+              className="text-gray-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 disabled:opacity-40 disabled:hover:text-gray-500 disabled:hover:border-gray-200 disabled:hover:bg-transparent"
+              title="Resetear pedido: vaciar carrito, mesa y cupón"
+            >
+              <RotateCcw className="h-4 w-4" />
+              <span className="hidden lg:inline">Resetear</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onNewOrder}
+            >
+              + Nueva orden
+            </Button>
+          </div>
         </div>
       </div>
 

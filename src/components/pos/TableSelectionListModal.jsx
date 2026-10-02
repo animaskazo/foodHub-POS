@@ -3,6 +3,7 @@ import Modal from '../ui/Modal';
 import { getFirstOrganizationId } from '../../services/organizationService';
 import { supabase } from '../../lib/supabase';
 import { getRestaurantTables, getTableZones } from '../../services/tableService';
+import { getOpenOrders, sumOpenOrdersTotal } from '../../services/orderService';
 import { Loader2 } from 'lucide-react';
 
 const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable, activeTable }) => {
@@ -113,14 +114,15 @@ const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable,
             <div className="px-5 py-8 text-center text-gray-500">No hay mesas configuradas</div>
           ) : (
             filteredTables.map(table => {
-              const activeOrder = table.orders?.find(o => ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status));
-              const currentTotal = activeOrder ? activeOrder.total : 0;
+              const openOrders = getOpenOrders(table.orders);
+              const currentTotal = sumOpenOrdersTotal(table.orders);
+              const isOccupied = openOrders.length > 0;
               const isActive = activeTable?.id === table.id;
               
               return (
                 <div 
                   key={table.id}
-                  className={`px-5 py-4 cursor-pointer border-b border-gray-100 flex items-center justify-between transition-colors ${isActive ? 'bg-blue-50 text-blue-700' : 'bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100'}`}
+                  className={`px-5 py-4 cursor-pointer border-b border-gray-100 flex items-center justify-between transition-colors ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 active:bg-gray-100'}`}
                   onClick={() => {
                     onTableSelect && onTableSelect(table);
                     onClose();
@@ -128,7 +130,7 @@ const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable,
                 >
                   <span className={`flex items-center gap-3 text-[17px] ${isActive ? 'font-bold' : 'font-medium'}`}>
                     {table.name}
-                    {table.status === 'occupied' && currentTotal > 0 && (
+                    {isOccupied && currentTotal > 0 && (
                       <span className="text-[13px] bg-red-100 text-red-700 px-2 py-0.5 rounded-md font-bold shadow-sm">
                         ${fmt(currentTotal)}
                       </span>
@@ -136,10 +138,10 @@ const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable,
                   </span>
                   
                   <div className="flex items-center gap-2">
-                    {table.status === 'occupied' && (
+                    {isOccupied && (
                       <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm"></span>
                     )}
-                    {table.status === 'free' && (
+                    {!isOccupied && table.status === 'free' && (
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></span>
                     )}
                     {isActive && (

@@ -16,8 +16,8 @@ import TableSelectionListModal from '../components/pos/TableSelectionListModal';
 import { X, LogOut, Menu, Home, ChefHat, Clock } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import NewOrderAlert from '../components/ui/NewOrderAlert';
-import { createOrder, updateOrderCustomer, getOpenOrderForTable, appendItemsToOrder } from '../services/orderService';
-import { getTableZones } from '../services/tableService';
+import { createOrder, updateOrderCustomer, getOpenOrdersForTable, appendItemsToOrder } from '../services/orderService';
+import { getTableZones, getRestaurantTables } from '../services/tableService';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
 import { getShiftSettings, getCurrentShift } from '../services/shiftService';
@@ -25,7 +25,7 @@ import { PosSkeleton } from '../components/ui/Skeleton';
 import { defaultSelectionsForSlot, bundleHasChoices } from '../utils/bundleSelections';
 import PrintableReceipt from '../components/pos/PrintableReceipt';
 import { printReceipt, printReceiptAsPDF } from '../services/printerService';
-import { getCartTotal, getCartTotalsWithTax } from '../utils/cartTotals';
+import { getCartTotal, getCartTotalsWithTax, getCartItemUnitPrice, sumExtraIngredients } from '../utils/cartTotals';
 
 
 const PosView = () => {
@@ -38,7 +38,7 @@ const PosView = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('pago');
   const [activeTable, setActiveTable] = useState(null);
-  const [activeOrder, setActiveOrder] = useState(null);
+  const [activeOrders, setActiveOrders] = useState([]);
   const [selectedProductForVariant, setSelectedProductForVariant] = useState(null);
   const [editingCartItem, setEditingCartItem] = useState(null);
   const [selectedProductForBundle, setSelectedProductForBundle] = useState(null);
@@ -63,6 +63,12 @@ const PosView = () => {
   const [currentShift, setCurrentShift] = useState(null);
   const [loadingShift, setLoadingShift] = useState(true);
   const [hasTables, setHasTables] = useState(false);
+  const [tableCount, setTableCount] = useState(0);
+
+  // Una mesa puede tener más de una orden abierta (bug histórico: cada "enviar a
+  // cocina" creaba una orden nueva). La canónica es la más antigua — es a la que
+  // se le agregan los ítems nuevos. `getOpenOrdersForTable` ya las ordena.
+  const activeOrder = activeOrders[0] || null;
 
   useEffect(() => {
     const loadShiftData = async () => {
@@ -79,12 +85,15 @@ const PosView = () => {
         const { data: branchData } = await supabase.from('branches').select('id').eq('organization_id', organization.id).limit(1).single();
         const { data: orgData } = await supabase.from('organizations').select('dine_in_enabled').eq('id', organization.id).single();
         
-        if (['waiter', 'owner', 'admin', 'manager'].includes(userRole)) {
+        if (['waiter', 'owner', 'admin', 'manager'].includes(role)) {
           if (branchData?.id && orgData?.dine_in_enabled === true) {
             const loadedZones = await getTableZones(branchData.id);
             setHasTables(loadedZones && loadedZones.length > 0);
+            const loadedTables = await getRestaurantTables(branchData.id);
+            setTableCount(loadedTables.length);
           } else {
             setHasTables(false);
+            setTableCount(0);
           }
         }
       } catch (err) {
@@ -100,11 +109,11 @@ const PosView = () => {
   // Al entrar al punto de venta, preguntar en qué mesa se tomará la orden
   const tablePromptShownRef = useRef(false);
   useEffect(() => {
-    if (hasTables && !tablePromptShownRef.current) {
+    if (tableCount > 1 && !tablePromptShownRef.current) {
       tablePromptShownRef.current = true;
       setIsTableModalOpen(true);
     }
-  }, [hasTables]);
+  }, [tableCount]);
 
   useEffect(() => {
     if (!posPrintOrder) return;
@@ -349,65 +358,91 @@ const PosView = () => {
   const handleTableSelect = async (table) => {
     setActiveTable(table);
     setActiveTab('pago');
-    
-    if (table.status === 'occupied') {
-      try {
-        const order = await getOpenOrderForTable(table.id);
-        if (order) {
-          setActiveOrder(order);
-          // Map order_items to cartItems format
-          // Filter out child items (parent_item_id is not null) as they are handled inside bundles
-          const parents = order.order_items.filter(i => !i.parent_item_id);
-          const mappedItems = parents.map(item => {
-            const variantInfo = item.order_item_variants?.[0];
-            const variant = variantInfo ? { id: variantInfo.variant_option_id, name: variantInfo.variant_option_name, price_modifier: variantInfo.price_modifier } : null;
-            
-            const selectedIngredients = (item.order_item_ingredients || []).map(ing => ({
-              id: ing.ingredient_id,
-              name: ing.ingredient_name,
-              price: ing.price
-            }));
-            
-            // Reconstruct bundle options if any
-            const children = order.order_items.filter(i => i.parent_item_id === item.id);
-            const isBundle = children.length > 0;
-            const selectedOptions = isBundle ? children.map(child => {
-              const childVariant = child.order_item_variants?.[0];
-              const childIngs = (child.order_item_ingredients || []).map(ing => ({ name: ing.ingredient_name, price: ing.price }));
-              let optName = child.product_name;
-              if (childVariant) optName += ` (${childVariant.variant_option_name})`;
-              return {
-                name: optName,
-                price: child.unit_price,
-                selectedIngredients: childIngs
-              };
-            }) : [];
-            
-            return {
-              cartItemId: `saved-${item.id}`,
-              productId: item.product_id,
-              name: item.product_name + (variant ? ` (${variant.name})` : ''),
-              image: item.products?.product_images?.[0]?.url || null,
-              price: item.unit_price - (variant?.price_modifier || 0), // Base price
-              quantity: item.quantity,
-              variant,
-              selectedIngredients,
-              type: isBundle ? 'bundle' : 'standard',
-              selectedOptions,
-              isSaved: true
-            };
-          });
-          
-          setCartItems(mappedItems);
-        } else {
-          setActiveOrder(null);
-          setCartItems([]);
-        }
-      } catch (err) {
-        console.error("Error loading open order", err);
+
+    try {
+      // La ocupación se deriva SIEMPRE de las órdenes abiertas. Antes se gateaba
+      // por `restaurant_tables.status`, una columna que el POS nunca pone en
+      // 'occupied' (solo la escribe el cobro con 'free'): una mesa con pedidos
+      // abiertos pero status 'free' vaciaba el carrito y anulaba `activeOrder`,
+      // y el siguiente "enviar a cocina" creaba una orden duplicada.
+      const orders = await getOpenOrdersForTable(table.id);
+
+      if (!orders.length) {
+        setActiveOrders([]);
+        setCartItems([]);
+        return;
       }
-    } else {
-      setActiveOrder(null);
+
+      setActiveOrders(orders);
+
+      // Merge de los ítems de TODAS las órdenes abiertas. Antes solo se cargaba
+      // la más reciente (`.limit(1)`), así que los productos de las anteriores
+      // quedaban invisibles en el carrito aunque siguieran en la base.
+      const parents = orders.flatMap((order) =>
+        order.order_items
+          .filter((i) => !i.parent_item_id)
+          .map((item) => ({ item, order }))
+      );
+
+      const mappedItems = parents.map(({ item, order }) => {
+        const variantInfo = item.order_item_variants?.[0];
+        const variant = variantInfo ? { id: variantInfo.variant_option_id, name: variantInfo.variant_option_name, price_modifier: variantInfo.price_modifier } : null;
+
+        const selectedIngredients = (item.order_item_ingredients || []).map(ing => ({
+          id: ing.ingredient_id,
+          name: ing.ingredient_name,
+          price: ing.price
+        }));
+
+        // Reconstruct bundle options if any
+        const children = order.order_items.filter(i => i.parent_item_id === item.id);
+        const isBundle = children.length > 0;
+        const selectedOptions = isBundle ? children.map(child => {
+          const childVariant = child.order_item_variants?.[0];
+          const childIngs = (child.order_item_ingredients || []).map(ing => ({ name: ing.ingredient_name, price: ing.price }));
+          let optName = child.product_name;
+          if (childVariant) optName += ` (${childVariant.variant_option_name})`;
+          return {
+            name: optName,
+            price: child.unit_price,
+            selectedIngredients: childIngs
+          };
+        }) : [];
+
+        // En BD, `unit_price` ya incluye base + variante + extras.
+        // `getCartItemUnitPrice` vuelve a sumar `selectedIngredients`, así que
+        // hay que descontar los extras del `price` para no cobrarlos dos veces
+        // (y así el recargo de variante no se pierde).
+        // Los combos no tienen ese desglose: su `price` ES el total del combo.
+        const unitPrice = Math.round(item.unit_price || 0);
+        const basePrice = isBundle
+          ? unitPrice
+          : Math.max(0, unitPrice - sumExtraIngredients(selectedIngredients));
+
+        return {
+          cartItemId: `saved-${item.id}`,
+          orderId: order.id, // para repartir el cobro entre varias órdenes
+          productId: item.product_id,
+          name: item.product_name + (variant ? ` (${variant.name})` : ''),
+          image: item.products?.product_images?.[0]?.url || null,
+          price: basePrice,
+          quantity: item.quantity,
+          variant,
+          selectedIngredients,
+          type: isBundle ? 'bundle' : 'standard',
+          selectedOptions,
+          isSaved: true
+        };
+      });
+
+      setCartItems(mappedItems);
+
+      if (orders.length > 1) {
+        showToast(`Esta mesa tiene ${orders.length} pedidos abiertos. Se cargaron todos.`);
+      }
+    } catch (err) {
+      console.error("Error loading open orders for table", err);
+      setActiveOrders([]);
       setCartItems([]);
     }
   };
@@ -422,6 +457,18 @@ const PosView = () => {
     setIsMobileCartOpen(false);
     setAppliedCoupon(null);
     setCouponError('');
+  };
+
+  // Vacía por completo el pedido en pantalla: carrito, mesa asignada y cupón.
+  // A diferencia de "Nueva orden", no vuelve a preguntar la mesa.
+  const handleResetOrder = () => {
+    setCartItems([]);
+    setActiveTable(null);
+    setActiveOrders([]);
+    setAppliedCoupon(null);
+    setCouponError('');
+    setIsMobileCartOpen(false);
+    showToast('Pedido reseteado');
   };
 
   const handleApplyCoupon = async (code) => {
@@ -464,36 +511,65 @@ const PosView = () => {
       const tax = total - subtotal;
       
       let finalOrder;
-      
-      if (activeOrder) {
+
+      // Solo se entra al reparto multi-orden si el carrito realmente referencia
+      // ítems de una orden abierta. Si no (carrito solo con ítems nuevos), se
+      // cobra como orden nueva: entrar al reparto sin ítems que liquidar
+      // limpiaría el carrito sin cobrar nada.
+      const canSettleOpenOrders = activeOrders.length > 0 && cartItems.some((i) => !!i.orderId);
+
+      if (canSettleOpenOrders) {
+        const primary = activeOrder;
         const newItems = cartItems.filter(i => !i.isSaved);
         if (newItems.length > 0) {
           const { total: newTotal, subtotal: newSubtotal, tax: newTax } = getCartTotalsWithTax(newItems, taxRate);
-          await appendItemsToOrder(activeOrder.id, newItems, newTotal, newSubtotal, newTax);
+          await appendItemsToOrder(primary.id, newItems, newTotal, newSubtotal, newTax);
         }
-        
+
         const { supabase } = await import('../lib/supabase');
-        
-        // Persistir el descuento del cupón y los totales finales en la orden de mesa
-        await supabase.from('orders').update({
-          total,
-          subtotal,
-          tax_amount: tax,
-          discount_amount: discountAmount,
-          coupon_id: appliedCoupon?.id || null,
-        }).eq('id', activeOrder.id);
-        
-        const { data: existingPayments } = await supabase.from('payments').select('id').eq('order_id', activeOrder.id).eq('status', 'pending');
-        if (existingPayments && existingPayments.length > 0) {
-           await supabase.from('payments').update({ method, status: 'paid', amount: total, paid_at: new Date().toISOString() }).eq('id', existingPayments[0].id);
-        } else {
-           await supabase.from('payments').insert({ order_id: activeOrder.id, method, amount: total, status: 'paid', paid_at: new Date().toISOString() });
+        const paidAt = new Date().toISOString();
+
+        // Reparto del cobro: cada orden abierta se liquida con la suma de SUS
+        // propios ítems. El descuento y el despacho se aplican a la orden
+        // canónica (la más antigua) para que la suma de los pagos sea
+        // exactamente lo que se le cobró al cliente.
+        const totalByOrder = new Map();
+        for (const it of cartItems) {
+          if (!it.orderId) continue;
+          const line = getCartItemUnitPrice(it) * it.quantity;
+          totalByOrder.set(it.orderId, (totalByOrder.get(it.orderId) || 0) + line);
         }
-        
-        if (activeOrder.table_id || activeTable?.id) {
-          await supabase.from('restaurant_tables').update({ status: 'free' }).eq('id', activeOrder.table_id || activeTable?.id);
+
+        for (const ord of activeOrders) {
+          const ownItems = totalByOrder.get(ord.id);
+          // Una orden sin ítems visibles en el carrito no se cobra (cobrar de
+          // más sería peor que dejarla pendiente y detectable).
+          if (ownItems === undefined) continue;
+
+          const isPrimary = ord.id === primary.id;
+          const ordTotal = isPrimary ? total : ownItems;
+          const ordSubtotal = isPrimary ? subtotal : Math.round(ownItems / (1 + taxRate));
+
+          await supabase.from('orders').update({
+            total: ordTotal,
+            subtotal: ordSubtotal,
+            tax_amount: ordTotal - ordSubtotal,
+            discount_amount: isPrimary ? discountAmount : 0,
+            coupon_id: isPrimary ? (appliedCoupon?.id || null) : null,
+          }).eq('id', ord.id);
+
+          const { data: existingPayments } = await supabase.from('payments').select('id').eq('order_id', ord.id).eq('status', 'pending');
+          if (existingPayments && existingPayments.length > 0) {
+            await supabase.from('payments').update({ method, status: 'paid', amount: ordTotal, paid_at: paidAt }).eq('id', existingPayments[0].id);
+          } else {
+            await supabase.from('payments').insert({ order_id: ord.id, method, amount: ordTotal, status: 'paid', paid_at: paidAt });
+          }
         }
-        finalOrder = activeOrder;
+
+        if (activeTable?.id) {
+          await supabase.from('restaurant_tables').update({ status: 'free' }).eq('id', activeTable.id);
+        }
+        finalOrder = primary;
       } else {
         finalOrder = await createOrder(cartItems, method, orderType, total, subtotal, tax, deliveryInfo, orderNotes, deliveryFee, activeTable?.id, discountAmount, appliedCoupon?.id);
       }
@@ -501,7 +577,7 @@ const PosView = () => {
       setCartItems([]);
       setIsMobileCartOpen(false);
       setActiveTable(null);
-      setActiveOrder(null);
+      setActiveOrders([]);
       
       // Incrementar uso del cupón si se aplicó
       if (appliedCoupon?.id) {
@@ -513,7 +589,7 @@ const PosView = () => {
       
       // Auto-impresión (servidor Python). Admin/Owner imprimen siempre; el resto depende del toggle.
       const wantsAutoPrint = localStorage.getItem('pos_auto_print_enabled') === 'true' ||
-        (typeof userRole === 'string' && ['owner', 'admin'].includes(userRole));
+        (typeof role === 'string' && ['owner', 'admin'].includes(role));
       if (wantsAutoPrint) {
         // Refetch de la orden completa para obtener order_items y payments necesarios para el ticket
         const { data: fullOrder } = await supabase
@@ -540,23 +616,30 @@ const PosView = () => {
     try {
       const newItems = cartItems.filter(i => !i.isSaved);
       if (newItems.length === 0) return;
+      if (!activeTable) {
+        showToast('Selecciona una mesa antes de enviar a cocina');
+        return;
+      }
 
       const { total: newTotal, subtotal: newSubtotal, tax: newTax } = getCartTotalsWithTax(newItems, taxRate);
 
-      if (activeOrder) {
-        await appendItemsToOrder(activeOrder.id, newItems, newTotal, newSubtotal, newTax);
+      // Se consulta la BD y no el estado local `activeOrders`: si otro terminal
+      // ya abrió un pedido en esta mesa, hay que agregarle los ítems a ESA
+      // orden, no crear una nueva (que dejaba productos invisibles y dinero
+      // sin cobrar).
+      const openOrders = await getOpenOrdersForTable(activeTable.id);
+
+      if (openOrders.length > 0) {
+        await appendItemsToOrder(openOrders[0].id, newItems, newTotal, newSubtotal, newTax);
       } else {
-        await createOrder(newItems, 'pending', 'table', newTotal, newSubtotal, newTax, null, '', 0, activeTable?.id);
+        await createOrder(newItems, 'pending', 'table', newTotal, newSubtotal, newTax, null, '', 0, activeTable.id);
       }
-      
+
       // Update cart to mark items as saved locally
       setCartItems(prev => prev.map(item => ({ ...item, isSaved: true })));
-      
-      // Update active order if it was just created
-      if (!activeOrder && activeTable) {
-        const order = await getOpenOrderForTable(activeTable.id);
-        if (order) setActiveOrder(order);
-      }
+
+      // Refrescar las órdenes abiertas (el append cambió la canónica)
+      setActiveOrders(await getOpenOrdersForTable(activeTable.id));
 
       showToast("¡Productos enviados a cocina!");
     } catch (error) {
@@ -641,7 +724,7 @@ const PosView = () => {
                 activeTable={activeTable}
                 onClearTable={() => {
                   setActiveTable(null);
-                  setActiveOrder(null);
+                  setActiveOrders([]);
                   setCartItems([]);
                 }}
                 onSaveOrder={handleSaveOrder}
@@ -650,6 +733,7 @@ const PosView = () => {
                 onUpdateQty={handleUpdateQty}
                 onCharge={handleCharge}
                 onNewOrder={handleNewOrder}
+                onResetOrder={handleResetOrder}
                 isMobile={true}
                 onCloseMobile={() => setIsMobileCartOpen(false)}
                 onChangeTableMobile={() => setIsTableModalOpen(true)}

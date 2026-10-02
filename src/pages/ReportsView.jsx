@@ -107,7 +107,7 @@ const ReportsView = () => {
       try {
         const [sr, or] = await Promise.all([
           supabase.from('shifts').select('*').eq('organization_id', organization.id).gte('start_time', queryStart.toISOString()).lte('start_time', e.toISOString()).order('start_time', { ascending: false }),
-          supabase.from('orders').select('id, order_number, order_type, delivery_type, status, total, delivery_fee, created_at, payments ( method, amount, status ), order_items ( product_id, product_name, quantity, unit_price )').eq('organization_id', organization.id).gte('created_at', queryStart.toISOString()).lte('created_at', e.toISOString()).order('created_at', { ascending: false }),
+          supabase.from('orders').select('id, order_number, order_type, delivery_type, status, total, delivery_fee, created_at, payments ( method, amount, status ), order_items ( product_id, product_name, quantity, unit_price, parent_item_id )').eq('organization_id', organization.id).gte('created_at', queryStart.toISOString()).lte('created_at', e.toISOString()).order('created_at', { ascending: false }),
         ])
         if (sr.error) throw sr.error
         if (or.error) throw or.error
@@ -237,7 +237,9 @@ const ReportsView = () => {
   const topProducts = useMemo(() => {
     const map = {}
     validOrders.forEach(o => {
-      if (o.order_items) o.order_items.forEach(item => {
+      // Los componentes de un combo (parent_item_id) ya están incluidos en el
+      // unit_price del combo padre. Sumarlos duplicaría el monto.
+      if (o.order_items) o.order_items.filter(item => !item.parent_item_id).forEach(item => {
         if (Number(item.unit_price || 0) < MIN_TOP_PRODUCT_PRICE) return
         const name = item.product_name || 'Sin nombre'
         if (!map[name]) map[name] = { name, qty: 0, revenue: 0, productId: item.product_id || null }

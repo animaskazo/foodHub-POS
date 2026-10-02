@@ -59,7 +59,7 @@ export const getRestaurantTables = async (branchId) => {
     .from('restaurant_tables')
     .select(`
       *,
-      orders(id, total, status)
+      orders(id, total, status, payments(id, status))
     `)
     .eq('branch_id', branchId);
   if (error) throw error;

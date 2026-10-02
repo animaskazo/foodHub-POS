@@ -27,19 +27,21 @@ const Modal = ({
   }, []);
 
   useEffect(() => {
+    let timeoutId;
     if (isOpen) {
       setRender(true);
-      setTimeout(() => setVisible(true), 10);
+      timeoutId = setTimeout(() => setVisible(true), 10);
       document.body.style.overflow = 'hidden';
     } else {
       setVisible(false);
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         setRender(false);
         document.body.style.overflow = 'unset';
       }, 300);
     }
-    
+
     return () => {
+      clearTimeout(timeoutId);
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);

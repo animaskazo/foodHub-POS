@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getFirstOrganizationId } from '../../services/organizationService';
 import { supabase } from '../../lib/supabase';
 import { getTableZones, getRestaurantTables } from '../../services/tableService';
+import { getOpenOrders, sumOpenOrdersTotal } from '../../services/orderService';
 import { Loader2, Users, Menu } from 'lucide-react';
 
 const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
@@ -190,16 +191,21 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
       >
         <div className="absolute top-0 left-0 w-[1600px] h-[1200px] origin-top-left p-8">
           {activeTables.map(t => {
-            const activeOrder = t.orders?.find(o => ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status));
-            const currentTotal = activeOrder ? activeOrder.total : 0;
-            
+            const openOrders = getOpenOrders(t.orders);
+            const currentTotal = sumOpenOrdersTotal(t.orders);
+            // `restaurant_tables.status` no lo mantiene el POS (nunca se pone en
+            // 'occupied'), así que la ocupación real se deriva de las órdenes
+            // abiertas. Si no hay, se respeta el estado manual ('cleaning',
+            // 'reserved', etc.).
+            const visualStatus = openOrders.length > 0 ? 'occupied' : t.status;
+
             return (
             <button
               key={t.id}
               onClick={() => {
                 if (!hasDragged) onTableSelect(t);
               }}
-              className={`absolute flex flex-col items-center justify-center border transition-all duration-300 ease-out active:scale-[0.98] ${getStatusColor(t.status)} ${t.shape === 'round' ? 'rounded-full' : t.shape === 'rectangle' ? 'rounded-2xl' : 'rounded-3xl'}`}
+              className={`absolute flex flex-col items-center justify-center border transition-all duration-300 ease-out active:scale-[0.98] ${getStatusColor(visualStatus)} ${t.shape === 'round' ? 'rounded-full' : t.shape === 'rectangle' ? 'rounded-2xl' : 'rounded-3xl'}`}
               style={{
                 left: t.pos_x,
                 top: t.pos_y,
@@ -208,7 +214,7 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
               }}
             >
               <div className="absolute top-4 right-4 flex gap-1">
-                <span className={`w-2.5 h-2.5 rounded-full ${getStatusDot(t.status)}`}></span>
+                <span className={`w-2.5 h-2.5 rounded-full ${getStatusDot(visualStatus)}`}></span>
               </div>
               
               <span className="font-semibold text-center px-4 text-[17px] tracking-tight">{t.name}</span>
@@ -219,7 +225,7 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
                   <span>{t.capacity}</span>
                 </div>
                 
-                {t.status === 'occupied' && currentTotal > 0 && (
+                {openOrders.length > 0 && currentTotal > 0 && (
                   <span className="text-[13px] font-bold tracking-wide">
                     ${new Intl.NumberFormat('es-CL').format(currentTotal)}
                   </span>

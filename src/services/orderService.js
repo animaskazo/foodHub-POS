@@ -3,6 +3,27 @@ import { checkInventoryStock, deductInventoryForOrder } from './inventoryService
 import { upsertCustomerForOrder } from './customerService';
 import { getCartItemUnitPrice, getBundleOptionUnitPrice } from '../utils/cartTotals';
 
+// Una orden sigue "abierta" para el POS mientras su estado esté en esta lista.
+export const OPEN_ORDER_STATUSES = ['pending', 'confirmed', 'preparing', 'ready'];
+
+// Estados de pago que consideran una orden cobrada.
+export const PAID_PAYMENT_STATUSES = ['paid', 'completed'];
+
+// Una orden está "abierta" para el POS si su estado es activo Y no tiene pago
+// confirmado. El estado por sí solo no alcanza: `createOrder` deja la orden en
+// 'confirmed' aunque ya esté pagada, y el cobro de mesa nunca avanza el estado a
+// 'delivered'. Sin este filtro, una mesa cobrada seguiría apareciendo ocupada y
+// su venta volvería a cargarse al carrito.
+export const isOrderOpen = (order) =>
+  !!order &&
+  OPEN_ORDER_STATUSES.includes(order.status) &&
+  !(order.payments || []).some((p) => PAID_PAYMENT_STATUSES.includes(p.status));
+
+export const getOpenOrders = (orders = []) => (orders || []).filter(isOrderOpen);
+
+export const sumOpenOrdersTotal = (orders = []) =>
+  getOpenOrders(orders).reduce((acc, o) => acc + Number(o.total || 0), 0);
+
 export const createOrder = async (cartItems, paymentMethod, orderType, total, subtotal, tax, deliveryInfo = null, orderNotes = '', deliveryFee = 0, tableId = null, discountAmount = 0, couponId = null) => {
   try {
     // 1. Get the current logged-in user's organization and branch
@@ -564,26 +585,25 @@ export const updateOrderCustomer = async (orderId, name, phone) => {
   }
 };
 
-export const getOpenOrderForTable = async (tableId) => {
+export const getOpenOrdersForTable = async (tableId) => {
+  if (!tableId) return [];
   try {
     const { data, error } = await supabase
       .from('orders')
       .select(`
         *,
-        payments(*),
+        payments(id, status, amount),
         order_items(*, order_item_variants(*), order_item_ingredients(*), products(product_images(url)))
       `)
       .eq('table_id', tableId)
-      .in('status', ['pending', 'confirmed', 'preparing', 'ready'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+      .in('status', OPEN_ORDER_STATUSES)
+      .order('created_at', { ascending: true }); // la más antigua es la canónica
 
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 is not found
-    return data;
+    if (error) throw error;
+    return getOpenOrders(data || []);
   } catch (error) {
-    console.error("Error fetching open order for table:", error);
-    return null;
+    console.error("Error fetching open orders for table:", error);
+    return [];
   }
 };
 

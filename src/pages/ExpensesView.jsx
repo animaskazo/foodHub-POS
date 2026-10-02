@@ -472,6 +472,7 @@ const ExpensesView = () => {
                 <tr>
                   <th className="px-6 py-3 font-medium">Fecha</th>
                   <th className="px-6 py-3 font-medium">Categoría</th>
+                  <th className="px-6 py-3 font-medium">Tipo</th>
                   <th className="px-6 py-3 font-medium">Descripción</th>
                   <th className="px-6 py-3 font-medium">Proveedor</th>
                   <th className="px-6 py-3 font-medium text-right">Monto</th>
@@ -480,23 +481,32 @@ const ExpensesView = () => {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
-                  <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-500"><Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" /> Cargando gastos...</td></tr>
+                  <tr><td colSpan={7} className="px-6 py-10 text-center text-gray-500"><Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" /> Cargando gastos...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-500">Sin gastos este mes. Registra el arriendo como recurrente para partir.</td></tr>
+                  <tr><td colSpan={7} className="px-6 py-10 text-center text-gray-500">Sin gastos este mes. Registra el arriendo como recurrente para partir.</td></tr>
                 ) : filtered.map((e) => {
                   const RowIcon = resolveCategoryIcon({ name: e.expense_categories?.name, icon: categories.find((c) => c.id === e.category_id)?.icon });
                   return (
                     <tr key={`${e.id}-${e.expense_date}`} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 text-gray-600 whitespace-nowrap">
                         {new Date(e.expense_date + 'T12:00:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}
-                        {e.is_recurring && <span className="ml-2 inline-flex items-center gap-1 text-[11px] font-semibold text-violet-700 bg-violet-50 px-2 py-0.5 rounded-full"><Repeat className="h-3 w-3" />{e._virtual ? 'Auto' : 'Mensual'}</span>}
                       </td>
                       <td className="px-6 py-4">
-                        <Badge variant="secondary" className="border font-semibold inline-flex items-center gap-1.5" style={{ backgroundColor: `${e.expense_categories?.color || '#6b7280'}15`, color: e.expense_categories?.color || '#374151', borderColor: `${e.expense_categories?.color || '#6b7280'}30` }}>
-                          <RowIcon className="h-3.5 w-3.5" />
+                        <Badge variant="secondary" className="bg-gray-100 text-gray-900 border-gray-200 font-semibold inline-flex items-center gap-1.5">
+                          <RowIcon className="h-3.5 w-3.5 text-gray-900" />
                           {e.expense_categories?.name || 'Sin categoría'}
                         </Badge>
-                        <span className="ml-2 text-[11px] text-gray-400 uppercase">{e.is_recurring ? 'fijo' : 'variable'}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {e.is_recurring ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-900 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">
+                            <Repeat className="h-3 w-3" />Fijo {e._virtual ? 'Auto' : 'Mensual'}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center text-[11px] font-semibold text-gray-900 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">
+                            Variable
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 font-medium text-gray-900">
                         <span className="inline-flex items-center gap-1.5">
@@ -542,38 +552,38 @@ const ExpensesView = () => {
               </div>
             ) : filtered.map((e) => {
               const CatIcon = resolveCategoryIcon({ name: e.expense_categories?.name, icon: categories.find((c) => c.id === e.category_id)?.icon });
-              const catColor = e.expense_categories?.color || '#6b7280';
               return (
                 <div
                   key={`${e.id}-${e.expense_date}`}
                   onClick={() => setViewing(e)}
-                  className="flex items-center gap-3 p-3 rounded-2xl border border-gray-100 bg-white active:bg-gray-50 transition-colors cursor-pointer"
+                  className="p-3.5 rounded-2xl border border-gray-100 bg-white active:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  <span className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${catColor}15`, color: catColor }}>
-                    <CatIcon className="h-5 w-5" />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-gray-900 truncate">
-                        {e.description}
-                        {e.receipt_url && <Paperclip className="inline h-3.5 w-3.5 text-gray-400 ml-1.5 -mt-0.5" />}
-                      </p>
-                      <span className="text-sm font-bold text-gray-900 tabular-nums tracking-tight whitespace-nowrap">{fmt(e.amount)}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-gray-100 text-gray-900">
+                      <CatIcon className="h-5 w-5" />
+                    </span>
+                    <p className="flex-1 min-w-0 text-sm font-semibold text-gray-900 truncate">
+                      {e.description}
+                      {e.receipt_url && <Paperclip className="inline h-3.5 w-3.5 text-gray-400 ml-1.5 -mt-0.5" />}
+                    </p>
+                    <span className="text-base font-bold text-gray-900 tabular-nums tracking-tight whitespace-nowrap">{fmt(e.amount)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 mt-2.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {e.is_recurring ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-900 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full whitespace-nowrap"><Repeat className="h-3 w-3" />Fijo {e._virtual ? 'Auto' : 'Mensual'}</span>
+                      ) : (
+                        <span className="inline-flex items-center text-[11px] font-semibold text-gray-900 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full whitespace-nowrap">Variable</span>
+                      )}
+                      <span className="text-xs text-gray-400 whitespace-nowrap">{new Date(e.expense_date + 'T12:00:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-2 mt-1">
-                      <p className="text-xs text-gray-400 truncate">
-                        <span className="font-semibold" style={{ color: catColor }}>{e.expense_categories?.name || 'Sin categoría'}</span>
-                        <span className="mx-1.5">·</span>{new Date(e.expense_date + 'T12:00:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}
-                        {e.is_recurring && <span className="ml-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-violet-700 bg-violet-50 px-1.5 py-0.5 rounded-md"><Repeat className="h-2.5 w-2.5" />{e._virtual ? 'Auto' : 'Mensual'}</span>}
-                      </p>
-                      <div className="flex items-center gap-1 shrink-0" onClick={(ev) => ev.stopPropagation()}>
-                        <button title="Editar" aria-label="Editar gasto" onClick={() => openModal(e)} className="p-2.5 -m-1 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button title="Eliminar" aria-label="Eliminar gasto" onClick={() => setDeleteModal({ isOpen: true, target: e, isDeleting: false })} className="p-2.5 -m-1 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
+                    <div className="flex items-center gap-1 shrink-0" onClick={(ev) => ev.stopPropagation()}>
+                      <button title="Editar" aria-label="Editar gasto" onClick={() => openModal(e)} className="p-2.5 -m-1 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button title="Eliminar" aria-label="Eliminar gasto" onClick={() => setDeleteModal({ isOpen: true, target: e, isDeleting: false })} className="p-2.5 -m-1 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -851,7 +861,6 @@ const ExpensesView = () => {
           {viewing && (() => {
             const payLabel = PAYMENT_METHODS.find((m) => m.value === viewing.payment_method)?.label;
             const CatIcon = resolveCategoryIcon({ name: viewing.expense_categories?.name });
-            const catColor = viewing.expense_categories?.color || '#6b7280';
             const rows = [
               ['Fecha', new Date(viewing.expense_date + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })],
               ['Proveedor', viewing.supplier || '—'],
@@ -863,7 +872,7 @@ const ExpensesView = () => {
             return (
               <div className="p-4 sm:p-6 space-y-5">
                 <div className="flex items-start gap-3">
-                  <span className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${catColor}15`, color: catColor }}>
+                  <span className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-gray-100 text-gray-900">
                     <CatIcon className="h-5 w-5" />
                   </span>
                   <div className="flex-1 min-w-0">
@@ -872,11 +881,11 @@ const ExpensesView = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="secondary" className="border font-semibold inline-flex items-center gap-1.5" style={{ backgroundColor: `${catColor}15`, color: catColor === '#6b7280' ? '#374151' : catColor, borderColor: `${catColor}30` }}>
-                    <CatIcon className="h-3.5 w-3.5" />
+                  <Badge variant="secondary" className="bg-gray-100 text-gray-900 border-gray-200 font-semibold inline-flex items-center gap-1.5">
+                    <CatIcon className="h-3.5 w-3.5 text-gray-900" />
                     {viewing.expense_categories?.name || 'Sin categoría'}
                   </Badge>
-                  {viewing.is_recurring && <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-700 bg-violet-50 border border-violet-100 px-2 py-0.5 rounded-full"><Repeat className="h-3 w-3" />{viewing._virtual ? 'Ocurrencia automática' : 'Serie mensual'}</span>}
+                  {viewing.is_recurring && <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-900 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full"><Repeat className="h-3 w-3" />{viewing._virtual ? 'Ocurrencia automática' : 'Serie mensual'}</span>}
                   {viewing.receipt_url && <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full"><Paperclip className="h-3 w-3" />Con comprobante</span>}
                 </div>
                 {viewing._virtual && (
