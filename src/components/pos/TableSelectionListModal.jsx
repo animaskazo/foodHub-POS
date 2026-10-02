@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Modal from '../ui/Modal';
 import { getFirstOrganizationId } from '../../services/organizationService';
 import { supabase } from '../../lib/supabase';
-import { getRestaurantTables, getTableZones } from '../../services/tableService';
+import { getRestaurantTables, getTableZones, onTablesChanged } from '../../services/tableService';
 import { getOpenOrders, sumOpenOrdersTotal } from '../../services/orderService';
 import { Loader2 } from 'lucide-react';
 
@@ -12,53 +12,40 @@ const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable,
   const [activeZoneId, setActiveZoneId] = useState('all');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadTables = async () => {
-      if (tables.length === 0) setLoading(true);
-      try {
-        const orgId = await getFirstOrganizationId();
-        if (!orgId) return;
-        const { data: branchData } = await supabase.from('branches').select('id').eq('organization_id', orgId).limit(1).single();
-        if (branchData) {
-          const [loadedTables, loadedZones] = await Promise.all([
-            getRestaurantTables(branchData.id),
-            getTableZones(branchData.id)
-          ]);
-          setTables(loadedTables);
-          setZones(loadedZones);
-        }
-      } catch (err) {
-        console.error("Error loading tables", err);
-      } finally {
-        setLoading(false);
+  const loadTables = useCallback(async () => {
+    try {
+      const orgId = await getFirstOrganizationId();
+      if (!orgId) return;
+      const { data: branchData } = await supabase.from('branches').select('id').eq('organization_id', orgId).limit(1).single();
+      if (branchData) {
+        const [loadedTables, loadedZones] = await Promise.all([
+          getRestaurantTables(branchData.id),
+          getTableZones(branchData.id)
+        ]);
+        setTables(loadedTables);
+        setZones(loadedZones);
       }
-    };
-    
-    // Always load when opened to ensure fresh data
-    if (isOpen) {
-      loadTables();
+    } catch (err) {
+      console.error("Error loading tables", err);
+    } finally {
+      setLoading(false);
     }
-  }, [isOpen]);
-  
-  // Also do an initial load in the background so it's ready before the first open
-  useEffect(() => {
-    const initLoad = async () => {
-      try {
-        const orgId = await getFirstOrganizationId();
-        if (!orgId) return;
-        const { data: branchData } = await supabase.from('branches').select('id').eq('organization_id', orgId).limit(1).single();
-        if (branchData) {
-          const [loadedTables, loadedZones] = await Promise.all([
-            getRestaurantTables(branchData.id),
-            getTableZones(branchData.id)
-          ]);
-          setTables(loadedTables);
-          setZones(loadedZones);
-        }
-      } catch (err) {}
-    };
-    initLoad();
   }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    loadTables();
+    // Carga inicial en segundo plano, para estar listo antes del primer abierto.
+  }, [loadTables]);
+
+  // Always load when opened to ensure fresh data
+  useEffect(() => {
+    if (isOpen) loadTables();
+  }, [isOpen, loadTables]);
+
+  // El POS avisa tras cobrar o enviar a cocina: sin esto el monto seguía
+  // desactualizado si el modal estaba abierto durante el cobro.
+  useEffect(() => onTablesChanged(loadTables), [loadTables]);
 
   const fmt = (n) => n.toLocaleString('es-CL');
   const filteredTables = activeZoneId === 'all' ? tables : tables.filter(t => t.zone_id === activeZoneId);

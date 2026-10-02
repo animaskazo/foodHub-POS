@@ -66,6 +66,32 @@ export const getRestaurantTables = async (branchId) => {
   return data || [];
 };
 
+/* ── Invalidación de mesas ──────────────────────────────
+   El mapa, el modal de selección y el desplegable del carrito mantienen cada
+   uno su propia copia de getRestaurantTables, que solo se cargaba al montar.
+   Como el cobro escribe en payments y orders (no en restaurant_tables), la mesa
+   seguía mostrando el monto viejo —en rojo— hasta recargar la página.
+
+   En vez de subir las mesas al PosView y bajarlas por props, los componentes se
+   suscriben acá y el POS avisa después de cada acción que cambia pedidos o
+   pagos. Cada componente sigue siendo autónomo, como hasta ahora. */
+const tablesChangeListeners = new Set();
+
+export const onTablesChanged = (listener) => {
+  tablesChangeListeners.add(listener);
+  return () => tablesChangeListeners.delete(listener);
+};
+
+export const notifyTablesChanged = () => {
+  tablesChangeListeners.forEach((listener) => {
+    try {
+      listener();
+    } catch (error) {
+      console.error('Error notificando cambio de mesas:', error);
+    }
+  });
+};
+
 export const createRestaurantTable = async (tableData) => {
   const { data, error } = await supabase
     .from('restaurant_tables')

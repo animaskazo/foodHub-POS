@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getFirstOrganizationId } from '../../services/organizationService';
 import { supabase } from '../../lib/supabase';
-import { getTableZones, getRestaurantTables } from '../../services/tableService';
+import { getTableZones, getRestaurantTables, onTablesChanged } from '../../services/tableService';
 import { getOpenOrders, sumOpenOrdersTotal } from '../../services/orderService';
 import { Loader2, Users, Menu } from 'lucide-react';
 
@@ -16,27 +16,6 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
   const [hasDragged, setHasDragged] = useState(false); // To prevent click on table if dragged
-
-  useEffect(() => {
-    loadData();
-    
-    // Subscribe to changes in tables (e.g. status changes)
-    const tablesSubscription = supabase
-      .channel('public:restaurant_tables')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, (payload) => {
-        setTables(current => {
-          if (payload.eventType === 'INSERT') return [...current, payload.new];
-          if (payload.eventType === 'UPDATE') return current.map(t => t.id === payload.new.id ? payload.new : t);
-          if (payload.eventType === 'DELETE') return current.filter(t => t.id !== payload.old.id);
-          return current;
-        });
-      })
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(tablesSubscription);
-    };
-  }, []);
 
   const loadData = async () => {
     try {
@@ -70,6 +49,29 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadData();
+
+    // Cualquier cambio en restaurant_tables recarga la lista completa en vez de
+    // parchear la fila: `payload.new` es la fila cruda y viene sin los pedidos
+    // embebidos, así que replacing la dejaba con 0 pedidos aunque tuviera una
+    // orden abierta (pasaba al renombrar una mesa desde TablesSettings).
+    const tablesSubscription = supabase
+      .channel('public:restaurant_tables')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    // El POS avisa tras cobrar o enviar a cocina.
+    const unsubscribe = onTablesChanged(loadData);
+      
+    return () => {
+      supabase.removeChannel(tablesSubscription);
+      unsubscribe();
+    };
+  }, []);
 
   const activeTables = tables.filter(t => t.zone_id === activeZoneId);
 
