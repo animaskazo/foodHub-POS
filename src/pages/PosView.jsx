@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import ProductGrid from '../components/pos/ProductGrid';
@@ -498,6 +498,44 @@ const PosView = () => {
     setCouponError('');
   };
 
+  // ── Generación del ticket ──
+  // Se dispara desde el modal de pago, en el botón "Guardar y Cerrar" o en
+  // "Omitir", NO al cobrar. El orden importa: los datos del cliente se piden
+  // después del pago, así que imprimir en handlePaymentConfirm armaba el ticket
+  // con la orden todavía sin nombre ni teléfono.
+  //
+  // El refetch es necesario: el objeto que devuelve el pago no trae los
+  // order_items, pagos ni descuento que el ticket necesita, y además garantiza
+  // leer los datos del cliente ya guardados.
+  const generateTicket = useCallback(async (orderId) => {
+    if (!orderId) return;
+
+    // Respeta el toggle de auto-impresión: admin y owner imprimen siempre, el
+    // resto depende del ajuste. Un cajero sin impresión no debe empezar a sacar
+    // papel por un cambio de orden en el flujo.
+    const wantsAutoPrint = localStorage.getItem('pos_auto_print_enabled') === 'true' ||
+      (typeof role === 'string' && ['owner', 'admin'].includes(role));
+    if (!wantsAutoPrint) return;
+
+    const { data: fullOrder, error } = await supabase
+      .from('orders')
+      .select(`
+        *, discount_amount,
+        payments(method, status),
+        order_items(*, order_item_variants(variant_option_name), order_item_ingredients(ingredient_name))
+      `)
+      .eq('id', orderId)
+      .single();
+
+    if (error) {
+      console.error('No se pudo leer la orden para el ticket:', error);
+      import('sonner').then(({ toast }) => toast.error('No se pudo generar el ticket'));
+      return;
+    }
+
+    setPosPrintOrder(fullOrder);
+  }, [role]);
+
   const handleCharge = () => {
     setIsPaymentModalOpen(true);
   };
@@ -527,8 +565,46 @@ const PosView = () => {
           await appendItemsToOrder(primary.id, newItems, newTotal, newSubtotal, newTax);
         }
 
-        const { supabase } = await import('../lib/supabase');
         const paidAt = new Date().toISOString();
+
+        // ── Datos del cliente, ANTES de liquidar e imprimir ──
+        // createOrder guarda nombre, teléfono y dirección en el insert, pero esa
+        // rama solo corre cuando la orden es nueva. Al cobrar una mesa con
+        // pedido en curso se pasaba por el update de totales de más abajo, que no
+        // toca estos campos: lo que el cajero escribía en el modal se perdía y el
+        // ticket impreso salía sin nombre ni teléfono.
+        //
+        // Se escribe en la orden canónica (la misma donde se aplican el descuento
+        // y el despacho) porque es la que se imprime.
+        if (deliveryInfo) {
+          const { customerName, customerPhone, deliveryAddress } = deliveryInfo;
+
+          // Mismo helper que usa el modal tras confirmar: además de escribir la
+          // orden, da de alta al cliente en `customers` y deja el customer_id
+          // enlazado, que es lo que después usa el historial de clientes.
+          if (customerName || customerPhone) {
+            try {
+              await updateOrderCustomer(primary.id, customerName, customerPhone);
+            } catch (err) {
+              // No se corta el cobro: el pago es lo urgente. Pero el ticket
+              // saldría sin el cliente, así que hay que avisar.
+              console.error('No se pudieron guardar los datos del cliente:', err);
+              alert('El cobro se registró, pero no se pudieron guardar los datos del cliente. El ticket saldrá sin nombre ni teléfono.');
+            }
+          }
+
+          // La dirección no la cubre ese helper, y en reparto es lo que va impreso.
+          if (deliveryAddress) {
+            const { error: addressError } = await supabase
+              .from('orders')
+              .update({ delivery_address: deliveryAddress })
+              .eq('id', primary.id);
+
+            if (addressError) {
+              console.error('No se pudo guardar la dirección de despacho:', addressError);
+            }
+          }
+        }
 
         // Reparto del cobro: cada orden abierta se liquida con la suma de SUS
         // propios ítems. El descuento y el despacho se aplican a la orden
@@ -591,24 +667,6 @@ const PosView = () => {
       setAppliedCoupon(null);
       setCouponError('');
       
-      // Auto-impresión (servidor Python). Admin/Owner imprimen siempre; el resto depende del toggle.
-      const wantsAutoPrint = localStorage.getItem('pos_auto_print_enabled') === 'true' ||
-        (typeof role === 'string' && ['owner', 'admin'].includes(role));
-      if (wantsAutoPrint) {
-        // Refetch de la orden completa para obtener order_items y payments necesarios para el ticket
-        const { data: fullOrder } = await supabase
-          .from('orders')
-          .select(`
-            *, discount_amount,
-            payments(method, status),
-            order_items(*, order_item_variants(variant_option_name), order_item_ingredients(ingredient_name))
-          `)
-          .eq('id', finalOrder.id)
-          .single();
-
-        setPosPrintOrder(fullOrder || finalOrder);
-      }
-
       return finalOrder;
     } catch (error) {
       console.error('Error creating order:', error);
@@ -873,6 +931,7 @@ const PosView = () => {
         onSaveCustomer={async (id, name, phone) => {
           await updateOrderCustomer(id, name, phone);
         }}
+        onGenerateTicket={generateTicket}
       />
       
       <VariantSelectionModal

@@ -54,53 +54,57 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
 
       {/* Header: Order Info */}
       <div className="px-5 pt-5 pb-4 border-b border-gray-100 shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-2">
+          {/* Izquierda: cerrar el carrito (solo móvil) */}
+          <div className="flex items-center md:hidden">
             {isMobile && (
               <button 
                 onClick={onCloseMobile}
-                className="p-2 -ml-2 text-gray-500 active:bg-gray-100 rounded-full md:hidden select-none"
+                className="p-2 -ml-2 text-gray-500 active:bg-gray-100 rounded-full select-none"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
               >
                 <X className="h-6 w-6" />
               </button>
             )}
-            <div>
+          </div>
+          {/* Centro: selector de mesa. En móvil ocupa el espacio libre y centra
+              el botón de verdad; en desktop vuelve a la izquierda. */}
+          <div className="flex-1 flex justify-center md:flex-none md:justify-start">
               <div className="relative z-50">
                 {dineInEnabled ? (
                   <div className="flex items-stretch select-none">
                     <button
                       type="button"
                       onClick={() => {
-                        if (window.innerWidth >= 768) {
-                          setIsDropdownOpen(!isDropdownOpen);
-                        } else if (onChangeTableMobile) {
+                        if (onChangeTableMobile) {
                           onChangeTableMobile();
+                        } else if (window.innerWidth >= 768) {
+                          setIsDropdownOpen(!isDropdownOpen);
                         }
                       }}
-                      aria-expanded={isDropdownOpen}
-                      aria-haspopup="listbox"
+                      aria-label={activeTable ? `Cambiar mesa ${activeTable.name}` : 'Elegir mesa'}
                       style={{ WebkitTapHighlightColor: 'transparent' }}
-                      className={`group flex items-center gap-2.5 h-11 sm:h-12 pl-3 sm:pl-3.5 pr-3 sm:pr-3.5 border transition-all duration-75 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 active:translate-y-px ${
+                      className={`flex items-center gap-2 h-10 md:h-12 px-3 md:px-3.5 border text-sm md:text-base font-semibold touch-manipulation transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                         activeTable
-                          ? 'rounded-l-xl bg-blue-50 text-blue-800 border-blue-200 border-r-0 shadow-[inset_0_1px_0_#ffffff,0_1px_2px_rgba(16,24,40,0.08)] hover:bg-blue-100 active:bg-blue-100 active:shadow-[inset_0_2px_3px_rgba(21,94,117,0.22)]'
-                          : 'rounded-xl bg-white text-gray-900 border-blue-200 shadow-[inset_0_1px_0_#ffffff,0_2px_4px_rgba(16,24,40,0.12)] hover:bg-blue-50 active:bg-blue-100 active:shadow-[inset_0_2px_4px_rgba(16,24,40,0.16)]'
+                          ? 'rounded-l-xl bg-blue-50 text-blue-800 border-blue-200 border-r-0'
+                          : 'rounded-xl bg-white text-gray-900 border-blue-200'
                       }`}
                     >
-                      <Monitor className={`h-5 w-5 shrink-0 ${activeTable ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <Monitor className={`h-4 w-4 md:h-5 md:w-5 shrink-0 ${activeTable ? 'text-blue-600' : 'text-gray-400'}`} />
                       {activeTable ? (
-                        <span className="flex items-baseline gap-1.5 whitespace-nowrap">
+                        <span className="whitespace-nowrap">
                           {!/^mesa\b/i.test(activeTable.name) && (
-                            <span className="text-xs font-medium leading-none opacity-60">Mesa</span>
+                            <span className="text-xs font-medium opacity-60 mr-1">Mesa</span>
                           )}
-                          <span className="text-base font-semibold leading-none">{activeTable.name}</span>
+                          {activeTable.name}
                         </span>
                       ) : (
-                        <span className="text-base font-semibold leading-none">Venta Directa</span>
+                        <>
+                          <span className="md:hidden">Mesa</span>
+                          <span className="hidden md:inline">Venta Directa</span>
+                        </>
                       )}
-                      <ArrowLeftRight
-                        className={`h-4 w-4 shrink-0 transition-transform duration-150 ${isDropdownOpen ? 'rotate-180' : ''} ${activeTable ? 'text-blue-500' : 'text-gray-400'}`}
-                      />
+                      <ArrowLeftRight className="hidden md:block h-4 w-4 shrink-0 text-gray-400" />
                     </button>
                     {activeTable && (
                       <button
@@ -109,16 +113,16 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                         title="Quitar mesa"
                         aria-label={`Quitar mesa ${activeTable.name}`}
                         style={{ WebkitTapHighlightColor: 'transparent' }}
-                        className="flex items-center px-2.5 h-11 sm:h-12 rounded-r-xl border border-blue-200 text-blue-400 transition-all duration-75 touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 shadow-[inset_0_1px_0_#ffffff,0_1px_2px_rgba(16,24,40,0.08)] hover:bg-blue-100 hover:text-blue-700 active:translate-y-px active:bg-blue-200 active:shadow-[inset_0_2px_3px_rgba(21,94,117,0.22)]"
+                        className="flex items-center px-2.5 h-10 md:h-12 rounded-r-xl bg-blue-50 border border-blue-200 border-l-0 text-blue-400 transition-colors touch-manipulation hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                       >
                         <X className="h-4 w-4" />
                       </button>
                     )}
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2.5 h-11 sm:h-12 select-none">
-                    <Monitor className="h-5 w-5 shrink-0 text-gray-400" />
-                    <span className="text-base font-semibold leading-none text-gray-900">Venta Directa</span>
+                  <div className="flex items-center gap-2 h-10 md:h-12 select-none">
+                    <Monitor className="h-4 w-4 md:h-5 md:w-5 shrink-0 text-gray-400" />
+                    <span className="text-sm md:text-base font-semibold text-gray-900">Venta Directa</span>
                   </div>
                 )}
                 
@@ -177,9 +181,8 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                     </div>
                   </>
                 )}
-              </div>
-            </div>
-          </div>
+               </div>
+             </div>
           <div className="flex items-center gap-2">
             <Button
               size="sm"
@@ -192,10 +195,13 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
               <RotateCcw className="h-4 w-4" />
               <span className="hidden lg:inline">Resetear</span>
             </Button>
+            {/* "+ Nueva orden" solo en desktop: en móvil el header no tiene
+                sitio y la acción se hace desde el catálogo. */}
             <Button
               size="sm"
               variant="outline"
               onClick={onNewOrder}
+              className="hidden md:inline-flex"
             >
               + Nueva orden
             </Button>
@@ -413,12 +419,19 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
           </div>
         )}
 
-        {/* Action Buttons — en el flujo del footer: el footer crece cuando
-            aparece el segundo botón y la lista de arriba se acorta sola.
-            El inset de 16px recupera el margen que tenía la barra cuando iba
-            en `fixed left-4 right-4`, y alinea los botones con el cupón y los
+        {/* Botones de acción. "Agregar" y "Cobrar" van uno al lado del otro
+            siempre, también en móvil: son las dos acciones del paso y el cajero
+            elige entre ellas, no las recorre en el tiempo. Antes se apilaban en
+            columna y el footer crecía cuando aparecía el segundo, lo que empujaba
+            la lista de productos hacia arriba en cada cobro.
+
+            Cuando solo existe "Cobrar" (no hay ítems nuevos por guardar) ese
+            botón ocupa la fila completa.
+
+            El inset de 16px recupera el margen que tenía la barra cuando iba en
+            `fixed left-4 right-4`, y alinea los botones con el cupón y los
             totales, que también usan px-4. */}
-        <div className="flex flex-col gap-3 mt-3 mx-4 mb-6 md:mt-0 md:mx-0 md:mb-0 md:flex-row">
+        <div className="flex flex-row gap-3 mt-3 mx-4 mb-6 md:mt-0 md:mx-0 md:mb-0">
           {(() => {
             const hasNewItems = items.some(i => !i.isSaved) && activeTable;
             
@@ -428,25 +441,34 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                   <Button
                     onClick={onSaveOrder}
                     disabled={items.length === 0 || isSavingOrder}
-                    className="w-full md:flex-1 flex items-center justify-center gap-2 h-14 bg-black hover:bg-gray-900 text-white rounded-full shadow-sm transition-transform active:scale-[0.98] font-bold text-[17px] tracking-wide px-5 disabled:opacity-60"
+                    className="flex-1 min-w-0 flex items-center justify-center gap-2 h-14 bg-black hover:bg-gray-900 text-white rounded-full shadow-sm transition-transform active:scale-[0.98] font-bold text-[15px] md:text-[17px] tracking-wide px-3 md:px-5 disabled:opacity-60"
                     style={{ WebkitTapHighlightColor: 'transparent' }}
                   >
-                    {isSavingOrder && <Loader2 className="h-5 w-5 animate-spin" />}
-                    {isSavingOrder ? 'Enviando a cocina...' : 'Agregar a la orden'}
+                    {isSavingOrder && <Loader2 className="h-5 w-5 animate-spin shrink-0" />}
+                    {/* "Enviando a cocina..." no cabe a la mitad del ancho junto
+                        a Cobrar: se recorta a algo que entra sin truncar. */}
+                    {isSavingOrder ? (
+                      <span className="truncate">Enviando…</span>
+                    ) : (
+                      <>
+                        <span className="truncate md:hidden">Agregar</span>
+                        <span className="truncate hidden md:inline">Agregar a la orden</span>
+                      </>
+                    )}
                   </Button>
                 )}
                 <Button
                   onClick={onCharge}
                   disabled={items.length === 0}
                   variant={hasNewItems ? "outline" : "default"}
-                  className={`w-full md:flex-1 flex items-center justify-center h-14 rounded-full shadow-sm transition-transform active:scale-[0.98] font-bold text-[17px] tracking-wide px-5 ${
+                  className={`flex-1 min-w-0 flex items-center justify-center h-14 rounded-full shadow-sm transition-transform active:scale-[0.98] font-bold text-[15px] md:text-[17px] tracking-wide px-3 md:px-5 ${
                     hasNewItems 
                       ? "bg-white border-gray-200 hover:bg-gray-50 text-gray-900" 
                       : "bg-black hover:bg-gray-900 text-white"
                   }`}
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                 >
-                  Cobrar ${fmt(total)}
+                  <span className="truncate">Cobrar ${fmt(total)}</span>
                 </Button>
               </>
             );

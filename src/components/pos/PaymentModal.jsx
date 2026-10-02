@@ -6,7 +6,7 @@ import { useAuth } from '../AuthContext';
 import { geocodeAddress, calculateDistance, isPointInPolygon, findDeliveryZoneForLocation } from '../../utils/geo';
 import { getCartTotal } from '../../utils/cartTotals';
 
-const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, confirmOnly = false, confirmTotal = null }) => {
+const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, onGenerateTicket, confirmOnly = false, confirmTotal = null }) => {
   const { organization } = useAuth();
   const [status, setStatus] = useState('idle'); // 'idle' | 'success'
   const [orderNumber, setOrderNumber] = useState(null);
@@ -138,7 +138,13 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
             <Button 
               variant="outline"
               size="lg"
-              onClick={() => onClose()}
+              onClick={async () => {
+                // Omitir los datos no exime de imprimir: el ticket se genera en
+                // cualquiera de los dos botones, ya con el paso del cliente
+                // cerrado. Por eso no puede generarse al cobrar.
+                if (onGenerateTicket) await onGenerateTicket(orderId);
+                onClose();
+              }}
               className="flex-1"
             >
               Omitir
@@ -147,13 +153,17 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, c
               variant="default"
               size="lg"
               onClick={async () => {
+                // Primero el cliente, después el ticket. Si se invirtiera, el
+                // ticket se armaría con la orden todavía sin nombre ni teléfono.
                 if (!customerName && !customerPhone) {
+                  if (onGenerateTicket) await onGenerateTicket(orderId);
                   onClose();
                   return;
                 }
                 setIsSavingCustomer(true);
                 try {
                   if (onSaveCustomer) await onSaveCustomer(orderId, customerName, customerPhone);
+                  if (onGenerateTicket) await onGenerateTicket(orderId);
                   onClose();
                 } catch(e) {
                   alert("Error al guardar datos del cliente");
