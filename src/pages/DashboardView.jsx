@@ -26,6 +26,7 @@ import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import PrepTimeSelector from '../components/ui/PrepTimeSelector';
 import StockNotifications from '../components/StockNotifications';
+import OnboardingChecklist from '../components/dashboard/OnboardingChecklist';
 import TransactionList from '../components/pos/TransactionList';
 import PrintableReceipt from '../components/pos/PrintableReceipt';
 import Sparkline from '../components/ui/Sparkline';
@@ -103,6 +104,9 @@ const DashboardView = () => {
   const [activePreset, setActivePreset] = useState('today');
   const [rangeFrom, setRangeFrom] = useState(null);
   const [rangeTo, setRangeTo] = useState(null);
+  const [onboardingPending, setOnboardingPending] = useState(false);
+  const [bypassOnboardingBlur, setBypassOnboardingBlur] = useState(false);
+  const dashboardBlurred = onboardingPending && !bypassOnboardingBlur;
   
   // Shifts State
   const [shiftSettings, setShiftSettings] = useState(null);
@@ -536,6 +540,19 @@ const DashboardView = () => {
           }
         />
 
+        {/* Configuración inicial: solo visible mientras falte algún paso */}
+        <OnboardingChecklist onStatusChange={(pending) => {
+          setOnboardingPending(pending);
+          if (!pending) setBypassOnboardingBlur(false);
+        }} />
+
+        <div className="relative">
+        <div
+          aria-hidden={dashboardBlurred}
+          className={dashboardBlurred
+            ? 'pointer-events-none select-none blur-[6px] opacity-50 saturate-75 motion-safe:transition-all motion-safe:duration-300'
+            : 'motion-safe:transition-all motion-safe:duration-300'}
+        >
         {error && (
           <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl border border-red-100">
             {error}
@@ -805,6 +822,19 @@ const DashboardView = () => {
             loading={loading} 
             onOrderUpdated={() => fetchOrders(true)} 
           />
+        </div>
+        </div>
+        {dashboardBlurred && (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+            <button
+              type="button"
+              onClick={() => setBypassOnboardingBlur(true)}
+              className="pointer-events-auto inline-flex items-center rounded-full bg-gray-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-colors hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
+            >
+              Ver dashboard
+            </button>
+          </div>
+        )}
         </div>
       </div>
 
