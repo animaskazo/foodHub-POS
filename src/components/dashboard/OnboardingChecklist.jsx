@@ -20,6 +20,8 @@ const hasHours = (bh) => {
 // Avisa al padre con onStatusChange(true) mientras esté pendiente para que
 // pueda blurear el resto del dashboard.
 const OnboardingChecklist = ({ onStatusChange }) => {
+  // Deshabilitado globalmente: no mostrar a ningún usuario.
+  return null;
   const { organization } = useAuth();
   const [status, setStatus] = useState(null); // null = cargando
   const [collapsed, setCollapsed] = useState(false);

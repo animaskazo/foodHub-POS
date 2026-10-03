@@ -3,7 +3,9 @@ import { Banknote, CreditCard, CheckCircle2, Store, ShoppingBag, Package, Loader
 import Modal from '../ui/Modal';
 import { Button } from '../ui/button';
 import { useAuth } from '../AuthContext';
-import { geocodeAddress, calculateDistance, isPointInPolygon, findDeliveryZoneForLocation } from '../../utils/geo';
+import { geocodeAddress, findDeliveryZoneForLocation } from '../../utils/geo';
+import AddressAutocomplete from '../ui/AddressAutocomplete';
+import AddressMap from './AddressMap';
 import { getCartTotal } from '../../utils/cartTotals';
 
 const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, onGenerateTicket, confirmOnly = false, confirmTotal = null }) => {
@@ -19,6 +21,9 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
   const [customerPhone, setCustomerPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryFee, setDeliveryFee] = useState(0);
+  const [deliveryCoords, setDeliveryCoords] = useState(null);
+  const [matchedZone, setMatchedZone] = useState(null);
+  const [addressError, setAddressError] = useState(null);
   const [isAddressValid, setIsAddressValid] = useState(false);
   const [isValidatingAddress, setIsValidatingAddress] = useState(false);
   const [isSavingCustomer, setIsSavingCustomer] = useState(false);
@@ -37,6 +42,9 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
       setCustomerPhone('');
       setDeliveryAddress('');
       setDeliveryFee(0);
+      setDeliveryCoords(null);
+      setMatchedZone(null);
+      setAddressError(null);
       setIsAddressValid(false);
       setIsValidatingAddress(false);
       setIsSavingCustomer(false);
@@ -49,6 +57,89 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
   const tax = cartTotal - subtotal;
 
   const fmt = (n) => n.toLocaleString('es-CL');
+
+  // ── Misma lógica que el ecommerce (CheckoutForm): zonas desde
+  // delivery_zones o settings.delivery_zones, match por polígono/radio
+  // y precio según el sector emparejado ──
+  const getActiveZones = () => {
+    const all = (organization?.delivery_zones?.length
+      ? organization.delivery_zones
+      : organization?.settings?.delivery_zones) || [];
+    return all.filter(z => z.is_active !== false);
+  };
+
+  const applyMatchedZone = (coords) => {
+    const activeZones = getActiveZones();
+    const hasStoreCoords = !!(organization?.store_lat && organization?.store_lng);
+
+    // Fallback: sin zonas y sin coords del local → tarifa por defecto
+    if (activeZones.length === 0 && !hasStoreCoords) {
+      setIsAddressValid(true);
+      setDeliveryFee(organization?.delivery_fee || 0);
+      setMatchedZone(null);
+      setAddressError(null);
+      return true;
+    }
+
+    const storeCoords = hasStoreCoords
+      ? { lat: organization.store_lat, lng: organization.store_lng }
+      : null;
+    const zone = findDeliveryZoneForLocation(
+      coords,
+      storeCoords,
+      organization?.delivery_zones?.length ? organization.delivery_zones : (organization?.settings?.delivery_zones || [])
+    );
+
+    if (!zone) {
+      setIsAddressValid(false);
+      setDeliveryFee(0);
+      setMatchedZone(null);
+      setAddressError('La dirección ingresada está fuera de la zona de cobertura.');
+      return false;
+    }
+
+    setIsAddressValid(true);
+    setDeliveryFee(zone.fee || 0);
+    setMatchedZone(zone);
+    setAddressError(null);
+    return true;
+  };
+
+  const handleValidateAddress = async (preFetchedCoords = null) => {
+    if (!deliveryAddress?.trim() && !preFetchedCoords) {
+      setAddressError('Por favor ingresa una dirección primero.');
+      return;
+    }
+    // Si ya está validada y no vienen coords nuevas, no re-validar
+    if (isAddressValid && !preFetchedCoords) return;
+    setIsValidatingAddress(true);
+    setAddressError(null);
+    try {
+      const coords = preFetchedCoords || await geocodeAddress(deliveryAddress);
+      if (!coords) {
+        setIsAddressValid(false);
+        setDeliveryFee(0);
+        setMatchedZone(null);
+        setAddressError('No pudimos encontrar la dirección. Asegúrate de incluir comuna o ciudad.');
+        return;
+      }
+      setDeliveryCoords({ lat: coords.lat, lng: coords.lng });
+      applyMatchedZone(coords);
+    } catch (error) {
+      setAddressError('Error al verificar la dirección.');
+    } finally {
+      setIsValidatingAddress(false);
+    }
+  };
+
+  const handleAddressChange = (val) => {
+    setDeliveryAddress(val);
+    setIsAddressValid(false);
+    setDeliveryFee(0);
+    setDeliveryCoords(null);
+    setMatchedZone(null);
+    setAddressError(null);
+  };
 
   const paymentMethods = [
     { id: 'cash', name: 'Efectivo', icon: Banknote },
@@ -69,7 +160,9 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
           customerName,
           customerPhone,
           deliveryAddress,
-          deliveryFee
+          deliveryFee,
+          deliveryZone: matchedZone?.name || null,
+          deliveryCoords
         } : null;
 
         const order = await onConfirm(methodId, orderType, deliveryInfo, orderNotes);
@@ -281,72 +374,36 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                     Datos de Envío
                   </h4>
                   <div className="space-y-3">
-                    <div className="flex gap-2 relative">
-                      <input 
-                        type="text" 
-                        placeholder="Dirección completa *" 
-                        className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-black focus:ring-black focus:outline-none text-sm transition-colors bg-white"
-                        value={deliveryAddress}
-                        onChange={(e) => {
-                          setDeliveryAddress(e.target.value);
-                          setIsAddressValid(false);
-                          setDeliveryFee(0);
-                        }}
-                      />
+                    <div className="flex gap-2 items-start">
+                      <div className="flex-1 min-w-0">
+                        <AddressAutocomplete
+                          value={deliveryAddress}
+                          onChange={handleAddressChange}
+                          onSelectAddress={(sugg) => {
+                            handleAddressChange(sugg.display);
+                            const mappedCoords = {
+                              lat: sugg.lat,
+                              lng: sugg.lng,
+                              displayName: sugg.display,
+                              address: sugg.addressData
+                            };
+                            setDeliveryCoords({ lat: sugg.lat, lng: sugg.lng });
+                            setIsValidatingAddress(true);
+                            // Las coords ya vienen de la API (Photon): match directo sin geocodificar
+                            applyMatchedZone(mappedCoords);
+                            setIsValidatingAddress(false);
+                          }}
+                          onBlur={() => handleValidateAddress()}
+                          error={addressError}
+                          required
+                        />
+                      </div>
                       <button
                         type="button"
                         disabled={isValidatingAddress || isAddressValid}
-                        onClick={async () => {
-                          if (deliveryAddress.length > 5) {
-                            setIsValidatingAddress(true);
-                            const activeZones = (organization?.delivery_zones || []).filter(z => z.is_active !== false);
-                            const hasPolygonZone = activeZones.some(z => z.type === 'polygon' && z.polygon?.length >= 3);
-                            const hasStoreCoords = !!(organization?.store_lat && organization?.store_lng);
-
-                            // Fallback: sin zonas configuradas y sin coords del local → aceptar con tarifa por defecto
-                            if (activeZones.length === 0 && !hasStoreCoords) {
-                              setIsAddressValid(true);
-                              setDeliveryFee(organization?.delivery_fee || 0);
-                              setIsValidatingAddress(false);
-                              return;
-                            }
-                            
-                            try {
-                              const coords = await geocodeAddress(deliveryAddress);
-                              if (coords) {
-                                 const storeCoords = hasStoreCoords
-                                   ? { lat: organization.store_lat, lng: organization.store_lng }
-                                   : null;
-                                 const matchedZone = findDeliveryZoneForLocation(
-                                   coords,
-                                   storeCoords,
-                                   organization.delivery_zones || []
-                                 );
-
-                                if (!matchedZone) {
-                                  alert('La dirección ingresada está fuera de la zona de cobertura.');
-                                  setIsAddressValid(false);
-                                  setDeliveryFee(0);
-                                } else {
-                                  setIsAddressValid(true);
-                                  setDeliveryFee(matchedZone.fee || 0);
-                                }
-                              } else {
-                                alert('No pudimos encontrar la dirección. Asegúrate de incluir tu comuna o ciudad.');
-                                setIsAddressValid(false);
-                                setDeliveryFee(0);
-                              }
-                            } catch (error) {
-                              alert('Error al verificar la dirección.');
-                            } finally {
-                              setIsValidatingAddress(false);
-                            }
-                          } else {
-                            alert("Por favor ingresa una dirección primero.");
-                          }
-                        }}
-                        className={`px-4 py-2.5 font-bold text-sm rounded-xl transition-all shrink-0 flex items-center justify-center min-w-[90px] ${
-                          isAddressValid 
+                        onClick={() => handleValidateAddress()}
+                        className={`mt-7 px-4 py-3.5 font-bold text-sm rounded-xl transition-all shrink-0 flex items-center justify-center min-w-[90px] ${
+                          isAddressValid
                             ? 'bg-green-100 text-green-700'
                             : isValidatingAddress
                               ? 'bg-gray-100 text-gray-400'
@@ -356,6 +413,26 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                         {isValidatingAddress ? <Loader2 className="w-4 h-4 animate-spin" /> : isAddressValid ? <CheckCircle2 className="w-5 h-5" /> : 'Validar'}
                       </button>
                     </div>
+                    {addressError && (
+                      <p className="text-xs font-semibold text-red-600">{addressError}</p>
+                    )}
+                    {isAddressValid && (
+                      <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-green-50 text-green-700 border border-green-100">
+                        <span className="font-semibold text-xs pr-2">
+                          {matchedZone?.name
+                            ? `Sector ${matchedZone.name}: nuestro delivery llega a tu dirección.`
+                            : 'Nuestro delivery llega a tu dirección.'}
+                        </span>
+                        <span className="font-bold text-[13px] shrink-0">
+                          {deliveryFee > 0 ? `Despacho $${fmt(deliveryFee)}` : 'Despacho gratis'}
+                        </span>
+                      </div>
+                    )}
+                    {deliveryCoords && (
+                      <div className="h-40 w-full rounded-xl overflow-hidden border border-gray-200 shadow-inner relative z-0">
+                        <AddressMap coords={deliveryCoords} />
+                      </div>
+                    )}
                     <div className="flex gap-3">
                       <input 
                         type="text" 
