@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Banknote, CreditCard, CheckCircle2, Store, ShoppingBag, Package, Loader2, Truck, MapPin } from 'lucide-react';
+import { Banknote, CreditCard, CheckCircle2, Store, ShoppingBag, Package, Loader2, Truck, MapPin, AlertTriangle } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/button';
 import { useAuth } from '../AuthContext';
@@ -7,6 +7,7 @@ import { geocodeAddress, findDeliveryZoneForLocation } from '../../utils/geo';
 import AddressAutocomplete from '../ui/AddressAutocomplete';
 import AddressMap from './AddressMap';
 import { getCartTotal } from '../../utils/cartTotals';
+import { supabase } from '../../lib/supabase';
 
 const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, onGenerateTicket, confirmOnly = false, confirmTotal = null }) => {
   const { organization } = useAuth();
@@ -27,6 +28,11 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
   const [isAddressValid, setIsAddressValid] = useState(false);
   const [isValidatingAddress, setIsValidatingAddress] = useState(false);
   const [isSavingCustomer, setIsSavingCustomer] = useState(false);
+  // Config de delivery del negocio (zonas, coords del local, tarifa base).
+  // El organization del AuthContext NO trae delivery_zones ni settings, así
+  // que sin esto la validación contra zonas corría siempre sin datos.
+  const [deliveryConfig, setDeliveryConfig] = useState(null);
+  const [isLoadingZones, setIsLoadingZones] = useState(false);
 
   // Restablecer el estado cada vez que se abre el modal
   useEffect(() => {
@@ -51,6 +57,60 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
     }
   }, [isOpen]);
 
+  // Cargar zonas y ubicación del local al abrir: es lo que permite validar la
+  // dirección contra las zonas del negocio (igual que el ecommerce).
+  useEffect(() => {
+    if (!isOpen || !organization?.id) return;
+    let alive = true;
+    setIsLoadingZones(true);
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('organizations')
+          .select('delivery_zones, settings, store_lat, store_lng, delivery_fee, delivery_min_order, delivery_radius_km, delivery_polygon')
+          .eq('id', organization.id)
+          .maybeSingle();
+        if (error) throw error;
+        let zones = (data?.delivery_zones?.length ? data.delivery_zones : data?.settings?.delivery_zones) || [];
+        // Migración legacy igual que DeliverySettingsView: polígono/tarifa
+        // antiguos se tratan como Zona 1.
+        if (zones.length === 0 && (data?.delivery_polygon?.length > 0 || (data?.delivery_fee || 0) > 0)) {
+          zones = [{
+            id: 'zone-legacy-1',
+            name: 'Zona 1 - Principal',
+            fee: data.delivery_fee || 0,
+            min_order: data.delivery_min_order || 0,
+            type: data.delivery_polygon?.length >= 3 ? 'polygon' : 'radius',
+            radius_km: data.delivery_radius_km || 5,
+            polygon: data.delivery_polygon || [],
+            is_active: true,
+          }];
+        }
+        if (!alive) return;
+        setDeliveryConfig({
+          zones,
+          storeLat: data?.store_lat ?? organization?.store_lat ?? null,
+          storeLng: data?.store_lng ?? organization?.store_lng ?? null,
+          defaultFee: data?.delivery_fee ?? organization?.delivery_fee ?? 0,
+        });
+      } catch (e) {
+        console.error('Error cargando zonas de delivery:', e);
+        // Fallback: seguir con lo que traiga el contexto para no bloquear la venta.
+        if (alive) {
+          setDeliveryConfig({
+            zones: [],
+            storeLat: organization?.store_lat ?? null,
+            storeLng: organization?.store_lng ?? null,
+            defaultFee: organization?.delivery_fee ?? 0,
+          });
+        }
+      } finally {
+        if (alive) setIsLoadingZones(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [isOpen, organization?.id, organization?.store_lat, organization?.store_lng, organization?.delivery_fee]);
+
   const cartTotal = getCartTotal(cartItems);
   const total = cartTotal + deliveryFee;
   const subtotal = Math.round(cartTotal / 1.19);
@@ -62,32 +122,50 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
   // delivery_zones o settings.delivery_zones, match por polígono/radio
   // y precio según el sector emparejado ──
   const getActiveZones = () => {
-    const all = (organization?.delivery_zones?.length
-      ? organization.delivery_zones
-      : organization?.settings?.delivery_zones) || [];
+    const all = deliveryConfig
+      ? (deliveryConfig.zones || [])
+      : ((organization?.delivery_zones?.length
+        ? organization.delivery_zones
+        : organization?.settings?.delivery_zones) || []);
     return all.filter(z => z.is_active !== false);
   };
 
+  const getStoreCoords = () => {
+    const lat = deliveryConfig?.storeLat ?? organization?.store_lat;
+    const lng = deliveryConfig?.storeLng ?? organization?.store_lng;
+    return (lat && lng) ? { lat, lng } : null;
+  };
+
+  const getDefaultFee = () => deliveryConfig?.defaultFee ?? organization?.delivery_fee ?? 0;
+
   const applyMatchedZone = (coords) => {
     const activeZones = getActiveZones();
-    const hasStoreCoords = !!(organization?.store_lat && organization?.store_lng);
+    const storeCoords = getStoreCoords();
+    const hasPolygonZone = activeZones.some(z => z.type === 'polygon' && z.polygon?.length >= 3);
 
     // Fallback: sin zonas y sin coords del local → tarifa por defecto
-    if (activeZones.length === 0 && !hasStoreCoords) {
+    if (activeZones.length === 0 && !storeCoords) {
       setIsAddressValid(true);
-      setDeliveryFee(organization?.delivery_fee || 0);
+      setDeliveryFee(getDefaultFee());
       setMatchedZone(null);
       setAddressError(null);
       return true;
     }
 
-    const storeCoords = hasStoreCoords
-      ? { lat: organization.store_lat, lng: organization.store_lng }
-      : null;
+    // Las zonas por radio se miden desde el local: sin su ubicación no se
+    // puede validar (los polígonos sí se pueden evaluar sin ella).
+    if (!storeCoords && !hasPolygonZone && activeZones.length > 0) {
+      setIsAddressValid(false);
+      setDeliveryFee(0);
+      setMatchedZone(null);
+      setAddressError('No se puede validar la cobertura: configura la ubicación del local en Delivery.');
+      return false;
+    }
+
     const zone = findDeliveryZoneForLocation(
       coords,
       storeCoords,
-      organization?.delivery_zones?.length ? organization.delivery_zones : (organization?.settings?.delivery_zones || [])
+      activeZones
     );
 
     if (!zone) {
@@ -112,6 +190,11 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
     }
     // Si ya está validada y no vienen coords nuevas, no re-validar
     if (isAddressValid && !preFetchedCoords) return;
+    // Esperar a que carguen las zonas del negocio antes de validar
+    if (isLoadingZones) {
+      setAddressError('Cargando zonas de reparto… inténtalo de nuevo en un momento.');
+      return;
+    }
     setIsValidatingAddress(true);
     setAddressError(null);
     try {
@@ -296,7 +379,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
       isOpen={isOpen} 
       onClose={onClose} 
       title={confirmOnly ? 'Confirmar Pago en Caja' : 'Confirmar Pago'}
-      maxWidth="max-w-lg"
+      maxWidth="max-w-2xl"
       fullScreenOnMobile={true}
     >
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
@@ -368,19 +451,32 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
               </div>
 
               {orderType === 'delivery' && (
-                <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-2">
-                  <h4 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-gray-500" />
-                    Datos de Envío
-                  </h4>
+                <div className="mb-6 rounded-2xl border-2 border-gray-900 bg-white animate-in fade-in slide-in-from-top-2">
+                  <div className="p-4 space-y-4">
+                    <h4 className="font-extrabold text-gray-900 text-[15px] flex items-center gap-2">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gray-900 text-white">
+                        <Truck className="h-4 w-4" />
+                      </span>
+                      Despacho a domicilio
+                    </h4>
+                    {isLoadingZones && !isAddressValid && !addressError && (
+                      <p className="text-xs font-semibold text-gray-500 flex items-center gap-2">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Localizando zonas de reparto…
+                      </p>
+                    )}
                   <div className="space-y-3">
                     <div className="flex gap-2 items-start">
                       <div className="flex-1 min-w-0">
                         <AddressAutocomplete
                           value={deliveryAddress}
                           onChange={handleAddressChange}
-                          onSelectAddress={(sugg) => {
+                          onSelectAddress={async (sugg) => {
                             handleAddressChange(sugg.display);
+                            if (isLoadingZones) {
+                              setAddressError('Cargando zonas de reparto… inténtalo de nuevo en un momento.');
+                              return;
+                            }
                             const mappedCoords = {
                               lat: sugg.lat,
                               lng: sugg.lng,
@@ -389,9 +485,21 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                             };
                             setDeliveryCoords({ lat: sugg.lat, lng: sugg.lng });
                             setIsValidatingAddress(true);
-                            // Las coords ya vienen de la API (Photon): match directo sin geocodificar
-                            applyMatchedZone(mappedCoords);
-                            setIsValidatingAddress(false);
+                            try {
+                              // Las coords ya vienen de la API (Photon): match directo.
+                              if (applyMatchedZone(mappedCoords)) return;
+                              // Fallback: Photon ubica a nivel de calle y el punto puede
+                              // caer fuera del polígono; re-geocodificar el texto
+                              // completo (Nominatim resuelve mejor el número) y
+                              // reintentar antes de declarar fuera de cobertura.
+                              const geo = await geocodeAddress(sugg.display);
+                              if (geo) {
+                                setDeliveryCoords({ lat: geo.lat, lng: geo.lng });
+                                applyMatchedZone(geo);
+                              }
+                            } finally {
+                              setIsValidatingAddress(false);
+                            }
                           }}
                           onBlur={() => handleValidateAddress()}
                           error={addressError}
@@ -404,33 +512,47 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                         onClick={() => handleValidateAddress()}
                         className={`mt-7 px-4 py-3.5 font-bold text-sm rounded-xl transition-all shrink-0 flex items-center justify-center min-w-[90px] ${
                           isAddressValid
-                            ? 'bg-green-100 text-green-700'
+                            ? 'bg-emerald-100 text-emerald-700'
                             : isValidatingAddress
                               ? 'bg-gray-100 text-gray-400'
-                              : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                              : 'bg-gray-900 text-white hover:bg-black active:scale-[0.98]'
                         }`}
                       >
                         {isValidatingAddress ? <Loader2 className="w-4 h-4 animate-spin" /> : isAddressValid ? <CheckCircle2 className="w-5 h-5" /> : 'Validar'}
                       </button>
                     </div>
                     {addressError && (
-                      <p className="text-xs font-semibold text-red-600">{addressError}</p>
+                      <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3">
+                        <AlertTriangle className="h-4 w-4 shrink-0 text-red-500 mt-0.5" />
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-bold text-red-700 leading-snug">{addressError}</p>
+                          <p className="text-xs font-medium text-red-500 mt-0.5">Revisa calle, número y comuna e intenta de nuevo.</p>
+                        </div>
+                      </div>
                     )}
                     {isAddressValid && (
-                      <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-green-50 text-green-700 border border-green-100">
-                        <span className="font-semibold text-xs pr-2">
-                          {matchedZone?.name
-                            ? `Sector ${matchedZone.name}: nuestro delivery llega a tu dirección.`
-                            : 'Nuestro delivery llega a tu dirección.'}
-                        </span>
-                        <span className="font-bold text-[13px] shrink-0">
-                          {deliveryFee > 0 ? `Despacho $${fmt(deliveryFee)}` : 'Despacho gratis'}
+                      <div className="flex items-center gap-3 rounded-xl bg-emerald-700 px-4 py-3 text-white">
+                        <CheckCircle2 className="h-5 w-5 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-extrabold leading-tight">Cobertura confirmada</p>
+                          <p className="text-xs font-medium text-emerald-100 truncate">
+                            {matchedZone?.name ? `Sector ${matchedZone.name}` : 'Zona de reparto'}
+                          </p>
+                        </div>
+                        <span className="tabular-nums text-sm font-extrabold shrink-0">
+                          {deliveryFee > 0 ? `$${fmt(deliveryFee)}` : 'Gratis'}
                         </span>
                       </div>
                     )}
                     {deliveryCoords && (
-                      <div className="h-40 w-full rounded-xl overflow-hidden border border-gray-200 shadow-inner relative z-0">
+                      <div className="relative h-44 w-full rounded-xl overflow-hidden border border-gray-200 shadow-inner z-0">
                         <AddressMap coords={deliveryCoords} />
+                        {matchedZone?.name && (
+                          <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold text-gray-900 shadow">
+                            <MapPin className="h-3 w-3" />
+                            {matchedZone.name}
+                          </span>
+                        )}
                       </div>
                     )}
                     <div className="flex gap-3">
@@ -449,6 +571,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                         onChange={(e) => setCustomerPhone(e.target.value)}
                       />
                     </div>
+                  </div>
                   </div>
                 </div>
               )}
