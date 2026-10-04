@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../AuthContext';
 
@@ -20,51 +20,85 @@ const hasHours = (bh) => {
 // Avisa al padre con onStatusChange(true) mientras esté pendiente para que
 // pueda blurear el resto del dashboard.
 const OnboardingChecklist = ({ onStatusChange }) => {
-  // Deshabilitado globalmente: no mostrar a ningún usuario.
-  return null;
   const { organization } = useAuth();
   const [status, setStatus] = useState(null); // null = cargando
   const [collapsed, setCollapsed] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     if (!organization?.id) return;
+    // Si el usuario lo cerró definitivamente, no vuelve a aparecer.
     // Recupera si el usuario lo había contraído.
     try {
+      if (localStorage.getItem(`onboarding_dismissed_${organization.id}`) === '1') {
+        setDismissed(true);
+      }
       if (localStorage.getItem(`onboarding_collapsed_${organization.id}`) === '1') {
         setCollapsed(true);
       }
     } catch { /* almacenamiento no disponible */ }
     let alive = true;
-    (async () => {
-      const [{ data: org }, { count }] = await Promise.all([
+    const load = async () => {
+      // Se leen los errores: antes se ignoraban y cualquier fallo del conteo
+      // (RLS, red, count null) dejaba el paso 3 como pendiente aunque hubiera
+      // productos. Si el conteo exacto falla, se usa fallback con limit(1).
+      const [{ data: org, error: orgError }, countRes] = await Promise.all([
         supabase
           .from('organizations')
           .select('logo_url, description, address, business_hours')
           .eq('id', organization.id)
-          .single(),
+          .maybeSingle(),
         supabase
           .from('products')
           .select('id', { count: 'exact', head: true })
           .eq('organization_id', organization.id),
       ]);
+      if (orgError) console.error('Onboarding: error leyendo organización:', orgError.message);
+      let productCount = typeof countRes?.count === 'number' ? countRes.count : null;
+      if (countRes?.error) console.error('Onboarding: error contando productos:', countRes.error.message);
+      if (productCount === null) {
+        const fallback = await supabase
+          .from('products')
+          .select('id')
+          .eq('organization_id', organization.id)
+          .limit(1);
+        if (fallback?.error) {
+          console.error('Onboarding: error en fallback de productos:', fallback.error.message);
+        } else {
+          productCount = (fallback?.data?.length || 0) > 0 ? 1 : 0;
+        }
+      }
       if (!alive) return;
       setStatus({
         brand: !!(org?.logo_url && org?.description?.trim()),
         place: !!(org?.address?.trim() && hasHours(org?.business_hours)),
-        product: (count || 0) > 0,
+        product: (productCount || 0) > 0,
         missingAddress: !org?.address?.trim(),
       });
-    })();
-    return () => { alive = false; };
+    };
+    load();
+    // Revalidar al volver a la pestaña: antes el estado se calculaba una sola
+    // vez al montar y si el producto se creaba después quedaba pendiente.
+    const onVisible = () => { if (document.visibilityState === 'visible') load(); };
+    window.addEventListener('focus', load);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      alive = false;
+      window.removeEventListener('focus', load);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [organization?.id]);
 
-  // Temporal para probar: ?onboarding=demo muestra el panel como si la tienda
-  // estuviera vacía. Quitar antes del merge.
-  const demo = new URLSearchParams(window.location.search).get('onboarding') === 'demo';
+  const s = status;
 
-  const s = demo
+  // Solo local (npm run dev): ?onboarding=demo fuerza el panel como si la
+  // tienda estuviera vacía, para probar el blur, "Ver dashboard" y la X.
+  // En prod (build) import.meta.env.DEV es false y esto nunca se activa.
+  const demo = import.meta.env.DEV
+    && new URLSearchParams(window.location.search).get('onboarding') === 'demo';
+  const shown = demo
     ? { brand: false, place: false, product: false, missingAddress: true }
-    : status;
+    : s;
 
   const steps = [
     {
@@ -72,7 +106,7 @@ const OnboardingChecklist = ({ onStatusChange }) => {
       n: 1,
       title: 'Logo y descripción',
       desc: 'Sube el logo y cuenta qué vende tu negocio.',
-      done: !!s?.brand,
+      done: !!shown?.brand,
       href: '/settings?tab=general',
       cta: 'Subir logo',
     },
@@ -81,10 +115,10 @@ const OnboardingChecklist = ({ onStatusChange }) => {
       n: 2,
       title: 'Dirección y horarios',
       desc: 'Indica dónde estás y cuándo atiendes.',
-      done: !!s?.place,
+      done: !!shown?.place,
       // La dirección vive en la pestaña General y los horarios en la de
       // Horarios: el botón lleva directo a lo que falte.
-      href: s?.missingAddress ? '/settings?tab=general' : '/settings?tab=hours',
+      href: shown?.missingAddress ? '/settings?tab=general' : '/settings?tab=hours',
       cta: 'Agregar dirección y horarios',
     },
     {
@@ -92,7 +126,7 @@ const OnboardingChecklist = ({ onStatusChange }) => {
       n: 3,
       title: 'Tu primer producto',
       desc: 'Crea el primer plato o producto de tu carta.',
-      done: !!s?.product,
+      done: !!shown?.product,
       href: '/products/new?type=physical',
       cta: 'Crear producto',
     },
@@ -101,11 +135,16 @@ const OnboardingChecklist = ({ onStatusChange }) => {
   const done = steps.filter((s) => s.done).length;
 
   useEffect(() => {
-    if (!s) return;
+    if (dismissed) {
+      onStatusChange?.(false);
+      return;
+    }
+    if (!shown) return;
     onStatusChange?.(done < steps.length);
-  }, [s, done, onStatusChange]);
+  }, [shown, done, dismissed, onStatusChange]);
 
-  if (!s) return null;
+  if (dismissed) return null;
+  if (!shown) return null;
   if (done === steps.length) return null;
 
   const firstPending = steps.findIndex((s) => !s.done);
@@ -118,6 +157,14 @@ const OnboardingChecklist = ({ onStatusChange }) => {
       } catch { /* almacenamiento no disponible */ }
       return next;
     });
+  };
+
+  // Cierre definitivo: no vuelve a aparecer para esta tienda.
+  const handleDismiss = () => {
+    try {
+      localStorage.setItem(`onboarding_dismissed_${organization.id}`, '1');
+    } catch { /* almacenamiento no disponible */ }
+    setDismissed(true);
   };
 
   return (
@@ -151,6 +198,15 @@ const OnboardingChecklist = ({ onStatusChange }) => {
               className={`h-4 w-4 motion-safe:transition-transform motion-safe:duration-200 ${collapsed ? '' : 'rotate-180'}`}
             />
           </button>
+          <button
+            type="button"
+            onClick={handleDismiss}
+            aria-label="Cerrar y no volver a mostrar"
+            title="Cerrar y no volver a mostrar"
+            className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -164,7 +220,7 @@ const OnboardingChecklist = ({ onStatusChange }) => {
       >
         <div
           className="h-full rounded-full bg-emerald-500 motion-safe:transition-all motion-safe:duration-500"
-          style={{ width: demo ? '20%' : `${(done / 3) * 100}%` }}
+          style={{ width: `${(done / 3) * 100}%` }}
         />
       </div>
 
