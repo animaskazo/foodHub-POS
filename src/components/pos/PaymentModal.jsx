@@ -20,6 +20,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
   const [orderNotes, setOrderNotes] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [deliveryCoords, setDeliveryCoords] = useState(null);
@@ -33,6 +34,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
   // que sin esto la validación contra zonas corría siempre sin datos.
   const [deliveryConfig, setDeliveryConfig] = useState(null);
   const [isLoadingZones, setIsLoadingZones] = useState(false);
+  const [isDeliveryCollapsed, setIsDeliveryCollapsed] = useState(false);
 
   // Restablecer el estado cada vez que se abre el modal
   useEffect(() => {
@@ -45,7 +47,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
       setOrderNotes('');
       setCustomerName('');
       setCustomerPhone('');
-      setCustomerPhone('');
+      setCustomerEmail('');
       setDeliveryAddress('');
       setDeliveryFee(0);
       setDeliveryCoords(null);
@@ -54,6 +56,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
       setIsAddressValid(false);
       setIsValidatingAddress(false);
       setIsSavingCustomer(false);
+      setIsDeliveryCollapsed(false);
     }
   }, [isOpen]);
 
@@ -117,6 +120,18 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
   const tax = cartTotal - subtotal;
 
   const fmt = (n) => n.toLocaleString('es-CL');
+
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim());
+  // Flujo simplificado: en delivery los métodos de pago aparecen solo cuando
+  // la dirección validada y los datos del cliente están completos.
+  const isDeliveryReady = orderType !== 'delivery'
+    || (!!customerName.trim() && !!customerPhone.trim() && isEmailValid && !!deliveryAddress.trim() && isAddressValid);
+
+  // Al completar dirección + cliente se colapsa a un resumen para dar
+  // protagonismo al pago; si algo cambia se vuelve a abrir solo.
+  useEffect(() => {
+    setIsDeliveryCollapsed(orderType === 'delivery' && isDeliveryReady);
+  }, [orderType, isDeliveryReady]);
 
   // ── Misma lógica que el ecommerce (CheckoutForm): zonas desde
   // delivery_zones o settings.delivery_zones, match por polígono/radio
@@ -242,6 +257,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
         const deliveryInfo = orderType === 'delivery' ? {
           customerName,
           customerPhone,
+          customerEmail,
           deliveryAddress,
           deliveryFee,
           deliveryZone: matchedZone?.name || null,
@@ -450,7 +466,28 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                 </div>
               </div>
 
-              {orderType === 'delivery' && (
+              {orderType === 'delivery' && isDeliveryCollapsed && isDeliveryReady && (
+                <div className="mb-6 flex items-center gap-3 rounded-2xl border-2 border-gray-900 bg-white p-3.5 animate-in fade-in">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white">
+                    <CheckCircle2 className="h-4.5 w-4.5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-extrabold text-gray-900">{deliveryAddress}</p>
+                    <p className="truncate text-xs font-medium text-gray-500">
+                      {customerName} · {deliveryFee > 0 ? `Despacho $${fmt(deliveryFee)}` : 'Despacho gratis'}{matchedZone?.name ? ` · ${matchedZone.name}` : ''}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDeliveryCollapsed(false)}
+                    className="shrink-0 rounded-full border border-gray-200 px-3.5 py-1.5 text-xs font-bold text-gray-700 transition-colors hover:bg-gray-50"
+                  >
+                    Editar
+                  </button>
+                </div>
+              )}
+
+              {orderType === 'delivery' && (!isDeliveryCollapsed || !isDeliveryReady) && (
                 <div className="mb-6 rounded-2xl border-2 border-gray-900 bg-white animate-in fade-in slide-in-from-top-2">
                   <div className="p-4 space-y-4">
                     <h4 className="font-extrabold text-gray-900 text-[15px] flex items-center gap-2">
@@ -571,6 +608,13 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                         onChange={(e) => setCustomerPhone(e.target.value)}
                       />
                     </div>
+                    <input
+                      type="email"
+                      placeholder="Email *"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-black focus:ring-black focus:outline-none text-sm transition-colors bg-white"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                    />
                   </div>
                   </div>
                 </div>
@@ -588,12 +632,20 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
             </>
           )}
 
+          {!isDeliveryReady ? (
+            <div className="flex items-start gap-2.5 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3.5">
+              <Truck className="h-4 w-4 shrink-0 text-gray-400 mt-0.5" />
+              <p className="text-[13px] font-semibold text-gray-500 leading-snug">
+                Completa la dirección y los datos del cliente para ver los métodos de pago.
+              </p>
+            </div>
+          ) : (
+          <>
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Método de Pago</h3>
           <div className="grid grid-cols-1 gap-3">
             {paymentMethods.map((method) => {
-              const isDeliveryFormIncomplete = orderType === 'delivery' && (!customerName || !customerPhone || !deliveryAddress || !isAddressValid);
-              // Button is disabled if we are processing ANY method, or if the delivery form is incomplete (only applies if we are not processing)
-              const isDisabled = processingMethod !== null || isDeliveryFormIncomplete;
+              // Visible solo con el formulario listo: basta bloquear mientras se procesa.
+              const isDisabled = processingMethod !== null;
               const isProcessingThis = processingMethod === method.id;
 
               return (
@@ -633,6 +685,8 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
               </button>
             )})}
           </div>
+          </>
+          )}
         </div>
       </div>
     </Modal>
