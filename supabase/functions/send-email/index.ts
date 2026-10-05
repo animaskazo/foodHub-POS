@@ -16,6 +16,42 @@ serve(async (req) => {
   try {
     let { type, email, data } = await req.json()
     
+    // Para el aviso de bienvenida se permite invocar solo con organization_id:
+    // se resuelve el email y nombre del dueño más el nombre del negocio.
+    if (type === 'welcome' && !email && data?.organization_id) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+      if (supabaseUrl && supabaseServiceKey) {
+        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+
+        const { data: orgData } = await supabaseAdmin
+          .from('organizations')
+          .select('name')
+          .eq('id', data.organization_id)
+          .maybeSingle()
+
+        const { data: ownerData } = await supabaseAdmin
+          .from('staff')
+          .select('id, full_name')
+          .eq('organization_id', data.organization_id)
+          .eq('role', 'owner')
+          .limit(1)
+          .maybeSingle()
+
+        if (ownerData?.id) {
+          const { data: userData } = await supabaseAdmin.auth.admin.getUserById(ownerData.id)
+          if (userData?.user?.email) {
+            email = userData.user.email
+          }
+          if (!data.user_name && ownerData.full_name) {
+            data.user_name = ownerData.full_name
+          }
+        }
+        if (!data.organization_name && orgData?.name) {
+          data.organization_name = orgData.name
+        }
+      }
+    }
     // Always use the administrator's email for business notifications
     if (type === 'sale_notification' && data?.organization?.id) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')
@@ -55,22 +91,92 @@ serve(async (req) => {
     const fromEmail = 'hola@digital-solutions.work'
 
     if (type === 'welcome') {
-      subject = 'Bienvenido a FoodHub'
+      const esc = (v: unknown) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+      const userName = esc(data.user_name || 'Cliente')
+      const orgName = esc(data.organization_name || 'tu negocio')
+      const appUrl = String(data.app_url || '').replace(/\/$/, '')
+      const link = (path: string) => appUrl ? `${appUrl}${path}` : '#'
+      subject = `Bienvenido a FoodHub — ${data.organization_name || 'tu negocio'} ya puede empezar a vender`
       html = `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px; text-align: center;">
-          <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: left;">
-            <h1 style="color: #000000; font-size: 24px; font-weight: bold; margin-top: 0;">¡Bienvenido a FoodHub!</h1>
-            <p style="color: #333333; font-size: 16px; line-height: 1.5; margin-bottom: 24px;">
-              Estamos muy felices de tenerte con nosotros. Ahora puedes pedir tus comidas favoritas de forma rápida y sencilla.
-            </p>
-            <p style="color: #666666; font-size: 14px; line-height: 1.5;">
-              Si tienes alguna pregunta, no dudes en contactarnos.
-            </p>
-            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eeeeee; text-align: center;">
-              <p style="color: #999999; font-size: 12px; margin: 0;">FoodHub POS & Ecommerce</p>
-            </div>
-          </div>
-        </div>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bienvenido a FoodHub</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;-webkit-font-smoothing:antialiased;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:32px 16px;">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:20px;overflow:hidden;">
+<tr><td style="padding:28px 32px 0 32px;text-align:right;">
+<p style="margin:0;font-size:14px;font-weight:800;letter-spacing:3px;color:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">FOODHUB</p>
+</td></tr>
+<tr><td style="padding:28px 40px 0 40px;text-align:left;">
+<h1 style="margin:0 0 12px 0;font-size:30px;font-weight:400;line-height:1.25;color:#0a0a0a;font-family:Georgia,'Times New Roman',serif;">Hola ${userName}, ${orgName} ya puede empezar a vender</h1>
+<p style="margin:0;font-size:16px;line-height:1.7;color:#444444;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Tu punto de venta para el local, tu tienda online y tu delivery, todo en un solo panel. Sin apps extra, sin integraciones complicadas.</p>
+</td></tr>
+<tr><td style="padding:28px 40px 0 40px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f7f8;border-radius:14px;">
+<tr><td style="padding:20px 22px;">
+<p style="margin:0 0 4px 0;font-size:14px;line-height:1.6;color:#111111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:#059669;margin-right:10px;"></span><strong>Vende en el local</strong> con el POS y recibe pedidos online y por delivery en el mismo lugar.</p>
+<p style="margin:12px 0 4px 0;font-size:14px;line-height:1.6;color:#111111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:#059669;margin-right:10px;"></span><strong>Reparte por zonas</strong> con tarifa por sector y validaci&oacute;n autom&aacute;tica de direcciones.</p>
+<p style="margin:12px 0 0 0;font-size:14px;line-height:1.6;color:#111111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:#059669;margin-right:10px;"></span><strong>Sigue cada venta</strong> en el dashboard y manda pedidos a cocina en tiempo real.</p>
+</td></tr>
+</table>
+</td></tr>
+<tr><td style="padding:32px 40px 0 40px;text-align:left;">
+<a href="${link('/')}" style="display:inline-block;background-color:#0a0a0a;color:#ffffff;font-size:15px;font-weight:700;padding:15px 38px;border-radius:999px;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Completar mi tienda</a>
+</td></tr>
+<tr><td style="padding:40px 40px 0 40px;">
+<p style="margin:0 0 6px 0;font-size:22px;font-weight:400;color:#0a0a0a;font-family:Georgia,'Times New Roman',serif;">Tus primeros 3 pasos</p>
+<p style="margin:0 0 20px 0;font-size:14px;line-height:1.6;color:#666666;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">En este orden tu tienda queda lista para vender.</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:22px;">
+<tr>
+<td width="36" valign="top"><div style="background-color:#059669;color:#ffffff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-size:14px;font-weight:800;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">1</div></td>
+<td valign="top">
+<p style="margin:0;font-size:16px;font-weight:700;color:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Agrega la informaci&oacute;n de tu negocio</p>
+<p style="margin:6px 0 8px 0;font-size:14px;line-height:1.65;color:#666666;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Sube tu logo y cuenta qu&eacute; vende tu negocio para que tus clientes te reconozcan.</p>
+<a href="${link('/settings?tab=general')}" style="font-size:13px;font-weight:700;color:#059669;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Ir a mi informaci&oacute;n</a>
+</td>
+</tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:22px;">
+<tr>
+<td width="36" valign="top"><div style="background-color:#059669;color:#ffffff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-size:14px;font-weight:800;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">2</div></td>
+<td valign="top">
+<p style="margin:0;font-size:16px;font-weight:700;color:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Define tus horarios de atenci&oacute;n</p>
+<p style="margin:6px 0 8px 0;font-size:14px;line-height:1.65;color:#666666;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Indica d&oacute;nde est&aacute;s y cu&aacute;ndo atiendes para recibir pedidos dentro de tu horario.</p>
+<a href="${link('/settings?tab=hours')}" style="font-size:13px;font-weight:700;color:#059669;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Definir horarios</a>
+</td>
+</tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+<tr>
+<td width="36" valign="top"><div style="background-color:#059669;color:#ffffff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-size:14px;font-weight:800;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">3</div></td>
+<td valign="top">
+<p style="margin:0;font-size:16px;font-weight:700;color:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Sube tu primer producto</p>
+<p style="margin:6px 0 8px 0;font-size:14px;line-height:1.65;color:#666666;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Crea el primer plato o producto de tu carta y queda visible para vender de inmediato.</p>
+<a href="${link('/products/new?type=physical')}" style="font-size:13px;font-weight:700;color:#059669;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Crear producto</a>
+</td>
+</tr>
+</table>
+</td></tr>
+<tr><td style="padding:28px 40px 0 40px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7f7f8;border-radius:14px;">
+<tr><td style="padding:16px 20px;text-align:center;">
+<p style="margin:0;font-size:13px;color:#555555;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">&iquest;Necesitas ayuda para configurar tu tienda? <a href="https://wa.me/56995355996?text=Hola%2C%20me%20registr%C3%A9%20en%20FoodHub%20y%20necesito%20ayuda" style="font-weight:700;color:#0a0a0a;text-decoration:underline;">Escr&iacute;benos por WhatsApp</a></p>
+</td></tr>
+</table>
+</td></tr>
+<tr><td style="padding:32px 40px 40px 40px;text-align:center;">
+<p style="margin:0;font-size:12px;color:#aaaaaa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">Impulsado por <strong style="color:#888888;">FoodHub</strong> &middot; POS &amp; Ecommerce</p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>
       `
     } else if (type === 'order_ready') {
       const isDelivery = data.delivery_type === 'delivery'

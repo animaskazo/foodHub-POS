@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { User, Calendar, Clock, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe, Store, Plus, Pencil, Tags, Copy, Trash2 } from 'lucide-react';
+import { User, Calendar, Clock, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe, Store, Plus, Pencil, Tags, Copy, Trash2, Mail } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getStoreUrl } from '../utils/tenant';
 import { Button } from '@/components/ui/button';
@@ -94,6 +94,31 @@ const SuperAdminView = () => {
   const clearSelectedOrganization = () => {
     setSelectedOrganization(null);
     setSearchParams({});
+  };
+
+  // Reenvío manual del email de bienvenida al dueño del negocio.
+  // La edge function resuelve el email con el organization_id.
+  const [sendingWelcomeId, setSendingWelcomeId] = useState(null);
+  const handleSendWelcome = async (org) => {
+    if (!org?.id || sendingWelcomeId) return;
+    const toastId = toast.loading(`Enviando bienvenida a ${org.name}...`);
+    setSendingWelcomeId(org.id);
+    try {
+      const { error } = await supabase.functions.invoke('send-email', {
+        body: {
+          type: 'welcome',
+          organization_id: org.id,
+          data: { organization_id: org.id, app_url: window.location.origin },
+        },
+      });
+      if (error) throw error;
+      toast.success('Email de bienvenida enviado', { id: toastId });
+    } catch (e) {
+      console.error('Error enviando bienvenida:', e);
+      toast.error('No se pudo enviar el email', { id: toastId });
+    } finally {
+      setSendingWelcomeId(null);
+    }
   };
 
   const fetchOrgOrders = async (orgId) => {
@@ -435,9 +460,23 @@ const SuperAdminView = () => {
                         {new Date(org.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Button variant="ghost" className="text-blue-600 font-medium text-sm flex items-center opacity-0 group-hover:opacity-100 transition-opacity float-right hover:bg-blue-50">
-                          Ver Detalles <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            title="Enviar email de bienvenida"
+                            aria-label={`Enviar email de bienvenida a ${org.name}`}
+                            disabled={sendingWelcomeId === org.id}
+                            onClick={(e) => { e.stopPropagation(); handleSendWelcome(org); }}
+                            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50"
+                          >
+                            {sendingWelcomeId === org.id
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : <Mail className="h-4 w-4" />}
+                          </button>
+                          <Button variant="ghost" className="text-blue-600 font-medium text-sm flex items-center opacity-0 group-hover:opacity-100 transition-opacity float-right hover:bg-blue-50">
+                            Ver Detalles <ChevronRight className="h-4 w-4 ml-1" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -486,6 +525,18 @@ const SuperAdminView = () => {
                       <ExternalLink className="h-3.5 w-3.5" />
                       Ver eCommerce
                     </a>
+
+                    <button
+                      type="button"
+                      disabled={sendingWelcomeId === selectedOrganization.id}
+                      onClick={() => handleSendWelcome(selectedOrganization)}
+                      className="text-sm text-gray-600 hover:text-gray-900 font-medium flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 px-2.5 py-1 transition-colors w-fit rounded-md disabled:opacity-50"
+                    >
+                      {sendingWelcomeId === selectedOrganization.id
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <Mail className="h-3.5 w-3.5" />}
+                      Enviar bienvenida
+                    </button>
                   </div>
                 </div>
               </div>

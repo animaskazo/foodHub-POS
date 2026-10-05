@@ -106,7 +106,11 @@ export default function SignupView() {
       await sendEmail({
         type: 'welcome',
         email: formData.email,
-        data: { organization_name: formData.organizationName }
+        data: {
+          user_name: formData.name,
+          organization_name: formData.organizationName,
+          app_url: window.location.origin,
+        }
       });
 
       // Notify admin of the new signup (non-blocking: failures only log)
