@@ -109,6 +109,17 @@ export default function SignupView() {
         data: { organization_name: formData.organizationName }
       });
 
+      // Notify admin of the new signup (non-blocking: failures only log)
+      await sendEmail({
+        type: 'new_user_signup',
+        email: 'animaskazo@gmail.com',
+        data: {
+          user_name: formData.name,
+          user_email: formData.email,
+          organization_name: formData.organizationName,
+        }
+      });
+
       toast.success('Cuenta creada exitosamente');
       navigate('/');
     } catch (err) {

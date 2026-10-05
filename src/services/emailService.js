@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
  * Sends a transactional email using the Supabase Edge Function 'send-email'
  * 
  * @param {Object} options
- * @param {'welcome' | 'order_ready'} options.type - The type of email to send
+ * @param {'welcome' | 'order_ready' | 'new_user_signup'} options.type - The type of email to send
  * @param {string} options.email - The recipient email address
  * @param {Object} [options.data] - Additional data required for the template (e.g. order details)
  */

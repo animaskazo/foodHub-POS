@@ -564,6 +564,42 @@ serve(async (req) => {
   </table>
 </body>
 </html>`
+    } else if (type === 'new_user_signup') {
+      // Aviso interno al administrador cuando se registra un usuario nuevo
+      const userName = data.user_name || 'Sin nombre'
+      const userEmail = data.user_email || 'Sin email'
+      const orgName = data.organization_name || 'Sin negocio'
+      const dateStr = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Santiago' })
+      const timeStr = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Santiago' })
+      subject = `Nuevo registro: ${userName} — ${orgName}`
+      html = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9f9f9; padding: 40px 20px;">
+          <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            <h1 style="color: #000000; font-size: 22px; font-weight: bold; margin-top: 0;">Nuevo usuario registrado</h1>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding: 8px 0; font-size: 14px; color: #666666;">Nombre</td>
+                <td style="padding: 8px 0; font-size: 14px; color: #000000; font-weight: 600;" align="right">${userName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-size: 14px; color: #666666; border-top: 1px solid #eeeeee;">Email</td>
+                <td style="padding: 8px 0; font-size: 14px; color: #000000; font-weight: 600; border-top: 1px solid #eeeeee;" align="right">${userEmail}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-size: 14px; color: #666666; border-top: 1px solid #eeeeee;">Negocio</td>
+                <td style="padding: 8px 0; font-size: 14px; color: #000000; font-weight: 600; border-top: 1px solid #eeeeee;" align="right">${orgName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-size: 14px; color: #666666; border-top: 1px solid #eeeeee;">Fecha</td>
+                <td style="padding: 8px 0; font-size: 14px; color: #000000; font-weight: 600; border-top: 1px solid #eeeeee;" align="right">${dateStr} ${timeStr}</td>
+              </tr>
+            </table>
+            <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #eeeeee; text-align: center;">
+              <p style="color: #999999; font-size: 12px; margin: 0;">FoodHub POS & Ecommerce</p>
+            </div>
+          </div>
+        </div>
+      `
     } else if (type === 'send_whatsapp') {
       const { phone, organization_id, message, from_number } = data
       if (!phone) throw new Error('Phone is required')
