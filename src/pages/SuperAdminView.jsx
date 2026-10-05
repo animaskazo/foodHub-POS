@@ -398,38 +398,62 @@ const SuperAdminView = () => {
           /* =========================================================
              MASTER VIEW: List of all Organizations
              ========================================================= */
-          <div className="bg-white rounded-xl border overflow-hidden min-h-[400px]">
-            <div className="px-4 md:px-6 py-4 border-b bg-gray-50">
-              <h2 className="font-semibold text-gray-800">Negocios Registrados</h2>
+          <div className="bg-white rounded-xl border overflow-hidden min-h-[400px] [&_button]:rounded-full">
+            <div className="px-4 md:px-6 py-4 border-b flex items-baseline gap-2">
+              <h2 className="text-[15px] font-semibold text-gray-900">Negocios registrados</h2>
+              <span className="text-xs text-gray-400 tabular-nums">{organizations.length}</span>
             </div>
             {/* Mobile: cards */}
             <div className="divide-y md:hidden">
               {organizations.map((org) => (
-                <button
+                <div
                   key={org.id}
-                  onClick={() => selectOrganization(org, 'overview')}
-                  className="w-full flex items-center gap-3 px-4 py-4 text-left active:bg-gray-50 transition-colors"
+                  className="w-full flex items-center gap-1 pl-4 pr-2 py-3 active:bg-gray-50 transition-colors"
                 >
-                  {org.logoUrl ? (
-                    <img src={org.logoUrl} alt={org.name} className="h-11 w-11 rounded-full object-cover bg-gray-100 border shrink-0" />
-                  ) : (
-                    <div className="h-11 w-11 rounded-full bg-gray-100 border flex items-center justify-center shrink-0">
-                      <Building2 className="h-5 w-5 text-gray-500" />
+                  <button
+                    onClick={() => selectOrganization(org, 'overview')}
+                    className="flex-1 flex items-center gap-3 min-w-0 text-left py-1"
+                  >
+                    {org.logoUrl ? (
+                      <img src={org.logoUrl} alt={org.name} className="h-10 w-10 rounded-full object-cover bg-gray-100 shrink-0" />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                        <span className="text-sm font-semibold text-gray-500">{org.name.charAt(0).toUpperCase()}</span>
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <span className="block text-sm font-semibold text-gray-900 truncate">
+                        {org.name}
+                        {org.forceClosed && (
+                          <span className="font-normal text-red-600"> · Cerrada</span>
+                        )}
+                      </span>
+                      <p className="text-xs text-gray-400 mt-0.5 tabular-nums truncate">
+                        {org.orderCount} {org.orderCount === 1 ? 'orden' : 'órdenes'} · ${org.totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · {(org.visits30d || 0).toLocaleString('es-CL')} visitas
+                      </p>
                     </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-900 truncate">{org.name}</span>
-                      {org.forceClosed && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-200 shrink-0">Cerrada</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {org.orderCount} {org.orderCount === 1 ? 'orden' : 'órdenes'} · ${org.totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · {(org.visits30d || 0).toLocaleString('es-CL')} visitas
-                    </p>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-gray-300 shrink-0" />
-                </button>
+                  </button>
+                  <button
+                    type="button"
+                    title="Enviar email de bienvenida"
+                    aria-label={`Enviar email de bienvenida a ${org.name}`}
+                    disabled={sendingWelcomeId === org.id}
+                    onClick={() => setWelcomeTarget(org)}
+                    className="p-2.5 text-gray-400 transition-colors hover:text-gray-900 disabled:opacity-50 shrink-0"
+                  >
+                    {sendingWelcomeId === org.id
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <Mail className="h-4 w-4" />}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Ver ${org.name}`}
+                    onClick={() => selectOrganization(org, 'overview')}
+                    className="p-2.5 text-gray-300 shrink-0"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </div>
               ))}
               {organizations.length === 0 && (
                 <p className="text-center py-12 text-gray-500 text-sm">
@@ -441,13 +465,13 @@ const SuperAdminView = () => {
             <div className="overflow-x-auto hidden md:block">
               <table className="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
-                  <tr className="bg-gray-50/50 border-b">
-                    <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Negocio</th>
-                    <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Órdenes</th>
-                    <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Ventas Totales</th>
-                    <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Visitas 30d</th>
-                    <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Registro</th>
-                    <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500 text-right">Acción</th>
+                  <tr className="border-b">
+                    <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Negocio</th>
+                    <th className="px-6 py-3 text-[13px] font-medium text-gray-500 tabular-nums">Órdenes</th>
+                    <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Ventas totales</th>
+                    <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Visitas 30d</th>
+                    <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Registro</th>
+                    <th className="px-6 py-3 text-[13px] font-medium text-gray-500 text-right">Acción</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -457,56 +481,52 @@ const SuperAdminView = () => {
                       onClick={() => selectOrganization(org, 'overview')}
                       className="hover:bg-gray-50 transition-colors cursor-pointer group"
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3.5">
                         <div className="flex items-center gap-3">
                           {org.logoUrl ? (
-                            <img src={org.logoUrl} alt={org.name} className="h-10 w-10 rounded-full object-cover bg-gray-100 border shrink-0" />
+                            <img src={org.logoUrl} alt={org.name} className="h-9 w-9 rounded-full object-cover bg-gray-100 shrink-0" />
                           ) : (
-                            <div className="h-10 w-10   bg-gray-100 border flex items-center justify-center shrink-0">
-                              <Building2 className="h-5 w-5 text-gray-500" />
+                            <div className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                              <span className="text-sm font-semibold text-gray-500">{org.name.charAt(0).toUpperCase()}</span>
                             </div>
                           )}
-                          <span className="font-semibold text-gray-900">{org.name}</span>
-                          {org.forceClosed && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-200">Cerrada</span>
-                          )}
+                          <span className="text-sm font-semibold text-gray-900">
+                            {org.name}
+                            {org.forceClosed && (
+                              <span className="font-normal text-red-600"> · Cerrada</span>
+                            )}
+                          </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
+                      <td className="px-6 py-3.5 text-sm tabular-nums text-gray-900">
                         {org.orderCount}
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1 font-semibold text-green-700 bg-green-50 px-2.5 py-1   text-sm border border-green-100">
-                          <DollarSign className="h-3 w-3" />
-                          {org.totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
+                      <td className="px-6 py-3.5 text-sm tabular-nums text-gray-900">
+                        ${org.totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1 font-semibold text-sky-700 bg-sky-50 px-2.5 py-1 text-sm border border-sky-100">
-                          <Eye className="h-3 w-3" />
-                          {org.visits30d.toLocaleString('es-CL')}
-                        </span>
+                      <td className="px-6 py-3.5 text-sm tabular-nums text-gray-500">
+                        {org.visits30d.toLocaleString('es-CL')}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
+                      <td className="px-6 py-3.5 text-sm tabular-nums text-gray-400">
                         {new Date(org.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
+                      <td className="px-6 py-3.5 text-right">
+                        <div className="flex items-center justify-end">
                           <button
                             type="button"
                             title="Enviar email de bienvenida"
                             aria-label={`Enviar email de bienvenida a ${org.name}`}
                             disabled={sendingWelcomeId === org.id}
                             onClick={(e) => { e.stopPropagation(); setWelcomeTarget(org); }}
-                            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50"
+                            className="p-2 text-gray-400 transition-colors hover:text-gray-900 disabled:opacity-50"
                           >
                             {sendingWelcomeId === org.id
                               ? <Loader2 className="h-4 w-4 animate-spin" />
                               : <Mail className="h-4 w-4" />}
                           </button>
-                          <Button variant="ghost" className="text-blue-600 font-medium text-sm flex items-center opacity-0 group-hover:opacity-100 transition-opacity float-right hover:bg-blue-50">
-                            Ver Detalles <ChevronRight className="h-4 w-4 ml-1" />
-                          </Button>
+                          <span className="p-2 text-gray-300">
+                            <ChevronRight className="h-4 w-4" />
+                          </span>
                         </div>
                       </td>
                     </tr>
@@ -529,57 +549,88 @@ const SuperAdminView = () => {
           <div className="space-y-6 animate-in slide-in-from-bottom-2 fade-in">
             {/* Detail Header & Back Button */}
             <div>
-              <Button 
+              <Button
                 variant="ghost"
                 onClick={clearSelectedOrganization}
-                className="flex items-center text-sm font-medium text-gray-500 hover:text-black hover:bg-transparent px-0 h-auto transition-colors mb-4"
+                className="flex items-center text-[13px] font-medium text-gray-400 hover:text-gray-900 hover:bg-transparent px-0 h-auto transition-colors mb-3"
               >
                 <ArrowLeft className="h-4 w-4 mr-1" />
-                Volver a Negocios
+                Negocios
               </Button>
-              
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="text-xl md:text-3xl font-bold text-gray-900 truncate">{selectedOrganization.name}</h2>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 mt-2">
-                    <p className="text-sm text-gray-500 flex items-center gap-1.5">
-                      <Calendar className="h-4 w-4 text-gray-400" /> 
-                      Registrado el {new Date(selectedOrganization.createdAt).toLocaleDateString()}
-                    </p>
-                    
-                    <a 
-                      href={getStoreUrl(selectedOrganization.slug) || `/order/${encodeURIComponent(selectedOrganization.name)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 transition-colors w-fit rounded-md"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      Ver eCommerce
-                    </a>
 
-                    <button
-                      type="button"
-                      disabled={sendingWelcomeId === selectedOrganization.id}
-                      onClick={() => setWelcomeTarget(selectedOrganization)}
-                      className="text-sm text-gray-600 hover:text-gray-900 font-medium flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 px-2.5 py-1 transition-colors w-fit rounded-md disabled:opacity-50"
-                    >
-                      {sendingWelcomeId === selectedOrganization.id
-                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        : <Mail className="h-3.5 w-3.5" />}
-                      Enviar bienvenida
-                    </button>
+              <div className="flex items-center gap-3">
+                {selectedOrganization.logoUrl ? (
+                  <img src={selectedOrganization.logoUrl} alt={selectedOrganization.name} className="h-12 w-12 rounded-full object-cover bg-gray-100 shrink-0" />
+                ) : (
+                  <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                    <span className="text-lg font-semibold text-gray-500">{selectedOrganization.name.charAt(0).toUpperCase()}</span>
                   </div>
+                )}
+                <div className="min-w-0">
+                  <h2 className="text-lg md:text-2xl font-semibold text-gray-900 truncate">
+                    {selectedOrganization.name}
+                    {selectedOrganization.forceClosed && (
+                      <span className="font-normal text-red-600"> · Cerrada</span>
+                    )}
+                  </h2>
+                  <p className="text-[13px] text-gray-400 mt-0.5 tabular-nums truncate">
+                    Cliente desde {new Date(selectedOrganization.createdAt).toLocaleDateString()}
+                  </p>
                 </div>
+              </div>
+
+              <div className="flex items-center gap-1 mt-4">
+                <a
+                  href={getStoreUrl(selectedOrganization.slug) || `/order/${encodeURIComponent(selectedOrganization.name)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-gray-900 hover:bg-gray-700 px-4 py-2 text-sm font-medium text-white transition-colors"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Ver tienda
+                </a>
+                <button
+                  type="button"
+                  disabled={sendingWelcomeId === selectedOrganization.id}
+                  onClick={() => setWelcomeTarget(selectedOrganization)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 hover:border-gray-900 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50"
+                >
+                  {sendingWelcomeId === selectedOrganization.id
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Mail className="h-4 w-4" />}
+                  Enviar bienvenida
+                </button>
               </div>
             </div>
 
-            {/* Detail Tabs */}
-            <div className="flex space-x-1 border-b overflow-x-auto hide-scrollbar -mx-4 px-4 md:mx-0 md:px-0 snap-x">
+            {/* Detail Tabs: selector compacto en mobile */}
+            <div className="md:hidden -mx-4 px-4">
+              <select
+                value={detailTab}
+                onChange={(e) => setDetailTab(e.target.value)}
+                aria-label="Sección del negocio"
+                className="w-full appearance-none bg-white border border-gray-200 text-gray-900 rounded-xl pl-4 pr-10 py-3 text-sm font-semibold outline-none focus:border-gray-900 cursor-pointer"
+                style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.2em 1.2em' }}
+              >
+                <option value="overview">Resumen</option>
+                <option value="branding">Perfil</option>
+                <option value="hours">Horarios</option>
+                <option value="orders">Pedidos ({orgOrders.length})</option>
+                <option value="users">Usuarios ({orgUsers.length})</option>
+                <option value="products">Catálogo ({orgProducts.length})</option>
+                <option value="categories">Categorías ({orgCategories.length})</option>
+                <option value="klap">Conciliación Klap</option>
+                <option value="reports">Reportes{orgFeedbacks.length > 0 ? ` (${orgFeedbacks.length})` : ''}</option>
+                <option value="integrations">Integraciones</option>
+              </select>
+            </div>
+            {/* Detail Tabs: pills en desktop */}
+            <div className="hidden md:flex gap-1.5 overflow-x-auto hide-scrollbar py-2">
               <Button
                 variant="ghost"
                 onClick={() => setDetailTab('overview')}
-                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 hover:bg-gray-50 ${
-                  detailTab === 'overview' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
+                className={`shrink-0 h-auto rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors ${
+                  detailTab === 'overview' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 Resumen
@@ -587,8 +638,8 @@ const SuperAdminView = () => {
               <Button
                 variant="ghost"
                 onClick={() => setDetailTab('branding')}
-                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
-                  detailTab === 'branding' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
+                className={`shrink-0 h-auto rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors flex items-center gap-2 ${
+                  detailTab === 'branding' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <Store className="h-4 w-4" />
@@ -597,8 +648,8 @@ const SuperAdminView = () => {
               <Button
                 variant="ghost"
                 onClick={() => setDetailTab('hours')}
-                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
-                  detailTab === 'hours' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
+                className={`shrink-0 h-auto rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors flex items-center gap-2 ${
+                  detailTab === 'hours' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <Clock className="h-4 w-4" />
@@ -607,49 +658,49 @@ const SuperAdminView = () => {
               <Button
                 variant="ghost"
                 onClick={() => setDetailTab('orders')}
-                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
-                  detailTab === 'orders' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
+                className={`shrink-0 h-auto rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors flex items-center gap-2 ${
+                  detailTab === 'orders' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 Pedidos
-                <span className="bg-gray-200 text-gray-700 py-0.5 px-2 rounded-full text-xs font-bold leading-none flex items-center">{orgOrders.length}</span>
+                <span className="tabular-nums text-xs opacity-70 leading-none flex items-center">{orgOrders.length}</span>
               </Button>
               <Button
                 variant="ghost"
                 onClick={() => setDetailTab('users')}
-                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
-                  detailTab === 'users' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
+                className={`shrink-0 h-auto rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors flex items-center gap-2 ${
+                  detailTab === 'users' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 Usuarios
-                <span className="bg-gray-200 text-gray-700 py-0.5 px-2 rounded-full text-xs font-bold leading-none flex items-center">{orgUsers.length}</span>
+                <span className="tabular-nums text-xs opacity-70 leading-none flex items-center">{orgUsers.length}</span>
               </Button>
               <Button
                 variant="ghost"
                 onClick={() => setDetailTab('products')}
-                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
-                  detailTab === 'products' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
+                className={`shrink-0 h-auto rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors flex items-center gap-2 ${
+                  detailTab === 'products' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 Catálogo
-                <span className="bg-gray-200 text-gray-700 py-0.5 px-2 rounded-full text-xs font-bold leading-none flex items-center">{orgProducts.length}</span>
+                <span className="tabular-nums text-xs opacity-70 leading-none flex items-center">{orgProducts.length}</span>
               </Button>
               <Button
                 variant="ghost"
                 onClick={() => setDetailTab('categories')}
-                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
-                  detailTab === 'categories' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
+                className={`shrink-0 h-auto rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors flex items-center gap-2 ${
+                  detailTab === 'categories' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <Tags className="h-4 w-4" />
                 Categorías
-                <span className="bg-gray-200 text-gray-700 py-0.5 px-2 rounded-full text-xs font-bold leading-none flex items-center">{orgCategories.length}</span>
+                <span className="tabular-nums text-xs opacity-70 leading-none flex items-center">{orgCategories.length}</span>
               </Button>
               <Button
                 variant="ghost"
                 onClick={() => setDetailTab('klap')}
-                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
-                  detailTab === 'klap' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
+                className={`shrink-0 h-auto rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors flex items-center gap-2 ${
+                  detailTab === 'klap' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <DollarSign className="h-4 w-4" />
@@ -658,20 +709,20 @@ const SuperAdminView = () => {
               <Button
                 variant="ghost"
                 onClick={() => setDetailTab('reports')}
-                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
-                  detailTab === 'reports' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
+                className={`shrink-0 h-auto rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors flex items-center gap-2 ${
+                  detailTab === 'reports' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 Reportes
                 {orgFeedbacks.length > 0 && (
-                  <span className="bg-red-100 text-red-600 py-0.5 px-2 rounded-full text-xs font-bold leading-none flex items-center">{orgFeedbacks.length}</span>
+                  <span className="tabular-nums text-xs opacity-80 leading-none flex items-center text-red-500">{orgFeedbacks.length}</span>
                 )}
               </Button>
               <Button
                 variant="ghost"
                 onClick={() => setDetailTab('integrations')}
-                className={`px-4 py-3 h-auto rounded-none text-sm font-medium transition-colors border-b-2 flex items-center gap-2 hover:bg-gray-50 ${
-                  detailTab === 'integrations' ? '!border-b-black border-t-transparent border-x-transparent text-black bg-gray-50/50' : 'border-transparent text-gray-500 hover:text-gray-800'
+                className={`shrink-0 h-auto rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors flex items-center gap-2 ${
+                  detailTab === 'integrations' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 Integraciones
@@ -679,7 +730,7 @@ const SuperAdminView = () => {
             </div>
 
             {/* Detail Tab Contents */}
-            <div className="bg-white rounded-xl border p-4 md:p-6 min-h-[300px]">
+            <div className="bg-white rounded-xl border p-4 md:p-6 min-h-[300px] [&_button]:rounded-full">
               
 
 
@@ -713,13 +764,14 @@ const SuperAdminView = () => {
                             className="w-full px-4 py-4 flex items-center gap-3 text-left active:bg-gray-50 transition-colors"
                           >
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-bold text-gray-900">#{order.order_number}</span>
-                                <span className={`inline-flex px-2 py-0.5 text-[10px] font-bold rounded-full shrink-0 ${
-                                  order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                  order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                  'bg-blue-100 text-blue-800'
-                                }`}>
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm text-gray-900">#{order.order_number}</span>
+                                <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                                  order.status === 'cancelled' ? 'bg-red-500' :
+                                  order.status === 'completed' || order.status === 'ready' ? 'bg-green-500' :
+                                  'bg-amber-400'
+                                }`} />
+                                <span className="text-xs text-gray-500">
                                   {order.status === 'scheduled' ? 'Programado' :
                                    order.status === 'pending' ? 'Pendiente' :
                                    order.status === 'confirmed' ? 'Confirmado' :
@@ -746,14 +798,14 @@ const SuperAdminView = () => {
                     <div className="overflow-x-auto -mx-6 -my-6 hidden md:block">
                       <table className="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
-                          <tr className="bg-gray-50 border-b">
-                            <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Número</th>
-                            <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Cliente</th>
-                            <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Origen / Entrega</th>
-                            <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Fecha</th>
-                            <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Total</th>
-                            <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Estado</th>
-                            <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500 text-right">Acción</th>
+                          <tr className="border-b">
+                            <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Número</th>
+                            <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Cliente</th>
+                            <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Origen / Entrega</th>
+                            <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Fecha</th>
+                            <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Total</th>
+                            <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Estado</th>
+                            <th className="px-6 py-3 text-[13px] font-medium text-gray-500 text-right">Acción</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y">
@@ -768,47 +820,37 @@ const SuperAdminView = () => {
                             });
                             return (
                               <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4 font-semibold text-gray-900">
+                                <td className="px-6 py-3.5 text-sm font-semibold text-gray-900">
                                   #{order.order_number}
                                 </td>
-                                <td className="px-6 py-4 text-sm text-gray-700">
+                                <td className="px-6 py-3.5 text-sm text-gray-600">
                                   {order.customer_name || 'Cliente'}
                                 </td>
-                                <td className="px-6 py-4 text-sm text-gray-600">
+                                <td className="px-6 py-3.5 text-sm text-gray-500">
                                   <span className="capitalize">{order.order_type}</span>
-                                  {isDeliveryOrder ? (
-                                    <span className="ml-2 text-xs bg-orange-50 border border-orange-100 text-orange-600 px-2 py-0.5 rounded">Despacho</span>
-                                  ) : (
-                                    <span className="ml-2 text-xs bg-green-50 border border-green-100 text-green-600 px-2 py-0.5 rounded">Retiro</span>
-                                  )}
+                                  <span className="text-gray-300"> · </span>{isDeliveryOrder ? 'Despacho' : 'Retiro'}
                                 </td>
-                                <td className="px-6 py-4 text-sm text-gray-500">
+                                <td className="px-6 py-3.5 text-sm tabular-nums text-gray-400">
                                   {orderDate}
                                 </td>
-                                <td className="px-6 py-4">
-                                  <div className="text-sm font-bold text-gray-900">
+                                <td className="px-6 py-3.5">
+                                  <div className="text-sm font-semibold tabular-nums text-gray-900">
                                     ${Number(order.total || 0).toLocaleString('es-CL')}
                                   </div>
-                                  <div 
-                                    className="text-[10px] text-gray-500 mt-0.5 w-fit"
+                                  <div
+                                    className="text-xs text-gray-400 mt-0.5 w-fit"
                                     title={order.payments?.find(p => p.reference_code)?.reference_code ? `Klap ID: ${order.payments.find(p => p.reference_code).reference_code}` : undefined}
                                   >
-                                    <span className="flex items-center gap-1 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">
-                                      <CreditCard className="w-3 h-3" />
-                                      {getPaymentMethod(order)}
-                                    </span>
+                                    {getPaymentMethod(order)}
                                   </div>
                                 </td>
-                                <td className="px-6 py-4">
-                                  <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded ${
-                                    order.status === 'scheduled' ? 'bg-indigo-100 text-indigo-800' :
-                                    order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                    order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
-                                    order.status === 'preparing' ? 'bg-purple-100 text-purple-800' :
-                                    order.status === 'ready' ? 'bg-indigo-100 text-indigo-800' :
-                                    order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                    'bg-red-100 text-red-800'
-                                  }`}>
+                                <td className="px-6 py-3.5">
+                                  <span className="inline-flex items-center gap-1.5 text-[13px] text-gray-600">
+                                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                                      order.status === 'cancelled' ? 'bg-red-500' :
+                                      order.status === 'completed' || order.status === 'ready' ? 'bg-green-500' :
+                                      'bg-amber-400'
+                                    }`} />
                                     {order.status === 'scheduled' ? 'Programado' :
                                      order.status === 'pending' ? 'Pendiente' :
                                      order.status === 'confirmed' ? 'Confirmado' :
@@ -818,15 +860,15 @@ const SuperAdminView = () => {
                                      'Cancelado'}
                                   </span>
                                 </td>
-                                <td className="px-6 py-4 text-right">
-                                  <Button 
-                                    variant="ghost" 
+                                <td className="px-6 py-3.5 text-right">
+                                  <button
+                                    type="button"
                                     onClick={() => setSelectedOrder(order)}
-                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs font-semibold px-2.5 py-1 float-right"
+                                    aria-label={`Ver pedido ${order.order_number}`}
+                                    className="p-2 text-gray-400 transition-colors hover:text-gray-900"
                                   >
-                                    <Eye className="h-3.5 w-3.5 mr-1" />
-                                    Ver Detalle
-                                  </Button>
+                                    <Eye className="h-4 w-4" />
+                                  </button>
                                 </td>
                               </tr>
                             );
@@ -841,27 +883,22 @@ const SuperAdminView = () => {
 
               {/* Overview */}
               {detailTab === 'overview' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="p-6 rounded-xl border bg-gray-50 flex items-center gap-4">
-                    <div className="h-12 w-12 bg-green-100 flex items-center justify-center shrink-0">
-                      <DollarSign className="h-6 w-6 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Ventas Totales</p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        ${selectedOrganization.totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
-                    </div>
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-3 md:gap-4">
+                  <div>
+                    <p className="text-xl md:text-2xl font-semibold tabular-nums text-gray-900 truncate">
+                      ${selectedOrganization.totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    <p className="text-[13px] text-gray-400 mt-1">Ventas totales</p>
                   </div>
-                  
-                  <div className="p-6 rounded-xl border bg-gray-50 flex items-center gap-4">
-                    <div className="h-12 w-12 bg-blue-100 flex items-center justify-center shrink-0">
-                      <PackageOpen className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Órdenes Realizadas</p>
-                      <p className="text-2xl font-bold text-gray-900">{selectedOrganization.orderCount}</p>
-                    </div>
+
+                  <div>
+                    <p className="text-xl md:text-2xl font-semibold tabular-nums text-gray-900">{selectedOrganization.orderCount}</p>
+                    <p className="text-[13px] text-gray-400 mt-1">Órdenes</p>
+                  </div>
+
+                  <div>
+                    <p className="text-xl md:text-2xl font-semibold tabular-nums text-gray-900">{(selectedOrganization.visits30d || 0).toLocaleString('es-CL')}</p>
+                    <p className="text-[13px] text-gray-400 mt-1">Visitas 30d</p>
                   </div>
                 </div>
               )}
@@ -915,20 +952,11 @@ const SuperAdminView = () => {
                         <User className="h-5 w-5 text-gray-500" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 truncate">{user.name}</p>
-                        <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(user.createdAt).toLocaleDateString()}
+                        <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {user.role} · {new Date(user.createdAt).toLocaleDateString()}
                         </p>
                       </div>
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 ${
-                        user.role === 'Client Admin'
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'bg-blue-100 text-blue-700'
-                      }`}>
-                        {user.role === 'Client Admin' && <Shield className="h-3 w-3" />}
-                        {user.role}
-                      </span>
                     </div>
                   ))}
                   {orgUsers.length === 0 && (
@@ -941,33 +969,27 @@ const SuperAdminView = () => {
                 <div className="overflow-x-auto -mx-6 -my-6 hidden md:block">
                   <table className="w-full text-left border-collapse whitespace-nowrap">
                     <thead>
-                      <tr className="bg-gray-50 border-b">
-                        <th className="px-6 py-4 text-sm font-semibold text-gray-600">Usuario</th>
-                        <th className="px-6 py-4 text-sm font-semibold text-gray-600">Rol</th>
-                        <th className="px-6 py-4 text-sm font-semibold text-gray-600">Registro</th>
+                      <tr className="border-b">
+                        <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Usuario</th>
+                        <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Rol</th>
+                        <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Registro</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
                       {orgUsers.map((user) => (
                         <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-3.5">
                             <div className="flex items-center gap-3">
-                              <User className="h-6 w-6 text-gray-900 mx-2" />
-                              <div className="font-medium text-gray-900">{user.name}</div>
+                              <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                                <User className="h-4 w-4 text-gray-400" />
+                              </div>
+                              <div className="text-sm font-semibold text-gray-900">{user.name}</div>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium ${
-                              user.role === 'Client Admin' 
-                                ? 'bg-purple-100 text-purple-700' 
-                                : 'bg-blue-100 text-blue-700'
-                            }`}>
-                              {user.role === 'Client Admin' && <Shield className="h-3 w-3" />}
-                              {user.role}
-                            </span>
+                          <td className="px-6 py-3.5 text-sm text-gray-500">
+                            {user.role}
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-500 flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-gray-400" />
+                          <td className="px-6 py-3.5 text-sm tabular-nums text-gray-400">
                             {new Date(user.createdAt).toLocaleDateString()}
                           </td>
                         </tr>
@@ -1285,9 +1307,8 @@ const SuperAdminView = () => {
                               {prod.sku || 'Sin SKU'} · ${Number(prod.base_price).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                             </p>
                           </div>
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold shrink-0 ${
-                            prod.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                          }`}>
+                          <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 shrink-0">
+                            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${prod.status === 'available' ? 'bg-green-500' : 'bg-gray-300'}`} />
                             {prod.status === 'available' ? 'Disponible' : prod.status}
                           </span>
                         </div>
@@ -1680,13 +1701,13 @@ const SuperAdminView = () => {
         maxWidth="max-w-md"
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setWelcomeTarget(null)}>
+            <Button variant="outline" onClick={() => setWelcomeTarget(null)} className="rounded-full">
               Cancelar
             </Button>
             <Button
               disabled={sendingWelcomeId === welcomeTarget?.id}
               onClick={() => handleSendWelcome(welcomeTarget)}
-              className="bg-gray-900 text-white hover:bg-gray-700"
+              className="rounded-full bg-gray-900 text-white hover:bg-gray-700"
             >
               {sendingWelcomeId === welcomeTarget?.id ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
