@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import AIImportModal from '../components/catalog/AIImportModal';
 import EditProductModal from '../components/catalog/EditProductModal';
 import OrderDetailModal from '../components/pos/OrderDetailModal';
+import Modal from '../components/ui/Modal';
 import KlapReconciliationTab from '../components/superadmin/KlapReconciliationTab';
 import OrgBrandingTab from '../components/superadmin/OrgBrandingTab';
 import OrgHoursTab from '../components/superadmin/OrgHoursTab';
@@ -98,9 +99,12 @@ const SuperAdminView = () => {
 
   // Reenvío manual del email de bienvenida al dueño del negocio.
   // La edge function resuelve el email con el organization_id.
+  // Se pide confirmación antes de enviar.
+  const [welcomeTarget, setWelcomeTarget] = useState(null);
   const [sendingWelcomeId, setSendingWelcomeId] = useState(null);
   const handleSendWelcome = async (org) => {
     if (!org?.id || sendingWelcomeId) return;
+    setWelcomeTarget(null);
     const toastId = toast.loading(`Enviando bienvenida a ${org.name}...`);
     setSendingWelcomeId(org.id);
     try {
@@ -271,6 +275,25 @@ const SuperAdminView = () => {
 
     if (fetchError) throw fetchError;
 
+    // Visitas de los últimos 30 días por tienda (una sola consulta)
+    const since = new Date();
+    since.setDate(since.getDate() - 29);
+    const sinceStr = since.toISOString().split('T')[0];
+    let visitsByOrg = {};
+    try {
+      const { data: visitsData, error: visitsError } = await supabase
+        .from('store_visits')
+        .select('organization_id, visit_count')
+        .gte('date', sinceStr);
+      if (visitsError) throw visitsError;
+      visitsByOrg = (visitsData || []).reduce((acc, v) => {
+        acc[v.organization_id] = (acc[v.organization_id] || 0) + (v.visit_count || 0);
+        return acc;
+      }, {});
+    } catch (visitsErr) {
+      console.warn('Visits table error:', visitsErr);
+    }
+
     const formattedOrgs = data.map(org => {
       const ordersArray = org.orders || [];
       const totalSales = ordersArray.reduce((sum, order) => sum + Number(order.total || 0), 0);
@@ -296,6 +319,7 @@ const SuperAdminView = () => {
         uberCustomerId: org.uber_customer_id || '',
         orderCount: ordersArray.length,
         totalSales: totalSales,
+        visits30d: visitsByOrg[org.id] || 0,
       };
     });
     setOrganizations(formattedOrgs);
@@ -401,7 +425,7 @@ const SuperAdminView = () => {
                       )}
                     </div>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {org.orderCount} {org.orderCount === 1 ? 'orden' : 'órdenes'} · ${org.totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {org.orderCount} {org.orderCount === 1 ? 'orden' : 'órdenes'} · ${org.totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · {(org.visits30d || 0).toLocaleString('es-CL')} visitas
                     </p>
                   </div>
                   <ChevronRight className="h-5 w-5 text-gray-300 shrink-0" />
@@ -421,6 +445,7 @@ const SuperAdminView = () => {
                     <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Negocio</th>
                     <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Órdenes</th>
                     <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Ventas Totales</th>
+                    <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Visitas 30d</th>
                     <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500">Registro</th>
                     <th className="px-6 py-4 text-xs uppercase tracking-wider font-semibold text-gray-500 text-right">Acción</th>
                   </tr>
@@ -456,6 +481,12 @@ const SuperAdminView = () => {
                           {org.totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center gap-1 font-semibold text-sky-700 bg-sky-50 px-2.5 py-1 text-sm border border-sky-100">
+                          <Eye className="h-3 w-3" />
+                          {org.visits30d.toLocaleString('es-CL')}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {new Date(org.createdAt).toLocaleDateString()}
                       </td>
@@ -466,7 +497,7 @@ const SuperAdminView = () => {
                             title="Enviar email de bienvenida"
                             aria-label={`Enviar email de bienvenida a ${org.name}`}
                             disabled={sendingWelcomeId === org.id}
-                            onClick={(e) => { e.stopPropagation(); handleSendWelcome(org); }}
+                            onClick={(e) => { e.stopPropagation(); setWelcomeTarget(org); }}
                             className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50"
                           >
                             {sendingWelcomeId === org.id
@@ -482,7 +513,7 @@ const SuperAdminView = () => {
                   ))}
                   {organizations.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="text-center py-12 text-gray-500">
+                      <td colSpan="6" className="text-center py-12 text-gray-500">
                         No hay negocios registrados.
                       </td>
                     </tr>
@@ -529,7 +560,7 @@ const SuperAdminView = () => {
                     <button
                       type="button"
                       disabled={sendingWelcomeId === selectedOrganization.id}
-                      onClick={() => handleSendWelcome(selectedOrganization)}
+                      onClick={() => setWelcomeTarget(selectedOrganization)}
                       className="text-sm text-gray-600 hover:text-gray-900 font-medium flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 px-2.5 py-1 transition-colors w-fit rounded-md disabled:opacity-50"
                     >
                       {sendingWelcomeId === selectedOrganization.id
@@ -1640,6 +1671,38 @@ const SuperAdminView = () => {
         canCancel={false}
         userRole="superadmin"
       />
+
+      {/* Confirmación de envío de bienvenida */}
+      <Modal
+        isOpen={!!welcomeTarget}
+        onClose={() => setWelcomeTarget(null)}
+        title="Enviar email de bienvenida"
+        maxWidth="max-w-md"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setWelcomeTarget(null)}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={sendingWelcomeId === welcomeTarget?.id}
+              onClick={() => handleSendWelcome(welcomeTarget)}
+              className="bg-gray-900 text-white hover:bg-gray-700"
+            >
+              {sendingWelcomeId === welcomeTarget?.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                'Enviar'
+              )}
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-sm text-gray-600 leading-relaxed">
+          Se enviará el email de bienvenida al dueño de{' '}
+          <span className="font-bold text-gray-900">{welcomeTarget?.name}</span>{' '}
+          con los primeros pasos para poner su tienda en marcha. ¿Continuar?
+        </p>
+      </Modal>
     </div>
   );
 };
