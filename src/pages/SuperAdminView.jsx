@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { User, Calendar, Clock, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe, Store, Plus, Pencil, Tags, Copy, Trash2, Mail } from 'lucide-react';
+import { User, Calendar, Clock, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe, Store, Plus, Pencil, Tags, Copy, Trash2, Mail, KeyRound } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getStoreUrl } from '../utils/tenant';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,107 @@ const SuperAdminView = () => {
   const [error, setError] = useState(null);
   const [isAIImportOpen, setIsAIImportOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
+
+  // ── Gestión de personal (solo Super Admin) ──
+  const [supremos, setSupremos] = useState([]);
+  const [staffBusy, setStaffBusy] = useState(null);
+  const [showCreateSeller, setShowCreateSeller] = useState(false);
+  const [newSellerName, setNewSellerName] = useState('');
+  const [newSellerEmail, setNewSellerEmail] = useState('');
+  const [createdPin, setCreatedPin] = useState(null);
+
+  const ROLE_LABELS = { owner: 'Administrador', admin: 'Administrador', manager: 'Encargado', cashier: 'Vendedor', kitchen: 'Cocina', waiter: 'Mesero' };
+
+  const callStaffFn = async (payload) => {
+    const { data, error } = await supabase.functions.invoke('create-staff', { body: payload });
+    if (error) {
+      try {
+        const ctx = error.context;
+        if (ctx && typeof ctx.json === 'function') {
+          const clone = ctx.clone ? ctx.clone() : ctx;
+          const bodyErr = await clone.json().catch(() => null);
+          if (bodyErr?.error) throw new Error(bodyErr.error);
+        }
+      } catch (parseErr) {
+        if (parseErr instanceof Error && parseErr.message && !parseErr.message.includes('Failed to send')) throw parseErr;
+      }
+      throw error;
+    }
+    if (data?.error) throw new Error(data.error);
+    return data;
+  };
+
+  const fetchSupremos = async () => {
+    const { data } = await supabase.from('super_admins').select('user_id');
+    setSupremos((data || []).map(r => r.user_id));
+  };
+
+  const handleCreateSeller = async () => {
+    if (!selectedOrganization || !newSellerEmail.trim()) return;
+    setStaffBusy('create');
+    setCreatedPin(null);
+    try {
+      const data = await callStaffFn({
+        action: 'create',
+        email: newSellerEmail.trim(),
+        full_name: newSellerName.trim(),
+        organization_id: selectedOrganization.id,
+      });
+      setCreatedPin({ email: newSellerEmail.trim(), pin: data.pin });
+      setNewSellerEmail('');
+      setNewSellerName('');
+      await fetchUsers();
+      toast.success('Vendedor creado');
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || 'No se pudo crear el vendedor');
+    } finally {
+      setStaffBusy(null);
+    }
+  };
+
+  const handleResetPin = async (userId) => {
+    setStaffBusy(userId);
+    try {
+      const data = await callStaffFn({ action: 'reset-pin', user_id: userId });
+      setCreatedPin({ email: null, pin: data.pin });
+      toast.success('Nuevo PIN generado');
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || 'No se pudo generar el PIN');
+    } finally {
+      setStaffBusy(null);
+    }
+  };
+
+  const handleToggleActive = async (user) => {
+    setStaffBusy(user.id);
+    try {
+      await callStaffFn({ action: 'set-active', user_id: user.id, is_active: user.isActive === false });
+      await fetchUsers();
+      toast.success(user.isActive === false ? 'Cuenta activada' : 'Cuenta desactivada');
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || 'No se pudo actualizar');
+    } finally {
+      setStaffBusy(null);
+    }
+  };
+
+  const handleToggleSupremo = async (user) => {
+    const isSup = supremos.includes(user.id);
+    setStaffBusy(user.id);
+    try {
+      await callStaffFn({ action: 'set-supremo', user_id: user.id, value: !isSup });
+      await fetchSupremos();
+      toast.success(!isSup ? 'Super Admin otorgado' : 'Super Admin revocado');
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || 'No se pudo actualizar');
+    } finally {
+      setStaffBusy(null);
+    }
+  };
 
   // Abre la interfaz completa de edición (igual que la tienda) para un producto
   const openFullProductEditor = (productId) => {
@@ -224,6 +325,7 @@ const SuperAdminView = () => {
     try {
       await Promise.all([
         fetchUsers(),
+        fetchSupremos(),
         fetchOrganizations(),
         fetchFeedbacks(),
         fetchProducts()
@@ -243,6 +345,7 @@ const SuperAdminView = () => {
         id,
         full_name,
         role,
+        is_active,
         created_at,
         organization_id,
         uber_direct_enabled,
@@ -259,7 +362,9 @@ const SuperAdminView = () => {
       email: 'N/A (Auth hidden)',
       organizationId: staff.organization_id,
       organizationName: staff.organizations?.name || 'Unknown',
-      role: staff.role === 'owner' ? 'Client Admin' : staff.role,
+      rawRole: staff.role,
+      role: ROLE_LABELS[staff.role] || staff.role,
+      isActive: staff.is_active !== false,
       createdAt: staff.created_at,
       uberDirectEnabled: staff.uber_direct_enabled || false,
       whatsappEnabled: staff.whatsapp_enabled || false,
@@ -943,22 +1048,85 @@ const SuperAdminView = () => {
 
               {/* Users */}
               {detailTab === 'users' && (
-                <>
+                <div className="p-4 md:p-6 space-y-4">
+                  {/* Crear vendedor con PIN */}
+                  {!showCreateSeller ? (
+                    <Button size="sm" onClick={() => { setShowCreateSeller(true); setCreatedPin(null); }}>
+                      + Crear vendedor (PIN)
+                    </Button>
+                  ) : (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+                      <p className="font-bold text-sm text-gray-900">Nuevo vendedor para {selectedOrganization.name}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <input
+                          value={newSellerName}
+                          onChange={(e) => setNewSellerName(e.target.value)}
+                          placeholder="Nombre (ej: María)"
+                          className="h-11 px-4 bg-white border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-black"
+                        />
+                        <input
+                          value={newSellerEmail}
+                          onChange={(e) => setNewSellerEmail(e.target.value)}
+                          placeholder="Email (ej: maria@local.cl)"
+                          type="email"
+                          className="h-11 px-4 bg-white border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-black"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={handleCreateSeller} disabled={staffBusy === 'create' || !newSellerEmail.trim()}>
+                          {staffBusy === 'create' ? 'Creando…' : 'Crear y generar PIN'}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setShowCreateSeller(false)}>
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {createdPin && (
+                    <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+                      <p className="text-sm text-amber-900">
+                        <span className="font-bold">PIN de un solo uso{createdPin.email ? ` para ${createdPin.email}` : ''}:</span>{' '}
+                        <span className="font-black text-2xl tracking-[0.3em]">{createdPin.pin}</span>
+                        <span className="block text-xs mt-1">Entrégalo ahora: no se volverá a mostrar. El vendedor deberá cambiarlo al ingresar.</span>
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { navigator.clipboard.writeText(createdPin.pin); toast.success('PIN copiado'); }}
+                      >
+                        Copiar
+                      </Button>
+                    </div>
+                  )}
                 {/* Mobile: cards */}
                 <div className="divide-y md:hidden -m-4 md:m-0">
-                  {orgUsers.map((user) => (
-                    <div key={user.id} className="px-4 py-4 flex items-center gap-3">
+                  {orgUsers.map((user) => {
+                    const isSup = supremos.includes(user.id);
+                    const busy = staffBusy === user.id;
+                    return (
+                    <div key={user.id} className={`px-4 py-4 flex items-center gap-3 ${user.isActive ? '' : 'opacity-60'}`}>
                       <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
                         <User className="h-5 w-5 text-gray-500" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+                        <p className="text-sm font-semibold text-gray-900 truncate flex items-center gap-1.5">{user.name} {isSup && <Shield className="h-3.5 w-3.5 text-purple-600" />}</p>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {user.role} · {new Date(user.createdAt).toLocaleDateString()}
+                          {isSup ? 'Super Admin' : user.role} · {user.isActive ? 'Activo' : 'Desactivado'} · {new Date(user.createdAt).toLocaleDateString()}
                         </p>
+                        <div className="flex items-center gap-1.5 mt-2">
+                          {!isSup && !['owner', 'admin'].includes(user.rawRole) && (
+                            <Button variant="outline" size="sm" onClick={() => handleResetPin(user.id)} disabled={busy}>
+                              <KeyRound />
+                              Resetear PIN
+                            </Button>
+                          )}
+                          <Button variant="secondary" size="sm" onClick={() => handleToggleActive(user)} disabled={busy}>{user.isActive ? 'Desactivar' : 'Activar'}</Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleToggleSupremo(user)} disabled={busy}>{isSup ? 'Quitar Supremo' : 'Hacer Supremo'}</Button>
+                        </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                   {orgUsers.length === 0 && (
                     <p className="text-center py-12 text-gray-500 text-sm">
                       No hay usuarios en esta organización.
@@ -972,31 +1140,60 @@ const SuperAdminView = () => {
                       <tr className="border-b">
                         <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Usuario</th>
                         <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Rol</th>
+                        <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Estado</th>
                         <th className="px-6 py-3 text-[13px] font-medium text-gray-500">Registro</th>
+                        <th className="px-6 py-3 text-[13px] font-medium text-gray-500 text-right">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {orgUsers.map((user) => (
-                        <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                      {orgUsers.map((user) => {
+                        const isSup = supremos.includes(user.id);
+                        const busy = staffBusy === user.id;
+                        return (
+                        <tr key={user.id} className={`transition-colors ${user.isActive ? 'hover:bg-gray-50' : 'bg-gray-50/60 opacity-70'}`}>
                           <td className="px-6 py-3.5">
                             <div className="flex items-center gap-3">
                               <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
                                 <User className="h-4 w-4 text-gray-400" />
                               </div>
-                              <div className="text-sm font-semibold text-gray-900">{user.name}</div>
+                              <div className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">{user.name} {isSup && <Shield className="h-4 w-4 text-purple-600" />}</div>
                             </div>
                           </td>
                           <td className="px-6 py-3.5 text-sm text-gray-500">
-                            {user.role}
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${isSup ? 'bg-purple-100 text-purple-700' : user.rawRole === 'cashier' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                              {isSup ? 'Super Admin' : user.role}
+                            </span>
+                          </td>
+                          <td className="px-6 py-3.5">
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
+                              {user.isActive ? 'Activo' : 'Desactivado'}
+                            </span>
                           </td>
                           <td className="px-6 py-3.5 text-sm tabular-nums text-gray-400">
                             {new Date(user.createdAt).toLocaleDateString()}
                           </td>
+                          <td className="px-6 py-3.5">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {!isSup && !['owner', 'admin'].includes(user.rawRole) && (
+                                <Button variant="outline" size="sm" onClick={() => handleResetPin(user.id)} disabled={busy} title="Resetear PIN">
+                                  <KeyRound />
+                                  Resetear PIN
+                                </Button>
+                              )}
+                              <Button variant="ghost" size="icon-sm" onClick={() => handleToggleActive(user)} disabled={busy} title={user.isActive ? 'Desactivar cuenta' : 'Activar cuenta'}>
+                                {user.isActive ? <ToggleRight className="h-5 w-5 text-emerald-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
+                              </Button>
+                              <Button variant="ghost" size="icon-sm" onClick={() => handleToggleSupremo(user)} disabled={busy} title={isSup ? 'Quitar Super Admin' : 'Otorgar Super Admin'}>
+                                <Shield className={`h-5 w-5 ${isSup ? 'text-purple-700' : 'text-gray-300'}`} />
+                              </Button>
+                            </div>
+                          </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                       {orgUsers.length === 0 && (
                         <tr>
-                          <td colSpan="3" className="text-center py-12 text-gray-500">
+                          <td colSpan="5" className="text-center py-12 text-gray-500">
                             No hay usuarios en esta organización.
                           </td>
                         </tr>
@@ -1004,7 +1201,7 @@ const SuperAdminView = () => {
                     </tbody>
                   </table>
                 </div>
-                </>
+                </div>
               )}
 
               {/* Klap Reconciliation Tab */}

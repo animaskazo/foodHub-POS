@@ -13,7 +13,7 @@ import Modal from '../components/ui/Modal';
 import { NAV_ITEMS, getNavItems } from '../components/pos/BottomNav';
 import PrepTimeSelector from '../components/ui/PrepTimeSelector';
 import TableSelectionListModal from '../components/pos/TableSelectionListModal';
-import { X, LogOut, Menu, Home, ChefHat, Clock } from 'lucide-react';
+import { X, LogOut, Menu, Home, ChefHat, Clock, KeyRound } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import NewOrderAlert from '../components/ui/NewOrderAlert';
 import { createOrder, updateOrderCustomer, getOpenOrdersForTable, appendItemsToOrder } from '../services/orderService';
@@ -26,13 +26,26 @@ import { defaultSelectionsForSlot, bundleHasChoices } from '../utils/bundleSelec
 import PrintableReceipt from '../components/pos/PrintableReceipt';
 import { printReceipt, printReceiptAsPDF } from '../services/printerService';
 import { getCartTotal, getCartTotalsWithTax, getCartItemUnitPrice, sumExtraIngredients } from '../utils/cartTotals';
+import { calculateDiscount } from '../services/couponService';
 
 
 const PosView = () => {
-  const { organization, role } = useAuth();
+  const { organization, role, isSuperAdmin } = useAuth();
+  const isAdmin = isSuperAdmin || ['owner', 'admin', 'manager'].includes(role);
   const taxRate = organization?.default_tax_rate ? Number(organization.default_tax_rate) / 100 : 0.19;
 
   const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      /* noop */
+    }
+    navigate('/login');
+  };
+
+  const handleChangePin = () => navigate('/update-password');
   const [cartItems, setCartItems] = useState([]);
   const [posPrintOrder, setPosPrintOrder] = useState(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -544,7 +557,7 @@ const PosView = () => {
     try {
       const cartTotal = getCartTotal(cartItems);
       const deliveryFee = deliveryInfo?.deliveryFee || 0;
-      const discountAmount = appliedCoupon ? (appliedCoupon.type === 'percentage' ? Math.round(cartTotal * (appliedCoupon.value / 100)) : Math.min(appliedCoupon.value, cartTotal)) : 0;
+      const discountAmount = appliedCoupon ? calculateDiscount(appliedCoupon, cartTotal) : 0;
       const total = cartTotal - discountAmount + deliveryFee;
       const subtotal = Math.round(total / (1 + taxRate));
       const tax = total - subtotal;
@@ -589,7 +602,7 @@ const PosView = () => {
               // No se corta el cobro: el pago es lo urgente. Pero el ticket
               // saldría sin el cliente, así que hay que avisar.
               console.error('No se pudieron guardar los datos del cliente:', err);
-              alert('El cobro se registró, pero no se pudieron guardar los datos del cliente. El ticket saldrá sin nombre ni teléfono.');
+              import('sonner').then(({ toast }) => toast.warning('El cobro se registró, pero el ticket saldrá sin nombre ni teléfono.'));
             }
           }
 
@@ -670,7 +683,7 @@ const PosView = () => {
       return finalOrder;
     } catch (error) {
       console.error('Error creating order:', error);
-      alert(`Hubo un error al procesar el pago: ${error.message || JSON.stringify(error)}`);
+      import('sonner').then(({ toast }) => toast.error(`Hubo un error al procesar el pago: ${error.message || 'intenta nuevamente'}`));
     }
   };
 
@@ -713,7 +726,7 @@ const PosView = () => {
       showToast("¡Productos enviados a cocina!");
     } catch (error) {
       console.error('Error saving order:', error);
-      alert(`Hubo un error al guardar el pedido: ${error.message || JSON.stringify(error)}`);
+      import('sonner').then(({ toast }) => toast.error(`Hubo un error al guardar el pedido: ${error.message || 'intenta nuevamente'}`));
     } finally {
       setIsSavingOrder(false);
     }
@@ -736,7 +749,6 @@ const PosView = () => {
           <p className="text-gray-500 mb-8">El terminal de ventas está bloqueado porque el turno actual se encuentra cerrado. Para poder recibir pagos y procesar órdenes, por favor abre la caja desde el Dashboard administrativo.</p>
           <Button 
             onClick={() => navigate('/')} 
-            className="w-full bg-black hover:bg-gray-800 text-white font-bold h-12"
           >
             Ir al Dashboard
           </Button>
@@ -774,8 +786,7 @@ const PosView = () => {
                 <div className="fixed bottom-6 left-4 right-4 z-40 md:hidden pb-safe">
                   <Button
                     onPointerDown={() => setIsMobileCartOpen(true)}
-                    className="relative w-full flex items-center justify-center h-14 px-5 bg-black hover:bg-black text-white rounded-full shadow-2xl transition-transform active:scale-[0.98]"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    className="relative w-full h-14 shadow-2xl active:scale-[0.98]"
                   >
                     <div className="absolute left-3 bg-white text-black flex items-center justify-center h-8 w-8 rounded-full text-sm font-bold shadow-sm">
                       {totalQty}
@@ -871,15 +882,17 @@ const PosView = () => {
           <div className="relative w-4/5 max-w-xs bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <h2 className="font-bold text-lg">Menú</h2>
-              <button 
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 onPointerDown={() => setIsMobileMenuOpen(false)}
-                className="p-2 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                className="text-gray-400"
               >
-                <X className="h-6 w-6" />
-              </button>
+                <X className="size-6" />
+              </Button>
             </div>
             <div className="flex-1 overflow-y-auto py-4">
-              {getNavItems(role).map(({ id, label, icon: Icon }) => (
+              {getNavItems(role, organization?.dine_in_enabled === true, isAdmin).map(({ id, label, icon: Icon }) => (
                 <Button
                   key={id}
                   variant="ghost"
@@ -905,14 +918,22 @@ const PosView = () => {
             <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/50">
               <PrepTimeSelector menuVariant />
             </div>
-            <div className="p-5 border-t border-gray-100">
+            <div className="p-5 border-t border-gray-100 space-y-2">
               <Button
                 variant="ghost"
-                onPointerDown={() => window.location.href = '/'}
-                className="w-full flex items-center justify-start gap-4 px-6 h-16 text-red-600 font-bold active:bg-red-50 hover:bg-red-50 rounded-xl"
+                onPointerDown={handleChangePin}
+                className="w-full justify-start h-14 text-base"
               >
-                <LogOut className="h-8 w-8" />
-                <span className="text-lg">Cerrar Sesión</span>
+                <KeyRound className="size-6" />
+                Cambiar mi PIN
+              </Button>
+              <Button
+                variant="ghost"
+                onPointerDown={handleLogout}
+                className="w-full justify-start h-14 text-base text-red-600 hover:text-red-600 hover:bg-red-50"
+              >
+                <LogOut className="size-6" />
+                Cerrar Sesión
               </Button>
             </div>
           </div>
@@ -920,7 +941,7 @@ const PosView = () => {
       )}
 
       {/* Bottom Navigation (Hidden on mobile) */}
-      <BottomNav active={activeTab} onChange={setActiveTab} role={role} dineInEnabled={organization?.dine_in_enabled === true} />
+      <BottomNav active={activeTab} onChange={setActiveTab} role={role} dineInEnabled={organization?.dine_in_enabled === true} isAdmin={isAdmin} onLogout={handleLogout} onChangePin={handleChangePin} />
 
       <PaymentModal
         isOpen={isPaymentModalOpen}
@@ -977,16 +998,18 @@ const PosView = () => {
           <p className="text-gray-600 mb-6">
             ¿Estás seguro de que deseas eliminar <strong>{cartItems.find(i => i.cartItemId === itemToDelete)?.name}</strong> del pedido?
           </p>
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <Button
+              variant="secondary"
               onClick={() => setItemToDelete(null)}
-              className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
+              className="flex-1"
             >
               Cancelar
             </Button>
             <Button
               onClick={confirmRemove}
-              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors" variant="destructive">
+              variant="destructive"
+              className="flex-1">
               Eliminar
             </Button>
           </div>

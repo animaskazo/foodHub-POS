@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Plus, Trash2, Check, Tag, CalendarIcon, Percent, DollarSign, Search, Copy, X } from 'lucide-react';
+import { Loader2, Plus, Trash2, Check, Tag, CalendarIcon, Percent, DollarSign, Search, Copy, X, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getCoupons, createCoupon, updateCoupon, deleteCoupon } from '../../services/couponService';
@@ -27,6 +27,8 @@ const CouponsSection = ({ orgId }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [copiedCode, setCopiedCode] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!orgId) return;
@@ -80,6 +82,14 @@ const CouponsSection = ({ orgId }) => {
       setError('Código y valor son obligatorios.');
       return;
     }
+    if (Number(form.value) <= 0) {
+      setError('El valor debe ser mayor a 0.');
+      return;
+    }
+    if (form.type === 'percentage' && Number(form.value) > 100) {
+      setError('El descuento no puede superar el 100%.');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
@@ -107,13 +117,17 @@ const CouponsSection = ({ orgId }) => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('¿Eliminar este cupón permanentemente?')) return;
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
     try {
-      await deleteCoupon(id);
+      await deleteCoupon(confirmDelete.id);
+      setConfirmDelete(null);
       await loadCoupons();
     } catch (err) {
       console.error('Error deleting coupon:', err);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -162,15 +176,16 @@ const CouponsSection = ({ orgId }) => {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nombre o código..."
-            className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-gray-400"
+            placeholder="Buscar por código..."
+            className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-medium outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-gray-400"
           />
         </div>
         <Button
+          size="sm"
           onClick={openCreate}
-          className="flex items-center gap-2 px-5 py-2.5 bg-black text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors shrink-0"
+          className="shrink-0"
         >
-          <Plus className="h-4 w-4" />
+          <Plus />
           Crear cupón
         </Button>
       </div>
@@ -185,10 +200,11 @@ const CouponsSection = ({ orgId }) => {
             No hay cupones aún. Crea el primero para ofrecer descuentos a tus clientes.
           </p>
           <Button
+            size="sm"
             onClick={openCreate}
-            className="mt-4 flex items-center gap-2 px-5 py-2.5 bg-black text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors mx-auto"
+            className="mt-4 mx-auto"
           >
-            <Plus className="h-4 w-4" />
+            <Plus />
             Crear primer cupón
           </Button>
         </div>
@@ -225,13 +241,14 @@ const CouponsSection = ({ orgId }) => {
                     <div className="min-w-0">
                       <span className="font-bold text-sm text-gray-900 truncate block">{coupon.code}</span>
                     </div>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
                       onClick={() => handleCopyCode(coupon.code)}
-                      className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors shrink-0"
                       title="Copiar código"
                     >
                       {copiedCode === coupon.code ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-                    </button>
+                    </Button>
                   </div>
 
                   {/* Discount */}
@@ -260,23 +277,24 @@ const CouponsSection = ({ orgId }) => {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center justify-end gap-2">
-                    <button
+                  <div className="flex items-center justify-end gap-1.5">
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
                       onClick={() => openEdit(coupon)}
-                      className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                       title="Editar"
                     >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => handleDelete(coupon.id)}
-                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      <Pencil />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={() => setConfirmDelete(coupon)}
                       title="Eliminar"
+                      className="hover:text-red-500 hover:bg-red-50"
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                      <Trash2 />
+                    </Button>
                   </div>
                 </div>
               );
@@ -292,17 +310,14 @@ const CouponsSection = ({ orgId }) => {
         title={editingCoupon ? 'Editar cupón' : 'Nuevo cupón'}
         maxWidth="max-w-lg"
         footer={
-          <div className="px-6 py-4 flex items-center justify-end gap-3">
-            <button
-              onClick={closeModal}
-              className="px-5 py-2.5 text-sm font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors"
-            >
+          <div className="px-6 py-4 flex items-center justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={closeModal}>
               Cancelar
-            </button>
+            </Button>
             <Button
+              size="sm"
               onClick={handleSave}
               disabled={saving || !form.code.trim() || !form.value}
-              className="flex items-center gap-2 px-6 py-2.5 bg-black text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
               {editingCoupon ? 'Guardar cambios' : 'Crear cupón'}
@@ -327,11 +342,11 @@ const CouponsSection = ({ orgId }) => {
             <div className="pt-0.5">
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tipo</label>
               <p className="text-[11px] text-transparent mb-2 select-none">.</p>
-              <div className="flex h-11 rounded-xl border border-gray-200 overflow-hidden focus-within:border-gray-900 focus-within:ring-1 focus-within:ring-gray-900 transition-all">
+              <div className="flex h-11 rounded-full border border-gray-200 p-1 gap-1 bg-white overflow-hidden focus-within:border-gray-900 focus-within:ring-1 focus-within:ring-gray-900 transition-all">
                 <button
                   onClick={() => setForm({ ...form, type: 'percentage' })}
-                  className={`flex items-center gap-1.5 px-4 text-sm font-bold transition-all border-r border-gray-200 ${
-                    form.type === 'percentage' ? 'bg-gray-900 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+                  className={`flex items-center gap-1.5 px-4 text-sm font-bold rounded-full transition-all ${
+                    form.type === 'percentage' ? 'bg-black text-white' : 'text-gray-500 hover:text-black'
                   }`}
                 >
                   <Percent className="h-3.5 w-3.5" />
@@ -339,8 +354,8 @@ const CouponsSection = ({ orgId }) => {
                 </button>
                 <button
                   onClick={() => setForm({ ...form, type: 'fixed' })}
-                  className={`flex items-center gap-1.5 px-4 text-sm font-bold transition-all ${
-                    form.type === 'fixed' ? 'bg-gray-900 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+                  className={`flex items-center gap-1.5 px-4 text-sm font-bold rounded-full transition-all ${
+                    form.type === 'fixed' ? 'bg-black text-white' : 'text-gray-500 hover:text-black'
                   }`}
                 >
                   <DollarSign className="h-3.5 w-3.5" />
@@ -462,6 +477,35 @@ const CouponsSection = ({ orgId }) => {
               <p className="text-sm text-red-600 font-medium">{error}</p>
             </div>
           )}
+        </div>
+      </Modal>
+
+      {/* ── Modal: Confirmar eliminación ─────────────────── */}
+      <Modal
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        title="Eliminar cupón"
+        footer={
+          <div className="px-6 py-4 flex items-center justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(null)}>
+              Cancelar
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? 'Eliminando…' : 'Eliminar'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="p-6">
+          <p className="text-sm text-gray-600 leading-relaxed">
+            ¿Eliminar el cupón <span className="font-bold text-gray-900">{confirmDelete?.code}</span> permanentemente?
+            Los pedidos ya creados no se verán afectados.
+          </p>
         </div>
       </Modal>
     </div>

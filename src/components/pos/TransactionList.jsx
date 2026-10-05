@@ -17,7 +17,8 @@ import OrderDetailModal from './OrderDetailModal';
 
 const TransactionList = ({ orders, loading, onOrderUpdated }) => {
   const { organization, role, isSuperAdmin } = useAuth();
-  const canCancel = role === 'owner' || role === 'admin' || isSuperAdmin;
+  // Dueño/Admin del negocio o Super Admin puede anular/eliminar (vendedores: solo venden).
+  const canCancel = isSuperAdmin || ['owner', 'admin', 'manager'].includes(role);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pendingPaymentOrder, setPendingPaymentOrder] = useState(null);

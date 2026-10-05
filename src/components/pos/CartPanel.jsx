@@ -7,6 +7,7 @@ import { getFirstOrganizationId } from '../../services/organizationService';
 import { supabase } from '../../lib/supabase';
 import { getRestaurantTables, onTablesChanged } from '../../services/tableService';
 import { getCartItemUnitPrice, getCartTotal } from '../../utils/cartTotals';
+import { calculateDiscount } from '../../services/couponService';
 
 const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClearTable, onRemove, onUpdateQty, onCharge, onNewOrder, onResetOrder, isMobile, onCloseMobile, onChangeTableMobile, onItemClick, onSaveOrder, onTableSelect, taxRate = 0.19, coupon, onApplyCoupon, onRemoveCoupon, couponError, couponLoading, isSavingOrder = false }) => {
   const items = cartItems;
@@ -40,7 +41,7 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
   // `getCartTotal`: estándar = base + extras; combo = `price` ya es el total
   // (no se suman `selectedOptions` de nuevo para no duplicar).
   const cartTotal = getCartTotal(items);
-  const discountAmount = coupon ? (coupon.type === 'percentage' ? Math.round(cartTotal * (coupon.value / 100)) : Math.min(coupon.value, cartTotal)) : 0;
+  const discountAmount = coupon ? calculateDiscount(coupon, cartTotal) : 0;
   const total = Math.max(0, cartTotal - discountAmount);
   const subtotal = Math.round(total / (1 + taxRate));
   const tax = total - subtotal;

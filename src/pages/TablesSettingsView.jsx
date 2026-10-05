@@ -7,8 +7,10 @@ import {
   getTableZones, createTableZone, updateTableZone, deleteTableZone, 
   getRestaurantTables, createRestaurantTable, updateRestaurantTable, deleteRestaurantTable, updateTablesBatch 
 } from '../services/tableService';
-import { Loader2, Plus, Trash2, Edit2, Save, Move } from 'lucide-react';
+import { Loader2, Plus, Trash2, Edit2, Save, X, Users } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import Modal from '../components/ui/Modal';
 
 const TablesSettingsView = () => {
   useDocumentTitle('Ajustes de Zonas y Mesas');
@@ -26,6 +28,9 @@ const TablesSettingsView = () => {
   
   const [editingTable, setEditingTable] = useState(null);
   const [newTable, setNewTable] = useState({ name: '', capacity: 2, shape: 'square' });
+  const [confirmDeleteZone, setConfirmDeleteZone] = useState(null);
+  const [confirmDeleteTable, setConfirmDeleteTable] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Drag state
   const [draggingTable, setDraggingTable] = useState(null);
@@ -91,16 +96,20 @@ const TablesSettingsView = () => {
     }
   };
 
-  const handleDeleteZone = async (id) => {
-    if (!confirm('¿Estás seguro de eliminar esta zona y todas sus mesas?')) return;
+  const handleDeleteZone = async () => {
+    if (!confirmDeleteZone) return;
+    setDeleting(true);
     try {
-      await deleteTableZone(id);
-      setZones(zones.filter(z => z.id !== id));
-      setTables(tables.filter(t => t.zone_id !== id));
-      if (activeZoneId === id) setActiveZoneId(zones[0]?.id || null);
+      await deleteTableZone(confirmDeleteZone.id);
+      setZones(zones.filter(z => z.id !== confirmDeleteZone.id));
+      setTables(tables.filter(t => t.zone_id !== confirmDeleteZone.id));
+      if (activeZoneId === confirmDeleteZone.id) setActiveZoneId(zones[0]?.id || null);
+      setConfirmDeleteZone(null);
       toast.success('Zona eliminada');
     } catch (error) {
       toast.error('Error al eliminar zona');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -139,14 +148,18 @@ const TablesSettingsView = () => {
     }
   };
 
-  const handleDeleteTable = async (id) => {
-    if (!confirm('¿Estás seguro de eliminar esta mesa?')) return;
+  const handleDeleteTable = async () => {
+    if (!confirmDeleteTable) return;
+    setDeleting(true);
     try {
-      await deleteRestaurantTable(id);
-      setTables(tables.filter(t => t.id !== id));
+      await deleteRestaurantTable(confirmDeleteTable.id);
+      setTables(tables.filter(t => t.id !== confirmDeleteTable.id));
+      setConfirmDeleteTable(null);
       toast.success('Mesa eliminada');
     } catch (error) {
       toast.error('Error al eliminar mesa');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -205,7 +218,7 @@ const TablesSettingsView = () => {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );
   }
@@ -231,23 +244,23 @@ const TablesSettingsView = () => {
                 <input 
                   type="text" 
                   placeholder="Ej. Terraza, Salón..."
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
                   value={newZoneName}
                   onChange={e => setNewZoneName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSaveZone(); }}
                 />
-                <button 
-                  onClick={handleSaveZone}
-                  className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition"
-                >
-                  {editingZone ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                </button>
+                <Button size="icon-sm" onClick={handleSaveZone} title={editingZone ? 'Guardar zona' : 'Crear zona'}>
+                  {editingZone ? <Save /> : <Plus />}
+                </Button>
                 {editingZone && (
-                  <button 
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
                     onClick={() => { setEditingZone(null); setNewZoneName(''); }}
-                    className="bg-gray-100 text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-200 transition"
+                    title="Cancelar"
                   >
-                    X
-                  </button>
+                    <X />
+                  </Button>
                 )}
               </div>
 
@@ -256,22 +269,27 @@ const TablesSettingsView = () => {
                   <div 
                     key={z.id}
                     onClick={() => setActiveZoneId(z.id)}
-                    className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition ${activeZoneId === z.id ? 'border-blue-500 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
+                    className={`flex items-center justify-between p-3 rounded-full border cursor-pointer transition ${activeZoneId === z.id ? 'border-black bg-gray-50' : 'border-gray-100 hover:bg-gray-50'}`}
                   >
-                    <span className={`font-semibold text-sm ${activeZoneId === z.id ? 'text-blue-700' : 'text-gray-700'}`}>{z.name}</span>
+                    <span className={`font-semibold text-sm ${activeZoneId === z.id ? 'text-black' : 'text-gray-700'}`}>{z.name}</span>
                     <div className="flex items-center gap-1">
-                      <button 
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
                         onClick={(e) => { e.stopPropagation(); setEditingZone(z); setNewZoneName(z.name); }}
-                        className="p-1.5 text-gray-400 hover:text-blue-600 rounded-md"
+                        title="Editar zona"
                       >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); handleDeleteZone(z.id); }}
-                        className="p-1.5 text-gray-400 hover:text-red-600 rounded-md"
+                        <Edit2 />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteZone(z); }}
+                        title="Eliminar zona"
+                        className="hover:text-red-500 hover:bg-red-50"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                        <Trash2 />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -290,27 +308,28 @@ const TablesSettingsView = () => {
                   <input 
                     type="text" 
                     placeholder="Nombre (ej. Mesa 1)"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
                     value={newTable.name}
                     onChange={e => setNewTable({...newTable, name: e.target.value})}
+                    onKeyDown={e => { if (e.key === 'Enter') handleSaveTable(); }}
                   />
                   <div className="flex gap-3">
                     <div className="relative w-32">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-gray-400 text-xs font-bold">👤</span>
+                        <Users className="text-gray-400 h-3.5 w-3.5" />
                       </div>
                       <input 
                         type="number" 
                         min="1"
                         placeholder="Personas"
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-full pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
                         value={newTable.capacity}
-                        onChange={e => setNewTable({...newTable, capacity: Number(e.target.value)})}
+                        onChange={e => setNewTable({...newTable, capacity: Math.max(1, Number(e.target.value) || 1)})}
                         title="Capacidad de personas en la mesa"
                       />
                     </div>
                     <select 
-                      className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                      className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
                       value={newTable.shape}
                       onChange={e => setNewTable({...newTable, shape: e.target.value})}
                     >
@@ -320,43 +339,50 @@ const TablesSettingsView = () => {
                     </select>
                   </div>
                   <div className="flex gap-2">
-                    <button 
+                    <Button
+                      size="sm"
                       onClick={handleSaveTable}
-                      className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition"
+                      className="flex-1"
                     >
                       {editingTable ? 'Guardar Cambios' : 'Agregar Mesa'}
-                    </button>
+                    </Button>
                     {editingTable && (
-                      <button 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => { setEditingTable(null); setNewTable({ name: '', capacity: 2, shape: 'square' }); }}
-                        className="bg-gray-100 text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-200 transition"
                       >
                         Cancelar
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-2 min-h-[150px]">
                   {activeTables.map(t => (
-                    <div key={t.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-gray-50">
+                    <div key={t.id} className="flex items-center justify-between p-3 rounded-full border border-gray-100 bg-gray-50">
                       <div>
                         <span className="font-semibold text-sm text-gray-800 block">{t.name}</span>
                         <span className="text-xs text-gray-500">{t.capacity} personas · {t.shape === 'round' ? 'Redonda' : t.shape === 'rectangle' ? 'Rectangular' : 'Cuadrada'}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <button 
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
                           onClick={() => { setEditingTable(t); setNewTable({ name: t.name, capacity: t.capacity, shape: t.shape }); }}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 rounded-md"
+                          title="Editar mesa"
                         >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteTable(t.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 rounded-md"
+                          <Edit2 />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => setConfirmDeleteTable(t)}
+                          title="Eliminar mesa"
+                          className="hover:text-red-500 hover:bg-red-50"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                          <Trash2 />
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -374,12 +400,9 @@ const TablesSettingsView = () => {
             {/* Toolbar */}
             <div className="h-14 border-b border-gray-200 flex items-center justify-between px-6 bg-gray-50/50">
               <h3 className="font-bold text-gray-700 text-sm">Plano del Sector</h3>
-              <button 
-                onClick={handleSaveMap}
-                className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-sm font-bold hover:bg-emerald-700 transition"
-              >
-                <Save className="w-4 h-4" /> Guardar Plano
-              </button>
+              <Button size="sm" onClick={handleSaveMap}>
+                <Save /> Guardar Plano
+              </Button>
             </div>
 
             {/* Canvas */}
@@ -404,7 +427,7 @@ const TablesSettingsView = () => {
                   <div
                     key={t.id}
                     onMouseDown={(e) => handleMouseDown(e, t)}
-                    className={`absolute flex flex-col items-center justify-center border-2 shadow-sm transition-shadow cursor-move ${draggingTable?.id === t.id ? 'z-50 opacity-90 shadow-xl border-blue-500 bg-blue-50' : 'z-10 border-gray-300 bg-white hover:border-blue-400 hover:shadow-md'} ${t.shape === 'round' ? 'rounded-full' : t.shape === 'rectangle' ? 'rounded-lg' : 'rounded-xl'}`}
+                    className={`absolute flex flex-col items-center justify-center border-2 shadow-sm transition-shadow cursor-move ${draggingTable?.id === t.id ? 'z-50 opacity-90 shadow-xl border-black bg-gray-50' : 'z-10 border-gray-300 bg-white hover:border-gray-500 hover:shadow-md'} ${t.shape === 'round' ? 'rounded-full' : t.shape === 'rectangle' ? 'rounded-lg' : 'rounded-xl'}`}
                     style={{
                       left: t.pos_x,
                       top: t.pos_y,
@@ -414,7 +437,7 @@ const TablesSettingsView = () => {
                   >
                     <span className="font-bold text-gray-800 pointer-events-none select-none text-center px-1">{t.name}</span>
                     <span className="text-[10px] text-gray-500 font-medium pointer-events-none select-none flex items-center gap-1 mt-0.5">
-                      <span className="text-[10px]">👤</span> {t.capacity}
+                      <Users className="h-3 w-3" /> {t.capacity}
                     </span>
                   </div>
                 ))}
@@ -425,6 +448,54 @@ const TablesSettingsView = () => {
 
         </div>
       </div>
+
+      {/* ── Modal: Eliminar zona ─────────────────────────── */}
+      <Modal
+        isOpen={!!confirmDeleteZone}
+        onClose={() => setConfirmDeleteZone(null)}
+        title="Eliminar zona"
+        footer={
+          <div className="px-6 py-4 flex items-center justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setConfirmDeleteZone(null)}>
+              Cancelar
+            </Button>
+            <Button size="sm" variant="destructive" onClick={handleDeleteZone} disabled={deleting}>
+              {deleting ? 'Eliminando…' : 'Eliminar'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="p-6">
+          <p className="text-sm text-gray-600 leading-relaxed">
+            ¿Eliminar la zona <span className="font-bold text-gray-900">{confirmDeleteZone?.name}</span> y
+            todas sus mesas? Esta acción no se puede deshacer.
+          </p>
+        </div>
+      </Modal>
+
+      {/* ── Modal: Eliminar mesa ─────────────────────────── */}
+      <Modal
+        isOpen={!!confirmDeleteTable}
+        onClose={() => setConfirmDeleteTable(null)}
+        title="Eliminar mesa"
+        footer={
+          <div className="px-6 py-4 flex items-center justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setConfirmDeleteTable(null)}>
+              Cancelar
+            </Button>
+            <Button size="sm" variant="destructive" onClick={handleDeleteTable} disabled={deleting}>
+              {deleting ? 'Eliminando…' : 'Eliminar'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="p-6">
+          <p className="text-sm text-gray-600 leading-relaxed">
+            ¿Eliminar la mesa <span className="font-bold text-gray-900">{confirmDeleteTable?.name}</span>?
+            Esta acción no se puede deshacer.
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 };

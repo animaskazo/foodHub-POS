@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { getTableZones, getRestaurantTables, onTablesChanged, notifyTablesChanged } from '../../services/tableService';
 import { getOpenOrders, sumOpenOrdersTotal } from '../../services/orderService';
 import { Loader2, Users, Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
   const [loading, setLoading] = useState(true);
@@ -133,7 +134,7 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );
   }
@@ -153,13 +154,14 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
       {/* Top Header */}
       <div className="bg-white pt-5 pb-4 px-3 md:px-5 border-b border-gray-100 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onPointerDown={onOpenMobileMenu}
-            className="md:hidden p-2 -ml-2 rounded-lg text-gray-700 active:bg-gray-100 shrink-0 select-none"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
+            className="md:hidden -ml-2 shrink-0 select-none"
           >
             <Menu className="h-7 w-7" />
-          </button>
+          </Button>
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-900">Sectores</h1>
           </div>

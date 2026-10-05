@@ -19,8 +19,7 @@ import {
   CalendarClock,
   ChevronDown,
   ChevronUp,
-  Info,
-  Volume2
+  Info
 } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -33,7 +32,6 @@ import Sparkline from '../components/ui/Sparkline';
 import Tooltip from '../components/ui/tooltip';
 import DateRangePicker from '../components/ui/DateRangePicker';
 import { useKitchenOrders } from '../hooks/useKitchenOrders';
-import { testAlertSound, unlockAudio } from '../utils/soundAlerts';
 
 const toLocalDateStr = (date) => {
   const y = date.getFullYear()
@@ -521,17 +519,6 @@ const DashboardView = () => {
           actions={
             <div className="flex items-center gap-3">
               <div className="hidden md:flex items-center gap-3">
-                <button
-                  onClick={async () => {
-                    await unlockAudio();
-                    testAlertSound(true);
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-xs font-semibold shadow-xs transition-colors"
-                  title="Probar sonido de alertas online"
-                >
-                  <Volume2 className="h-3.5 w-3.5 text-emerald-600" />
-                  <span>Probar Alerta</span>
-                </button>
                 <PrepTimeSelector />
                 <StockNotifications />
               </div>

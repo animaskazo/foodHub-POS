@@ -8,7 +8,11 @@ export const AuthProvider = ({ children }) => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [organization, setOrganization] = useState(null);
   const [role, setRole] = useState(null);
+  const [isStaffActive, setIsStaffActive] = useState(true);
+  const [accountDisabled, setAccountDisabled] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Evita que el evento SIGNED_OUT del signOut() por desactivación borre el aviso.
+  const disabledRef = React.useRef(false);
 
   useEffect(() => {
     // Check active sessions and sets the user
@@ -26,6 +30,8 @@ export const AuthProvider = ({ children }) => {
         setIsSuperAdmin(false);
         setOrganization(null);
         setRole(null);
+        setIsStaffActive(true);
+        if (!disabledRef.current) setAccountDisabled(false);
       }
       
       setLoading(false);
@@ -49,7 +55,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const { data } = await supabase
           .from('staff')
-          .select('organizations ( id, name, logo_url, address, delivery_enabled, dine_in_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, prep_time, hide_cancelled_orders, uber_client_id, uber_client_secret, uber_customer_id, uber_enabled, delivery_mode, delivery_modes, ticket_extra_message ), role')
+          .select('organizations ( id, name, logo_url, address, delivery_enabled, dine_in_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, prep_time, hide_cancelled_orders, uber_client_id, uber_client_secret, uber_customer_id, uber_enabled, delivery_mode, delivery_modes, ticket_extra_message ), role, is_active')
           .eq('id', userId)
           .single();
         
@@ -60,7 +66,22 @@ export const AuthProvider = ({ children }) => {
           if (data.role) {
             setRole(data.role);
           }
+          const active = data.is_active !== false;
+          setIsStaffActive(active);
+          if (!active) {
+            // Cuenta desactivada: cerrar sesión y avisar en el login.
+            disabledRef.current = true;
+            setAccountDisabled(true);
+            await supabase.auth.signOut();
+            setUser(null);
+            setIsSuperAdmin(false);
+            setOrganization(null);
+            setRole(null);
+            return;
+          }
         }
+        disabledRef.current = false;
+        setAccountDisabled(false);
       } catch (err) {
         console.error('Error fetching org:', err);
       }
@@ -82,6 +103,8 @@ export const AuthProvider = ({ children }) => {
           setIsSuperAdmin(false);
           setOrganization(null);
           setRole(null);
+          setIsStaffActive(true);
+          if (!disabledRef.current) setAccountDisabled(false);
         }
       }
     );
@@ -89,8 +112,24 @@ export const AuthProvider = ({ children }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // ── Perfiles ──
+  // - Super Admin: acceso total + multi-org
+  // - Dueño/Admin/Encargado del negocio: administra su local (incluye gestionar vendedores)
+  // - Vendedor/Cocina/Mesero: solo POS + cocina
+  // can('admin') → gestiona negocio (dueño/admin/encargado o super admin)
+  // can('sell')  → cualquier staff activo (POS + cocina)
+  const isBusinessAdmin = isSuperAdmin || ['owner', 'admin', 'manager'].includes(role);
+  const can = (action) => {
+    if (action === 'admin') return isBusinessAdmin;
+    if (action === 'supremo') return isSuperAdmin;
+    if (action === 'sell') return !!user && isStaffActive;
+    return false;
+  };
+
+  const mustChangePin = user?.user_metadata?.must_change_pin === true;
+
   return (
-    <AuthContext.Provider value={{ user, isSuperAdmin, organization, role, loading }}>
+    <AuthContext.Provider value={{ user, isSuperAdmin, isBusinessAdmin, organization, role, loading, isStaffActive, accountDisabled, mustChangePin, can }}>
       {!loading && children}
     </AuthContext.Provider>
   );

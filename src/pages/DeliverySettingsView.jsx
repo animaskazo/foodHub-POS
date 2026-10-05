@@ -6,12 +6,14 @@ import {
   updateOrganizationDetails
 } from '../services/organizationService';
 import { getAccessToken, createQuote, createDelivery, getDelivery, cancelDelivery, checkMode, TEST_LOCATIONS } from '../services/uberDirectService';
-import { Loader2, Save, Search, Truck, Globe, CheckCircle2, XCircle, ExternalLink, Edit2, Trash2, Plus, MousePointer2, MapPin } from 'lucide-react';
+import { Loader2, Save, Truck, Globe, CheckCircle2, XCircle, ExternalLink, Trash2, Plus, MousePointer2 } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import DeliveryMap from '../components/admin/DeliveryMap';
+import Modal from '../components/ui/Modal';
 import { geocodeAddress } from '../utils/geo';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
 
 const MODES = [
   { value: 'own', label: 'Delivery Propio', icon: Truck, desc: 'Tus propios repartidores gestionan las entregas.' },
@@ -200,12 +202,12 @@ const DeliverySettingsView = () => {
         }
       }
 
-      alert('Configuración de delivery guardada exitosamente.');
+      toast.success('Configuración de delivery guardada exitosamente.');
       setHasChanges(false);
       setTestResult(null);
     } catch (error) {
       console.error('Error al guardar:', error);
-      alert(`Error al guardar: ${error.message || error}`);
+      toast.error(`Error al guardar: ${error.message || error}`);
     } finally {
       setSaving(false);
     }
@@ -307,7 +309,7 @@ const DeliverySettingsView = () => {
       const res = await getDelivery(deliveryResult.cid, deliveryResult.token, deliveryResult.delivery.id);
       setDeliveryResult(prev => ({ ...prev, delivery: res }));
     } catch (err) {
-      alert('Error al obtener estado: ' + err.message);
+      toast.error('Error al obtener estado: ' + err.message);
     } finally {
       setCheckingStatus(false);
     }
@@ -321,7 +323,7 @@ const DeliverySettingsView = () => {
       const res = await getDelivery(deliveryResult.cid, deliveryResult.token, deliveryResult.delivery.id);
       setDeliveryResult(prev => ({ ...prev, delivery: res }));
     } catch (err) {
-      alert('Error al cancelar: ' + err.message);
+      toast.error('Error al cancelar: ' + err.message);
     } finally {
       setCancelling(false);
     }
@@ -350,7 +352,7 @@ const DeliverySettingsView = () => {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );
   }
@@ -370,11 +372,11 @@ const DeliverySettingsView = () => {
               </span>
             )}
             <Button
+              size="sm"
               onClick={handleSaveDelivery}
               disabled={saving || !hasChanges}
-              className="flex items-center gap-2 px-6 py-2.5 bg-black text-white font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
             >
-              {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Guardar cambios
             </Button>
           </div>
@@ -385,7 +387,7 @@ const DeliverySettingsView = () => {
               <p className="text-xs text-gray-500 -mt-3">
                 Navega entre cada método y actívalo por separado: el cliente elegirá en el checkout.
               </p>
-              <div className="grid grid-cols-2 gap-2 p-1.5 bg-gray-100 rounded-2xl" role="tablist" aria-label="Método de delivery">
+              <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 rounded-full" role="tablist" aria-label="Método de delivery">
                 {MODES.map((mode) => {
                   const Icon = mode.icon;
                   const isUber = mode.value === 'uber_direct';
@@ -401,7 +403,7 @@ const DeliverySettingsView = () => {
                       disabled={locked}
                       onClick={() => setActiveTab(mode.value)}
                       title={locked ? 'Disponible solo con permiso del super admin' : mode.label}
-                      className={`flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${
+                      className={`flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-full font-bold text-sm transition-all cursor-pointer ${
                         locked
                           ? 'text-gray-400 cursor-not-allowed'
                           : selected
@@ -492,7 +494,7 @@ const DeliverySettingsView = () => {
                             });
                             setShowZoneModal(true);
                           }}
-                          className="bg-black text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 shrink-0"
+                          className="shrink-0"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           Nueva Zona
@@ -542,22 +544,22 @@ const DeliverySettingsView = () => {
                                 <Button
                                   type="button"
                                   variant="ghost"
+                                  size="sm"
                                   onClick={() => {
                                     if (drawingZoneId === zone.id) setDrawingZoneId(null);
                                     setDeliveryZones(deliveryZones.filter(z => z.id !== zone.id));
                                     setHasChanges(true);
                                   }}
-                                  className="text-xs font-bold px-3 py-1.5 h-auto rounded-lg"
                                 >
                                   Eliminar
                                 </Button>
                                 <Button
                                   type="button"
+                                  size="sm"
                                   onClick={() => {
                                     setEditingZone({ ...zone });
                                     setShowZoneModal(true);
                                   }}
-                                  className="bg-black text-white font-bold text-xs px-3 py-1.5 h-auto rounded-lg"
                                 >
                                   Editar
                                 </Button>
@@ -590,21 +592,22 @@ const DeliverySettingsView = () => {
                             <div className="flex items-center gap-2">
                               <Button
                                 type="button"
+                                variant="outline"
+                                size="sm"
                                 onClick={() => {
                                   setDeliveryZones(deliveryZones.map(z => z.id === drawingZoneId ? { ...z, polygon: [] } : z));
                                   setHasChanges(true);
                                 }}
-                                className="bg-white/80 text-black hover:bg-white text-xs font-bold px-3 py-1.5 rounded-xl border border-black/10 flex items-center gap-1"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash2 />
                                 Limpiar
                               </Button>
                               <Button
                                 type="button"
+                                size="sm"
                                 onClick={() => setDrawingZoneId(null)}
-                                className="bg-black text-white hover:bg-gray-900 text-xs font-bold px-4 py-1.5 rounded-xl flex items-center gap-1"
                               >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <CheckCircle2 />
                                 Finalizar
                               </Button>
                             </div>
@@ -640,33 +643,60 @@ const DeliverySettingsView = () => {
                   </div>
                 
                 {/* Modal de Creación / Edición de Zona */}
-                {showZoneModal && editingZone && (
-                  <div className="fixed inset-0 z-[2000] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-                    <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-200">
-                      <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-                        <h3 className="font-extrabold text-lg text-gray-900">
-                          {editingZone.id?.startsWith('zone-') ? 'Nueva Zona de Delivery' : 'Editar Zona de Delivery'}
-                        </h3>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowZoneModal(false);
-                            setEditingZone(null);
-                          }}
-                          className="text-gray-400 hover:text-gray-600 font-bold text-lg px-2"
-                        >
-                          ✕
-                        </button>
-                      </div>
-
-                      <div className="space-y-4">
+                <Modal
+                  isOpen={showZoneModal && !!editingZone}
+                  onClose={() => {
+                    setShowZoneModal(false);
+                    setEditingZone(null);
+                  }}
+                  title={editingZone?.id?.startsWith('zone-') ? 'Nueva Zona de Delivery' : 'Editar Zona de Delivery'}
+                  maxWidth="max-w-lg"
+                  footer={
+                    <div className="px-6 py-4 flex items-center justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setShowZoneModal(false);
+                          setEditingZone(null);
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => {
+                          if (!editingZone.name?.trim()) {
+                            toast.error('Por favor ingresa un nombre para la zona.');
+                            return;
+                          }
+                          const exists = deliveryZones.some(z => z.id === editingZone.id);
+                          if (exists) {
+                            setDeliveryZones(deliveryZones.map(z => z.id === editingZone.id ? editingZone : z));
+                          } else {
+                            setDeliveryZones([...deliveryZones, editingZone]);
+                          }
+                          setHasChanges(true);
+                          setShowZoneModal(false);
+                          setEditingZone(null);
+                        }}
+                      >
+                        Guardar Zona
+                      </Button>
+                    </div>
+                  }
+                >
+                  {editingZone && (
+                  <div className="p-6 space-y-5">
                         <div>
                           <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Nombre de la Zona</label>
                           <input
                             type="text"
                             value={editingZone.name}
                             onChange={(e) => setEditingZone({ ...editingZone, name: e.target.value })}
-                            className="w-full h-11 px-3.5 rounded-xl border border-gray-200 font-semibold text-sm outline-none focus:border-black"
+                            className="w-full h-11 px-4 rounded-full border border-gray-200 font-semibold text-sm outline-none focus:border-black focus:ring-1 focus:ring-black"
                             placeholder="Ej: Zona 1 - Centro / Cercana"
                           />
                         </div>
@@ -679,7 +709,7 @@ const DeliverySettingsView = () => {
                               min="0"
                               value={editingZone.fee}
                               onChange={(e) => setEditingZone({ ...editingZone, fee: Number(e.target.value) })}
-                              className="w-full h-11 px-3.5 rounded-xl border border-gray-200 font-semibold text-sm outline-none focus:border-black"
+                              className="w-full h-11 px-4 rounded-full border border-gray-200 font-semibold text-sm outline-none focus:border-black focus:ring-1 focus:ring-black"
                               placeholder="Ej: 1500"
                             />
                           </div>
@@ -690,7 +720,7 @@ const DeliverySettingsView = () => {
                               min="0"
                               value={editingZone.min_order}
                               onChange={(e) => setEditingZone({ ...editingZone, min_order: Number(e.target.value) })}
-                              className="w-full h-11 px-3.5 rounded-xl border border-gray-200 font-semibold text-sm outline-none focus:border-black"
+                              className="w-full h-11 px-4 rounded-full border border-gray-200 font-semibold text-sm outline-none focus:border-black focus:ring-1 focus:ring-black"
                               placeholder="Ej: 5000"
                             />
                           </div>
@@ -698,12 +728,12 @@ const DeliverySettingsView = () => {
 
                         <div>
                           <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Tipo de Cobertura</label>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 rounded-full">
                             <button
                               type="button"
                               onClick={() => setEditingZone({ ...editingZone, type: 'radius' })}
-                              className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 ${
-                                editingZone.type === 'radius' ? 'bg-black text-white border-black' : 'bg-gray-50 border-gray-200 text-gray-700'
+                              className={`py-2.5 rounded-full font-bold text-xs transition-all ${
+                                editingZone.type === 'radius' ? 'bg-black text-white shadow-sm' : 'text-gray-500 hover:text-black'
                               }`}
                             >
                               Radio en KM
@@ -711,8 +741,8 @@ const DeliverySettingsView = () => {
                             <button
                               type="button"
                               onClick={() => setEditingZone({ ...editingZone, type: 'polygon' })}
-                              className={`p-3 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 ${
-                                editingZone.type === 'polygon' ? 'bg-black text-white border-black' : 'bg-gray-50 border-gray-200 text-gray-700'
+                              className={`py-2.5 rounded-full font-bold text-xs transition-all ${
+                                editingZone.type === 'polygon' ? 'bg-black text-white shadow-sm' : 'text-gray-500 hover:text-black'
                               }`}
                             >
                               Polígono Dibujado
@@ -729,7 +759,7 @@ const DeliverySettingsView = () => {
                               min="0.5"
                               value={editingZone.radius_km}
                               onChange={(e) => setEditingZone({ ...editingZone, radius_km: Number(e.target.value) })}
-                              className="w-full h-11 px-3.5 rounded-xl border border-gray-200 font-semibold text-sm outline-none focus:border-black"
+                              className="w-full h-11 px-4 rounded-full border border-gray-200 font-semibold text-sm outline-none focus:border-black focus:ring-1 focus:ring-black"
                               placeholder="Ej: 3.5"
                             />
                             <span className="text-[11px] text-gray-400 mt-1 block">Aplica a cualquier dirección dentro de este radio desde tu local.</span>
@@ -744,6 +774,7 @@ const DeliverySettingsView = () => {
                             </p>
                             <Button
                               type="button"
+                              size="sm"
                               onClick={() => {
                                 const exists = deliveryZones.some(z => z.id === editingZone.id);
                                 if (exists) {
@@ -755,9 +786,9 @@ const DeliverySettingsView = () => {
                                 setShowZoneModal(false);
                                 document.getElementById('delivery-map-section')?.scrollIntoView({ behavior: 'smooth' });
                               }}
-                              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 mt-1"
+                              className="w-full mt-1"
                             >
-                              <MousePointer2 className="w-3.5 h-3.5" />
+                              <MousePointer2 />
                               Ir al mapa para dibujar
                             </Button>
                           </div>
@@ -777,45 +808,9 @@ const DeliverySettingsView = () => {
                             ))}
                           </div>
                         </div>
-                      </div>
-
-                      <div className="flex items-center justify-end gap-2 border-t border-gray-100 pt-4">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            setShowZoneModal(false);
-                            setEditingZone(null);
-                          }}
-                          className="font-bold text-xs px-4 py-2 rounded-xl"
-                        >
-                          Cancelar
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={() => {
-                            if (!editingZone.name) {
-                              alert('Por favor ingresa un nombre para la zona.');
-                              return;
-                            }
-                            const exists = deliveryZones.some(z => z.id === editingZone.id);
-                            if (exists) {
-                              setDeliveryZones(deliveryZones.map(z => z.id === editingZone.id ? editingZone : z));
-                            } else {
-                              setDeliveryZones([...deliveryZones, editingZone]);
-                            }
-                            setHasChanges(true);
-                            setShowZoneModal(false);
-                            setEditingZone(null);
-                          }}
-                          className="bg-black text-white font-bold text-xs px-5 py-2 rounded-xl"
-                        >
-                          Guardar Zona
-                        </Button>
-                      </div>
-                    </div>
                   </div>
-                )}
+                  )}
+                </Modal>
                   </>
                   ) : (
                     <div className="p-6 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
@@ -920,9 +915,9 @@ const DeliverySettingsView = () => {
 
                   <div className="flex items-center gap-3">
                     <Button
+                      size="sm"
                       onClick={handleTestConnection}
                       disabled={testing || !deliveryData.uber_client_id || !deliveryData.uber_client_secret || !deliveryData.uber_customer_id}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 cursor-pointer"
                     >
                       {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
                       {testing ? 'Probando...' : 'Probar Conexión'}
@@ -949,11 +944,12 @@ const DeliverySettingsView = () => {
                     {testResult?.success && !modeInfo && (
                       <div className="flex items-center gap-3">
                         <Button
+                          variant="outline"
+                          size="sm"
                           onClick={handleCheckMode}
                           disabled={modeChecking}
-                          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-xs font-bold hover:bg-purple-700 transition-colors disabled:opacity-50 cursor-pointer"
                         >
-                          {modeChecking ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                          {modeChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                           {modeChecking ? 'Verificando...' : 'Verificar modo (Sandbox / Producción)'}
                         </Button>
                         <span className="text-xs text-gray-500">
@@ -1012,9 +1008,9 @@ const DeliverySettingsView = () => {
                       </div>
 
                       <Button
+                        size="sm"
                         onClick={handleCreateTestDelivery}
                         disabled={creatingDelivery}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white font-bold hover:bg-green-700 transition-colors disabled:opacity-50 cursor-pointer"
                       >
                         {creatingDelivery ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
                         {creatingDelivery ? 'Creando...' : 'Crear Delivery de Prueba'}
@@ -1079,19 +1075,21 @@ const DeliverySettingsView = () => {
 
                           <div className="flex items-center gap-2 pt-2">
                             <Button
+                              variant="secondary"
+                              size="sm"
                               onClick={handleCheckStatus}
                               disabled={checkingStatus}
-                              className="flex items-center gap-1.5 px-4 py-2 bg-gray-800 text-white text-xs font-bold hover:bg-gray-700 transition-colors disabled:opacity-50 cursor-pointer"
                             >
-                              {checkingStatus ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                              {checkingStatus ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                               Ver Estado
                             </Button>
                             <Button
+                              variant="destructive"
+                              size="sm"
                               onClick={handleCancelDelivery}
                               disabled={cancelling || deliveryResult.delivery.status === 'canceled'}
-                              className="flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer"
                             >
-                              {cancelling ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                              {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                               Cancelar Delivery
                             </Button>
                           </div>

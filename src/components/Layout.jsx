@@ -30,7 +30,8 @@ import {
   ShoppingBag,
   ClipboardList,
   LayoutGrid,
-  Wallet
+  Wallet,
+  KeyRound
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import FeedbackBubble from './FeedbackBubble';
@@ -468,7 +469,7 @@ const Layout = () => {
           <div className="flex flex-col gap-2 mb-1">
             <NavLink
               to="/pos"
-              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-bold transition-all border ${isActive ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100 hover:border-blue-200'
+              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-bold transition-all border ${isActive ? 'bg-gray-900 text-white border-gray-900 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
                 }`}
             >
               <MonitorPlay className="h-[18px] w-[18px]" />
@@ -476,13 +477,21 @@ const Layout = () => {
             </NavLink>
             <NavLink
               to="/kitchen"
-              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-bold transition-all border ${isActive ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100 hover:border-blue-200'
+              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-bold transition-all border ${isActive ? 'bg-gray-900 text-white border-gray-900 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
                 }`}
             >
               <ChefHat className="h-[18px] w-[18px]" />
               Cocina
             </NavLink>
           </div>
+          <NavLink
+            to="/update-password"
+            className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+          >
+            <KeyRound className="h-[18px] w-[18px]" />
+            Cambiar mi PIN
+          </NavLink>
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-semibold text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors mt-2"

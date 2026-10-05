@@ -61,7 +61,7 @@ const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable,
           }}
         >
           <span className="font-bold text-gray-800 text-lg">Venta Directa</span>
-          {!activeTable && <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>}
+          {!activeTable && <span className="w-2.5 h-2.5 rounded-full bg-black"></span>}
         </div>
         
         {!loading && zones.length > 0 && (
@@ -109,7 +109,7 @@ const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable,
               return (
                 <div 
                   key={table.id}
-                  className={`px-5 py-4 cursor-pointer border-b border-gray-100 flex items-center justify-between transition-colors ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 active:bg-gray-100'}`}
+                  className={`px-5 py-4 cursor-pointer border-b border-gray-100 flex items-center justify-between transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-700 hover:bg-gray-50 active:bg-gray-100'}`}
                   onClick={() => {
                     onTableSelect && onTableSelect(table);
                     onClose();
@@ -132,7 +132,7 @@ const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable,
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm"></span>
                     )}
                     {isActive && (
-                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500 ml-1"></span>
+                      <span className="w-2.5 h-2.5 rounded-full bg-black ml-1"></span>
                     )}
                   </div>
                 </div>

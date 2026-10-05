@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Polygon, Circle, Tooltip, useMapEvents
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { MapPin, MousePointer2, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 // Fix for default marker icon in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -60,14 +61,15 @@ const DeliveryMap = ({ lat, lng, storeAddress = '', polygon, zones = [], activeZ
               Dibujando Zona
             </span>
             {polygon?.length > 0 && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => onPolygonChange?.([])}
-                className="flex items-center gap-1.5 px-3 py-2 bg-white text-red-600 rounded-md text-xs font-bold hover:bg-red-50 transition-colors"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 />
                 Limpiar Puntos
-              </button>
+              </Button>
             )}
           </div>
         )}

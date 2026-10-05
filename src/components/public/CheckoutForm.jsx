@@ -8,6 +8,7 @@ import { X } from 'lucide-react';
 import AddressAutocomplete from '../ui/AddressAutocomplete';
 import AddressMap from '../pos/AddressMap';
 import Modal from '../ui/Modal';
+import { calculateDiscount } from '../../services/couponService';
 
 const InputField = ({ icon: Icon, label, isLoading, rightElement, ...props }) => (
   <div className="relative">
@@ -460,8 +461,8 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     setCouponError('');
   };
 
-  const discountAmount = appliedCoupon 
-    ? (appliedCoupon.type === 'percentage' ? Math.round(totalAmount * (appliedCoupon.value / 100)) : Math.min(appliedCoupon.value, totalAmount))
+  const discountAmount = appliedCoupon
+    ? calculateDiscount(appliedCoupon, totalAmount)
     : 0;
   const finalTotal = totalAmount - discountAmount;
 

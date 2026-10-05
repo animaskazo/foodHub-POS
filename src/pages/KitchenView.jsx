@@ -150,7 +150,7 @@ const KitchenView = () => {
       prevOrdersRef.current = data;
     } catch (e) {
       console.error('Error fetching kitchen orders', e);
-      if (!isBackground) alert('Error al cargar órdenes de cocina');
+      if (!isBackground) toast.error('Error al cargar órdenes de cocina');
     } finally {
       if (!isBackground) setLoading(false);
     }
@@ -248,7 +248,7 @@ const KitchenView = () => {
       }
     } catch (error) {
       // Revert on error by refetching
-      alert("Hubo un error al actualizar el estado de la orden.");
+      toast.error("Hubo un error al actualizar el estado de la orden.");
       fetchOrders();
     }
   };
@@ -488,7 +488,7 @@ const KitchenView = () => {
           <div className="order-1 flex items-center gap-2 md:gap-3 min-w-0 flex-1">
             <Button
               onClick={() => navigate('/pos')}
-              className="px-2.5! md:px-3! py-2 min-h-10 bg-blue-600 text-white hover:bg-blue-500 rounded-xl! transition-colors flex items-center justify-center shrink-0 gap-1.5 font-bold text-sm"
+              className="px-2.5! md:px-3! py-2 min-h-10 bg-white text-black hover:bg-gray-200 rounded-full transition-colors flex items-center justify-center shrink-0 gap-1.5 font-bold text-sm"
               title="Volver al punto de venta"
             >
               <ArrowLeft className="size-5" />
@@ -499,7 +499,7 @@ const KitchenView = () => {
             <Button
               onClick={() => navigate('/')}
               size="icon"
-              className="bg-white text-black hover:bg-gray-100 rounded-xl!"
+              className="bg-white text-black hover:bg-gray-200 rounded-full"
               title="Dashboard admin"
               aria-label="Ir al dashboard admin"
             >
@@ -518,7 +518,7 @@ const KitchenView = () => {
               botones distintos que parezcan el mismo. */}
           <button
             onClick={handleToggleSound}
-            className={`flex items-center gap-1.5 h-10 w-10 sm:w-auto sm:px-3 rounded-xl text-xs md:text-sm font-bold border transition-colors shrink-0 justify-center sm:justify-start ${
+            className={`flex items-center gap-1.5 h-10 w-10 sm:w-auto sm:px-3 rounded-full text-xs md:text-sm font-bold border transition-colors shrink-0 justify-center sm:justify-start ${
               !audioReady
                 ? 'bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/25'
                 : 'bg-[#222] text-zinc-300 border-[#333] hover:bg-[#2b2b2b] hover:text-white'
@@ -532,7 +532,7 @@ const KitchenView = () => {
 
           <button
             onClick={handleMuteToggle}
-            className={`flex items-center justify-center w-10 h-10 shrink-0 rounded-xl border transition-colors ${
+            className={`flex items-center justify-center w-10 h-10 shrink-0 rounded-full border transition-colors ${
               muted
                 ? 'bg-red-500/15 text-red-300 border-red-500/40 hover:bg-red-500/25'
                 : 'bg-[#222] text-zinc-400 border-[#333] hover:bg-[#2b2b2b] hover:text-white'
@@ -550,11 +550,11 @@ const KitchenView = () => {
           <Button
             onClick={() => fetchOrders()}
             size="icon"
-            className="bg-[#222] hover:bg-[#333] border border-[#333] rounded-xl!"
+            className="bg-[#222] hover:bg-[#333] hover:text-white text-white border border-[#333] rounded-full"
             title="Actualizar manualmente"
             aria-label="Actualizar manualmente"
           >
-            <RefreshCw className={`size-5 text-white ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`size-5 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
 
@@ -564,7 +564,7 @@ const KitchenView = () => {
         <Button
           onClick={() => setBulkConfirmOpen(true)}
           disabled={bulkWorking || ordersToMarkReady.length === 0}
-          className="order-3 w-full md:w-auto min-h-10 px-3! py-2 bg-emerald-500 text-black hover:bg-emerald-400 disabled:bg-zinc-800 disabled:text-zinc-600 rounded-xl! transition-colors flex items-center justify-between md:justify-center gap-2 font-bold text-sm shrink-0"
+          className="order-3 w-full md:w-auto min-h-10 px-3! py-2 bg-emerald-500 text-black hover:bg-emerald-400 hover:text-black disabled:bg-zinc-800 disabled:text-zinc-600 rounded-full transition-colors flex items-center justify-between md:justify-center gap-2 font-bold text-sm shrink-0"
           title={
             ordersToMarkReady.length === 0
               ? 'No hay pedidos pendientes por marcar'
@@ -922,7 +922,7 @@ const KitchenView = () => {
                     {(ticket.status === 'confirmed' || ticket.status === 'pending' || ticket.status === 'scheduled') ? (
                       <Button
                         onClick={() => handleUpdateStatus(ticket.id, 'preparing', ticket)}
-                        className={`w-full py-6 ${cfg.btnClass} rounded-xl! font-bold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
+                        className={`w-full py-6 ${cfg.btnClass} rounded-full font-bold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
                       >
                         <Play className="h-4 w-4 fill-current" />
                         Empezar Preparación
@@ -930,7 +930,7 @@ const KitchenView = () => {
                     ) : (
                       <Button
                         onClick={() => handleUpdateStatus(ticket.id, 'ready', ticket)}
-                        className={`w-full py-6 ${cfg.btnClass} rounded-xl! font-extrabold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
+                        className={`w-full py-6 ${cfg.btnClass} rounded-full font-bold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
                       >
                         <CheckCircle2 className="h-5 w-5" strokeWidth={2.5} />
                         Marcar como Listo
@@ -1033,14 +1033,14 @@ const KitchenView = () => {
                   más brillante del modal. Colores explícitos para que el botón
                   quede recesado y la atención esté en la acción principal. */}
               <Button
-                className="flex-1 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:border-zinc-700 hover:text-zinc-200 disabled:opacity-40"
+                className="flex-1 rounded-full border border-zinc-800 bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:border-zinc-700 hover:text-zinc-200 disabled:opacity-40"
                 onClick={() => setBulkConfirmOpen(false)}
                 disabled={bulkWorking}
               >
                 Cancelar
               </Button>
               <Button
-                className="flex-[1.4] rounded-xl bg-emerald-500 text-black hover:bg-emerald-400 font-extrabold"
+                className="flex-[1.4] rounded-full bg-emerald-500 text-black hover:bg-emerald-400 hover:text-black font-extrabold disabled:opacity-40"
                 onClick={handleBulkMarkReady}
                 disabled={bulkWorking}
               >

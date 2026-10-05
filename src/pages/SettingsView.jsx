@@ -8,8 +8,11 @@ import {
   getStaff 
 } from '../services/organizationService';
 import { uploadImage } from '../services/storageService';
-import { Store, User, Clock, CalendarClock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2, Timer, CreditCard, Image as ImageIcon, Sparkles, Globe, QrCode, Apple } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { toast } from 'sonner';
+import { Store, User, Clock, CalendarClock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2, Timer, CreditCard, Image as ImageIcon, Sparkles, Globe, QrCode, Apple, KeyRound } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
+import Modal from '../components/ui/Modal';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { getPrinters } from '../services/printerService';
@@ -79,6 +82,94 @@ const SettingsView = () => {
   const [autoPrintEnabled, setAutoPrintEnabled] = useState(
     localStorage.getItem('pos_auto_print_enabled') === 'true'
   );
+
+  // ── Equipo del negocio: crear vendedores y administrar PINs ──
+  const [teamBusy, setTeamBusy] = useState(null);
+  const [showInvite, setShowInvite] = useState(false);
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [createdTeamPin, setCreatedTeamPin] = useState(null);
+  const [confirmResetMember, setConfirmResetMember] = useState(null);
+
+  const callTeamFn = async (payload) => {
+    const { data, error } = await supabase.functions.invoke('create-staff', { body: payload });
+    if (error) {
+      // Supabase devuelve el mensaje real en el body (context). Extraerlo si existe.
+      try {
+        const ctx = error.context;
+        if (ctx && typeof ctx.json === 'function') {
+          const clone = ctx.clone ? ctx.clone() : ctx;
+          const bodyErr = await clone.json().catch(() => null);
+          if (bodyErr?.error) throw new Error(bodyErr.error);
+        }
+      } catch (parseErr) {
+        if (parseErr instanceof Error && parseErr.message && !parseErr.message.includes('Failed to send')) throw parseErr;
+      }
+      throw error;
+    }
+    if (data?.error) throw new Error(data.error);
+    return data;
+  };
+
+  const reloadStaff = async () => {
+    if (!orgId) return;
+    const staffData = await getStaff(orgId);
+    setStaff(staffData);
+  };
+
+  const handleCreateMember = async () => {
+    if (!orgId || !newMemberEmail.trim()) return;
+    setTeamBusy('create');
+    setCreatedTeamPin(null);
+    try {
+      const data = await callTeamFn({
+        action: 'create',
+        email: newMemberEmail.trim(),
+        full_name: newMemberName.trim(),
+        organization_id: orgId,
+      });
+      setCreatedTeamPin({ email: newMemberEmail.trim(), pin: data.pin });
+      setNewMemberEmail('');
+      setNewMemberName('');
+      await reloadStaff();
+      toast.success('Vendedor creado');
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || 'No se pudo crear el vendedor');
+    } finally {
+      setTeamBusy(null);
+    }
+  };
+
+  const handleResetTeamPin = async (userId) => {
+    setTeamBusy(userId);
+    try {
+      const data = await callTeamFn({ action: 'reset-pin', user_id: userId });
+      setCreatedTeamPin({ email: null, pin: data.pin });
+      setConfirmResetMember(null);
+      toast.success('Nuevo PIN generado');
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || 'No se pudo generar el PIN');
+    } finally {
+      setTeamBusy(null);
+    }
+  };
+
+  const handleToggleTeamActive = async (member) => {
+    const nextActive = member.is_active === false;
+    setTeamBusy(member.id);
+    try {
+      await callTeamFn({ action: 'set-active', user_id: member.id, is_active: nextActive });
+      await reloadStaff();
+      toast.success(nextActive ? 'Cuenta activada' : 'Cuenta desactivada');
+    } catch (e) {
+      console.error(e);
+      toast.error(e.message || 'No se pudo actualizar');
+    } finally {
+      setTeamBusy(null);
+    }
+  };
 
   const [ticketExtraMessage, setTicketExtraMessage] = useState('');
   const [ticketExtraSaving, setTicketExtraSaving] = useState(false);
@@ -496,18 +587,18 @@ const SettingsView = () => {
             </div>
           </div>
         )}
-        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl w-fit">
+        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-full w-fit">
           <button
             type="button"
             onClick={() => onToggle(dayKey, false)}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${!dayData.closed ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${!dayData.closed ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
           >
             Abierto
           </button>
           <button
             type="button"
             onClick={() => onToggle(dayKey, true)}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${dayData.closed ? 'bg-white text-red-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${dayData.closed ? 'bg-white text-red-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
           >
             Cerrado
           </button>
@@ -660,17 +751,16 @@ const SettingsView = () => {
                           variant="ghost"
                           size="sm"
                           onClick={() => navigator.clipboard.writeText(storeUrl)}
-                          className="h-8 px-3 text-xs text-blue-700 hover:text-blue-950 hover:bg-blue-100/80 flex items-center gap-1.5 cursor-pointer font-bold rounded-lg"
                           title="Copiar enlace"
                         >
-                          <Copy className="h-3.5 w-3.5" />
+                          <Copy />
                           Copiar
                         </Button>
                         <a
                           href={storeUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="h-8 px-3 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                          className="h-8 px-4 bg-black text-white rounded-full text-xs font-semibold hover:bg-gray-800 flex items-center gap-1.5 cursor-pointer transition-colors"
                           title="Abrir tienda"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
@@ -837,6 +927,7 @@ const SettingsView = () => {
                       </div>
 
                       <Button
+                        size="sm"
                         onClick={async () => {
                           const url = storeUrl;
                           const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(url)}`;
@@ -855,7 +946,7 @@ const SettingsView = () => {
                             window.open(qrApiUrl, '_blank');
                           }
                         }}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-black hover:bg-gray-850 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer shrink-0 shadow-xs"
+                        className="w-full sm:w-auto shrink-0"
                       >
                         <Download className="h-4 w-4" />
                         Descargar QR (PNG)
@@ -871,11 +962,12 @@ const SettingsView = () => {
                     <span>Recuerda guardar los cambios para actualizar la información de tu negocio.</span>
                   </div>
                   <Button
+                    size="sm"
                     onClick={handleSaveGeneral}
                     disabled={saving}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-black text-white font-bold rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer shrink-0 shadow-sm"
+                    className="w-full sm:w-auto shrink-0"
                   >
-                    {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     Guardar Cambios
                   </Button>
                 </div>
@@ -918,20 +1010,21 @@ const SettingsView = () => {
                   )}
                   <div className="flex justify-end">
                     <Button
+                      size="sm"
                       onClick={handleSaveStoreClosure}
                       disabled={saving}
-                      className={`flex items-center gap-2 px-6 py-2.5 text-white font-bold transition-colors disabled:opacity-50 cursor-pointer ${forceClosed ? 'bg-red-600 hover:bg-red-700' : 'bg-black hover:bg-gray-800'}`}
+                      variant={forceClosed ? 'destructive' : 'default'}
                     >
-                      {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                       {forceClosed ? 'Cerrar Tienda' : 'Guardar'}
                     </Button>
                   </div>
                 </div>
                 {/* Tab switcher */}
-                <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 rounded-2xl">
+                <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 rounded-full">
                   <button
                     onClick={() => setHoursTab('comercial')}
-                    className={`py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                    className={`py-2.5 rounded-full text-sm font-bold transition-all cursor-pointer ${
                       hoursTab === 'comercial' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'
                     }`}
                   >
@@ -939,7 +1032,7 @@ const SettingsView = () => {
                   </button>
                   <button
                     onClick={() => setHoursTab('retiro')}
-                    className={`py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                    className={`py-2.5 rounded-full text-sm font-bold transition-all cursor-pointer ${
                       hoursTab === 'retiro' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-black'
                     }`}
                   >
@@ -967,11 +1060,11 @@ const SettingsView = () => {
 
                     <div className="pt-6 border-t border-gray-100 flex justify-end">
                       <Button
+                        size="sm"
                         onClick={handleSaveHours}
                         disabled={saving}
-                        className="flex items-center gap-2 px-6 py-2.5 bg-black text-white   font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
                       >
-                        {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                         Guardar Horarios
                       </Button>
                     </div>
@@ -1061,11 +1154,11 @@ const SettingsView = () => {
 
                     <div className="pt-6 border-t border-gray-100 flex justify-end">
                       <Button
+                        size="sm"
                         onClick={handleSavePickupHours}
                         disabled={saving}
-                        className="flex items-center gap-2 px-6 py-2.5 bg-black text-white   font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
                       >
-                        {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                         Guardar Horarios de Retiro
                       </Button>
                     </div>
@@ -1075,13 +1168,60 @@ const SettingsView = () => {
             )}
 
             {activeTab === 'staff' && (
-              <div className="p-6 md:p-8">
-                <div className="flex justify-between items-center mb-6">
+              <div className="p-6 md:p-8 space-y-4">
+                <div className="flex justify-between items-center">
                   <h3 className="text-lg font-semibold text-gray-900">Equipo</h3>
-                  <Button className="bg-blue-50 text-blue-600   font-bold text-sm hover:bg-blue-100 transition-colors cursor-pointer">
-                    + Invitar miembro
-                  </Button>
+                  {!showInvite ? (
+                    <Button size="sm" onClick={() => { setShowInvite(true); setCreatedTeamPin(null); }}>
+                      + Invitar miembro
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="sm" onClick={() => setShowInvite(false)}>
+                      Cancelar
+                    </Button>
+                  )}
                 </div>
+
+                {showInvite && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+                    <p className="font-bold text-sm text-gray-900">Nuevo vendedor</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <input
+                        value={newMemberName}
+                        onChange={(e) => setNewMemberName(e.target.value)}
+                        placeholder="Nombre (ej: María)"
+                        className="h-11 px-4 bg-white border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-black"
+                      />
+                      <input
+                        value={newMemberEmail}
+                        onChange={(e) => setNewMemberEmail(e.target.value)}
+                        placeholder="Email (ej: maria@local.cl)"
+                        type="email"
+                        className="h-11 px-4 bg-white border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-black"
+                      />
+                    </div>
+                    <Button size="sm" onClick={handleCreateMember} disabled={teamBusy === 'create' || !newMemberEmail.trim()}>
+                      {teamBusy === 'create' ? 'Creando…' : 'Crear y generar PIN'}
+                    </Button>
+                  </div>
+                )}
+
+                {createdTeamPin && (
+                  <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+                    <p className="text-sm text-amber-900">
+                      <span className="font-bold">PIN de un solo uso{createdTeamPin.email ? ` para ${createdTeamPin.email}` : ''}:</span>{' '}
+                      <span className="font-black text-2xl tracking-[0.3em]">{createdTeamPin.pin}</span>
+                      <span className="block text-xs mt-1">Entrégalo ahora: no se volverá a mostrar. Deberá cambiarlo al ingresar.</span>
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { navigator.clipboard.writeText(createdTeamPin.pin); toast.success('PIN copiado'); }}
+                    >
+                      Copiar
+                    </Button>
+                  </div>
+                )}
 
                 {staff.length === 0 ? (
                   <div className="text-center py-10 text-gray-400">
@@ -1090,26 +1230,74 @@ const SettingsView = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {staff.map(member => (
-                      <div key={member.id} className="flex items-center justify-between p-4 border border-gray-100 rounded-xl">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg">
-                            {member.full_name?.charAt(0) || '?'}
+                    {staff.map(member => {
+                      const busy = teamBusy === member.id;
+                      const active = member.is_active !== false;
+                      return (
+                      <div key={member.id} className={`flex items-center justify-between p-4 border border-gray-100 rounded-xl ${active ? '' : 'opacity-60'}`}>
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className="w-10 h-10 bg-gray-100 flex items-center justify-center shrink-0 rounded-full">
+                            <User className="h-5 w-5 text-black" />
                           </div>
-                          <div>
-                            <p className="font-semibold text-gray-900">{member.full_name}</p>
-                            <p className="text-sm text-gray-500 capitalize">{member.role || 'Staff'}</p>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-gray-900 truncate">{member.full_name}</p>
+                            <p className="text-sm text-gray-500 capitalize">{member.role === 'cashier' ? 'Vendedor' : (member.role || 'Staff')} · {active ? 'Activo' : 'Inactivo'}</p>
                           </div>
                         </div>
-                        {member.is_active ? (
-                          <span className="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-bold ">Activo</span>
-                        ) : (
-                          <span className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-bold ">Inactivo</span>
-                        )}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {!['owner', 'admin'].includes(member.role) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => { setCreatedTeamPin(null); setConfirmResetMember(member); }}
+                              disabled={busy}
+                              title="Resetear PIN"
+                            >
+                              <KeyRound />
+                              Resetear PIN
+                            </Button>
+                          )}
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleToggleTeamActive(member)}
+                            disabled={busy}
+                            title={active ? 'Desactivar' : 'Activar'}
+                          >
+                            {active ? 'Activo' : 'Inactivo'}
+                          </Button>
+                        </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
+                <Modal
+                  isOpen={!!confirmResetMember}
+                  onClose={() => setConfirmResetMember(null)}
+                  title="Resetear PIN"
+                  footer={
+                    <div className="flex gap-2 justify-end px-6 py-4">
+                      <Button variant="ghost" size="sm" onClick={() => setConfirmResetMember(null)}>
+                        Cancelar
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => confirmResetMember && handleResetTeamPin(confirmResetMember.id)}
+                        disabled={!confirmResetMember || teamBusy === confirmResetMember.id}
+                      >
+                        {teamBusy === confirmResetMember?.id ? 'Generando…' : 'Confirmar reseteo'}
+                      </Button>
+                    </div>
+                  }
+                >
+                  <div className="p-6">
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      ¿Resetear el PIN de <span className="font-bold text-gray-900">{confirmResetMember?.full_name || 'este miembro'}</span>?
+                      Se generará un PIN nuevo de un solo uso y deberá cambiarlo al ingresar.
+                    </p>
+                  </div>
+                </Modal>
               </div>
             )}
 
@@ -1126,24 +1314,25 @@ const SettingsView = () => {
                      </p>
                      <p className="text-xs text-gray-500">http://localhost:8088</p>
                    </div>
-                   {serverStatus !== 'connected' && (
-                     <button onClick={handleReconnect} className="ml-auto px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-full hover:bg-blue-700">
-                       Reintentar
-                     </button>
-                   )}
+                    {serverStatus !== 'connected' && (
+                      <Button size="sm" onClick={handleReconnect} className="ml-auto">
+                        Reintentar
+                      </Button>
+                    )}
                  </div>
 
                  {/* Selector de impresora — siempre visible */}
                  {serverStatus === 'connected' && (
                    <div className="border border-gray-200 rounded-xl p-4">
                      <div className="flex items-center justify-between mb-2">
-                       <label className="text-sm font-semibold text-gray-700">Impresora térmica</label>
-                       <button
-                         onClick={fetchPrinters}
-                         className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
-                       >
-                         Buscar Impresoras
-                       </button>
+                        <label className="text-sm font-semibold text-gray-700">Impresora térmica</label>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          onClick={fetchPrinters}
+                        >
+                          Buscar Impresoras
+                        </Button>
                      </div>
                      {printers.length > 0 ? (
                        <select
@@ -1201,14 +1390,15 @@ const SettingsView = () => {
                       className="mt-3 w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-black resize-y"
                     />
                     <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-3">
-                      <button
+                      <Button
+                        size="sm"
                         onClick={handleSaveTicketExtraMessage}
                         disabled={ticketExtraSaving}
-                        className="bg-black text-white font-bold py-2.5 px-6 rounded-xl hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50 w-full sm:w-auto"
+                        className="w-full sm:w-auto"
                       >
                         {ticketExtraSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                         Guardar mensaje
-                      </button>
+                      </Button>
                       <span className="text-xs text-gray-400">{ticketExtraMessage.length}/500</span>
                       {ticketExtraSaved && (
                         <span className="text-xs text-emerald-600 flex items-center gap-1">
@@ -1312,22 +1502,25 @@ const SettingsView = () => {
                             placeholder="Pega tu API key aquí..."
                             className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-black transition-all"
                           />
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="icon-xs"
                             onClick={() => setShowKlapKey(!showKlapKey)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                           >
                             {showKlapKey ? (
                               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
                             ) : (
                               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                             )}
-                          </button>
+                          </Button>
                         </div>
-                        <button
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={handleValidateKlapKey}
                           disabled={!klapApiKey.trim() || klapApiKeyValidating}
-                          className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                         >
                           {klapApiKeyValidating ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -1335,7 +1528,7 @@ const SettingsView = () => {
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                           )}
                           Validar
-                        </button>
+                        </Button>
                       </div>
                       {klapApiKeyStatus === 'valid' && (
                         <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
@@ -1351,21 +1544,22 @@ const SettingsView = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <button
+                      <Button
+                        size="sm"
                         onClick={handleSaveKlapKey}
                         disabled={klapApiKeySaving}
-                        className="bg-black text-white font-bold py-2.5 px-6 rounded-xl hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm disabled:opacity-50"
                       >
                         {klapApiKeySaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                         Guardar API Key
-                      </button>
+                      </Button>
                       {klapApiKey && (
-                        <button
+                        <Button
+                          variant="link"
+                          size="sm"
                           onClick={() => { setKlapApiKey(''); setKlapApiKeyStatus(null); }}
-                          className="text-sm text-gray-500 hover:text-red-500 font-semibold transition-colors"
                         >
                           Usar key global
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>

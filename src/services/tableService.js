@@ -16,7 +16,7 @@ export const getTableZones = async (branchId) => {
 export const createTableZone = async (zoneData) => {
   const { data, error } = await supabase
     .from('table_zones')
-    .insert([zoneData])
+    .insert([{ ...zoneData, name: String(zoneData.name || '').trim() }])
     .select()
     .single();
   if (error) throw error;
@@ -24,9 +24,11 @@ export const createTableZone = async (zoneData) => {
 };
 
 export const updateTableZone = async (id, zoneData) => {
+  const payload = { ...zoneData };
+  if (payload.name !== undefined) payload.name = String(payload.name).trim();
   const { data, error } = await supabase
     .from('table_zones')
-    .update(zoneData)
+    .update(payload)
     .eq('id', id)
     .select()
     .single();
@@ -134,7 +136,7 @@ export const notifyTablesChanged = () => {
 export const createRestaurantTable = async (tableData) => {
   const { data, error } = await supabase
     .from('restaurant_tables')
-    .insert([tableData])
+    .insert([{ ...tableData, name: String(tableData.name || '').trim() }])
     .select()
     .single();
   if (error) throw error;
@@ -142,9 +144,11 @@ export const createRestaurantTable = async (tableData) => {
 };
 
 export const updateRestaurantTable = async (id, tableData) => {
+  const payload = { ...tableData };
+  if (payload.name !== undefined) payload.name = String(payload.name).trim();
   const { data, error } = await supabase
     .from('restaurant_tables')
-    .update(tableData)
+    .update(payload)
     .eq('id', id)
     .select()
     .single();
