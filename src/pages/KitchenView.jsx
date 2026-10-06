@@ -23,6 +23,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getKitchenOrders, updateOrderStatus, activateDueScheduledOrders, updateOrderItemsStatus, bulkMarkOrdersReady } from '../services/orderService';
+import { getProductImageMap } from '../services/productImageService';
 import { useAuth } from '../components/AuthContext';
 import { Button } from '@/components/ui/button';
 import { supabase } from '../lib/supabase';
@@ -53,6 +54,8 @@ const KitchenView = () => {
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
   const [bulkWorking, setBulkWorking] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
+  // productId -> url de foto (caché en memoria vía productImageService).
+  const [imageByProduct, setImageByProduct] = useState({});
 
   // Smoothly scroll the container to make the newest / target ticket visible
   const scrollToNewOrder = useCallback((ticketId) => {
@@ -148,6 +151,23 @@ const KitchenView = () => {
 
       setOrders(data);
       prevOrdersRef.current = data;
+
+      // Fotos de los productos del turno: solo se pregunta a la DB por
+      // los ids que aún no están en caché (ver productImageService).
+      try {
+        const ids = [];
+        for (const o of data) {
+          for (const i of o.order_items || []) {
+            if (i.product_id) ids.push(i.product_id);
+          }
+        }
+        if (ids.length > 0) {
+          const map = await getProductImageMap(ids);
+          setImageByProduct((prev) => ({ ...prev, ...map }));
+        }
+      } catch (imgErr) {
+        console.error('Error cargando fotos de productos:', imgErr);
+      }
     } catch (e) {
       console.error('Error fetching kitchen orders', e);
       if (!isBackground) toast.error('Error al cargar órdenes de cocina');
@@ -825,6 +845,7 @@ const KitchenView = () => {
                         const variants = item.order_item_variants?.map(v => v.variant_option_name).join(', ');
                         const extras = item.order_item_ingredients?.map(i => i.ingredient_name);
                         const hasModifiers = variants || (extras && extras.length > 0) || item.notes || childItems.length > 0;
+                        const imgUrl = imageByProduct[item.product_id] || item.products?.product_images?.[0]?.url || null;
                         
                         return (
                           <div key={item.id} className="rounded-xl bg-zinc-900/60 border border-zinc-900 overflow-hidden">
@@ -833,10 +854,11 @@ const KitchenView = () => {
                               <div className="w-8 h-8 rounded-lg bg-zinc-800 text-white flex items-center justify-center font-extrabold text-base shrink-0">
                                 {item.quantity}
                               </div>
-                              {item.products?.product_images?.[0]?.url ? (
+                              {imgUrl ? (
                                 <img
-                                  src={item.products.product_images[0].url}
+                                  src={imgUrl}
                                   alt={item.product_name}
+                                  loading="lazy"
                                   className="w-10 h-10 rounded-lg object-cover shrink-0 border border-zinc-800"
                                 />
                               ) : (
@@ -845,7 +867,7 @@ const KitchenView = () => {
                                 </div>
                               )}
                               <div className="flex-1 min-w-0 pt-0.5">
-                                <p className="text-[15px] font-bold text-white leading-tight break-words">{item.product_name}</p>
+                                <p className="text-[13px] font-bold text-white leading-tight break-words">{item.product_name ? item.product_name.charAt(0).toUpperCase() + item.product_name.slice(1).toLowerCase() : ''}</p>
                               </div>
                             </div>
 
