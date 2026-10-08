@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, Check, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock, Ban, Trash2, CheckSquare, Square, XCircle, Truck } from 'lucide-react';
+import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, Check, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock, Ban, Trash2, CheckSquare, Square, XCircle, Truck, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Tooltip from '../ui/tooltip';
@@ -11,7 +11,7 @@ import { useAuth } from '../AuthContext';
 import { supabase } from '../../lib/supabase';
 import { updateOrderStatus, deleteOrder, bulkDeleteOrders, bulkCancelOrders } from '../../services/orderService';
 import { printReceipt, printReceiptAsPDF } from '../../services/printerService';
-import { fmt, getKitchenTime, getPaymentMethod, getStatusTag, formatDateSeparator, getOrderDateKey } from '../../utils/orderUtils';
+import { fmt, getKitchenTime, getPaymentMethod, getStatusTag, formatDateSeparator, getOrderDateKey, isKlapPendingOrder, KLAP_PENDING_TOOLTIP } from '../../utils/orderUtils';
 import UberDeliveryCard from './UberDeliveryCard';
 import OrderDetailModal from './OrderDetailModal';
 
@@ -288,6 +288,17 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                         <td className="px-6 py-6">
                           <div className="flex items-center gap-1.5">
                             {getStatusTag(order)}
+                            {isKlapPendingOrder(order) && (
+                              <Tooltip text={KLAP_PENDING_TOOLTIP}>
+                                <span
+                                  title={KLAP_PENDING_TOOLTIP}
+                                  className="inline-flex items-center justify-center size-7 rounded-lg border border-amber-200 bg-amber-50 text-amber-600 shrink-0"
+                                  aria-label="Pago Klap pendiente: no entró a cocina"
+                                >
+                                  <AlertTriangle className="h-4 w-4" />
+                                </span>
+                              </Tooltip>
+                            )}
                             {order.status === 'preparing' && (
                               <Tooltip text="Pedido listo">
                                 <button
@@ -466,6 +477,17 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                       <div className="flex flex-col items-end gap-1.5">
                         <div className="flex items-center gap-1.5">
                           {getStatusTag(order)}
+                          {isKlapPendingOrder(order) && (
+                            <Tooltip text={KLAP_PENDING_TOOLTIP}>
+                              <span
+                                title={KLAP_PENDING_TOOLTIP}
+                                className="inline-flex items-center justify-center size-7 rounded-lg border border-amber-200 bg-amber-50 text-amber-600 shrink-0"
+                                aria-label="Pago Klap pendiente: no entró a cocina"
+                              >
+                                <AlertTriangle className="h-4 w-4" />
+                              </span>
+                            </Tooltip>
+                          )}
                           {order.status === 'preparing' && (
                             <Tooltip text="Pedido listo">
                               <button

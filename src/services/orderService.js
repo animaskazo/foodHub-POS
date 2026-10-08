@@ -354,11 +354,16 @@ export const getKitchenOrders = async () => {
 
     if (error) throw error;
 
+    // Un pedido con venta Klap pendiente de pago no debe entrar a cocina,
+    // en ningún estado (pending/scheduled/confirmed/preparing). Se considera
+    // pendiente si tiene un pago online_gateway/klap sin un pago cobrado.
     const validOrders = data?.filter(order => {
-      if (order.order_type !== 'online' || order.status !== 'pending') return true;
-      const hasUnpaidOnlinePayment = order.payments?.some(p => p.method === 'online_gateway' && p.status === 'pending');
-      const hasPaidPayment = order.payments?.some(p => p.status === 'paid');
-      return !(hasUnpaidOnlinePayment && !hasPaidPayment);
+      const hasKlapPayment = order.payments?.some(
+        p => p.method === 'online_gateway' || p.method === 'klap'
+      );
+      if (!hasKlapPayment) return true;
+      const hasPaidPayment = order.payments?.some(p => PAID_PAYMENT_STATUSES.includes(p.status));
+      return hasPaidPayment;
     }) || [];
 
     return validOrders;
@@ -368,15 +373,35 @@ export const getKitchenOrders = async () => {
   }
 };
 
-// Activa pedidos programados cuya hora ya llegó (scheduled/pending -> confirmed)
+// Activa pedidos programados cuya hora ya llegó (scheduled/pending -> confirmed).
+// Un pedido con venta Klap pendiente de pago no se activa: debe seguir fuera
+// de cocina hasta que el webhook de Klap lo marque como pagado.
 export const activateDueScheduledOrders = async () => {
   try {
-    const { error } = await supabase
+    const { data: due, error: fetchError } = await supabase
       .from('orders')
-      .update({ status: 'confirmed' })
+      .select('id, payments(method, status)')
       .in('status', ['pending', 'scheduled'])
       .not('scheduled_at', 'is', null)
       .lte('scheduled_at', new Date().toISOString());
+    if (fetchError) throw fetchError;
+
+    const eligibleIds = (due || [])
+      .filter((order) => {
+        const hasKlapPayment = order.payments?.some(
+          (p) => p.method === 'online_gateway' || p.method === 'klap'
+        );
+        if (!hasKlapPayment) return true;
+        return order.payments?.some((p) => PAID_PAYMENT_STATUSES.includes(p.status));
+      })
+      .map((order) => order.id);
+
+    if (eligibleIds.length === 0) return;
+
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'confirmed' })
+      .in('id', eligibleIds);
     if (error) throw error;
   } catch (error) {
     console.error('Error activating scheduled orders:', error);

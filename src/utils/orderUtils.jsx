@@ -13,6 +13,20 @@ export const getKitchenTime = (order) => {
   return diffMins < 1 ? '< 1 min' : `${diffMins} min`;
 };
 
+// Venta con Klap pendiente de pago: tiene pago online_gateway/klap y ningún
+// pago cobrado (paid/completed). No debe entrar a cocina; solo queda visible
+// en Dashboard/Transacciones hasta que se pague o se cancele.
+export const isKlapPendingOrder = (order) => {
+  const payments = order?.payments || [];
+  const hasKlapPayment = payments.some(
+    (p) => p.method === 'online_gateway' || p.method === 'klap'
+  );
+  if (!hasKlapPayment) return false;
+  return !payments.some((p) => p.status === 'paid' || p.status === 'completed');
+};
+
+export const KLAP_PENDING_TOOLTIP = 'Pago Klap pendiente: no entró a cocina. Se cancelará automáticamente si no se completa el pago.';
+
 export const getPaymentMethod = (order) => {
   const payment = order.payments?.[0];
   if (!payment) return '-';

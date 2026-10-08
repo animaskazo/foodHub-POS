@@ -21,16 +21,37 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Activa pedidos programados cuya hora ya llegó: scheduled/pending -> confirmed
-    const { data: activatedData, error: activateError } = await supabase
+    // Activa pedidos programados cuya hora ya llegó: scheduled/pending -> confirmed.
+    // Un pedido con venta Klap pendiente de pago no se activa: no debe entrar
+    // a cocina hasta que el webhook de Klap lo marque como pagado.
+    const { data: dueOrders, error: dueError } = await supabase
       .from('orders')
-      .update({ status: 'confirmed' })
+      .select('id, order_number, payments(method, status)')
       .in('status', ['pending', 'scheduled'])
       .not('scheduled_at', 'is', null)
       .lte('scheduled_at', new Date().toISOString())
-      .select('id, order_number')
 
-    if (activateError) throw activateError
+    if (dueError) throw dueError
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const activatable = (dueOrders || []).filter((o: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const hasKlapPayment = o.payments?.some((p: any) => p.method === 'online_gateway' || p.method === 'klap')
+      if (!hasKlapPayment) return true
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return o.payments?.some((p: any) => p.status === 'paid' || p.status === 'completed')
+    })
+
+    let activatedData: { id: string, order_number: unknown }[] = []
+    if (activatable.length > 0) {
+      const { data, error: activateError } = await supabase
+        .from('orders')
+        .update({ status: 'confirmed' })
+        .in('id', activatable.map((o: { id: string }) => o.id))
+        .select('id, order_number')
+      if (activateError) throw activateError
+      activatedData = data || []
+    }
 
     // -- Nueva lógica: Cancelar pedidos online con pago pendiente de más de 1 hora --
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
@@ -46,10 +67,10 @@ serve(async (req) => {
 
     const ordersToCancel = staleOrders?.filter(order => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const hasUnpaidOnlinePayment = order.payments?.some((p: any) => p.method === 'online_gateway' && p.status === 'pending')
+      const hasKlapPayment = order.payments?.some((p: any) => p.method === 'online_gateway' || p.method === 'klap')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const hasPaidPayment = order.payments?.some((p: any) => p.status === 'paid')
-      return hasUnpaidOnlinePayment && !hasPaidPayment
+      const hasPaidPayment = order.payments?.some((p: any) => p.status === 'paid' || p.status === 'completed')
+      return hasKlapPayment && !hasPaidPayment
     }) || []
     
     let cancelledCount = 0;

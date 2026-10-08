@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { CreditCard, Timer, User, Van, PaperBag, CalendarClock, ShoppingBag, CheckCircle2, Printer, XCircle, Info, Loader2 } from 'lucide-react';
+import { AlertTriangle, CreditCard, Timer, User, Van, PaperBag, CalendarClock, ShoppingBag, CheckCircle2, Printer, XCircle, Info, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Modal from '../ui/Modal';
 import AddressMap from './AddressMap';
 import UberDeliveryCard from './UberDeliveryCard';
-import { fmt, getKitchenTime, getPaymentMethod, getStatusTag } from '../../utils/orderUtils';
+import { fmt, getKitchenTime, getPaymentMethod, getStatusTag, isKlapPendingOrder } from '../../utils/orderUtils';
 
 const OrderDetailModal = ({
   isOpen,
@@ -158,29 +158,39 @@ const OrderDetailModal = ({
         {/* Columna derecha: información del pedido */}
         <div className={`space-y-6 ${order.delivery_type === 'delivery' ? 'flex-1 min-w-0' : ''}`}>
 
-          {/* Alerta de pago no completado */}
-          {order.order_type === 'online' && order.status === 'pending' && order.payments?.some(p => p.method === 'online_gateway' && p.status === 'pending') && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex flex-col gap-3">
-              <div className="flex items-start gap-3">
-                <Info className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-red-800 font-bold text-sm">Pago no completado</h4>
-                  <p className="text-red-700 text-sm mt-1 leading-snug">
-                    El cliente inició el pago en línea pero no lo finalizó. El pedido no entrará a cocina. Se cancelará automáticamente tras 1 hora.
-                  </p>
-                </div>
+          {/* Pago Klap pendiente */}
+          {isKlapPendingOrder(order) && (
+            <div className="flex w-fit max-w-full items-start gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5">
+              <AlertTriangle className="size-5 text-red-600 shrink-0 mt-px" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-gray-900 leading-tight">Pago pendiente en Klap</p>
+                <p className="text-[13px] text-gray-900 leading-relaxed mt-0.5">
+                  No entró a cocina. Se cancela solo en 1 hora.
+                </p>
+                {(onConfirmPayment || (canCancel && onCancel)) && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {onConfirmPayment && (
+                      <Button
+                        size="sm"
+                        onClick={(e) => onConfirmPayment(e, order)}
+                      >
+                        <CheckCircle2 />
+                        Confirmar pago
+                      </Button>
+                    )}
+                    {canCancel && onCancel && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={onCancel}
+                      >
+                        <XCircle />
+                        Cancelar pedido
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
-              {canCancel && onCancel && (
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="bg-white text-red-700 border-red-200 hover:bg-red-50 w-full"
-                  onClick={onCancel}
-                >
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Cancelar pedido ahora
-                </Button>
-              )}
             </div>
           )}
 
