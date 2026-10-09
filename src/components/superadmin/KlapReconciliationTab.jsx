@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { Upload, FileText, CheckCircle2, AlertCircle, XCircle, Search, CreditCard, DollarSign, Save, Loader2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
@@ -6,12 +6,53 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
+// Calcula comision y monto liquidado estimado segun tarifas Klap
+const calcEstimated = (amount, cardType) => {
+  const amountNum = Number(amount) || 0;
+  if (amountNum <= 0) return { commission: 0, liquidated: 0 };
+  const rates = { CREDIT: 0.0164, DEBIT: 0.0071, PREPAID: 0.0121 };
+  const variableRate = rates[cardType] || rates.DEBIT;
+  const comisionNeta = Math.round((amountNum * variableRate) + 90);
+  const commission = Math.round(comisionNeta * 1.19);
+  return { commission, liquidated: amountNum - commission };
+};
+
 const KlapReconciliationTab = ({ orders, onReconciled }) => {
   const [csvData, setCsvData] = useState(null);
   const [fileName, setFileName] = useState('');
   const [search, setSearch] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [cardTypeOverrides, setCardTypeOverrides] = useState({});
+  const [savingCardType, setSavingCardType] = useState({});
+  const [selectedOrders, setSelectedOrders] = useState(new Set());
   const fileInputRef = useRef(null);
+
+  const handleCardTypeChange = useCallback(async (paymentId, orderId, newCardType, grossAmount) => {
+    setCardTypeOverrides(prev => ({ ...prev, [orderId]: newCardType }));
+    if (!paymentId) return; // Sin paymentId: solo actualiza la vista local
+    setSavingCardType(prev => ({ ...prev, [orderId]: true }));
+    try {
+      const { commission, liquidated } = calcEstimated(grossAmount, newCardType);
+      const { error: updateErr } = await supabase
+        .from('payments')
+        .update({
+          payment_details: {
+            card_type: newCardType,
+            estimated_commission: commission,
+            estimated_liquidated: liquidated,
+            gross_amount: Number(grossAmount)
+          }
+        })
+        .eq('id', paymentId);
+      if (updateErr) throw updateErr;
+      toast.success(`Tarjeta actualizada a ${newCardType === 'CREDIT' ? 'Credito' : newCardType === 'PREPAID' ? 'Prepago' : 'Debito'}`);
+    } catch (err) {
+      console.error('Error updating card type:', err);
+      toast.error('Error al actualizar el tipo de tarjeta');
+    } finally {
+      setSavingCardType(prev => ({ ...prev, [orderId]: false }));
+    }
+  }, []);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -31,7 +72,7 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
         const cleanRow = {};
         for (const key in row) {
           if (Object.prototype.hasOwnProperty.call(row, key)) {
-            const cleanKey = key.trim().toLowerCase();
+            const cleanKey = key.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
             cleanRow[cleanKey] = row[key];
           }
         }
@@ -106,7 +147,7 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
         if (refCode) {
           match = csvData.find(row => {
             if (row._used) return false;
-            const csvAuth = row['codigo_autorizacion'] || row['codigo autorizacion'] || row['cod_autorizacion'];
+            const csvAuth = row['codigo klap'] || row['codigo_autorizacion'] || row['codigo autorizacion'] || row['cod_autorizacion'];
             return csvAuth && String(csvAuth).trim().toLowerCase() === String(refCode).trim().toLowerCase();
           });
         }
@@ -121,7 +162,7 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
             if (row._used) return;
             
             // Flexibilizar parsing de monto
-            let rawMonto = String(row['monto_venta(+)'] || row['total'] || row['monto'] || '0');
+            let rawMonto = String(row['monto venta'] || row['monto_venta(+)'] || row['total'] || row['monto'] || '0');
             rawMonto = rawMonto.replace(/[^0-9.,-]/g, '');
             if (rawMonto.includes('.') && rawMonto.includes(',')) {
                rawMonto = rawMonto.replace(/\./g, '').replace(',', '.');
@@ -132,7 +173,10 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
             const csvMonto = parseFloat(rawMonto);
             
             if (csvMonto === Number(order.total)) {
-               let csvFecha = row['fecha_venta'] || row['fecha venta'] || row['fecha'] || '';
+               let csvFecha = row['fecha transaccion'] || row['fecha_venta'] || row['fecha venta'] || row['fecha'] || '';
+               if (row['hora'] && csvFecha) {
+                  csvFecha = `${csvFecha} ${row['hora']}`;
+               }
                const parsedDate = parseDateFuzzy(csvFecha);
                
                if (parsedDate) {
@@ -161,9 +205,9 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
         return parseFloat(String(val).replace(/\./g, '').split(',')[0]) || 0;
       };
 
-      const csvMontoPagado = match ? getVal(match['monto_pagado'] || match['monto pagado']) : null;
-      const csvComision = match ? getVal(match['comision(-)'] || match['comision']) : null;
-      const csvMontoBruto = match ? getVal(match['monto_venta(+)'] || match['total']) : null;
+      const csvMontoPagado = match ? getVal(match['monto liquidado'] || match['monto_pagado'] || match['monto pagado']) : null;
+      const csvComision = match ? getVal(match['comision klap'] || match['comision(-)'] || match['comision']) : null;
+      const csvMontoBruto = match ? getVal(match['monto venta'] || match['monto_venta(+)'] || match['total']) : null;
 
       if (match) {
         bruto += Number(order.total);
@@ -216,6 +260,57 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
     if (!matchedOrders) return [];
     return matchedOrders.filter(o => o.klapMatch && !o.is_klap_reconciled);
   }, [matchedOrders]);
+
+  const selectedSummary = useMemo(() => {
+    if (selectedOrders.size === 0) return { count: 0, liquidado: 0 };
+    let liquidado = 0;
+    matchedOrders.forEach(order => {
+      if (!selectedOrders.has(order.id)) return;
+      const paymentDetails = order.payments?.[0]?.payment_details || {};
+      const currentCardType = paymentDetails.card_type || 'DEBIT';
+      const { liquidated } = calcEstimated(order.total, currentCardType);
+      liquidado += liquidated;
+    });
+    return { count: selectedOrders.size, liquidado };
+  }, [selectedOrders, matchedOrders]);
+
+  const toggleSelectAll = () => {
+    const selectableIds = matchedOrders.filter(o => !o.is_klap_reconciled).map(o => o.id);
+    if (selectableIds.every(id => selectedOrders.has(id))) {
+      setSelectedOrders(new Set());
+    } else {
+      setSelectedOrders(new Set(selectableIds));
+    }
+  };
+
+  const toggleOrder = (orderId) => {
+    setSelectedOrders(prev => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+  };
+
+  const handleMarkSelectedAsPaid = async () => {
+    if (selectedOrders.size === 0) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ is_klap_reconciled: true })
+        .in('id', [...selectedOrders]);
+      if (error) throw error;
+      toast.success(`${selectedOrders.size} pedido(s) marcados como abonados.`);
+      setSelectedOrders(new Set());
+      if (onReconciled) onReconciled();
+    } catch (err) {
+      console.error('Error marking as reconciled:', err);
+      toast.error('Error al marcar los pedidos.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleMarkAsReconciled = async () => {
     if (pendingToReconcile.length === 0) return;
@@ -302,6 +397,38 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
         </div>
       )}
 
+      {/* Floating action bar */}
+      {selectedOrders.size > 0 && (
+        <div className="sticky top-4 z-20 mx-auto w-full max-w-2xl">
+          <div className="bg-gray-900 text-white rounded-xl shadow-2xl px-5 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium">{selectedOrders.size} seleccionado(s)</span>
+              <div className="h-4 w-px bg-white/20" />
+              <div className="text-sm">
+                <span className="text-gray-400">Suma Liquidado Est.: </span>
+                <span className="font-bold text-green-400 text-base">${selectedSummary.liquidado.toLocaleString('es-CL')}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSelectedOrders(new Set())}
+                className="text-xs text-gray-400 hover:text-white transition-colors px-2 py-1"
+              >
+                Cancelar
+              </button>
+              <Button
+                onClick={handleMarkSelectedAsPaid}
+                disabled={isSaving}
+                className="bg-green-500 hover:bg-green-400 text-white font-semibold text-sm flex items-center gap-2 h-9"
+              >
+                {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                Marcar como Abonado
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white border rounded-xl shadow-sm overflow-hidden flex flex-col">
         <div className="p-4 border-b bg-gray-50 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
           <h4 className="font-semibold text-gray-800">Detalle de Transacciones</h4>
@@ -356,6 +483,8 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
                   <span className="text-gray-500">POS: <span className="font-bold text-gray-900">${Number(order.total).toLocaleString('es-CL')}</span></span>
                   {isMatched ? (
                     <span className="text-green-700 font-bold">Liquida ${Number(order.csvMontoPagado).toLocaleString('es-CL')}</span>
+                  ) : order.payments?.[0]?.payment_details?.estimated_liquidated ? (
+                    <span className="text-gray-500 italic font-semibold">Est. Liquida ${Number(order.payments[0].payment_details.estimated_liquidated).toLocaleString('es-CL')}</span>
                   ) : (
                     <span className="text-gray-400">Sin cruce</span>
                   )}
@@ -375,10 +504,19 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
           <table className="w-full text-left border-collapse whitespace-nowrap">
             <thead>
               <tr className="bg-gray-50 border-b">
+                <th className="px-4 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-blue-600 cursor-pointer"
+                    checked={matchedOrders.filter(o => !o.is_klap_reconciled).length > 0 && matchedOrders.filter(o => !o.is_klap_reconciled).every(o => selectedOrders.has(o.id))}
+                    onChange={toggleSelectAll}
+                  />
+                </th>
                 <th className="px-6 py-3 text-xs uppercase tracking-wider font-semibold text-gray-500">POS Order</th>
                 <th className="px-6 py-3 text-xs uppercase tracking-wider font-semibold text-gray-500">Fecha</th>
                 <th className="px-6 py-3 text-xs uppercase tracking-wider font-semibold text-gray-500">Klap Auth ID</th>
                 <th className="px-6 py-3 text-xs uppercase tracking-wider font-semibold text-gray-500">Monto POS</th>
+                <th className="px-6 py-3 text-xs uppercase tracking-wider font-semibold text-gray-500">Tipo Tarjeta</th>
                 <th className="px-6 py-3 text-xs uppercase tracking-wider font-semibold text-gray-500 bg-blue-50">Klap Bruto</th>
                 <th className="px-6 py-3 text-xs uppercase tracking-wider font-semibold text-gray-500 bg-green-50">Klap Liquidado</th>
                 <th className="px-6 py-3 text-xs uppercase tracking-wider font-semibold text-gray-500">Estado</th>
@@ -387,11 +525,26 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
             <tbody className="divide-y">
               {matchedOrders.map(order => {
                 const refCode = order.payments?.[0]?.reference_code;
+                const paymentId = order.payments?.[0]?.id;
                 const date = new Date(order.created_at).toLocaleString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
                 const isMatched = !!order.klapMatch;
-                
+                const paymentDetails = order.payments?.[0]?.payment_details || {};
+                const currentCardType = cardTypeOverrides[order.id] || paymentDetails.card_type || 'DEBIT';
+                const estimated = calcEstimated(order.total, currentCardType);
+                const isSavingThis = savingCardType[order.id];
+
                 return (
-                  <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={order.id} className={`hover:bg-gray-50 transition-colors ${selectedOrders.has(order.id) ? 'bg-blue-50/50' : ''}`}>
+                    <td className="px-4 py-3">
+                      {!order.is_klap_reconciled && (
+                        <input
+                          type="checkbox"
+                          checked={selectedOrders.has(order.id)}
+                          onChange={() => toggleOrder(order.id)}
+                          className="rounded border-gray-300 text-blue-600 cursor-pointer"
+                        />
+                      )}
+                    </td>
                     <td className="px-6 py-3 font-semibold text-gray-900">#{order.order_number}</td>
                     <td className="px-6 py-3 text-sm text-gray-500">{date}</td>
                     <td className="px-6 py-3 text-sm font-medium text-gray-700">
@@ -400,7 +553,22 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
                     <td className="px-6 py-3 text-sm font-bold text-gray-900">
                       ${Number(order.total).toLocaleString('es-CL')}
                     </td>
-                    
+                    <td className="px-6 py-3">
+                      <div className="flex items-center gap-1.5">
+                        {isSavingThis && <Loader2 className="h-3 w-3 animate-spin text-gray-400 shrink-0" />}
+                        <select
+                          value={currentCardType}
+                          onChange={e => handleCardTypeChange(paymentId, order.id, e.target.value, order.total)}
+                          disabled={isSavingThis}
+                          className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400 disabled:opacity-50 cursor-pointer"
+                        >
+                          <option value="DEBIT">Debito</option>
+                          <option value="CREDIT">Credito</option>
+                          <option value="PREPAID">Prepago</option>
+                        </select>
+                      </div>
+                    </td>
+
                     {isMatched ? (
                       <>
                         <td className="px-6 py-3 text-sm text-gray-700 bg-blue-50/30">
@@ -425,8 +593,12 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
                       </>
                     ) : (
                       <>
-                        <td className="px-6 py-3 text-sm text-gray-400 bg-blue-50/10">-</td>
-                        <td className="px-6 py-3 text-sm text-gray-400 bg-green-50/10">-</td>
+                        <td className="px-6 py-3 text-sm bg-blue-50/10">
+                          <span className="text-gray-500 italic">Est. ${Number(order.total).toLocaleString('es-CL')}</span>
+                        </td>
+                        <td className="px-6 py-3 text-sm bg-green-50/10">
+                          <span className="text-gray-600 font-semibold italic">Est. ${estimated.liquidated.toLocaleString('es-CL')}</span>
+                        </td>
                         <td className="px-6 py-3">
                           {order.is_klap_reconciled ? (
                             <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 flex items-center gap-1 w-fit border-none">
@@ -497,13 +669,13 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
                 {csvData.filter(row => !row._used_in_ui).map((row, idx) => (
                   <tr key={idx} className="border-b border-orange-100 last:border-0">
                     <td className="px-4 py-2 text-orange-900 font-mono">
-                      {row['codigo_autorizacion'] || row['codigo autorizacion'] || 'N/A'}
+                      {row['codigo klap'] || row['codigo_autorizacion'] || row['codigo autorizacion'] || 'N/A'}
                     </td>
                     <td className="px-4 py-2 text-orange-900 font-bold">
-                      ${Number(String(row['monto_venta(+)'] || row['total'] || '0').replace(/\./g, '').split(',')[0]).toLocaleString('es-CL')}
+                      ${Number(String(row['monto venta'] || row['monto_venta(+)'] || row['total'] || '0').replace(/\./g, '').split(',')[0]).toLocaleString('es-CL')}
                     </td>
                     <td className="px-4 py-2 text-orange-900">
-                      {row['fecha_venta'] || row['fecha venta'] || 'N/A'}
+                      {row['fecha transaccion'] || row['fecha_venta'] || row['fecha venta'] || 'N/A'}
                     </td>
                   </tr>
                 ))}

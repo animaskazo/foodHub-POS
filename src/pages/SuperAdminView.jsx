@@ -253,7 +253,7 @@ const SuperAdminView = () => {
           uber_tracking_url,
           uber_status,
           is_klap_reconciled,
-          payments ( method, status, reference_code ),
+          payments ( id, method, status, reference_code, payment_details ),
           order_items (
             *,
             products(description, product_images(url)),

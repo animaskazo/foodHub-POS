@@ -17,7 +17,10 @@ serve(async (req) => {
     const payload = await req.json();
     console.log("Klap Webhook Payload recibido:", JSON.stringify(payload, null, 2));
 
-    const { order_id, reference_id, code, message, amount, payment_method } = payload;
+    const { 
+      order_id, reference_id, code, message, amount, payment_method,
+      card_type, brand, last_digits, mc_code
+    } = payload;
 
     if (!reference_id || !order_id) {
       console.error("Payload inválido: faltan order_id o reference_id");
@@ -100,13 +103,48 @@ serve(async (req) => {
       // ── Pago exitoso: marcar como pagado ──
       console.log(`Klap CONFIRM: orden ${orderId} | klap_order: ${order_id} | monto: ${amount}`);
 
+      // Calcular comisión estimada según tarifas
+      let comisionEstimada = 0;
+      let montoLiquidado = 0;
+      const amountNum = Number(amount) || 0;
+      
+      if (amountNum > 0) {
+        let variableRate = 0;
+        const fixedFee = 90; // $90 CLP fijo por transacción
+        const ivaRate = 1.19; // 19% IVA sobre la comisión
+
+        if (card_type === 'CREDIT') {
+          variableRate = 0.0164; // 1.64%
+        } else if (card_type === 'DEBIT') {
+          variableRate = 0.0071; // 0.71%
+        } else if (card_type === 'PREPAID') {
+          variableRate = 0.0121; // 1.21%
+        } else {
+          // Fallback a débito por defecto si no viene
+          variableRate = 0.0071;
+        }
+
+        const comisionNeta = Math.round((amountNum * variableRate) + fixedFee);
+        comisionEstimada = Math.round(comisionNeta * ivaRate);
+        montoLiquidado = amountNum - comisionEstimada;
+      }
+
       const { error } = await supabase
         .from('payments')
         .update({
           status: 'paid',
           paid_at: new Date().toISOString(),
-          reference_code: order_id,
-          method: 'online_gateway'
+          reference_code: mc_code || order_id, // Usamos mc_code como primary ref, fallback order_id
+          method: 'online_gateway',
+          payment_details: {
+            card_type,
+            brand,
+            last_digits,
+            klap_order_id: order_id,
+            estimated_commission: comisionEstimada,
+            estimated_liquidated: montoLiquidado,
+            gross_amount: amountNum
+          }
         })
         .eq('order_id', orderId);
 
