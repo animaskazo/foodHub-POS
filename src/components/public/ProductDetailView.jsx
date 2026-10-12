@@ -4,8 +4,10 @@ import IngredientIcon from '../ui/IngredientIcon';
 import ProductImageFallback from '../ui/ProductImageFallback';
 import { buildSelection, selectionFromCartOption, defaultSelectionsForSlot } from '../../utils/bundleSelections';
 
-const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, initialExtras = [], initialQuantity = 1, isOutOfStock = false, orderingBlocked = false, logoUrl = null }) => {
+const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, initialExtras = [], initialQuantity = 1, isOutOfStock = false, orderingBlocked = false, logoUrl = null, outOfStockIds = [] }) => {
   const isBundle = product.type === 'bundle';
+  const isOptionOutOfStock = (opt) =>
+    (outOfStockIds || []).includes(opt?.productId) || opt?.status === 'unavailable';
   const hasVariants = product.variants?.length > 0;
   const extraIngredients = product.ingredients?.filter(i => i.isExtra) || [];
   const baseIngredients = product.ingredients?.filter(i => !i.isExtra) || [];
@@ -42,9 +44,13 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
       } else {
         // Sin preselección por defecto: solo se auto-incluyen los slots con
         // una única opción ("Incluido"); el resto inicia vacío para que el
-        // usuario elija la cantidad mínima.
+        // usuario elija la cantidad mínima. Si esa única opción está sin
+        // stock, no se auto-incluye.
         product.bundleSlots?.forEach(slot => {
           if ((slot.options?.length || 0) === 1) {
+            const only = slot.options[0];
+            const out = (outOfStockIds || []).includes(only?.productId) || only?.status === 'unavailable';
+            if (out) return;
             initial[slot.id] = defaultSelectionsForSlot(slot);
           }
         });
@@ -75,6 +81,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
 
   // Bundle actions
   const handleSelectOption = (slotId, opt) => {
+    if (isOptionOutOfStock(opt)) return;
     setSelections(prev => {
       const current = prev[slotId] || [];
       const existingIndex = current.findIndex(s => s.optionId === opt.id);
@@ -98,6 +105,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
 
   const handleIncrementOption = (e, slotId, opt) => {
     e.stopPropagation();
+    if (isOptionOutOfStock(opt)) return;
     setSelections(prev => {
       const current = prev[slotId] || [];
       const existingIndex = current.findIndex(s => s.optionId === opt.id);
@@ -240,6 +248,17 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
       if (missingSlot) {
         const count = (selections[missingSlot.id] || []).reduce((acc, s) => acc + (s.quantity || 1), 0);
         alert(`"${missingSlot.name}" requiere al menos ${missingSlot.minSelections} selección${missingSlot.minSelections > 1 ? 'es' : ''}. Has elegido ${count}.`);
+        return;
+      }
+
+      const outOfStockSel = (product.bundleSlots || []).flatMap(slot =>
+        (selections[slot.id] || []).filter(sel => {
+          const optObj = slot.options?.find(o => o.id === sel.optionId);
+          return optObj && isOptionOutOfStock(optObj);
+        })
+      );
+      if (outOfStockSel.length > 0) {
+        alert(`"${outOfStockSel[0].name}" está sin stock. Elige otra opción del combo.`);
         return;
       }
 
@@ -493,21 +512,25 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                       const extraPrice = Math.round(opt.priceModifier);
                       const isSingleOption = slot.options.length === 1;
                       const isLocked = max > 1 && atMax && !isSelected && !isSingleOption;
+                      const isOptOut = isOptionOutOfStock(opt);
+                      const isDisabled = isOptOut || isLocked;
 
                       return (
                         <div
                           key={opt.id}
                           onClick={() => {
-                            if (!isSingleOption && !isLocked) {
+                            if (!isSingleOption && !isDisabled) {
                               handleSelectOption(slot.id, opt);
                             }
                           }}
-                          className={`flex items-center justify-between p-4 min-h-[68px] border rounded-2xl transition-all cursor-pointer select-none ${
-                            isSelected 
-                              ? 'border-black bg-gray-50/50' 
+                          className={`flex items-center justify-between p-4 min-h-[68px] border rounded-2xl transition-all select-none ${
+                            isOptOut
+                              ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                              : isSelected
+                              ? 'border-black bg-gray-50/50 cursor-pointer'
                               : isLocked
                                 ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
-                                : 'border-gray-200 hover:border-gray-300 bg-white'
+                                : 'border-gray-200 hover:border-gray-300 bg-white cursor-pointer'
                           }`}
                         >
                           <div className="flex items-center gap-3">
@@ -521,7 +544,9 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                               </svg>
                             </div>
                             <span className="font-bold text-sm text-gray-900 leading-snug">{opt.name}</span>
-                            {isSingleOption && (
+                            {isOptOut ? (
+                              <span className="text-[9px] text-white bg-red-500 px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider">Sin stock</span>
+                            ) : isSingleOption && (
                               <span className="text-[9px] text-gray-400 bg-gray-150 px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider">Incluido</span>
                             )}
                           </div>

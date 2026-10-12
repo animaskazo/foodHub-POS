@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, ChevronDown, ListFilter, Plus, MoreHorizontal, Sparkles, Trash2, FolderInput, CheckCircle, XCircle, Tag, GripVertical } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getFirstOrganizationId, getCachedProducts, getCachedCategories, quickUpdateProductStatus, quickUpdateProductCategory, deleteProduct, bulkDeleteProducts, duplicateProduct, bulkUpdateProductCategory, bulkUpdateProductStatus, reorderProducts } from '../services/catalogService';
+import { getFirstOrganizationId, getCachedProducts, getCachedCategories, quickUpdateProductStatus, quickUpdateProductCategory, quickUpdateProductStock, deleteProduct, bulkDeleteProducts, duplicateProduct, bulkUpdateProductCategory, bulkUpdateProductStatus, reorderProducts } from '../services/catalogService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import ActionMenu from '../components/ui/ActionMenu';
@@ -18,6 +18,29 @@ import PageHeader from '../components/ui/PageHeader';
 import ProductImageFallback from '../components/ui/ProductImageFallback';
 import { CatalogSkeleton } from '../components/ui/Skeleton';
 import { useAuth } from '../components/AuthContext';
+
+// Número con desplazamiento vertical: al aumentar entra desde arriba hacia
+// abajo, al reducir a la inversa (desde abajo hacia arriba). Sin fade.
+const StockNumber = ({ value, direction = 1, className = '' }) => {
+  const anim = direction >= 0 ? 'stock-roll-down' : 'stock-roll-up';
+  return (
+    <span className={`stock-roll-mask ${className}`}>
+      <span key={value} className={`stock-roll-digit ${anim}`}>
+        {value}
+      </span>
+    </span>
+  );
+};
+
+const STOCK_ROLL_CSS = `
+.stock-roll-mask { display: inline-block; overflow: hidden; vertical-align: middle; height: 1.25em; line-height: 1.25em; }
+.stock-roll-digit { display: inline-block; }
+.stock-roll-down { animation: stock-roll-down 200ms ease-out; }
+.stock-roll-up { animation: stock-roll-up 200ms ease-out; }
+@keyframes stock-roll-down { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+@keyframes stock-roll-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .stock-roll-down, .stock-roll-up { animation: none; } }
+`;
 
 const CatalogManager = () => {
   const { organization } = useAuth();
@@ -112,6 +135,53 @@ const CatalogManager = () => {
     } catch (error) {
       alert("Error al actualizar estado");
     }
+  };
+
+  // ── Edición rápida de stock directo ──
+  const [editingStockId, setEditingStockId] = useState(null);
+  const [stockDraft, setStockDraft] = useState('');
+  const [savingStockId, setSavingStockId] = useState(null);
+  const [stockDir, setStockDir] = useState({});
+
+  const getStock = (p) => p.stockQuantity ?? p.stock_quantity ?? 0;
+  const isTracked = (p) => p.trackInventory === true || p.track_inventory === true;
+
+  const persistStock = async (product, value, track = true) => {
+    const num = value === null || value === '' ? null : Math.max(0, Math.trunc(Number(value) || 0));
+    const nextVal = track ? (num ?? 0) : null;
+    // Optimista: el número cambia al tiro (número → número con pulso),
+    // sin pasar por "…" ni parpadeos. Si falla, se revierte.
+    const prevSnapshot = {
+      stockQuantity: product.stockQuantity ?? product.stock_quantity ?? null,
+      stock_quantity: product.stock_quantity ?? product.stockQuantity ?? null,
+      trackInventory: product.trackInventory ?? product.track_inventory ?? false,
+      track_inventory: product.track_inventory ?? product.trackInventory ?? false,
+    };
+    const prevVal = Number(prevSnapshot.stockQuantity ?? 0) || 0;
+    const dir = Math.sign((nextVal ?? 0) - prevVal) || 1;
+    setStockDir(prev => ({ ...prev, [product.id]: dir }));
+    setProducts(prev => prev.map(p =>
+      p.id === product.id
+        ? { ...p, stockQuantity: nextVal, stock_quantity: nextVal, trackInventory: track, track_inventory: track }
+        : p
+    ));
+    setEditingStockId(null);
+    if (savingStockId === product.id) return;
+    setSavingStockId(product.id);
+    try {
+      await quickUpdateProductStock(product.id, nextVal, track);
+    } catch (err) {
+      setProducts(prev => prev.map(p => (p.id === product.id ? { ...p, ...prevSnapshot } : p)));
+      toast.error('No se pudo guardar el stock');
+    } finally {
+      setSavingStockId(cur => (cur === product.id ? null : cur));
+    }
+  };
+
+  const stepStock = (product, delta) => {
+    if (savingStockId === product.id) return;
+    const current = products.find(p => p.id === product.id) || product;
+    persistStock(current, getStock(current) + delta, true);
   };
 
   const handleCategoryChange = async (productId, categoryId) => {
@@ -217,6 +287,7 @@ const CatalogManager = () => {
 
   return (
     <div className="min-h-full bg-gray-50 p-6 md:p-8">
+      <style>{STOCK_ROLL_CSS}</style>
       <div className="max-w-7xl mx-auto space-y-6">
         <PageHeader 
           title="Productos"
@@ -298,6 +369,7 @@ const CatalogManager = () => {
               <th className="px-6 py-4 font-bold">Artículo</th>
               <th className="px-6 py-4 font-bold">Categoría de informes</th>
               <th className="px-6 py-4 font-bold text-center">Estado</th>
+              <th className="px-6 py-4 font-bold text-center">Stock</th>
               <th className="px-6 py-4 font-bold text-right">Precio (Neto / Final)</th>
               <th className="px-6 py-4 w-10 text-center"></th>
             </tr>
@@ -428,7 +500,14 @@ const CatalogManager = () => {
                             ) : (
                               <ProductImageFallback logoUrl={organization?.logo_url} alt={product.name} className="w-12 h-12 rounded shrink-0 border" />
                             )}
-                            <span className="font-medium text-gray-900">{product.name}</span>
+                            <div className="min-w-0">
+                              <span className="font-medium text-gray-900 block truncate">{product.name}</span>
+                              {(product.trackInventory || product.track_inventory) ? (
+                                <span className={`text-xs font-semibold ${(product.stockQuantity ?? product.stock_quantity ?? 0) <= 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                  Stock: {product.stockQuantity ?? product.stock_quantity ?? 0}
+                                </span>
+                              ) : null}
+                            </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 text-gray-600">
@@ -454,6 +533,60 @@ const CatalogManager = () => {
                               onCheckedChange={(checked) => handleStatusChange(product.id, checked ? 'available' : 'unavailable')}
                             />
                           </div>
+                        </td>
+                        <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                          {isTracked(product) ? (
+                            <div className="inline-flex items-center gap-0.5 bg-gray-50 border border-gray-200 rounded-full pl-0.5 pr-0.5 py-0.5">
+                              <button
+                                onClick={() => stepStock(product, -1)}
+                                disabled={savingStockId === product.id}
+                                className="h-7 w-7 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-800 active:scale-95 transition-all disabled:opacity-40 text-base leading-none"
+                                aria-label="Quitar uno"
+                              >
+                                −
+                              </button>
+                              {editingStockId === product.id ? (
+                                <input
+                                  autoFocus
+                                  type="number"
+                                  min="0"
+                                  step="1"
+                                  value={stockDraft}
+                                  onChange={(e) => setStockDraft(e.target.value)}
+                                  onBlur={() => persistStock(product, stockDraft, true)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') persistStock(product, stockDraft, true);
+                                    if (e.key === 'Escape') setEditingStockId(null);
+                                  }}
+                                  className="w-14 h-7 text-center text-sm font-bold tabular-nums bg-white border border-gray-200 rounded-lg outline-none focus:border-gray-400"
+                                />
+                              ) : (
+                              <button
+                                onClick={() => { setEditingStockId(product.id); setStockDraft(String(getStock(product))); }}
+                                title="Editar stock"
+                                className={`min-w-[2.5rem] h-7 px-1 text-sm font-bold tabular-nums rounded-lg hover:bg-gray-200/70 transition-colors ${savingStockId === product.id ? 'opacity-50' : ''} ${getStock(product) <= 0 ? 'text-red-600' : 'text-gray-900'}`}
+                              >
+                                <StockNumber value={getStock(product)} direction={stockDir[product.id] ?? 1} />
+                              </button>
+                              )}
+                              <button
+                                onClick={() => stepStock(product, 1)}
+                                disabled={savingStockId === product.id}
+                                className="h-7 w-7 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-800 active:scale-95 transition-all disabled:opacity-40 text-base leading-none"
+                                aria-label="Agregar uno"
+                              >
+                                +
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => persistStock(product, 0, true)}
+                              title="Activar control de stock"
+                              className="text-xs font-semibold text-gray-400 hover:text-gray-700 border border-dashed border-gray-300 hover:border-gray-400 rounded-full px-3 py-1.5 transition-colors"
+                            >
+                              Sin control
+                            </button>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="font-semibold text-gray-900">${Math.round(product.price).toLocaleString('es-CL')}</div>
@@ -546,6 +679,58 @@ const CatalogManager = () => {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{product.name}</p>
                     <p className="text-sm font-bold text-gray-900 tabular-nums mt-0.5">${Math.round(product.price).toLocaleString('es-CL')}</p>
+                    <div onClick={(e) => e.stopPropagation()} className="mt-1.5">
+                      {isTracked(product) ? (
+                        <div className="inline-flex items-center gap-0.5 bg-gray-50 border border-gray-200 rounded-full px-0.5 py-0.5">
+                          <button
+                            onClick={() => stepStock(product, -1)}
+                            disabled={savingStockId === product.id}
+                            className="h-7 w-7 flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 text-base leading-none disabled:opacity-40"
+                            aria-label="Quitar uno"
+                          >
+                            −
+                          </button>
+                          {editingStockId === product.id ? (
+                            <input
+                              autoFocus
+                              type="number"
+                              min="0"
+                              value={stockDraft}
+                              onChange={(e) => setStockDraft(e.target.value)}
+                              onBlur={() => persistStock(product, stockDraft, true)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') persistStock(product, stockDraft, true);
+                                if (e.key === 'Escape') setEditingStockId(null);
+                              }}
+                              className="w-14 h-7 text-center text-sm font-bold tabular-nums bg-white border border-gray-200 rounded-lg outline-none"
+                            />
+                          ) : (
+                            <button
+                              onClick={() => { setEditingStockId(product.id); setStockDraft(String(getStock(product))); }}
+                              className={`min-w-[2.5rem] h-7 px-1 text-sm font-bold tabular-nums rounded-lg ${savingStockId === product.id ? 'opacity-50' : ''} ${getStock(product) <= 0 ? 'text-red-600' : 'text-gray-900'}`}
+                            >
+                              <span className="font-semibold">Stock: </span>
+                              <StockNumber value={getStock(product)} direction={stockDir[product.id] ?? 1} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => stepStock(product, 1)}
+                            disabled={savingStockId === product.id}
+                            className="h-7 w-7 flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 text-base leading-none disabled:opacity-40"
+                            aria-label="Agregar uno"
+                          >
+                            +
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => persistStock(product, 0, true)}
+                          className="text-xs font-semibold text-gray-400 border border-dashed border-gray-300 rounded-full px-3 py-1"
+                        >
+                          Sin control · activar
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div onClick={(e) => e.stopPropagation()} className="shrink-0">
                     <Switch

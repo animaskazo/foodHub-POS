@@ -38,6 +38,7 @@ const CustomersView = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortKey, setSortKey] = useState('orders_desc');
   
   // Modal State
   const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -98,8 +99,12 @@ const CustomersView = () => {
         };
       });
 
-      // Sort by full_name ascending
-      processed.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+      // Orden por defecto: cantidad de pedidos (desc), luego consumo y nombre
+      processed.sort((a, b) =>
+        (b.total_orders || 0) - (a.total_orders || 0) ||
+        (b.total_spent || 0) - (a.total_spent || 0) ||
+        (a.full_name || '').localeCompare(b.full_name || '')
+      );
       setCustomers(processed);
     } catch (err) {
       console.error('Error fetching customers:', err);
@@ -237,6 +242,41 @@ const CustomersView = () => {
     );
   }, [customers, searchQuery]);
 
+  const sortedCustomers = useMemo(() => {
+    const arr = [...filteredCustomers];
+    switch (sortKey) {
+      case 'orders_asc':
+        arr.sort((a, b) => (a.total_orders || 0) - (b.total_orders || 0));
+        break;
+      case 'name_asc':
+        arr.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+        break;
+      case 'name_desc':
+        arr.sort((a, b) => (b.full_name || '').localeCompare(a.full_name || ''));
+        break;
+      case 'spent_desc':
+        arr.sort((a, b) => (b.total_spent || 0) - (a.total_spent || 0));
+        break;
+      case 'spent_asc':
+        arr.sort((a, b) => (a.total_spent || 0) - (b.total_spent || 0));
+        break;
+      case 'orders_desc':
+      default:
+        arr.sort((a, b) =>
+          (b.total_orders || 0) - (a.total_orders || 0) ||
+          (b.total_spent || 0) - (a.total_spent || 0)
+        );
+        break;
+    }
+    return arr;
+  }, [filteredCustomers, sortKey]);
+
+  const toggleSort = (key) => {
+    setSortKey(prev => (prev === `${key}_desc` ? `${key}_asc` : `${key}_desc`));
+  };
+
+  const sortArrow = (key) => (sortKey === `${key}_desc` ? ' ↓' : sortKey === `${key}_asc` ? ' ↑' : '');
+
   const fmt = (n) => Number(n).toLocaleString('es-CL');
 
   const getStatusTag = (statusOrOrder) => {
@@ -333,7 +373,7 @@ const CustomersView = () => {
               <Loader2 className="h-8 w-8 animate-spin text-black" />
               <p className="font-semibold text-sm">Cargando listado de clientes...</p>
             </div>
-          ) : filteredCustomers.length > 0 ? (
+          ) : sortedCustomers.length > 0 ? (
             <>
               {/* Desktop Table View */}
               <div className="hidden md:block bg-white rounded-2xl border border-gray-200 overflow-hidden">
@@ -345,21 +385,33 @@ const CustomersView = () => {
                           <input
                             type="checkbox"
                             className="h-4 w-4 rounded border-gray-300 cursor-pointer"
-                            checked={filteredCustomers.length > 0 && selectedIds.length === filteredCustomers.length}
+                            checked={sortedCustomers.length > 0 && selectedIds.length === sortedCustomers.length}
                             onChange={handleToggleSelectAll}
                           />
                         </th>
-                        <th className="px-6 py-4">Nombre</th>
+                        <th className="px-6 py-4">
+                          <button onClick={() => toggleSort('name')} className="uppercase tracking-wider font-bold hover:text-gray-800">
+                            Nombre{sortArrow('name')}
+                          </button>
+                        </th>
                         <th className="px-6 py-4">Teléfono</th>
                         <th className="px-6 py-4">Email</th>
                         <th className="px-6 py-4">Dirección</th>
-                        <th className="px-6 py-4 text-center">Pedidos</th>
-                        <th className="px-6 py-4 text-right">Consumo Total</th>
+                        <th className="px-6 py-4 text-center">
+                          <button onClick={() => toggleSort('orders')} className="uppercase tracking-wider font-bold hover:text-gray-800">
+                            Pedidos{sortArrow('orders')}
+                          </button>
+                        </th>
+                        <th className="px-6 py-4 text-right">
+                          <button onClick={() => toggleSort('spent')} className="uppercase tracking-wider font-bold hover:text-gray-800">
+                            Consumo Total{sortArrow('spent')}
+                          </button>
+                        </th>
                         <th className="px-6 py-4 w-10"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-sm">
-                      {filteredCustomers.map((customer) => (
+                      {sortedCustomers.map((customer) => (
                         <tr 
                           key={customer.id}
                           onClick={() => handleOpenCustomerDetails(customer)}
@@ -404,7 +456,7 @@ const CustomersView = () => {
 
               {/* Mobile Cards View */}
               <div className="md:hidden flex flex-col gap-3">
-                {filteredCustomers.map((customer) => (
+                {sortedCustomers.map((customer) => (
                   <div 
                     key={customer.id}
                     onClick={() => handleOpenCustomerDetails(customer)}

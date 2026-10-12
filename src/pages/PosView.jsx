@@ -23,6 +23,7 @@ import { useAuth } from '../components/AuthContext';
 import { getShiftSettings, getCurrentShift } from '../services/shiftService';
 import { PosSkeleton } from '../components/ui/Skeleton';
 import { defaultSelectionsForSlot, bundleHasChoices } from '../utils/bundleSelections';
+import { getOutOfStockProductIds } from '../services/inventoryService';
 import PrintableReceipt from '../components/pos/PrintableReceipt';
 import { printReceipt, printReceiptAsPDF } from '../services/printerService';
 import { getCartTotal, getCartTotalsWithTax, getCartItemUnitPrice, sumExtraIngredients } from '../utils/cartTotals';
@@ -67,6 +68,7 @@ const PosView = () => {
   const [couponError, setCouponError] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
+  const [outOfStockIds, setOutOfStockIds] = useState([]);
 
   const showToast = (message) => {
     setToastMessage(message);
@@ -118,6 +120,18 @@ const PosView = () => {
     };
     
     loadShiftData();
+  }, [organization?.id]);
+
+  useEffect(() => {
+    if (!organization?.id) {
+      setOutOfStockIds([]);
+      return;
+    }
+    let cancelled = false;
+    getOutOfStockProductIds(organization.id)
+      .then(ids => { if (!cancelled) setOutOfStockIds(ids || []); })
+      .catch(() => { if (!cancelled) setOutOfStockIds([]); });
+    return () => { cancelled = true; };
   }, [organization?.id]);
 
   // Al entrar al punto de venta, preguntar en qué mesa se tomará la orden
@@ -185,8 +199,22 @@ const PosView = () => {
   const handleProductClick = (product) => {
     if (product.type === 'bundle') {
       const hasChoices = bundleHasChoices(product.bundleSlots);
+      const isOptOut = (opt) =>
+        (outOfStockIds || []).includes(opt?.productId) || opt?.status === 'unavailable';
 
       if (!hasChoices) {
+        // Si la opción automática está sin stock, abrir el configurador para
+        // mostrarla como "Sin stock" en vez de venderla directo.
+        const hasOutDefault = (product.bundleSlots || []).some(slot =>
+          defaultSelectionsForSlot(slot).some(sel => {
+            const optObj = slot.options?.find(o => o.id === sel.optionId);
+            return optObj && isOptOut(optObj);
+          })
+        );
+        if (hasOutDefault) {
+          setSelectedProductForBundle(product);
+          return;
+        }
         // Generar selecciones por defecto y agregar directamente calculando precios y variantes correctas
         const baseNet = product.price || 0;
         let totalGross = Math.round(baseNet);
@@ -981,6 +1009,7 @@ const PosView = () => {
         product={selectedProductForBundle}
         onConfirm={handleBundleSelect}
         editingItem={editingBundleItem}
+        outOfStockIds={outOfStockIds}
         onDelete={(cartItemId) => {
           handleRemove(cartItemId);
           setEditingBundleItem(null);

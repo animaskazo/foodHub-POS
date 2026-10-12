@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2 } from 'lucide-react';
+import { Switch } from "@/components/ui/switch";
+import { Loader2, Minus, Plus } from 'lucide-react';
 import { updateProduct, getCategories, getProductById } from '../../services/catalogService';
 import { toast } from 'sonner';
 
@@ -16,6 +17,8 @@ const EditProductModal = ({ isOpen, onClose, onSuccess, productId, organizationI
   const [categoryId, setCategoryId] = useState('none');
   const [status, setStatus] = useState('available');
   const [isFeatured, setIsFeatured] = useState(false);
+  const [trackStock, setTrackStock] = useState(false);
+  const [stockQuantity, setStockQuantity] = useState('');
   const [categories, setCategories] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -38,6 +41,10 @@ const EditProductModal = ({ isOpen, onClose, onSuccess, productId, organizationI
       setCategoryId(prod.categoryId || 'none');
       setStatus(prod.status || 'available');
       setIsFeatured(prod.isFeatured || false);
+      const hasDirect = (prod.track_inventory ?? prod.trackInventory) === true;
+      setTrackStock(hasDirect);
+      const sq = prod.stock_quantity ?? prod.stockQuantity;
+      setStockQuantity(sq !== null && sq !== undefined ? String(sq) : '');
     } catch (err) {
       console.error('Error loading product:', err);
       toast.error('Error al cargar el producto');
@@ -66,6 +73,8 @@ const EditProductModal = ({ isOpen, onClose, onSuccess, productId, organizationI
         categoryId,
         status,
         isFeatured,
+        trackInventory: trackStock === true,
+        stockQuantity: trackStock ? (stockQuantity === '' ? 0 : Number(stockQuantity)) : null,
       });
       toast.success('Producto actualizado');
       onSuccess?.();
@@ -130,15 +139,47 @@ const EditProductModal = ({ isOpen, onClose, onSuccess, productId, organizationI
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-white">
-                    <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
-                  </svg>
+            <div className="rounded-xl border border-gray-200 p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900">Stock</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Se descuenta al vender. En 0 bloquea en combos.</p>
                 </div>
-                <label className="text-sm font-medium text-gray-700 cursor-pointer">Producto destacado</label>
+                <Switch checked={trackStock} onCheckedChange={setTrackStock} aria-label="Controlar stock" />
               </div>
+              {trackStock && (
+                <div className="mt-3 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setStockQuantity(String(Math.max(0, (parseInt(stockQuantity || '0', 10) || 0) - 1)))}
+                    className="h-9 w-9 shrink-0 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
+                    aria-label="Quitar una unidad"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="1"
+                    inputMode="numeric"
+                    value={stockQuantity}
+                    onChange={(e) => setStockQuantity(e.target.value)}
+                    placeholder="0"
+                    className="bg-white text-center font-bold tabular-nums h-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setStockQuantity(String((parseInt(stockQuantity || '0', 10) || 0) + 1))}
+                    className="h-9 w-9 shrink-0 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
+                    aria-label="Agregar una unidad"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700 cursor-pointer">Producto destacado</label>
               <input
                 type="checkbox"
                 checked={isFeatured}

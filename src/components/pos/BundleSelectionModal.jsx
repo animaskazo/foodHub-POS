@@ -4,8 +4,13 @@ import { Button } from '../ui/button';
 import { buildSelection, selectionFromCartOption, defaultSelectionsForSlot } from '../../utils/bundleSelections';
 import { Plus, Minus } from 'lucide-react';
 
-const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem, onDelete }) => {
+const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem, onDelete, outOfStockIds = [] }) => {
   const [selections, setSelections] = useState({});
+
+  // Solo esa opción queda no disponible dentro del combo; el combo sigue vendible
+  // con las demás opciones.
+  const isOptionOutOfStock = (opt) =>
+    (outOfStockIds || []).includes(opt?.productId) || opt?.status === 'unavailable';
 
   useEffect(() => {
     if (isOpen && product) {
@@ -21,8 +26,12 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
         // Sin preselección por defecto: solo se auto-incluyen los slots con
         // una única opción ("Incluido"); el resto inicia vacío para que el
         // usuario elija la cantidad mínima.
+        // Si esa única opción está sin stock, no se auto-incluye para no
+        // vender un combo que no se puede cumplir.
         product.bundleSlots?.forEach(slot => {
           if ((slot.options?.length || 0) === 1) {
+            const only = slot.options[0];
+            if (isOptionOutOfStock(only)) return;
             initialSelections[slot.id] = defaultSelectionsForSlot(slot);
           }
         });
@@ -44,6 +53,7 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
   const isMinTotalSatisfied = !hasMinTotal || totalSelectedCount >= product.bundleMinTotal;
 
   const handleSelectOption = (slotId, option) => {
+    if (isOptionOutOfStock(option)) return;
     setSelections(prev => {
       const current = prev[slotId] || [];
       const existingIndex = current.findIndex(s => s.optionId === option.id);
@@ -68,6 +78,7 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
 
   const handleIncrementOption = (e, slotId, opt) => {
     e.stopPropagation();
+    if (isOptionOutOfStock(opt)) return;
     setSelections(prev => {
       const current = prev[slotId] || [];
       const existingIndex = current.findIndex(s => s.optionId === opt.id);
@@ -182,6 +193,19 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
     if (missingSlot) {
       const count = (selections[missingSlot.id] || []).length;
       alert(`"${missingSlot.name}" requiere al menos ${missingSlot.minSelections} selección${missingSlot.minSelections > 1 ? 'es' : ''}. Has elegido ${count}.`);
+      return;
+    }
+
+    // Bloquear si alguna opción elegida quedó sin stock (solo esa opción,
+    // no todo el combo).
+    const outOfStockSel = (product.bundleSlots || []).flatMap(slot =>
+      (selections[slot.id] || []).filter(sel => {
+        const optObj = slot.options?.find(o => o.id === sel.optionId);
+        return optObj && isOptionOutOfStock(optObj);
+      })
+    );
+    if (outOfStockSel.length > 0) {
+      alert(`"${outOfStockSel[0].name}" está sin stock. Elige otra opción del combo.`);
       return;
     }
 
@@ -312,28 +336,32 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
                   const extraPrice = Math.round(opt.priceModifier);
                   const isSingleOption = slot.options.length === 1;
                   const isLocked = max > 1 && atMax && !isSelected && !isSingleOption;
+                  const isOutOfStock = isOptionOutOfStock(opt);
+                  const isDisabled = isOutOfStock || isLocked;
 
                   return (
                     <div
                       key={opt.id}
                       onClick={() => {
-                        if (!isSingleOption && !isLocked) {
+                        if (!isSingleOption && !isDisabled) {
                           handleSelectOption(slot.id, opt);
                         }
                       }}
-                      className={`flex items-center justify-between p-3.5 border rounded-2xl transition-all cursor-pointer select-none ${
-                        isSelected 
-                          ? 'border-blue-600 bg-blue-50/20' 
+                      className={`flex items-center justify-between p-3.5 border rounded-2xl transition-all select-none ${
+                        isOutOfStock
+                          ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                          : isSelected
+                          ? 'border-blue-600 bg-blue-50/20 cursor-pointer'
                           : isLocked
                             ? 'border-gray-200 bg-gray-50 opacity-60'
-                            : 'border-gray-200 hover:border-gray-300 bg-white'
+                            : 'border-gray-200 hover:border-gray-300 bg-white cursor-pointer'
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         {/* Checkbox Icon */}
                         <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-all ${
-                          isSelected 
-                            ? 'border-blue-600 bg-blue-600 text-white' 
+                          isSelected
+                            ? 'border-blue-600 bg-blue-600 text-white'
                             : 'border-gray-300 bg-white text-transparent'
                         }`}>
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3.5} stroke="currentColor" className="w-3.5 h-3.5">
@@ -341,7 +369,9 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
                           </svg>
                         </div>
                         <span className="font-bold text-[15px] sm:text-sm text-gray-900 leading-snug">{opt.name}</span>
-                        {isSingleOption && (
+                        {isOutOfStock ? (
+                          <span className="text-[9px] text-white bg-red-500 px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider">Sin stock</span>
+                        ) : isSingleOption && (
                           <span className="text-[9px] text-gray-400 bg-gray-150 px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider">Incluido</span>
                         )}
                       </div>

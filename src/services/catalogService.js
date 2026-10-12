@@ -184,6 +184,9 @@ export const getProducts = async (organizationId, filters = {}) => {
       status,
       sort_order,
       video_url,
+      stock_quantity,
+      track_inventory,
+      low_stock_threshold,
       product_categories (
         categories (
           id,
@@ -238,6 +241,8 @@ export const getProducts = async (organizationId, filters = {}) => {
             name,
             base_price,
             status,
+            stock_quantity,
+            track_inventory,
             variant_groups(
               id,
               name,
@@ -309,6 +314,10 @@ export const getProducts = async (organizationId, filters = {}) => {
       video: product.video_url || null,
       videoUrl: product.video_url || null,
       status: product.status === 'available' ? 'Disponible' : 'No disponible',
+      statusRaw: product.status || 'available',
+      stockQuantity: product.stock_quantity ?? null,
+      trackInventory: product.track_inventory === true,
+      lowStockThreshold: product.low_stock_threshold ?? null,
       variants: variantGroup?.variant_options || [],
       ingredients: product.product_ingredients?.map(pi => {
         if (!pi.ingredients) return null;
@@ -337,6 +346,8 @@ export const getProducts = async (organizationId, filters = {}) => {
             name: optProd?.name || '',
             basePrice: optProd?.base_price || 0,
             status: optProd?.status || 'available',
+            stockQuantity: optProd?.stock_quantity ?? null,
+            trackInventory: optProd?.track_inventory === true,
             variants: optVariants,
             ingredients: optProd?.product_ingredients?.map(pi => {
               if (!pi.ingredients) return null;
@@ -443,7 +454,14 @@ export const createProduct = async (organizationId, productData) => {
         status: productData.status || 'available',
         is_featured: productData.isFeatured || false,
         video_url: productData.videoUrl || null,
-        sort_order: nextSortOrder
+        sort_order: nextSortOrder,
+        stock_quantity: productData.stockQuantity !== undefined && productData.stockQuantity !== null && productData.stockQuantity !== ''
+          ? Number(productData.stockQuantity)
+          : (productData.trackInventory ? 0 : null),
+        track_inventory: productData.trackInventory === true,
+        low_stock_threshold: productData.lowStockThreshold !== undefined && productData.lowStockThreshold !== null && productData.lowStockThreshold !== ''
+          ? Number(productData.lowStockThreshold)
+          : null,
       }
     ])
     .select()
@@ -677,6 +695,9 @@ export const getProductById = async (id) => {
     data.imageUrl = data.product_images?.[0]?.url || '';
     data.videoUrl = data.video_url || '';
     data.isFeatured = data.is_featured || false;
+    data.stockQuantity = data.stock_quantity ?? null;
+    data.trackInventory = data.track_inventory === true;
+    data.lowStockThreshold = data.low_stock_threshold ?? null;
     
     // Extraer variantes del último grupo (el más reciente)
     if (data.variant_groups && data.variant_groups.length > 0) {
@@ -741,6 +762,22 @@ export const updateProduct = async (id, productData) => {
 
   if (productData.isFeatured !== undefined) {
     updatePayload.is_featured = productData.isFeatured;
+  }
+
+  if (productData.trackInventory !== undefined) {
+    updatePayload.track_inventory = productData.trackInventory === true;
+  }
+  if (productData.stockQuantity !== undefined) {
+    updatePayload.stock_quantity =
+      productData.stockQuantity === null || productData.stockQuantity === ''
+        ? null
+        : Number(productData.stockQuantity);
+  }
+  if (productData.lowStockThreshold !== undefined) {
+    updatePayload.low_stock_threshold =
+      productData.lowStockThreshold === null || productData.lowStockThreshold === ''
+        ? null
+        : Number(productData.lowStockThreshold);
   }
 
   const { data, error } = await supabase
@@ -1099,9 +1136,25 @@ export const duplicateProduct = async (id) => {
     variants: prod.variants,
     baseIngredients: prod.baseIngredients,
     extraIngredients: prod.extraIngredients,
-    bundleSlots: prod.bundleSlots
+    bundleSlots: prod.bundleSlots,
+    stockQuantity: prod.stock_quantity ?? prod.stockQuantity ?? null,
+    trackInventory: prod.track_inventory ?? prod.trackInventory ?? false,
+    lowStockThreshold: prod.low_stock_threshold ?? prod.lowStockThreshold ?? null,
   };
   return await createProduct(prod.organization_id, newProductData);
+};
+
+export const quickUpdateProductStock = async (id, stockQuantity, trackInventory = true) => {
+  invalidateCatalogCache();
+  const payload = {
+    stock_quantity:
+      stockQuantity === null || stockQuantity === undefined || stockQuantity === ''
+        ? null
+        : Number(stockQuantity),
+  };
+  if (trackInventory !== undefined) payload.track_inventory = trackInventory === true;
+  const { error } = await supabase.from('products').update(payload).eq('id', id);
+  if (error) throw error;
 };
 
 export const bulkDeleteIngredients = async (ids) => {

@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { invalidateIngredientsCache } from './catalogService';
+import { invalidateCatalogCache, invalidateIngredientsCache } from './catalogService';
 
 export const getFirstOrganizationId = async () => {
   const { data: { user } } = await supabase.auth.getUser();
@@ -272,6 +272,39 @@ export const checkInventoryStock = async (cartItems) => {
   // Check product base ingredients
   const productIds = [...new Set(productEntries.map(e => e.productId))];
   if (productIds.length > 0) {
+    // Bloquear productos marcados no disponibles (vale también para
+    // opciones dentro de un combo: solo se bloquea esa opción).
+    const { data: statusRows } = await supabase
+      .from('products')
+      .select('id, name, status, stock_quantity, track_inventory')
+      .in('id', productIds);
+    const unavailable = (statusRows || []).filter(p => p.status && p.status !== 'available');
+    if (unavailable.length > 0) {
+      const names = unavailable.map(p => p.name || 'Producto no disponible').join(', ');
+      throw new Error(`No disponible: ${names}`);
+    }
+
+    // Stock directo por producto (número que pone el admin).
+    // Suma cantidades por producto (incluye opciones de combo) y exige
+    // que haya al menos lo pedido.
+    const neededByProduct = {};
+    for (const e of productEntries) {
+      neededByProduct[e.productId] = (neededByProduct[e.productId] || 0) + (e.quantity || 0);
+    }
+    const directShort = [];
+    for (const p of statusRows || []) {
+      if (p.track_inventory === true && p.stock_quantity !== null && p.stock_quantity !== undefined) {
+        const available = parseFloat(p.stock_quantity);
+        const needed = neededByProduct[p.id] || 0;
+        if (needed > available) {
+          directShort.push(`${p.name || 'Producto'}: necesitas ${needed}, hay ${available}`);
+        }
+      }
+    }
+    if (directShort.length > 0) {
+      throw new Error(`Stock insuficiente para:\n${directShort.join('\n')}`);
+    }
+
     const { data: productIngredients } = await supabase
       .from('product_ingredients')
       .select(`
@@ -527,12 +560,63 @@ export const deductInventoryForOrder = async (orderId, organizationId, branchId)
       console.error(`Error recording movement for ${item.name}:`, movementError);
     }
   }
+
+  // ── Descuento de stock directo por producto (número del admin) ──
+  // Incluye hijos de combos porque productQtys ya suma todos los order_items.
+  try {
+    const { data: trackedProducts } = await supabase
+      .from('products')
+      .select('id, stock_quantity, track_inventory')
+      .in('id', productIds)
+      .eq('track_inventory', true);
+    for (const tp of trackedProducts || []) {
+      if (tp.stock_quantity === null || tp.stock_quantity === undefined) continue;
+      const needed = productQtys[tp.id]?.totalQty || 0;
+      if (needed <= 0) continue;
+      const newStock = parseFloat(tp.stock_quantity) - needed;
+      const { error: prodStockError } = await supabase
+        .from('products')
+        .update({ stock_quantity: newStock })
+        .eq('id', tp.id);
+      if (prodStockError) {
+        console.error(`Error updating direct stock for ${tp.id}:`, prodStockError);
+      } else {
+        invalidateIngredientsCache();
+      }
+    }
+  } catch (directErr) {
+    console.error('Error deducting direct product stock:', directErr);
+  }
 };
 
 // ── OUT OF STOCK CHECK FOR POS ──────────────────────────────
 
 export const getOutOfStockProductIds = async (organizationId) => {
-  const { data: productIngredients, error } = await supabase
+  // 1. Productos de la org + los marcados como no disponibles.
+  //    Estos IDs sirven tanto para la tarjeta del producto como para
+  //    deshabilitar esa opción cuando aparece dentro de un combo.
+  //    Incluye stock directo (track_inventory + stock_quantity) además del
+  //    stock por ingredientes.
+  let unavailableIds = [];
+  let directOutOfStockIds = [];
+  let orgProductIds = null;
+  if (organizationId) {
+    const { data: orgProducts, error: prodError } = await supabase
+      .from('products')
+      .select('id, status, stock_quantity, track_inventory')
+      .eq('organization_id', organizationId);
+    if (!prodError && orgProducts) {
+      orgProductIds = new Set(orgProducts.map(p => p.id));
+      unavailableIds = orgProducts
+        .filter(p => p.status && p.status !== 'available')
+        .map(p => p.id);
+      directOutOfStockIds = orgProducts
+        .filter(p => p.track_inventory === true && p.stock_quantity !== null && p.stock_quantity !== undefined && parseFloat(p.stock_quantity) < 1)
+        .map(p => p.id);
+    }
+  }
+
+  let piQuery = supabase
     .from('product_ingredients')
     .select(`
       product_id,
@@ -541,10 +625,16 @@ export const getOutOfStockProductIds = async (organizationId) => {
       variant_option_id,
       ingredients!inner(id, stock_quantity, portion_quantity)
     `);
+  // Filtrar por org cuando la conocemos para no mezclar catálogos.
+  if (orgProductIds && orgProductIds.size > 0 && orgProductIds.size < 1000) {
+    piQuery = piQuery.in('product_id', [...orgProductIds]);
+  }
+
+  const { data: productIngredients, error } = await piQuery;
 
   if (error) {
     console.error('Error fetching product ingredients for stock check:', error);
-    return [];
+    return [...new Set(unavailableIds)];
   }
 
   const productConsumption = {};
@@ -552,6 +642,8 @@ export const getOutOfStockProductIds = async (organizationId) => {
     // Solo los ingredientes base determinan si el producto está sin stock.
     // Los ingredientes extra (opcionales) no deben bloquear la compra del producto.
     if (pi.is_base !== true) continue;
+    // Si filtramos por org, ignorar filas de otros catálogos por seguridad.
+    if (orgProductIds && !orgProductIds.has(pi.product_id)) continue;
 
     const pid = pi.product_id;
     if (!productConsumption[pid]) productConsumption[pid] = {};
@@ -577,7 +669,10 @@ export const getOutOfStockProductIds = async (organizationId) => {
     }
   }
 
-  return outOfStock;
+  // Unión sin duplicados: sin stock por ingredientes + stock directo + no disponibles por status.
+  // El combo en sí NO se marca como agotado por tener una opción agotada;
+  // esa opción se deshabilita individualmente en el modal de combo.
+  return [...new Set([...outOfStock, ...directOutOfStockIds, ...unavailableIds])];
 };
 
 // ── INVENTORY USAGE STATS ──────────────────────────────────
@@ -696,4 +791,45 @@ export const recordIngredientInitialStock = async (id, organizationId, quantity)
       notes: 'Stock inicial',
     }]);
   if (error) console.error('Error recording initial stock:', error);
+};
+
+// ── STOCK DIRECTO POR PRODUCTO (número del admin) ─────────────
+
+export const adjustProductStock = async (id, quantity) => {
+  invalidateCatalogCache();
+  invalidateIngredientsCache();
+  const { data: item, error: fetchError } = await supabase
+    .from('products')
+    .select('stock_quantity, track_inventory')
+    .eq('id', id)
+    .single();
+
+  if (fetchError) throw fetchError;
+
+  const current = parseFloat(item?.stock_quantity || 0);
+  const newQuantity = current + parseFloat(quantity);
+
+  const { error: updateError } = await supabase
+    .from('products')
+    .update({ stock_quantity: newQuantity, track_inventory: true })
+    .eq('id', id);
+
+  if (updateError) throw updateError;
+
+  return { new_quantity: newQuantity };
+};
+
+export const setProductStock = async (id, stockQuantity, trackInventory = true) => {
+  invalidateCatalogCache();
+  invalidateIngredientsCache();
+  const payload = {
+    stock_quantity:
+      stockQuantity === null || stockQuantity === undefined || stockQuantity === ''
+        ? null
+        : Number(stockQuantity),
+    track_inventory: trackInventory === true,
+  };
+  const { error } = await supabase.from('products').update(payload).eq('id', id);
+  if (error) throw error;
+  return payload;
 };

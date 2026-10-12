@@ -58,6 +58,9 @@ export const getPublicCatalog = async (organizationId) => {
         sort_order,
         is_featured,
         video_url,
+        stock_quantity,
+        track_inventory,
+        low_stock_threshold,
         product_categories (
           categories ( id, name )
         ),
@@ -89,6 +92,9 @@ export const getPublicCatalog = async (organizationId) => {
               id,
               name,
               base_price,
+              status,
+              stock_quantity,
+              track_inventory,
               variant_groups (
                 id, name,
                 variant_options ( id, variant_group_id, name, price_modifier, is_active )
@@ -135,6 +141,9 @@ export const getPublicCatalog = async (organizationId) => {
               productId: opt.product_id,
               variantId: opt.variant_id || null,
               name: prod?.name || '',
+              status: prod?.status || 'available',
+              stockQuantity: prod?.stock_quantity ?? null,
+              trackInventory: prod?.track_inventory === true,
               priceModifier: Number(opt.price_modifier || 0),
               isDefault: opt.is_default,
               variants: pVariantGroup?.variant_options?.filter(v => v.is_active) || [],
@@ -163,6 +172,9 @@ export const getPublicCatalog = async (organizationId) => {
       categoryId: catInfo?.id || 'none',
       image: p.product_images?.[0]?.url || null,
       video: p.video_url || null,
+      stockQuantity: p.stock_quantity ?? null,
+      trackInventory: p.track_inventory === true,
+      lowStockThreshold: p.low_stock_threshold ?? null,
       variants: variantGroup?.variant_options?.filter(v => v.is_active) || [],
       ingredients: (p.product_ingredients || []).map(pi => {
         if (!pi.ingredients || !pi.ingredients.is_active) return null;

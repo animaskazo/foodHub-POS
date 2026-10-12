@@ -286,6 +286,21 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
         return;
       }
 
+      // Si la opción automática está sin stock, abrir el detalle para
+      // mostrarla como "Sin stock" en vez de agregarla directo.
+      const isOptOut = (opt) =>
+        (outOfStockIds || []).includes(opt?.productId) || opt?.status === 'unavailable';
+      const hasOutDefault = (p.bundleSlots || []).some(slot =>
+        defaultSelectionsForSlot(slot).some(sel => {
+          const optObj = slot.options?.find(o => o.id === sel.optionId);
+          return optObj && isOptOut(optObj);
+        })
+      );
+      if (hasOutDefault) {
+        handleProductTap(p);
+        return;
+      }
+
       const defaultOptionsList = p.bundleSlots?.flatMap(slot =>
         defaultSelectionsForSlot(slot).map(sel => ({
           slotId: slot.id,
@@ -569,6 +584,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
           isOutOfStock={outOfStockIds.includes(selectedProduct.id)}
           orderingBlocked={orderingBlocked}
           logoUrl={org?.logo_url}
+          outOfStockIds={outOfStockIds}
           onAdd={(productToAdd) => {
             onAddItem({
               ...productToAdd,

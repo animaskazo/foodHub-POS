@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  X, Image as ImageIcon, Store, Globe, MessageCircle, Plus, Search, ChevronDown, Trash2, Loader2, Sparkles, Check, ShieldAlert, ArrowLeft
+  X, Image as ImageIcon, Store, Globe, MessageCircle, Plus, Minus, Search, ChevronDown, Trash2, Loader2, Sparkles, Check, ShieldAlert, ArrowLeft
 } from 'lucide-react';
 
 const SectionRow = ({ title, description, badge, children }) => (
@@ -80,6 +80,8 @@ const CreateProductView = () => {
   const [bundleSlots, setBundleSlots] = useState([]);
   const [bundleMinTotal, setBundleMinTotal] = useState('');
   const [bundleMaxTotal, setBundleMaxTotal] = useState('');
+  const [trackStock, setTrackStock] = useState(false);
+  const [stockQuantity, setStockQuantity] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
@@ -159,6 +161,10 @@ const CreateProductView = () => {
             status: (product.status === 'Disponible' || product.status === 'available') ? 'available' : 'unavailable',
             isFeatured: product.isFeatured || false,
           }));
+          const hasDirectStock = (product.track_inventory ?? product.trackInventory) === true;
+          setTrackStock(hasDirectStock);
+          const sq = product.stock_quantity ?? product.stockQuantity;
+          setStockQuantity(sq !== null && sq !== undefined ? String(sq) : '');
 
           if (product.variants && product.variants.length > 0) {
             const mappedVariants = product.variants.map(v => {
@@ -386,7 +392,9 @@ const CreateProductView = () => {
         baseIngredients: baseIngredients,
         extraIngredients: extraIngredients,
         bundleSlots: finalBundleSlots,
-        status: formData.status === 'available' ? 'available' : 'unavailable'
+        status: formData.status === 'available' ? 'available' : 'unavailable',
+        trackInventory: trackStock === true,
+        stockQuantity: trackStock ? (stockQuantity === '' ? 0 : Number(stockQuantity)) : null,
       };
 
       if (isEditing) {
@@ -1384,19 +1392,70 @@ const CreateProductView = () => {
                 </label>
               </div>
 
+              {/* Stock directo */}
+              <div className="bg-white rounded-xl border border-gray-100 p-5">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-[15px] text-gray-900">Stock del producto</p>
+                    <p className="text-sm text-gray-500 leading-relaxed mt-0.5">Se descuenta solo al vender. En 0 bloquea la tarjeta y esa opción dentro de combos.</p>
+                  </div>
+                  <Switch
+                    checked={trackStock}
+                    onCheckedChange={(checked) => { setTrackStock(checked); setHasChanges(true); }}
+                    aria-label="Controlar stock del producto"
+                  />
+                </div>
+                {trackStock && (
+                  <div className="mt-4 rounded-xl bg-gray-50/80 border border-gray-200/70 p-3.5">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Cantidad disponible</label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setStockQuantity(String(Math.max(0, (parseInt(stockQuantity || '0', 10) || 0) - 1))); setHasChanges(true); }}
+                        className="h-10 w-10 shrink-0 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
+                        aria-label="Quitar una unidad"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="1"
+                        inputMode="numeric"
+                        placeholder="0"
+                        value={stockQuantity}
+                        onChange={(e) => { setStockQuantity(e.target.value); setHasChanges(true); }}
+                        className="bg-white text-center font-bold text-lg tabular-nums h-11"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { setStockQuantity(String((parseInt(stockQuantity || '0', 10) || 0) + 1)); setHasChanges(true); }}
+                        className="h-10 w-10 shrink-0 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
+                        aria-label="Agregar una unidad"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="mt-2.5 flex items-center justify-between gap-2">
+                      <p className="text-xs text-gray-400">Vacío se guarda como 0.</p>
+                      <button
+                        type="button"
+                        onClick={() => { setStockQuantity('0'); setHasChanges(true); }}
+                        className="text-xs font-bold text-red-600 hover:text-red-700 hover:underline shrink-0"
+                      >
+                        Marcar sin stock
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Producto destacado */}
               <div className="bg-white rounded-xl border border-gray-100 p-5">
                 <label className="flex items-center justify-between cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full bg-yellow-400 flex items-center justify-center shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white">
-                        <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-[15px] text-gray-900">Producto destacado</p>
-                      <p className="text-sm text-gray-500 leading-relaxed">Mostrar con icono especial en la tienda</p>
-                    </div>
+                  <div>
+                    <p className="font-semibold text-[15px] text-gray-900">Producto destacado</p>
+                    <p className="text-sm text-gray-500 leading-relaxed">Mostrar con icono especial en la tienda</p>
                   </div>
                   <Switch
                     checked={formData.isFeatured}
