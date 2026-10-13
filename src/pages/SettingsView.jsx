@@ -10,7 +10,8 @@ import {
 import { uploadImage } from '../services/storageService';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
-import { Store, User, Clock, CalendarClock, Check, Loader2, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2, Timer, CreditCard, Image as ImageIcon, Sparkles, Globe, QrCode, Apple, KeyRound } from 'lucide-react';
+import { Store, User, Clock, CalendarClock, Check, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2, Timer, CreditCard, Image as ImageIcon, Sparkles, Globe, QrCode, Apple, KeyRound } from 'lucide-react';
+import { FullScreenSpinner, ButtonSpinner, InlineSpinner } from '@/components/ui/Spinner';
 import PageHeader from '../components/ui/PageHeader';
 import Modal from '../components/ui/Modal';
 import { Button } from '@/components/ui/button';
@@ -552,7 +553,7 @@ const SettingsView = () => {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <FullScreenSpinner size="lg" />
       </div>
     );
   }
@@ -643,7 +644,7 @@ const SettingsView = () => {
                         {!formData.logo_url && <span className="text-3xl">🏬</span>}
                         {isUploadingLogo && (
                           <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-                            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                            <InlineSpinner size="md" />
                           </div>
                         )}
                       </div>
@@ -673,7 +674,7 @@ const SettingsView = () => {
                         ) : null}
                         {isUploadingCover && (
                           <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-                            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                            <InlineSpinner size="md" />
                           </div>
                         )}
                       </div>
@@ -967,7 +968,7 @@ const SettingsView = () => {
                     disabled={saving}
                     className="w-full sm:w-auto shrink-0"
                   >
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {saving ? <ButtonSpinner size="sm" /> : <Save className="h-4 w-4" />}
                     Guardar Cambios
                   </Button>
                 </div>
@@ -1015,7 +1016,7 @@ const SettingsView = () => {
                       disabled={saving}
                       variant={forceClosed ? 'destructive' : 'default'}
                     >
-                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      {saving ? <ButtonSpinner size="sm" /> : <Save className="h-4 w-4" />}
                       {forceClosed ? 'Cerrar Tienda' : 'Guardar'}
                     </Button>
                   </div>
@@ -1064,7 +1065,7 @@ const SettingsView = () => {
                         onClick={handleSaveHours}
                         disabled={saving}
                       >
-                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        {saving ? <ButtonSpinner size="sm" /> : <Save className="h-4 w-4" />}
                         Guardar Horarios
                       </Button>
                     </div>
@@ -1158,7 +1159,7 @@ const SettingsView = () => {
                         onClick={handleSavePickupHours}
                         disabled={saving}
                       >
-                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        {saving ? <ButtonSpinner size="sm" /> : <Save className="h-4 w-4" />}
                         Guardar Horarios de Retiro
                       </Button>
                     </div>
@@ -1396,7 +1397,7 @@ const SettingsView = () => {
                         disabled={ticketExtraSaving}
                         className="w-full sm:w-auto"
                       >
-                        {ticketExtraSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        {ticketExtraSaving ? <ButtonSpinner size="sm" /> : <Save className="h-4 w-4" />}
                         Guardar mensaje
                       </Button>
                       <span className="text-xs text-gray-400">{ticketExtraMessage.length}/500</span>
@@ -1523,7 +1524,7 @@ const SettingsView = () => {
                           disabled={!klapApiKey.trim() || klapApiKeyValidating}
                         >
                           {klapApiKeyValidating ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <ButtonSpinner size="sm" />
                           ) : (
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                           )}
@@ -1549,7 +1550,7 @@ const SettingsView = () => {
                         onClick={handleSaveKlapKey}
                         disabled={klapApiKeySaving}
                       >
-                        {klapApiKeySaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        {klapApiKeySaving ? <ButtonSpinner size="sm" /> : <Save className="h-4 w-4" />}
                         Guardar API Key
                       </Button>
                       {klapApiKey && (

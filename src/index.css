@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100;200;300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @plugin "tailwindcss-animate";
@@ -20,7 +21,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-size-base: 14px;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -111,12 +113,17 @@
   html, body {
     background-color: var(--background);
     color: var(--foreground);
-    overscroll-behavior-y: none; /* Disable pull-to-refresh on mobile */
+    overscroll-behavior-y: none;
   }
 
   button,
   [role="button"] {
     cursor: pointer !important;
+  }
+
+  p {
+    font-size: 12px;
+    line-height: 1.5;
   }
 }
 

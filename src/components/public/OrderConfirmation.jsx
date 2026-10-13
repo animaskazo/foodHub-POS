@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, Clock, MapPin, ChevronRight, Loader2, ExternalLink, CalendarClock } from 'lucide-react';
+import { CheckCircle2, Clock, MapPin, ChevronRight, ExternalLink, CalendarClock } from 'lucide-react';
+import { FullScreenSpinner } from '@/components/ui/Spinner';
 import { getPublicOrderById } from '../../services/publicOrderService';
 
 const fmt = (n) => n ? n.toLocaleString('es-CL') : '0';
@@ -34,7 +35,7 @@ const OrderConfirmation = ({ order, org }) => {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <FullScreenSpinner size="lg" />
       </div>
     );
   }

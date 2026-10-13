@@ -10,7 +10,6 @@ import {
   TrendingUp,
   ShoppingCart,
   Receipt,
-  Loader2,
   Store,
   ShoppingBag as PaperBag,
   Globe,
@@ -21,6 +20,7 @@ import {
   ChevronUp,
   Info
 } from 'lucide-react';
+import { InlineSpinner } from '@/components/ui/Spinner';
 import PageHeader from '../components/ui/PageHeader';
 import { Button } from '@/components/ui/button';
 import PrepTimeSelector from '../components/ui/PrepTimeSelector';
@@ -622,7 +622,7 @@ const DashboardView = () => {
                   </Tooltip>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
-                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : formatCurrency(metrics.totalRevenue)}
+                  {loading ? <InlineSpinner size="md" /> : formatCurrency(metrics.totalRevenue)}
                 </div>
               </div>
               <div className="pl-4">
@@ -641,7 +641,7 @@ const DashboardView = () => {
                   </Tooltip>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
-                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : metrics.totalOrders}
+                  {loading ? <InlineSpinner size="md" /> : metrics.totalOrders}
                 </div>
               </div>
               <div className="pl-4">
@@ -660,7 +660,7 @@ const DashboardView = () => {
                   </Tooltip>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
-                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : formatCurrency(metrics.averageTicket)}
+                  {loading ? <InlineSpinner size="md" /> : formatCurrency(metrics.averageTicket)}
                 </div>
               </div>
               <div className="pl-4">
@@ -679,7 +679,7 @@ const DashboardView = () => {
                   </Tooltip>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
-                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : totalVisits}
+                  {loading ? <InlineSpinner size="md" /> : totalVisits}
                 </div>
               </div>
               <div className="pl-4">
@@ -700,7 +700,7 @@ const DashboardView = () => {
                   </Tooltip>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
-                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : formatCurrency(metrics.totalRevenue)}
+                  {loading ? <InlineSpinner size="md" /> : formatCurrency(metrics.totalRevenue)}
                 </div>
               </div>
               <div className="pl-4">
@@ -718,7 +718,7 @@ const DashboardView = () => {
                   </Tooltip>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
-                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : metrics.totalOrders}
+                  {loading ? <InlineSpinner size="md" /> : metrics.totalOrders}
                 </div>
               </div>
               <div className="pl-4">
@@ -736,7 +736,7 @@ const DashboardView = () => {
                   </Tooltip>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
-                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : formatCurrency(metrics.averageTicket)}
+                  {loading ? <InlineSpinner size="md" /> : formatCurrency(metrics.averageTicket)}
                 </div>
               </div>
               <div className="pl-4">
@@ -754,7 +754,7 @@ const DashboardView = () => {
                   </Tooltip>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
-                  {loading ? <Loader2 className="h-6 w-6 animate-spin text-gray-300" /> : totalVisits}
+                  {loading ? <InlineSpinner size="md" /> : totalVisits}
                 </div>
               </div>
               <div className="pl-4">

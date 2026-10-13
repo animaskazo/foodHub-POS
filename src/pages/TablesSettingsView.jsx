@@ -7,7 +7,8 @@ import {
   getTableZones, createTableZone, updateTableZone, deleteTableZone, 
   getRestaurantTables, createRestaurantTable, updateRestaurantTable, deleteRestaurantTable, updateTablesBatch 
 } from '../services/tableService';
-import { Loader2, Plus, Trash2, Edit2, Save, X, Users } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, Users } from 'lucide-react';
+import { FullScreenSpinner } from '@/components/ui/Spinner';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import Modal from '../components/ui/Modal';
@@ -218,7 +219,7 @@ const TablesSettingsView = () => {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <FullScreenSpinner size="lg" />
       </div>
     );
   }

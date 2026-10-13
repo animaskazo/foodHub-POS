@@ -3,7 +3,8 @@ import { getFirstOrganizationId } from '../../services/organizationService';
 import { supabase } from '../../lib/supabase';
 import { getTableZones, getRestaurantTables, onTablesChanged, notifyTablesChanged } from '../../services/tableService';
 import { getOpenOrders, sumOpenOrdersTotal } from '../../services/orderService';
-import { Loader2, Users, Menu } from 'lucide-react';
+import { Users, Menu } from 'lucide-react';
+import { FullScreenSpinner } from '@/components/ui/Spinner';
 import { Button } from '@/components/ui/button';
 
 const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
@@ -134,7 +135,7 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <FullScreenSpinner size="lg" />
       </div>
     );
   }

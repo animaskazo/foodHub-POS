@@ -11,8 +11,7 @@ import {
   DollarSign, 
   Calendar, 
   Clock, 
-  FileText, 
-  Loader2,
+  FileText,
   ChevronRight,
   Store,
   Globe,
@@ -21,6 +20,7 @@ import {
   Pencil,
   Trash2
 } from 'lucide-react';
+import { FullScreenSpinner } from '@/components/ui/Spinner';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -370,7 +370,7 @@ const CustomersView = () => {
           {/* Loading state */}
           {loading ? (
             <div className="py-24 text-center text-gray-500 flex flex-col items-center justify-center gap-2">
-              <Loader2 className="h-8 w-8 animate-spin text-black" />
+              <FullScreenSpinner size="lg" />
               <p className="font-semibold text-sm">Cargando listado de clientes...</p>
             </div>
           ) : sortedCustomers.length > 0 ? (

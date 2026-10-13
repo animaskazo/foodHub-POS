@@ -161,7 +161,7 @@ const Layout = () => {
                 to="/"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                   }`
                 }
               >
@@ -175,8 +175,8 @@ const Layout = () => {
                 <NavLink
                   to="/superadmin"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                     }`
                   }
                 >
@@ -191,7 +191,7 @@ const Layout = () => {
                 onClick={() => setIsProductsOpen(!isProductsOpen)}
                 className="w-full flex items-center justify-between px-3 py-2.5 text-gray-600 hover:bg-gray-50 hover:text-black rounded-lg transition-colors"
               >
-                <div className="flex items-center gap-3 text-[15px] font-semibold">
+                <div className="flex items-center gap-3 text-[13px] font-medium">
                   <Package className="h-[18px] w-[18px]" />
                   Catálogo
                 </div>
@@ -205,7 +205,7 @@ const Layout = () => {
                       to="/categories"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                         }`
                       }
                     >
@@ -218,7 +218,7 @@ const Layout = () => {
                       to="/ingredients"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                         }`
                       }
                     >
@@ -231,7 +231,7 @@ const Layout = () => {
                       to="/products"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                         }`
                       }
                     >
@@ -248,7 +248,7 @@ const Layout = () => {
                 to="/inventory"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                   }`
                 }
               >
@@ -262,7 +262,7 @@ const Layout = () => {
                 to="/customers"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                   }`
                 }
               >
@@ -276,7 +276,7 @@ const Layout = () => {
                 to="/expenses"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                   }`
                 }
               >
@@ -290,7 +290,7 @@ const Layout = () => {
                 to="/reports"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                   }`
                 }
               >
@@ -305,7 +305,7 @@ const Layout = () => {
                   to="/conversations"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-green-50 text-green-800' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${isActive ? 'bg-green-50 text-green-800' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                     }`
                   }
                 >
@@ -320,7 +320,7 @@ const Layout = () => {
                 to="/delivery"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'
                   }`
                 }
               >
@@ -332,7 +332,7 @@ const Layout = () => {
             <li className="pt-2">
               <button
                 onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[15px] font-semibold text-gray-600 hover:bg-gray-50 hover:text-black transition-colors"
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-medium text-gray-600 hover:bg-gray-50 hover:text-black transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <Settings className="h-[18px] w-[18px]" />
@@ -351,7 +351,7 @@ const Layout = () => {
                         const isCurrentTab = window.location.search === '?tab=general' || window.location.search === '';
                         const isSettingsPath = window.location.pathname === '/settings';
                         const isMatch = isSettingsPath && isCurrentTab;
-                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                           }`;
                       }}
                     >
@@ -365,7 +365,7 @@ const Layout = () => {
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) => {
                         const isMatch = window.location.pathname === '/settings' && window.location.search === '?tab=hours';
-                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                           }`;
                       }}
                     >
@@ -379,7 +379,7 @@ const Layout = () => {
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) => {
                         const isMatch = window.location.pathname === '/settings' && window.location.search === '?tab=staff';
-                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                           }`;
                       }}
                     >
@@ -393,7 +393,7 @@ const Layout = () => {
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) => {
                         const isMatch = window.location.pathname === '/settings' && window.location.search === '?tab=printers';
-                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                           }`;
                       }}
                     >
@@ -407,7 +407,7 @@ const Layout = () => {
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) => {
                         const isMatch = window.location.pathname === '/settings' && window.location.search === '?tab=payments';
-                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                           }`;
                       }}
                     >
@@ -421,7 +421,7 @@ const Layout = () => {
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) => {
                         const isMatch = window.location.pathname === '/settings' && window.location.search === '?tab=coupons';
-                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        return `flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                           }`;
                       }}
                     >
@@ -434,7 +434,7 @@ const Layout = () => {
                       to="/shifts-settings"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                        `flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                         }`
                       }
                     >
@@ -448,7 +448,7 @@ const Layout = () => {
                         to="/tables"
                         onClick={() => setIsMobileMenuOpen(false)}
                         className={({ isActive }) =>
-                          `flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] font-semibold transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
+                          `flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'
                           }`
                         }
                       >
@@ -469,7 +469,7 @@ const Layout = () => {
           <div className="flex flex-col gap-2 mb-1">
             <NavLink
               to="/pos"
-              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-bold transition-all border ${isActive ? 'bg-gray-900 text-white border-gray-900 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
+              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[13px] font-bold transition-all border ${isActive ? 'bg-gray-900 text-white border-gray-900 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
                 }`}
             >
               <MonitorPlay className="h-[18px] w-[18px]" />
@@ -477,7 +477,7 @@ const Layout = () => {
             </NavLink>
             <NavLink
               to="/kitchen"
-              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-bold transition-all border ${isActive ? 'bg-gray-900 text-white border-gray-900 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
+              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[13px] font-bold transition-all border ${isActive ? 'bg-gray-900 text-white border-gray-900 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
                 }`}
             >
               <ChefHat className="h-[18px] w-[18px]" />
@@ -486,7 +486,7 @@ const Layout = () => {
           </div>
           <NavLink
             to="/update-password"
-            className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-semibold transition-colors ${isActive ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+            className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[13px] font-medium transition-colors ${isActive ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'
               }`}
           >
             <KeyRound className="h-[18px] w-[18px]" />
@@ -494,7 +494,7 @@ const Layout = () => {
           </NavLink>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[15px] font-semibold text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors mt-2"
+            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[13px] font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors mt-2"
           >
             <LogOut className="h-[18px] w-[18px]" />
             Cerrar Sesión

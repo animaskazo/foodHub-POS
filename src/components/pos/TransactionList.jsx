@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, Check, CheckCircle2, Loader2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock, Ban, Trash2, CheckSquare, Square, XCircle, Truck, AlertTriangle } from 'lucide-react';
+import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, Check, CheckCircle2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock, Ban, Trash2, CheckSquare, Square, XCircle, Truck, AlertTriangle } from 'lucide-react';
+import { Spinner, FullScreenSpinner, ButtonSpinner } from '@/components/ui/Spinner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Tooltip from '../ui/tooltip';
@@ -226,7 +227,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
             {loading ? (
               <tr>
                 <td colSpan={canCancel ? 9 : 8} className="px-6 py-12 text-center text-gray-500">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                  <FullScreenSpinner size="md" />
                   Cargando ventas...
                 </td>
               </tr>
@@ -309,9 +310,9 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                                   disabled={markingReadyId === order.id}
                                   className="inline-flex items-center justify-center size-7 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition-colors disabled:opacity-50 disabled:cursor-wait shrink-0"
                                 >
-                                  {markingReadyId === order.id ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                  ) : (
+{markingReadyId === order.id ? (
+                                     <ButtonSpinner size="xs" />
+                                   ) : (
                                     <Check className="h-4 w-4" strokeWidth={3} />
                                   )}
                                 </button>
@@ -409,7 +410,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
       <div className="md:hidden flex flex-col gap-4 mt-4 w-full">
         {loading ? (
           <div className="py-12 text-center text-gray-500">
-            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+            <FullScreenSpinner size="md" />
             Cargando ventas...
           </div>
         ) : orders.length > 0 ? (
@@ -498,9 +499,9 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                                 disabled={markingReadyId === order.id}
                                 className="inline-flex items-center justify-center size-7 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:border-emerald-300 transition-colors disabled:opacity-50 disabled:cursor-wait shrink-0"
                               >
-                                {markingReadyId === order.id ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
+{markingReadyId === order.id ? (
+                                   <ButtonSpinner size="xs" />
+                                 ) : (
                                   <Check className="h-4 w-4" strokeWidth={3} />
                                 )}
                               </button>
@@ -678,7 +679,7 @@ const pythonPrinter = localStorage.getItem('python_default_printer');
               className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
             >
               {isCancelling ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <ButtonSpinner size="sm" />
               ) : (
                 'Cancelar'
               )}
@@ -712,7 +713,7 @@ const pythonPrinter = localStorage.getItem('python_default_printer');
               className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
             >
               {isDeleting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <ButtonSpinner size="sm" />
               ) : (
                 'Eliminar Pedido'
               )}
@@ -746,7 +747,7 @@ const pythonPrinter = localStorage.getItem('python_default_printer');
               className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
             >
               {isCancelling ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <ButtonSpinner size="sm" />
               ) : (
                 'Cancelar'
               )}
@@ -780,7 +781,7 @@ const pythonPrinter = localStorage.getItem('python_default_printer');
               className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
             >
               {isDeleting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <ButtonSpinner size="sm" />
               ) : (
                 'Eliminar Definitivamente'
               )}

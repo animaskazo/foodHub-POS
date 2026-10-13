@@ -6,7 +6,8 @@ import {
   updateOrganizationDetails
 } from '../services/organizationService';
 import { getAccessToken, createQuote, createDelivery, getDelivery, cancelDelivery, checkMode, TEST_LOCATIONS } from '../services/uberDirectService';
-import { Loader2, Save, Truck, Globe, CheckCircle2, XCircle, ExternalLink, Trash2, Plus, MousePointer2 } from 'lucide-react';
+import { Save, Truck, Globe, CheckCircle2, XCircle, ExternalLink, Trash2, Plus, MousePointer2 } from 'lucide-react';
+import { FullScreenSpinner, ButtonSpinner } from '@/components/ui/Spinner';
 import PageHeader from '../components/ui/PageHeader';
 import DeliveryMap from '../components/admin/DeliveryMap';
 import Modal from '../components/ui/Modal';
@@ -352,7 +353,7 @@ const DeliverySettingsView = () => {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+        <FullScreenSpinner size="lg" />
       </div>
     );
   }
@@ -376,7 +377,7 @@ const DeliverySettingsView = () => {
               onClick={handleSaveDelivery}
               disabled={saving || !hasChanges}
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {saving ? <ButtonSpinner size="sm" /> : <Save className="h-4 w-4" />}
               Guardar cambios
             </Button>
           </div>
@@ -919,7 +920,7 @@ const DeliverySettingsView = () => {
                       onClick={handleTestConnection}
                       disabled={testing || !deliveryData.uber_client_id || !deliveryData.uber_client_secret || !deliveryData.uber_customer_id}
                     >
-                      {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+                      {testing ? <ButtonSpinner size="sm" /> : <Globe className="h-4 w-4" />}
                       {testing ? 'Probando...' : 'Probar Conexión'}
                     </Button>
 
@@ -949,7 +950,7 @@ const DeliverySettingsView = () => {
                           onClick={handleCheckMode}
                           disabled={modeChecking}
                         >
-                          {modeChecking ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                          {modeChecking ? <ButtonSpinner size="sm" /> : null}
                           {modeChecking ? 'Verificando...' : 'Verificar modo (Sandbox / Producción)'}
                         </Button>
                         <span className="text-xs text-gray-500">
@@ -1012,7 +1013,7 @@ const DeliverySettingsView = () => {
                         onClick={handleCreateTestDelivery}
                         disabled={creatingDelivery}
                       >
-                        {creatingDelivery ? <Loader2 className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
+                        {creatingDelivery ? <ButtonSpinner size="sm" /> : <Truck className="h-4 w-4" />}
                         {creatingDelivery ? 'Creando...' : 'Crear Delivery de Prueba'}
                       </Button>
 
@@ -1080,7 +1081,7 @@ const DeliverySettingsView = () => {
                               onClick={handleCheckStatus}
                               disabled={checkingStatus}
                             >
-                              {checkingStatus ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                              {checkingStatus ? <ButtonSpinner size="sm" /> : null}
                               Ver Estado
                             </Button>
                             <Button
@@ -1089,7 +1090,7 @@ const DeliverySettingsView = () => {
                               onClick={handleCancelDelivery}
                               disabled={cancelling || deliveryResult.delivery.status === 'canceled'}
                             >
-                              {cancelling ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                              {cancelling ? <ButtonSpinner size="sm" /> : null}
                               Cancelar Delivery
                             </Button>
                           </div>
