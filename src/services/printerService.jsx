@@ -595,3 +595,55 @@ export const printReceiptAsPDF = async (order, organization) => {
     throw error;
   }
 };
+
+const buildShiftReportNode = async (shift, salesData, reportedBalance, organization, closedBy, closedAt) => {
+  const { default: PrintableShiftReport } = await import('../components/pos/PrintableShiftReport');
+  const holder = await mountNode(
+    PrintableShiftReport,
+    { shift, salesData, reportedBalance, organization, closedBy, closedAt },
+    'print-shift-report-container'
+  );
+  await new Promise((r) => setTimeout(r, 30));
+  await waitForImages(holder);
+  return holder;
+};
+
+export const printShiftReport = async ({ shift, salesData, reportedBalance, organization, closedBy, closedAt, printerName }) => {
+  const printers = await getPrinters();
+  const targetPrinter = printerName || printers.find(p => !p.name.includes('Simulador'))?.name || printers.find(p => p.name.includes('Simulador'))?.name;
+  
+  if (!targetPrinter) {
+    throw new Error('No hay impresoras configuradas. Ve a Ajustes > Impresoras y agrega una.');
+  }
+
+  const isSimulator = targetPrinter.includes('Simulador');
+
+  try {
+    const built = await buildShiftReportNode(shift, salesData, reportedBalance, organization, closedBy, closedAt);
+    try {
+      const canvas = await rasterizeNode(built);
+      const image = canvas.toDataURL('image/png');
+      
+      if (isSimulator) {
+        const { default: jsPDF } = await import('jspdf');
+        const imgW = 76;
+        const imgH = (canvas.height / canvas.width) * imgW;
+        const pdf = new jsPDF({ unit: 'mm', format: [80, imgH + 10], compress: true });
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 2, 5, imgW, imgH);
+        const safeId = `Z-Report-${shift?.id?.slice(0, 8) || Date.now()}`;
+        pdf.save(`FoodHub-ZReport-${safeId}.pdf`);
+        console.log('Reporte Z simulado guardado como PDF');
+        return true;
+      }
+
+      const result = await sendToPythonPrinter(targetPrinter, null, organization, image);
+      console.log('Reporte Z impreso en', targetPrinter, '| modo:', result?.mode);
+      return true;
+    } finally {
+      unmountBuilt(built);
+    }
+  } catch (error) {
+    console.error('Error al imprimir reporte Z:', error);
+    throw error;
+  }
+};

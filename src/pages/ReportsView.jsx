@@ -6,6 +6,7 @@ import PageHeader from '../components/ui/PageHeader'
 import { resolveCategoryIcon } from '../utils/expenseCategoryIcons'
 import SalesAreaChart from '../components/charts/SalesAreaChart'
 import ReportsChatDrawer from '../components/reports/ReportsChatDrawer'
+import TurnosSection from '../components/reports/TurnosSection'
 import { getMonthExpenses, getAnnualExpenses, summarizeExpenses } from '../services/expenseService'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Loader2, FileDown, FileText, FileSpreadsheet, Store, Globe, MessageCircle, Van, TrendingUp, TrendingDown, Minus, Trophy, Sparkles, Send, Banknote, CreditCard, ArrowLeftRight, Truck } from 'lucide-react'
@@ -175,8 +176,8 @@ const ReportsView = () => {
     })()
   }, [organization?.id, authLoading, annualYear, selected])
 
-  const prev = () => { setSelected('resumen'); if (cm === 0) { setCm(11); setCy(y => y - 1) } else setCm(m => m - 1) }
-  const next = () => { setSelected('resumen'); if (cm === 11) { setCm(0); setCy(y => y + 1) } else setCm(m => m + 1) }
+  const prev = () => { if (selected !== 'turnos') setSelected('resumen'); if (cm === 0) { setCm(11); setCy(y => y - 1) } else setCm(m => m - 1) }
+  const next = () => { if (selected !== 'turnos') setSelected('resumen'); if (cm === 11) { setCm(0); setCy(y => y + 1) } else setCm(m => m + 1) }
 
   const days = useMemo(() => {
     const r = []
@@ -592,12 +593,13 @@ const ReportsView = () => {
         {/* ── Header ── */}
         <PageHeader
           title="Reportes"
-          subtitle={selected === 'anual' ? `Ventas mes a mes de ${annualYear}` : `Resumen de ventas de ${MONTHS[cm]} ${cy}`}
+          subtitle={selected === 'anual' ? `Ventas mes a mes de ${annualYear}` : selected === 'turnos' ? `Historial de turnos de caja de ${MONTHS[cm]} ${cy}` : `Resumen de ventas de ${MONTHS[cm]} ${cy}`}
           actions={
             <div className="flex flex-wrap items-center gap-2 justify-end" ref={dropdownRef}>
               <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-200/80 p-1">
-                <button onClick={() => setSelected('resumen')} className={`px-3.5 py-1.5 text-sm font-semibold rounded-lg transition-colors ${selected !== 'anual' ? 'bg-black text-white' : 'text-gray-500 hover:text-gray-900'}`}>Mes</button>
+                <button onClick={() => setSelected('resumen')} className={`px-3.5 py-1.5 text-sm font-semibold rounded-lg transition-colors ${selected === 'resumen' ? 'bg-black text-white' : 'text-gray-500 hover:text-gray-900'}`}>Mes</button>
                 <button onClick={() => setSelected('anual')} className={`px-3.5 py-1.5 text-sm font-semibold rounded-lg transition-colors ${selected === 'anual' ? 'bg-black text-white' : 'text-gray-500 hover:text-gray-900'}`}>Año</button>
+                <button onClick={() => setSelected('turnos')} className={`px-3.5 py-1.5 text-sm font-semibold rounded-lg transition-colors ${selected === 'turnos' ? 'bg-black text-white' : 'text-gray-500 hover:text-gray-900'}`}>Turnos</button>
               </div>
 
               {selected === 'anual' ? (
@@ -737,6 +739,8 @@ const ReportsView = () => {
                     </div>
                   </div>
                 </div>
+              ) : selected === 'turnos' ? (
+                <TurnosSection shifts={shifts} orders={orders} cm={cm} cy={cy} />
               ) : days.length === 0 ? (
                 <div className="text-center py-32"><p className="text-gray-400 font-medium">No hay ventas en este período.</p></div>
               ) : selected === 'resumen' ? (

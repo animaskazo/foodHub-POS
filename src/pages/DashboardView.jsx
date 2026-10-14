@@ -264,6 +264,14 @@ const DashboardView = () => {
       
       if (settings?.shifts_enabled) {
         const shift = await getCurrentShift(organization.id);
+        if (shift?.opened_by) {
+          const { data: staffData } = await supabase
+            .from('staff')
+            .select('name')
+            .eq('id', shift.opened_by)
+            .single();
+          shift.opened_by_name = staffData?.name || 'Usuario';
+        }
         setCurrentShift(shift);
       }
     } catch (err) {
@@ -838,6 +846,8 @@ const DashboardView = () => {
         }}
         shiftId={currentShift?.id}
         totalSales={metrics.totalRevenue}
+        currentShift={currentShift}
+        organization={organization}
       />
     </div>
   );
