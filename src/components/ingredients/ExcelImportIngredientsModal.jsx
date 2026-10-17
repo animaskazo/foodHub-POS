@@ -294,7 +294,6 @@ const ExcelImportIngredientsModal = ({ isOpen, onClose, onSuccess }) => {
               type="button"
               onClick={handleConfirmImport}
               disabled={isImporting || validCount === 0}
-              className="bg-orange-600 hover:bg-orange-700 text-white font-semibold"
             >
               {isImporting ? (
                 <>

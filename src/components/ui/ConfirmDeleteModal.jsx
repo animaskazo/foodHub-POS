@@ -21,7 +21,7 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, description, is
           <div className="flex gap-3 justify-center">
             <Button 
               variant="outline" 
-              className="flex-1 rounded-xl"
+              className="flex-1"
               onClick={onClose}
               disabled={isDeleting}
             >
@@ -29,7 +29,7 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, description, is
             </Button>
             <Button 
               variant="destructive" 
-              className="flex-1 rounded-xl bg-red-600 text-white hover:bg-red-700"
+              className="flex-1"
               onClick={onConfirm}
               disabled={isDeleting}
             >

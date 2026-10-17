@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import {
   LayoutDashboard,
@@ -38,13 +38,16 @@ import FeedbackBubble from './FeedbackBubble';
 import StockNotifications from './StockNotifications';
 import PrepTimeSelector from './ui/PrepTimeSelector';
 import NewOrderAlert from './ui/NewOrderAlert';
+import ConfirmModal from './ui/ConfirmModal';
 
 const Layout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isDashboard = location.pathname === '/';
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProductsOpen, setIsProductsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
   const { isSuperAdmin, role, organization } = useAuth();
   const [inboxEnabled, setInboxEnabled] = useState(false);
   const [todayVisits, setTodayVisits] = useState(0);
@@ -103,6 +106,13 @@ const Layout = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+  };
+
+  const runConfirmAction = async () => {
+    const action = confirmAction;
+    setConfirmAction(null);
+    if (action === 'pin') navigate('/update-password');
+    else if (action === 'logout') await handleLogout();
   };
 
   // Cerrar el menú móvil al cambiar de ruta (incluye atrás/adelante)
@@ -484,16 +494,15 @@ className={({ isActive }) =>
               Cocina
             </NavLink>
           </div>
-          <NavLink
-            to="/update-password"
-            className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[13px] font-medium transition-colors ${isActive ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
+          <button
+            onClick={() => setConfirmAction('pin')}
+            className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[13px] font-medium text-gray-600 hover:bg-gray-100 transition-colors"
           >
             <KeyRound className="h-[18px] w-[18px]" />
             Cambiar mi PIN
-          </NavLink>
+          </button>
           <button
-            onClick={handleLogout}
+            onClick={() => setConfirmAction('logout')}
             className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[13px] font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors mt-2"
           >
             <LogOut className="h-[18px] w-[18px]" />
@@ -536,6 +545,27 @@ className={({ isActive }) =>
         </div>
       </main>
       {(isSuperAdmin || role === 'owner') && <FeedbackBubble />}
+
+      <ConfirmModal
+        isOpen={confirmAction === 'pin'}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={runConfirmAction}
+        icon={KeyRound}
+        title="¿Cambiar tu PIN?"
+        description="Serás redirigido para definir un nuevo PIN de acceso."
+        confirmLabel="Cambiar PIN"
+      />
+
+      <ConfirmModal
+        isOpen={confirmAction === 'logout'}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={runConfirmAction}
+        icon={LogOut}
+        title="¿Cerrar sesión?"
+        description="Tendrás que volver a ingresar con tu PIN."
+        confirmLabel="Cerrar sesión"
+        confirmVariant="destructive"
+      />
     </div>
   );
 };

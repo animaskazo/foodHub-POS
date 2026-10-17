@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, ArrowLeftRight, Home, ChefHat, LogOut, LayoutGrid, KeyRound } from 'lucide-react';
+import { ShoppingCart, ArrowLeftRight, Home, ChefHat, LogOut, LayoutGrid, KeyRound, Lock, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useKitchenOrders } from '../../hooks/useKitchenOrders';
 import { Button } from '@/components/ui/button';
 
 export const NAV_ITEMS = [
-  { id: 'pago', label: 'Punto de Venta', icon: ShoppingCart },
-  { id: 'mesas', label: 'Sectores', icon: LayoutGrid },
-  { id: 'transacciones', label: 'Transacciones', icon: ArrowLeftRight },
+  { id: 'pago', label: 'Vender', icon: ShoppingCart },
+  { id: 'mesas', label: 'Mesas', icon: LayoutGrid },
+  { id: 'transacciones', label: 'Historial', icon: ArrowLeftRight },
   { id: 'cocina', label: 'Cocina', icon: ChefHat },
-  { id: 'dashboard', label: 'Dashboard', icon: Home },
+  { id: 'dashboard', label: 'Panel', icon: Home },
 ];
 
 export const getNavItems = (role, dineInEnabled = false, isAdmin = false) => {
@@ -25,11 +25,31 @@ export const getNavItems = (role, dineInEnabled = false, isAdmin = false) => {
   });
 };
 
-const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false, isAdmin = false, onLogout, onChangePin }) => {
+const LEFT_ITEM_IDS = ['pago', 'cocina'];
+const leftItems = NAV_ITEMS.filter(item => LEFT_ITEM_IDS.includes(item.id));
+
+const MenuItem = ({ icon: Icon, onClick, children, danger = false }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 transition-colors ${
+      danger
+        ? 'text-red-600 hover:bg-red-50 font-medium'
+        : 'text-gray-700 hover:bg-gray-50'
+    }`}
+  >
+    <Icon className={`h-4 w-4 ${danger ? 'text-red-500' : 'text-gray-400'}`} />
+    {children}
+  </button>
+);
+
+const BottomNav = ({ active = 'pago', onChange, isAdmin = false, onLogout, onChangePin, shiftEnabled = false, shiftOpen = false, canCloseShift = false, onCloseShift }) => {
   const navigate = useNavigate();
   const { pendingCount, newOrderFlag } = useKitchenOrders();
   const [triggerAnimation, setTriggerAnimation] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const prevNewOrderFlag = useRef(newOrderFlag);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     if (newOrderFlag !== prevNewOrderFlag.current) {
@@ -46,47 +66,21 @@ const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false, isA
     }
   }, [triggerAnimation]);
 
-  return (
-    <div className="bg-[#111111] text-white hidden md:flex items-center px-6 h-16 shrink-0 z-50">
-      {/* Left: Session info */}
-      {isAdmin ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          onPointerDown={() => navigate('/')}
-          className="text-gray-400 hover:text-white hover:bg-white/10 mr-8"
-        >
-          <LogOut />
-          Admin
-        </Button>
-      ) : (
-        <div className="flex items-center gap-1 mr-8">
-          <Button
-            variant="ghost"
-            size="sm"
-            onPointerDown={() => onChangePin ? onChangePin() : navigate('/update-password')}
-            className="text-gray-400 hover:text-white hover:bg-white/10"
-            title="Cambiar mi PIN"
-          >
-            <KeyRound />
-            Mi PIN
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onPointerDown={() => onLogout ? onLogout() : navigate('/login')}
-            className="text-gray-400 hover:text-white hover:bg-white/10"
-            title="Cerrar sesión"
-          >
-            <LogOut />
-            Salir
-          </Button>
-        </div>
-      )}
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-      {/* Center: Nav items */}
-      <div className="flex items-center gap-1 flex-1">
-        {getNavItems(role, dineInEnabled, isAdmin).map(({ id, label, icon: Icon }) => (
+  return (
+    <div className="bg-[#111111] text-white hidden md:flex items-center justify-between gap-2 px-6 h-16 shrink-0 z-50">
+      {/* Left: Vender + Cocina */}
+      <div className="flex items-center gap-2">
+        {leftItems.map(({ id, label, icon: Icon }) => (
           <Button
             key={id}
             variant="ghost"
@@ -97,16 +91,13 @@ const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false, isA
                 onChange && onChange(id);
                 // Reset animation after showing
                 if (triggerAnimation) setTriggerAnimation(false);
-              } else if (id === 'dashboard') {
-                navigate('/');
-                onChange && onChange(id);
               } else {
                 onChange && onChange(id);
               }
             }}
-            className={`relative ${active === id
+            className={`px-5 relative ${active === id
               ? 'text-white bg-white/10 hover:bg-white/10 hover:text-white'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
+              : 'text-gray-400 hover:text-white hover:bg-gray-100/5'
               } ${id === 'cocina' && triggerAnimation ? 'animate-pulse' : ''}`}
           >
             <Icon className="size-5" />
@@ -118,6 +109,73 @@ const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false, isA
             </span>
           </Button>
         ))}
+      </div>
+
+      {/* Right: dropdown grouping session + cash register */}
+      <div className="relative" ref={menuRef}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onPointerDown={(e) => {
+            e.preventDefault();
+            setMenuOpen((open) => !open);
+          }}
+          className={`px-5 ${menuOpen ? 'text-white bg-white/10' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
+          title="Opciones de sesión"
+        >
+          <Menu className="size-5" />
+          <span className="text-sm font-semibold">Menú</span>
+        </Button>
+
+        {menuOpen && (
+          <div className="absolute bottom-full right-0 mb-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden">
+            <div className="py-1">
+              {isAdmin ? (
+                <MenuItem
+                  icon={Home}
+                  onClick={() => { setMenuOpen(false); navigate('/'); }}
+                >
+                  Ir al Panel
+                </MenuItem>
+              ) : (
+                <>
+                  <MenuItem
+                    icon={KeyRound}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onChangePin ? onChangePin() : navigate('/update-password');
+                    }}
+                  >
+                    Cambiar mi PIN
+                  </MenuItem>
+                  <MenuItem
+                    icon={LogOut}
+                    danger
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onLogout ? onLogout() : navigate('/login');
+                    }}
+                  >
+                    Cerrar Sesión
+                  </MenuItem>
+                </>
+              )}
+
+              {shiftEnabled && shiftOpen && canCloseShift && (
+                <MenuItem
+                  icon={Lock}
+                  danger
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onCloseShift && onCloseShift();
+                  }}
+                >
+                  Cerrar Caja
+                </MenuItem>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

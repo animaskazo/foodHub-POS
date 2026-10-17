@@ -457,7 +457,7 @@ const TablesSettingsView = () => {
         title="Eliminar zona"
         footer={
           <div className="px-6 py-4 flex items-center justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setConfirmDeleteZone(null)}>
+            <Button variant="outline" size="sm" onClick={() => setConfirmDeleteZone(null)}>
               Cancelar
             </Button>
             <Button size="sm" variant="destructive" onClick={handleDeleteZone} disabled={deleting}>
@@ -481,7 +481,7 @@ const TablesSettingsView = () => {
         title="Eliminar mesa"
         footer={
           <div className="px-6 py-4 flex items-center justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setConfirmDeleteTable(null)}>
+            <Button variant="outline" size="sm" onClick={() => setConfirmDeleteTable(null)}>
               Cancelar
             </Button>
             <Button size="sm" variant="destructive" onClick={handleDeleteTable} disabled={deleting}>

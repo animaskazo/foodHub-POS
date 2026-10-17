@@ -97,7 +97,7 @@ const AIImportModal = ({ isOpen, onClose, onSuccess, organizationId = null }) =>
             </div>
 
             <div className="flex justify-end pt-4">
-              <Button onClick={handleAnalyze} disabled={!file} className="rounded-full bg-black text-white hover:bg-gray-800 px-8 py-6 text-[15px]">
+              <Button onClick={handleAnalyze} disabled={!file} size="lg">
                 <Sparkles className="mr-2 h-5 w-5" /> Analizar Menú
               </Button>
             </div>
@@ -191,10 +191,10 @@ const AIImportModal = ({ isOpen, onClose, onSuccess, organizationId = null }) =>
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button onClick={() => setStep('upload')} variant="outline" className="rounded-full px-6">
+              <Button onClick={() => setStep('upload')} variant="outline">
                 Descartar y reintentar
               </Button>
-              <Button onClick={handleSave} className="rounded-full bg-black text-white hover:bg-gray-800 px-8">
+              <Button onClick={handleSave}>
                 Confirmar y Guardar
               </Button>
             </div>

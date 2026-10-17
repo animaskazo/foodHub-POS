@@ -656,7 +656,7 @@ const DeliverySettingsView = () => {
                     <div className="px-6 py-4 flex items-center justify-end gap-2">
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={() => {
                           setShowZoneModal(false);

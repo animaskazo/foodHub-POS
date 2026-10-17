@@ -278,6 +278,9 @@ const ShiftModal = ({
     }
 onSuccess();
       setBalance('');
+    } catch (error) {
+      console.error('[ShiftModal] Error confirmando turno:', error);
+      toast.error(`No se pudo ${type === 'open' ? 'abrir' : 'cerrar'} la caja: ${error?.message || 'intenta nuevamente'}`);
     } finally {
       setLoading(false);
     }
@@ -288,7 +291,6 @@ onSuccess();
   const requireInput = type === 'open' ? settings?.require_starting_cash : settings?.require_ending_cash;
   const title = type === 'open' ? 'Abrir Caja' : 'Cerrar Caja';
   const actionLabel = type === 'open' ? 'Abrir Caja' : 'Cerrar Caja e Imprimir';
-  const actionColor = type === 'open' ? 'bg-black hover:bg-gray-800' : 'bg-red-600 hover:bg-red-700 text-white';
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size={type === 'close' ? 'lg' : 'md'}>
@@ -331,13 +333,14 @@ onSuccess();
             size="lg"
             onClick={onClose}
             disabled={loading || fetchingData}
-            className="px-6 min-w-[120px]"
+            className="min-w-[120px]"
           >
             Cancelar
           </Button>
           <Button
             size="lg"
-            className={`px-8 min-w-[160px] ${actionColor}`}
+            variant={type === 'close' ? 'destructive' : 'default'}
+            className="min-w-[160px]"
             onClick={handleConfirm}
             disabled={loading || fetchingData || (requireInput && !balance.trim())}
           >

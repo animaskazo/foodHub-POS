@@ -1279,7 +1279,7 @@ const SettingsView = () => {
                   title="Resetear PIN"
                   footer={
                     <div className="flex gap-2 justify-end px-6 py-4">
-                      <Button variant="ghost" size="sm" onClick={() => setConfirmResetMember(null)}>
+                      <Button variant="outline" size="sm" onClick={() => setConfirmResetMember(null)}>
                         Cancelar
                       </Button>
                       <Button

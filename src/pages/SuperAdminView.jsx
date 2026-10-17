@@ -1898,13 +1898,12 @@ const SuperAdminView = () => {
         maxWidth="max-w-md"
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setWelcomeTarget(null)} className="rounded-full">
+            <Button variant="outline" onClick={() => setWelcomeTarget(null)}>
               Cancelar
             </Button>
             <Button
               disabled={sendingWelcomeId === welcomeTarget?.id}
               onClick={() => handleSendWelcome(welcomeTarget)}
-              className="rounded-full bg-gray-900 text-white hover:bg-gray-700"
             >
               {sendingWelcomeId === welcomeTarget?.id ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

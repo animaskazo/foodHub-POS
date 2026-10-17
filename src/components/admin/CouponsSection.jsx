@@ -311,7 +311,7 @@ const CouponsSection = ({ orgId }) => {
         maxWidth="max-w-lg"
         footer={
           <div className="px-6 py-4 flex items-center justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={closeModal}>
+            <Button variant="outline" size="sm" onClick={closeModal}>
               Cancelar
             </Button>
             <Button
@@ -487,7 +487,7 @@ const CouponsSection = ({ orgId }) => {
         title="Eliminar cupón"
         footer={
           <div className="px-6 py-4 flex items-center justify-end gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(null)}>
+            <Button variant="outline" size="sm" onClick={() => setConfirmDelete(null)}>
               Cancelar
             </Button>
             <Button

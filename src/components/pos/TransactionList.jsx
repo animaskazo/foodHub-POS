@@ -669,14 +669,16 @@ const pythonPrinter = localStorage.getItem('python_default_printer');
           <div className="flex gap-3">
             <Button
               onClick={() => setIsCancelConfirmOpen(false)}
-              className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
+              variant="outline"
+              className="flex-1"
             >
               Volver
             </Button>
             <Button
               onClick={handleCancelOrder}
               disabled={isCancelling}
-              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
+              variant="destructive"
+              className="flex-1"
             >
               {isCancelling ? (
                 <ButtonSpinner size="sm" />
@@ -703,14 +705,16 @@ const pythonPrinter = localStorage.getItem('python_default_printer');
           <div className="flex gap-3">
             <Button
               onClick={() => setIsDeleteConfirmOpen(false)}
-              className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
+              variant="outline"
+              className="flex-1"
             >
               Volver
             </Button>
             <Button
               onClick={handleDeleteSingleOrder}
               disabled={isDeleting}
-              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
+              variant="destructive"
+              className="flex-1"
             >
               {isDeleting ? (
                 <ButtonSpinner size="sm" />
@@ -737,14 +741,16 @@ const pythonPrinter = localStorage.getItem('python_default_printer');
           <div className="flex gap-3">
             <Button
               onClick={() => setIsBulkCancelConfirmOpen(false)}
-              className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
+              variant="outline"
+              className="flex-1"
             >
               Volver
             </Button>
             <Button
               onClick={handleBulkCancel}
               disabled={isCancelling}
-              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
+              variant="destructive"
+              className="flex-1"
             >
               {isCancelling ? (
                 <ButtonSpinner size="sm" />
@@ -771,14 +777,16 @@ const pythonPrinter = localStorage.getItem('python_default_printer');
           <div className="flex gap-3">
             <Button
               onClick={() => setIsBulkDeleteConfirmOpen(false)}
-              className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
+              variant="outline"
+              className="flex-1"
             >
               Volver
             </Button>
             <Button
               onClick={handleBulkDelete}
               disabled={isDeleting}
-              className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-colors"
+              variant="destructive"
+              className="flex-1"
             >
               {isDeleting ? (
                 <ButtonSpinner size="sm" />

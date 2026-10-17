@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
+import { Button } from '../ui/button';
 
 const CategoryProductsModal = ({ isOpen, onClose, onSave, allProducts, selectedProductIds }) => {
   const [selectedIds, setSelectedIds] = useState(new Set(selectedProductIds));
@@ -129,18 +130,19 @@ const CategoryProductsModal = ({ isOpen, onClose, onSave, allProducts, selectedP
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-100 flex gap-3">
-          <button
+          <Button
+            variant="outline"
+            className="flex-1"
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 font-medium rounded-xl transition-colors"
           >
             Descartar
-          </button>
-          <button
+          </Button>
+          <Button
+            className="flex-1"
             onClick={handleSave}
-            className="flex-1 px-4 py-2.5 text-white bg-black hover:bg-gray-900 font-medium rounded-xl transition-colors shadow-sm"
           >
             Guardar ({selectedIds.size})
-          </button>
+          </Button>
         </div>
 
       </div>

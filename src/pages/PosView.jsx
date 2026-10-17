@@ -10,10 +10,12 @@ import PosFloorMap from '../components/pos/PosFloorMap';
 import VariantSelectionModal from '../components/pos/VariantSelectionModal';
 import BundleSelectionModal from '../components/pos/BundleSelectionModal';
 import Modal from '../components/ui/Modal';
+import ConfirmModal from '../components/ui/ConfirmModal';
 import { NAV_ITEMS, getNavItems } from '../components/pos/BottomNav';
 import PrepTimeSelector from '../components/ui/PrepTimeSelector';
 import TableSelectionListModal from '../components/pos/TableSelectionListModal';
-import { X, LogOut, Menu, Home, ChefHat, Clock, KeyRound } from 'lucide-react';
+import { X, LogOut, Menu, Home, ChefHat, Clock, KeyRound, Store, Lock } from 'lucide-react';
+import ShiftModal from '../components/shifts/ShiftModal';
 import { Button } from '../components/ui/button';
 import NewOrderAlert from '../components/ui/NewOrderAlert';
 import { createOrder, updateOrderCustomer, getOpenOrdersForTable, appendItemsToOrder } from '../services/orderService';
@@ -31,8 +33,11 @@ import { calculateDiscount } from '../services/couponService';
 
 
 const PosView = () => {
-  const { organization, role, isSuperAdmin } = useAuth();
+  const { organization, role, isSuperAdmin, user } = useAuth();
   const isAdmin = isSuperAdmin || ['owner', 'admin', 'manager'].includes(role);
+  // El vendedor (rol `cashier`) opera solo con el POS, por lo que debe poder
+  // abrir la caja desde aquí sin depender del Dashboard administrativo.
+  const canOpenShiftFromPos = role === 'cashier';
   const taxRate = organization?.default_tax_rate ? Number(organization.default_tax_rate) / 100 : 0.19;
 
   const navigate = useNavigate();
@@ -47,6 +52,16 @@ const PosView = () => {
   };
 
   const handleChangePin = () => navigate('/update-password');
+
+  const requestChangePin = () => setConfirmAction('pin');
+  const requestLogout = () => setConfirmAction('logout');
+  const runConfirmAction = async () => {
+    const action = confirmAction;
+    setConfirmAction(null);
+    if (action === 'pin') handleChangePin();
+    else if (action === 'logout') await handleLogout();
+  };
+
   const [cartItems, setCartItems] = useState([]);
   const [posPrintOrder, setPosPrintOrder] = useState(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -62,6 +77,8 @@ const PosView = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  // Confirmación para acciones de sesión ('pin' | 'logout' | null)
+  const [confirmAction, setConfirmAction] = useState(null);
 
   // ── Cupón de descuento ─────────────────────────────────
   const [appliedCoupon, setAppliedCoupon] = useState(null);
@@ -78,6 +95,8 @@ const PosView = () => {
   const [shiftSettings, setShiftSettings] = useState(null);
   const [currentShift, setCurrentShift] = useState(null);
   const [loadingShift, setLoadingShift] = useState(true);
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
+  const [shiftModalType, setShiftModalType] = useState('open');
   const [hasTables, setHasTables] = useState(false);
   const [tableCount, setTableCount] = useState(0);
 
@@ -122,6 +141,17 @@ const PosView = () => {
     loadShiftData();
   }, [organization?.id]);
 
+  const handleShiftChange = async () => {
+    setIsShiftModalOpen(false);
+    if (!organization?.id) return;
+    try {
+      const shift = await getCurrentShift(organization.id);
+      setCurrentShift(shift);
+    } catch (err) {
+      console.error('Error refreshing shift after change:', err);
+    }
+  };
+
   useEffect(() => {
     if (!organization?.id) {
       setOutOfStockIds([]);
@@ -160,6 +190,8 @@ const PosView = () => {
   }, [posPrintOrder, organization]);
 
   const isPosBlocked = !loadingShift && shiftSettings?.shifts_enabled && shiftSettings?.block_pos_when_closed && !currentShift;
+  // El vendedor solo puede cerrar el turno que él abrió; los admins, cualquiera.
+  const canCloseShift = !!currentShift && (isAdmin || currentShift.opened_by === user?.id);
 
   const addToCart = (product, variant, ingredients = []) => {
     const ingredientsIds = ingredients.map(i => i.id).sort().join(',');
@@ -767,6 +799,35 @@ const PosView = () => {
   useDocumentTitle('Punto de Venta');
 
   if (isPosBlocked) {
+    if (canOpenShiftFromPos) {
+      return (
+        <>
+          <div className="flex flex-col items-center justify-center h-screen bg-gray-50 text-center p-6">
+            <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
+              <div className="bg-red-50 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+                <Store className="h-10 w-10 text-red-500" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Caja Cerrada</h2>
+              <p className="text-gray-500 mb-8">El terminal de ventas está bloqueado porque el turno actual se encuentra cerrado. Abre la caja para comenzar a recibir pagos y procesar órdenes.</p>
+              <Button onClick={() => { setShiftModalType('open'); setIsShiftModalOpen(true); }}>
+                <Store className="h-4 w-4 mr-2" />
+                Abrir Caja
+              </Button>
+            </div>
+          </div>
+          <ShiftModal
+            isOpen={isShiftModalOpen}
+            onClose={() => setIsShiftModalOpen(false)}
+            type="open"
+            settings={shiftSettings}
+            organizationId={organization?.id}
+            organization={organization}
+            onSuccess={handleShiftChange}
+          />
+        </>
+      );
+    }
+
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-50 text-center p-6">
         <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
@@ -947,9 +1008,23 @@ const PosView = () => {
               <PrepTimeSelector menuVariant />
             </div>
             <div className="p-5 border-t border-gray-100 space-y-2">
+              {shiftSettings?.shifts_enabled && currentShift && canCloseShift && (
+                <Button
+                  variant="ghost"
+                  onPointerDown={() => {
+                    setShiftModalType('close');
+                    setIsShiftModalOpen(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full justify-start h-14 text-base text-red-600 hover:text-red-600 hover:bg-red-50"
+                >
+                  <Lock className="size-6" />
+                  Cerrar Caja
+                </Button>
+              )}
               <Button
                 variant="ghost"
-                onPointerDown={handleChangePin}
+                onPointerDown={() => { setIsMobileMenuOpen(false); requestChangePin(); }}
                 className="w-full justify-start h-14 text-base"
               >
                 <KeyRound className="size-6" />
@@ -957,7 +1032,7 @@ const PosView = () => {
               </Button>
               <Button
                 variant="ghost"
-                onPointerDown={handleLogout}
+                onPointerDown={() => { setIsMobileMenuOpen(false); requestLogout(); }}
                 className="w-full justify-start h-14 text-base text-red-600 hover:text-red-600 hover:bg-red-50"
               >
                 <LogOut className="size-6" />
@@ -969,7 +1044,44 @@ const PosView = () => {
       )}
 
       {/* Bottom Navigation (Hidden on mobile) */}
-      <BottomNav active={activeTab} onChange={setActiveTab} role={role} dineInEnabled={organization?.dine_in_enabled === true} isAdmin={isAdmin} onLogout={handleLogout} onChangePin={handleChangePin} />
+      <BottomNav active={activeTab} onChange={setActiveTab} role={role} dineInEnabled={organization?.dine_in_enabled === true} isAdmin={isAdmin} onLogout={requestLogout} onChangePin={requestChangePin} shiftEnabled={shiftSettings?.shifts_enabled === true} shiftOpen={!!currentShift} canCloseShift={canCloseShift} onCloseShift={() => { setShiftModalType('close'); setIsShiftModalOpen(true); }} />
+
+      <ConfirmModal
+        isOpen={confirmAction === 'pin'}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={runConfirmAction}
+        icon={KeyRound}
+        title="¿Cambiar tu PIN?"
+        description={cartItems.length > 0
+          ? 'Serás redirigido para definir un nuevo PIN. Tienes productos sin cobrar en el pedido actual y se perderán.'
+          : 'Serás redirigido para definir un nuevo PIN de acceso.'}
+        confirmLabel="Cambiar PIN"
+      />
+
+      <ConfirmModal
+        isOpen={confirmAction === 'logout'}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={runConfirmAction}
+        icon={LogOut}
+        title="¿Cerrar sesión?"
+        description={cartItems.length > 0
+          ? 'Tienes productos sin cobrar en el pedido actual. Si cierras sesión, se perderán.'
+          : 'Tendrás que volver a ingresar con tu PIN.'}
+        confirmLabel="Cerrar sesión"
+        confirmVariant="destructive"
+      />
+
+      <ShiftModal
+        isOpen={isShiftModalOpen}
+        onClose={() => setIsShiftModalOpen(false)}
+        type={shiftModalType}
+        settings={shiftSettings}
+        organizationId={organization?.id}
+        organization={organization}
+        shiftId={currentShift?.id}
+        currentShift={currentShift}
+        onSuccess={handleShiftChange}
+      />
 
       <PaymentModal
         isOpen={isPaymentModalOpen}
@@ -1029,7 +1141,7 @@ const PosView = () => {
           </p>
           <div className="flex gap-2">
             <Button
-              variant="secondary"
+              variant="outline"
               onClick={() => setItemToDelete(null)}
               className="flex-1"
             >

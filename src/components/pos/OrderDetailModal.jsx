@@ -37,7 +37,7 @@ const OrderDetailModal = ({
           <h2 className="text-3xl font-black text-gray-900">{order.order_number}</h2>
           <div className="flex items-center gap-2 shrink-0 ml-4">
             {canCancel && order.status !== 'cancelled' && order.status !== 'delivered' && onCancel && (
-              <Button size="sm" variant="outline" className="text-red-700 border-red-200 bg-red-50 hover:bg-red-100 font-bold" onClick={onCancel} aria-label="Cancelar">
+              <Button size="sm" variant="destructive" onClick={onCancel} aria-label="Cancelar">
                 <XCircle className="w-4 h-4" />
                 <span className="hidden md:inline ml-1.5">Cancelar</span>
               </Button>
@@ -332,7 +332,6 @@ const OrderDetailModal = ({
                   );
                   if (hasPending && onConfirmPayment) return (
                     <Button
-                      variant="secondary"
                       size="xs"
                       onClick={(e) => onConfirmPayment(e, order)}
                     >

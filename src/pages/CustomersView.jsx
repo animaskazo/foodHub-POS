@@ -18,7 +18,8 @@ import {
   MessageCircle,
   MapPin,
   Pencil,
-  Trash2
+  Trash2,
+  Loader2
 } from 'lucide-react';
 import { FullScreenSpinner } from '@/components/ui/Spinner';
 import { toast } from 'sonner';
@@ -353,7 +354,6 @@ const CustomersView = () => {
               </Badge>
               <Button
                 variant="destructive"
-                className="rounded-xl bg-red-600 text-white hover:bg-red-700"
                 onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', isDeleting: false })}
               >
                 <Trash2 className="h-4 w-4 mr-2" /> Eliminar seleccionados
@@ -522,15 +522,14 @@ const CustomersView = () => {
               
               {/* Actions */}
               <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={handleOpenEdit} className="rounded-xl">
+                <Button variant="outline" size="sm" onClick={handleOpenEdit}>
                   <Pencil className="h-4 w-4 mr-1.5" />
                   Editar
                 </Button>
                 <Button 
-                  variant="outline" 
+                  variant="destructive" 
                   size="sm" 
                   onClick={() => setDeleteModal({ isOpen: true, mode: 'single', isDeleting: false })}
-                  className="rounded-xl text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                 >
                   <Trash2 className="h-4 w-4 mr-1.5" />
                   Eliminar
@@ -708,10 +707,10 @@ const CustomersView = () => {
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" className="rounded-xl" onClick={() => setIsEditOpen(false)} disabled={isSaving}>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isSaving}>
               Cancelar
             </Button>
-            <Button className="rounded-xl" onClick={handleSaveEdit} disabled={isSaving}>
+            <Button onClick={handleSaveEdit} disabled={isSaving}>
               {isSaving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
