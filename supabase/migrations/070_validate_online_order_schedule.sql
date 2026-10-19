@@ -60,52 +60,46 @@ begin
 
     v_target_local := timezone(v_timezone, now());
 
-    -- Preserve legacy behavior when neither schedule has been configured.
+    -- Preserve legacy behavior only when no schedule has been configured yet.
     if (v_business_hours is null or v_business_hours = '{}'::jsonb)
        and (v_pickup_hours is null or v_pickup_hours = '{}'::jsonb) then
       return new;
     end if;
 
-    -- Immediate ordering is permitted by either configured schedule.
-    for v_candidate in
-      select schedule.value
-      from (values (v_business_hours), (v_pickup_hours)) as schedule(value)
-      where schedule.value is not null
-        and schedule.value <> '{}'::jsonb
-    loop
-      v_day_key := case extract(dow from v_target_local)::integer
-        when 0 then 'sun'
-        when 1 then 'mon'
-        when 2 then 'tue'
-        when 3 then 'wed'
-        when 4 then 'thu'
-        when 5 then 'fri'
-        when 6 then 'sat'
-      end;
-      v_day := v_candidate -> v_day_key;
+    if v_business_hours is null or v_business_hours = '{}'::jsonb then
+      raise exception 'No hay horario comercial configurado para pedidos inmediatos.';
+    end if;
 
-      if v_day is null or coalesce((v_day ->> 'closed')::boolean, false) then
-        continue;
-      end if;
-      if nullif(v_day ->> 'open', '') is null or nullif(v_day ->> 'close', '') is null then
-        continue;
-      end if;
+    v_day_key := case extract(dow from v_target_local)::integer
+      when 0 then 'sun'
+      when 1 then 'mon'
+      when 2 then 'tue'
+      when 3 then 'wed'
+      when 4 then 'thu'
+      when 5 then 'fri'
+      when 6 then 'sat'
+    end;
+    v_day := v_business_hours -> v_day_key;
 
-      v_open := (v_day ->> 'open')::time;
-      v_close := (v_day ->> 'close')::time;
-      v_within_candidate := case
-        when v_close >= v_open then
-          v_target_local::time >= v_open and v_target_local::time <= v_close
-        else
-          v_target_local::time >= v_open or v_target_local::time <= v_close
-      end;
+    if v_day is null or coalesce((v_day ->> 'closed')::boolean, false) then
+      raise exception 'No hay horario comercial para pedidos inmediatos en este día.';
+    end if;
+    if nullif(v_day ->> 'open', '') is null or nullif(v_day ->> 'close', '') is null then
+      raise exception 'El horario comercial configurado para este día está incompleto.';
+    end if;
 
-      if v_within_candidate then
-        return new;
-      end if;
-    end loop;
+    v_open := (v_day ->> 'open')::time;
+    v_close := (v_day ->> 'close')::time;
+    v_within_candidate := case
+      when v_close >= v_open then
+        v_target_local::time >= v_open and v_target_local::time <= v_close
+      else
+        v_target_local::time >= v_open or v_target_local::time <= v_close
+    end;
 
-    raise exception 'El pedido inmediato está fuera del horario del negocio y del horario de retiro.';
+    if not v_within_candidate then
+      raise exception 'El pedido inmediato está fuera del horario comercial.';
+    end if;
   end if;
 
   if not v_scheduling_enabled then
