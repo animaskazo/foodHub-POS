@@ -53,15 +53,12 @@ const toMinutes = (t) => {
 const toTime = (mins) => `${pad2(Math.floor(mins / 60))}:${pad2(mins % 60)}`;
 const dateInput = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 
-// pickup_hours si está activo/abierto, si no usa business_hours como disponibilidad
+// La programación usa el horario de retiro. Solo conserva el horario general
+// como respaldo para negocios antiguos que aún no tienen pickup_hours configurado.
 const getAvailability = (org) => {
   const ph = org?.pickup_hours;
-  const bh = org?.business_hours;
-  if (ph && Object.keys(ph).length > 0) {
-    const hasAnyOpen = Object.values(ph).some(d => d && !d.closed);
-    if (hasAnyOpen) return ph;
-  }
-  return bh || null;
+  if (ph !== null && ph !== undefined) return ph;
+  return org?.business_hours || null;
 };
 
 // ¿Un momento dado cae dentro del horario de disponibilidad del día? (soporta cruce de medianoche)
@@ -75,22 +72,12 @@ const isWithinDay = (availability, date) => {
   return now >= open && now <= close;
 };
 
-// ¿Se puede pedir "ahora"?
+// Los pedidos inmediatos dependen solo del horario del negocio.
 const canOrderNow = (org) => {
-  if (org?.instant_enabled === false) return false;
-  const ph = org?.pickup_hours;
-  const bh = org?.business_hours;
-  const now = new Date();
-
-  if (ph && Object.keys(ph).length > 0 && isWithinDay(ph, now)) {
-    return true;
-  }
-  if (bh && Object.keys(bh).length > 0 && isWithinDay(bh, now)) {
-    return true;
-  }
-  if (!ph && !bh) return true;
-
-  return false;
+  if (org?.force_closed === true || org?.instant_enabled === false) return false;
+  const businessHours = org?.business_hours;
+  if (!businessHours || Object.keys(businessHours).length === 0) return true;
+  return isWithinDay(businessHours, new Date());
 };
 
 // ¿Un día (yyyy-mm-dd) está cerrado según la disponibilidad?
@@ -270,7 +257,7 @@ const CheckoutForm = ({ onSubmit, isSubmitting, totalAmount, acceptsOnlinePaymen
     ? (scheduleDayLabel ? `No hay horarios disponibles para ${scheduleDayLabel.toLowerCase()}.` : 'No hay horarios disponibles.')
     : '';
   // "Entregar ahora" solo tiene sentido si se puede pedir ahora y el día visto está abierto
-  const hideNowButton = isClosed || !instantAvailable || isScheduleDayClosed(org, scheduleDate);
+  const hideNowButton = isClosed || !instantAvailable;
   const [errors, setErrors] = useState({});
   const touchedRef = useRef({ name: false, email: false });
   const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
