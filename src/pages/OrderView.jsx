@@ -280,7 +280,7 @@ const OrderView = () => {
   }, [slug]);
 
   // ── Availability for immediate online orders ───────────────
-  // "Ahora" is available during business hours OR pickup hours.
+  // Scheduled orders remain available through pickup_hours, even when closed now.
   useEffect(() => {
     if (!org) return;
 
@@ -289,26 +289,21 @@ const OrderView = () => {
       const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
       const todayKey = days[now.getDay()];
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
-      const configuredSchedules = [org.business_hours, org.pickup_hours]
-        .filter(hours => hours && Object.keys(hours).length > 0);
+      const businessHours = org.business_hours;
 
-      if (configuredSchedules.length === 0) return true;
+      if (!businessHours || Object.keys(businessHours).length === 0) return true;
 
-      const isWithin = (schedule) => {
-        const day = schedule?.[todayKey];
-        if (!day || day.closed) return false;
-        const parseTime = (timeStr) => {
-          if (!timeStr) return 0;
-          const [h, m] = String(timeStr).split(':').map(Number);
-          return (h || 0) * 60 + (m || 0);
-        };
-        const open = parseTime(day.open);
-        const close = parseTime(day.close);
-        if (close < open) return currentMinutes >= open || currentMinutes <= close;
-        return currentMinutes >= open && currentMinutes <= close;
+      const day = businessHours?.[todayKey];
+      if (!day || day.closed) return false;
+      const parseTime = (timeStr) => {
+        if (!timeStr) return 0;
+        const [h, m] = String(timeStr).split(':').map(Number);
+        return (h || 0) * 60 + (m || 0);
       };
-
-      return configuredSchedules.some(isWithin);
+      const open = parseTime(day.open);
+      const close = parseTime(day.close);
+      if (close < open) return currentMinutes >= open || currentMinutes <= close;
+      return currentMinutes >= open && currentMinutes <= close;
     };
 
     setIsOpen(checkIsOpen());
