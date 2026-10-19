@@ -279,32 +279,34 @@ const OrderView = () => {
     load();
   }, [slug]);
 
-  // ── Calculate isOpen ──────────────────────────────────────
+  // ── Availability for immediate online orders ───────────────
+  // Scheduled orders remain available through pickup_hours, even when closed now.
   useEffect(() => {
-    if (!org || !org.business_hours) return;
-    
+    if (!org) return;
+
     const checkIsOpen = () => {
       const now = new Date();
       const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-      const todayStr = days[now.getDay()];
-      const todayHours = org.business_hours[todayStr];
-      
-      if (!todayHours || todayHours.closed) return false;
-      
-      const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+      const todayKey = days[now.getDay()];
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const businessHours = org.business_hours;
+
+      if (!businessHours || Object.keys(businessHours).length === 0) {
+        const pickupHours = org.pickup_hours;
+        return !pickupHours || Object.keys(pickupHours).length === 0;
+      }
+
+      const day = businessHours?.[todayKey];
+      if (!day || day.closed) return false;
       const parseTime = (timeStr) => {
         if (!timeStr) return 0;
-        const [h, m] = timeStr.split(':').map(Number);
-        return h * 60 + m;
+        const [h, m] = String(timeStr).split(':').map(Number);
+        return (h || 0) * 60 + (m || 0);
       };
-      
-      const openMinutes = parseTime(todayHours.open);
-      const closeMinutes = parseTime(todayHours.close);
-      
-      if (closeMinutes < openMinutes) { // midnight cross
-        return currentTotalMinutes >= openMinutes || currentTotalMinutes <= closeMinutes;
-      }
-      return currentTotalMinutes >= openMinutes && currentTotalMinutes <= closeMinutes;
+      const open = parseTime(day.open);
+      const close = parseTime(day.close);
+      if (close < open) return currentMinutes >= open || currentMinutes <= close;
+      return currentMinutes >= open && currentMinutes <= close;
     };
 
     setIsOpen(checkIsOpen());
@@ -570,8 +572,13 @@ const OrderView = () => {
       return;
     };
     const scheduledAt = customerForm.scheduleType === 'scheduled' && customerForm.scheduledAt ? customerForm.scheduledAt : null;
-    if (!isOpen && !scheduledAt) {
-      alert('El local se encuentra cerrado en este momento. Puedes agendar tu pedido para un horario disponible.');
+    if (scheduledAt && org?.scheduling_enabled !== true) {
+      alert('La programación de pedidos no está disponible en este momento.');
+      setIsSubmitting(false);
+      return;
+    }
+    if (!scheduledAt && (org?.instant_enabled === false || !isOpen)) {
+      alert('El local no está aceptando pedidos inmediatos en este momento. Puedes agendar para un horario disponible.');
       setIsSubmitting(false);
       return;
     }
@@ -797,6 +804,7 @@ const OrderView = () => {
   // Cierre temporal total de la tienda: bloquea navegación y pedido,
   // pero siempre permite ver la confirmación de un pago en curso (retorno con orderId).
   const storeForceClosed = org?.force_closed === true && !searchParams.get('orderId');
+  const showScheduleClosedBanner = org?.settings?.show_closed_banner !== false;
   const closureText = org?.closed_message || 'No hay horarios disponibles ni pedidos para ahora.';
   const marqueeDuration = Math.min(22, Math.max(8, closureText.length * 0.28));
 
@@ -866,7 +874,7 @@ const OrderView = () => {
             </div>
           </div>
         ) : (
-          !isOpen && (
+          !isOpen && showScheduleClosedBanner && (
             <div className="sticky top-0 z-40 bg-red-500 text-white text-[13px] font-bold text-center py-1.5 px-4 w-full tracking-wide">
               En este momento el local se encuentra cerrado
             </div>
