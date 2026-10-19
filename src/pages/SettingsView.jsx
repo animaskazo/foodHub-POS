@@ -1,3 +1,4 @@
+import { SettingsOptionRow } from '../components/ui/SettingsOptionRow';
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -631,7 +632,7 @@ const SettingsView = () => {
                 {/* BLOQUE 1: Identidad y Marca */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-6">
                   <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                    <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl">
+                    <div aria-hidden="true" className="hidden shrink-0 p-2.5 bg-purple-50 text-purple-600 rounded-xl sm:block">
                       <Sparkles className="w-5 h-5" />
                     </div>
                     <div>
@@ -703,7 +704,7 @@ const SettingsView = () => {
                 {/* BLOQUE 2: Información Principal */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-6">
                   <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                    <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                    <div aria-hidden="true" className="hidden shrink-0 p-2.5 bg-blue-50 text-blue-600 rounded-xl sm:block">
                       <Store className="w-5 h-5" />
                     </div>
                     <div>
@@ -794,7 +795,7 @@ const SettingsView = () => {
                 {/* BLOQUE 3: Contacto y Geolocalización */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-6">
                   <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                    <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <div aria-hidden="true" className="hidden shrink-0 p-2.5 bg-emerald-50 text-emerald-600 rounded-xl sm:block">
                       <MapPin className="w-5 h-5" />
                     </div>
                     <div>
@@ -848,7 +849,7 @@ const SettingsView = () => {
                 {/* BLOQUE 4: Operación y Métodos de Pago */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-6">
                   <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                    <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                    <div aria-hidden="true" className="hidden shrink-0 p-2.5 bg-amber-50 text-amber-600 rounded-xl sm:block">
                       <CreditCard className="w-5 h-5" />
                     </div>
                     <div>
@@ -858,49 +859,24 @@ const SettingsView = () => {
                   </div>
 
                   <div className="space-y-4">
-                    {/* Switch para habilitar/deshabilitar pago en caja */}
-                    <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl hover:border-gray-300 transition-colors">
-                      <div>
-                        <p className="font-bold text-sm text-gray-800">Habilitar Pago en Caja</p>
-                        <p className="text-xs text-gray-500 max-w-sm mt-0.5">
-                          Permite que tus clientes paguen con efectivo o tarjeta al retirar o recibir su pedido.
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formData.accepts_local_payments !== false}
-                        onCheckedChange={(checked) => setFormData({...formData, accepts_local_payments: checked})}
-                      />
-                    </div>
-
-                    {/* Switch para habilitar/deshabilitar pago online */}
-                    <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl hover:border-gray-300 transition-colors">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-bold text-sm text-gray-800">Habilitar Pago en Línea (Klap)</p>
-                        </div>
-                        <p className="text-xs text-gray-500 max-w-sm mt-0.5">
-                          Permite que tus clientes paguen con tarjetas de crédito o débito a través de la web.
-                        </p>
-                      </div>
-                      <Switch 
-                        checked={formData.accepts_online_payments !== false}
-                        onCheckedChange={(checked) => setFormData({...formData, accepts_online_payments: checked})}
-                      />
-                    </div>
-
-                    {/* Switch para ocultar pedidos cancelados */}
-                    <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl hover:border-gray-300 transition-colors">
-                      <div>
-                        <p className="font-bold text-sm text-gray-800">Ocultar Pedidos Cancelados</p>
-                        <p className="text-xs text-gray-500 max-w-sm mt-0.5">
-                          Oculta los pedidos cancelados del registro diario y del historial de ventas.
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formData.hide_cancelled_orders === true}
-                        onCheckedChange={(checked) => setFormData({...formData, hide_cancelled_orders: checked})}
-                      />
-                    </div>
+                    <SettingsOptionRow
+                      className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                      title="Habilitar Pago en Caja"
+                      description="Permite que tus clientes paguen con efectivo o tarjeta al retirar o recibir su pedido."
+                      control={(labelProps) => <Switch {...labelProps} checked={formData.accepts_local_payments !== false} onCheckedChange={(checked) => setFormData({...formData, accepts_local_payments: checked})} />}
+                    />
+                    <SettingsOptionRow
+                      className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                      title="Habilitar Pago en Línea (Klap)"
+                      description="Permite que tus clientes paguen con tarjetas de crédito o débito a través de la web."
+                      control={(labelProps) => <Switch {...labelProps} checked={formData.accepts_online_payments !== false} onCheckedChange={(checked) => setFormData({...formData, accepts_online_payments: checked})} />}
+                    />
+                    <SettingsOptionRow
+                      className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                      title="Ocultar Pedidos Cancelados"
+                      description="Oculta los pedidos cancelados del registro diario y del historial de ventas."
+                      control={(labelProps) => <Switch {...labelProps} checked={formData.hide_cancelled_orders === true} onCheckedChange={(checked) => setFormData({...formData, hide_cancelled_orders: checked})} />}
+                    />
                   </div>
                 </div>
 
@@ -908,7 +884,7 @@ const SettingsView = () => {
                 {formData.slug && (
                   <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-4">
                     <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                      <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                      <div aria-hidden="true" className="hidden shrink-0 p-2.5 bg-indigo-50 text-indigo-600 rounded-xl sm:block">
                         <QrCode className="w-5 h-5" />
                       </div>
                       <div>
@@ -918,7 +894,7 @@ const SettingsView = () => {
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-2">
-                      <div className="flex items-center gap-4">
+                      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
                         <div className="p-2 bg-white border border-gray-200 rounded-2xl shrink-0 shadow-xs">
                           <img 
                             src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(storeUrl)}`}
@@ -984,35 +960,22 @@ const SettingsView = () => {
             )}
 
             {activeTab === 'hours' && (
-              <div className="p-6 md:p-8 space-y-6">
+              <div className="p-4 sm:p-6 md:p-8 space-y-6">
                 {/* Cierre temporal total de la tienda */}
-                <div className={`border rounded-2xl p-5 space-y-4 ${forceClosed ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <div className={`h-11 w-11 rounded-2xl text-white flex items-center justify-center shrink-0 ${forceClosed ? 'bg-red-600' : 'bg-black'}`}>
-                        <Store className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-sm text-gray-800">Cerrar tienda temporalmente</p>
-                        <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
-                          Los clientes podrán ver el menú, pero no podrán hacer pedidos (ni ahora ni programado). El aviso de cierre temporal se mostrará mientras esta opción esté activa.
-                        </p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={forceClosed}
-                      onCheckedChange={setForceClosed}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between gap-4 border-t border-gray-100 pt-4">
-                    <div className="pr-4">
-                      <p className="font-bold text-sm text-gray-800">Mostrar aviso de horario cerrado</p>
-                      <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
-                        Muestra u oculta la barra roja cuando el local está fuera del horario comercial. Esto no cambia si puede recibir pedidos.
-                      </p>
-                    </div>
-                    <Switch checked={showClosedBanner} onCheckedChange={setShowClosedBanner} />
-                  </div>
+                <div className={`border rounded-2xl p-4 sm:p-5 space-y-4 ${forceClosed ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
+                  <SettingsOptionRow
+                    title="Cerrar tienda temporalmente"
+                    description="Los clientes podrán ver el menú, pero no podrán hacer pedidos (ni ahora ni programado). El aviso de cierre temporal se mostrará mientras esta opción esté activa."
+                    icon={Store}
+                    iconClassName={forceClosed ? 'bg-red-600' : 'bg-black'}
+                    control={(labelProps) => <Switch {...labelProps} checked={forceClosed} onCheckedChange={setForceClosed} />}
+                  />
+                  <SettingsOptionRow
+                    className="border-t border-gray-100 pt-4"
+                    title="Mostrar aviso de horario cerrado"
+                    description="Muestra u oculta la barra roja cuando el local está fuera del horario comercial. Esto no cambia si puede recibir pedidos."
+                    control={(labelProps) => <Switch {...labelProps} checked={showClosedBanner} onCheckedChange={setShowClosedBanner} />}
+                  />
                   {forceClosed && (
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Mensaje para el cliente (opcional)</label>
@@ -1098,64 +1061,35 @@ const SettingsView = () => {
                     </div>
 
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-4 p-5 bg-white border border-gray-200 rounded-2xl">
-                        <div className="flex items-center gap-4">
-                          <div className="h-11 w-11 rounded-2xl bg-black text-white flex items-center justify-center shrink-0">
-                            <Clock className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="font-bold text-sm text-gray-800">Pedidos para Ahora</p>
-                            <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
-                              Permite recibir pedidos para ahora cuando el local esté dentro del horario comercial.
-                            </p>
-                          </div>
-                        </div>
-                        <Switch
-                          checked={instantEnabled}
-                          onCheckedChange={setInstantEnabled}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between gap-4 p-5 bg-white border border-gray-200 rounded-2xl">
-                        <div className="flex items-center gap-4">
-                          <div className="h-11 w-11 rounded-2xl bg-black text-white flex items-center justify-center shrink-0">
-                            <CalendarClock className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="font-bold text-sm text-gray-800">Pedidos Programados</p>
-                            <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
-                              Permite agendar pedidos para una hora futura dentro del horario de retiro, incluso si el local está cerrado ahora.
-                            </p>
-                          </div>
-                        </div>
-                        <Switch
-                          checked={schedulingEnabled}
-                          onCheckedChange={setSchedulingEnabled}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between gap-4 p-5 bg-white border border-gray-200 rounded-2xl">
-                        <div className="flex items-center gap-4">
-                          <div className="h-11 w-11 rounded-2xl bg-black text-white flex items-center justify-center shrink-0">
-                            <Timer className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="font-bold text-sm text-gray-800">Tiempo de preparación</p>
-                            <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
-                              Cuántos minutos de anticipación necesita tu local antes de que el cliente pueda agendar o retirar su pedido.
-                            </p>
-                          </div>
-                        </div>
-                        <select
-                          value={prepTime}
-                          onChange={(e) => setPrepTime(Number(e.target.value))}
-                          className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-black"
-                        >
-                          {[5, 10, 15, 20, 25, 30, 40, 60].map(m => (
-                            <option key={m} value={m}>{m} min</option>
-                          ))}
-                        </select>
-                      </div>
+                      <SettingsOptionRow
+                        className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5"
+                        title="Pedidos para Ahora"
+                        description="Permite recibir pedidos para ahora cuando el local esté dentro del horario comercial."
+                        icon={Clock}
+                        control={(labelProps) => <Switch {...labelProps} checked={instantEnabled} onCheckedChange={setInstantEnabled} />}
+                      />
+                      <SettingsOptionRow
+                        className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5"
+                        title="Pedidos Programados"
+                        description="Permite agendar pedidos para una hora futura dentro del horario de retiro, incluso si el local está cerrado ahora."
+                        icon={CalendarClock}
+                        control={(labelProps) => <Switch {...labelProps} checked={schedulingEnabled} onCheckedChange={setSchedulingEnabled} />}
+                      />
+                      <SettingsOptionRow
+                        className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5"
+                        title="Tiempo de preparación"
+                        description="Cuántos minutos de anticipación necesita tu local antes de que el cliente pueda agendar o retirar su pedido."
+                        icon={Timer}
+                        control={(labelProps) => (
+                          <select {...labelProps}
+                            value={prepTime}
+                            onChange={(e) => setPrepTime(Number(e.target.value))}
+                            className="shrink-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-black"
+                          >
+                            {[5, 10, 15, 20, 25, 30, 40, 60].map(m => <option key={m} value={m}>{m} min</option>)}
+                          </select>
+                        )}
+                      />
                     </div>
 
                     <div className="space-y-3">
