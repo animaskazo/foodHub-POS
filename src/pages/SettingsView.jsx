@@ -76,6 +76,7 @@ const SettingsView = () => {
   const [schedulingEnabled, setSchedulingEnabled] = useState(false);
   const [forceClosed, setForceClosed] = useState(false);
   const [closedMessage, setClosedMessage] = useState('');
+  const [showClosedBanner, setShowClosedBanner] = useState(true);
   const [prepTime, setPrepTime] = useState(0);
   const [staff, setStaff] = useState([]);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
@@ -359,6 +360,7 @@ const SettingsView = () => {
         setSchedulingEnabled(orgData.scheduling_enabled === true);
         setForceClosed(orgData.force_closed === true);
         setClosedMessage(orgData.closed_message || '');
+        setShowClosedBanner(orgData.settings?.show_closed_banner !== false);
         setPrepTime(orgData.prep_time != null ? orgData.prep_time : 0);
         setKlapApiKey(orgData.klap_api_key || '');
         setTicketExtraMessage(orgData.ticket_extra_message || '');
@@ -498,9 +500,14 @@ const SettingsView = () => {
     if (!orgId) return;
     setSaving(true);
     try {
+      const currentOrganization = await getOrganizationDetails(orgId);
+      const currentSettings = currentOrganization?.settings && typeof currentOrganization.settings === 'object'
+        ? currentOrganization.settings
+        : {};
       await updateOrganizationDetails(orgId, {
         force_closed: forceClosed,
         closed_message: closedMessage.trim() || null,
+        settings: { ...currentSettings, show_closed_banner: showClosedBanner },
       });
       alert(forceClosed ? 'Tienda cerrada temporalmente' : 'Tienda abierta nuevamente');
     } catch (error) {
@@ -988,7 +995,7 @@ const SettingsView = () => {
                       <div>
                         <p className="font-bold text-sm text-gray-800">Cerrar tienda temporalmente</p>
                         <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
-                          Los clientes podrán ver el menú, pero no podrán hacer pedidos (ni ahora ni programado). Siempre verán que no hay horarios disponibles ni pedidos para ahora.
+                          Los clientes podrán ver el menú, pero no podrán hacer pedidos (ni ahora ni programado). El aviso de cierre temporal se mostrará mientras esta opción esté activa.
                         </p>
                       </div>
                     </div>
@@ -996,6 +1003,15 @@ const SettingsView = () => {
                       checked={forceClosed}
                       onCheckedChange={setForceClosed}
                     />
+                  </div>
+                  <div className="flex items-center justify-between gap-4 border-t border-gray-100 pt-4">
+                    <div className="pr-4">
+                      <p className="font-bold text-sm text-gray-800">Mostrar aviso de horario cerrado</p>
+                      <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
+                        Muestra u oculta la barra roja cuando el local está fuera del horario comercial. Esto no cambia si puede recibir pedidos.
+                      </p>
+                    </div>
+                    <Switch checked={showClosedBanner} onCheckedChange={setShowClosedBanner} />
                   </div>
                   {forceClosed && (
                     <div>
