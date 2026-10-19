@@ -1045,7 +1045,7 @@ const SettingsView = () => {
                   <>
                     <div>
                       <h3 className="text-lg font-bold text-gray-900 mb-1">Horario Comercial</h3>
-                      <p className="text-sm text-gray-500">Días y horas en que tu local recibe pedidos.</p>
+                      <p className="text-sm text-gray-500">Horario en que tu local acepta pedidos para ahora. Los pedidos programados pueden seguir disponibles fuera de este horario.</p>
                     </div>
 
                     <div className="space-y-3">
@@ -1077,7 +1077,7 @@ const SettingsView = () => {
                     <div>
                       <h3 className="text-lg font-bold text-gray-900 mb-1">Horarios de Retiro</h3>
                       <p className="text-sm text-gray-500">
-                        Define en qué horarios tus clientes pueden retirar o agendar sus pedidos online. Fuera de estos horarios solo podrán agendar.
+                        Define los horarios de retiro disponibles para pedidos programados. Tus clientes pueden entrar y agendar aunque el local esté cerrado en ese momento.
                       </p>
                     </div>
 
@@ -1090,7 +1090,7 @@ const SettingsView = () => {
                           <div>
                             <p className="font-bold text-sm text-gray-800">Pedidos para Ahora</p>
                             <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
-                              Permite que tus clientes pidan con retiro inmediato mientras estés dentro del horario de retiro.
+                              Permite recibir pedidos para ahora cuando el local esté dentro del horario comercial.
                             </p>
                           </div>
                         </div>
@@ -1108,7 +1108,7 @@ const SettingsView = () => {
                           <div>
                             <p className="font-bold text-sm text-gray-800">Pedidos Programados</p>
                             <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
-                              Permite que tus clientes agenden su pedido para una hora futura dentro del horario de retiro.
+                              Permite agendar pedidos para una hora futura dentro del horario de retiro, incluso si el local está cerrado ahora.
                             </p>
                           </div>
                         </div>
