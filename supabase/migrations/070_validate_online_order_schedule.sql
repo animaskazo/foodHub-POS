@@ -1,4 +1,4 @@
--- Immediate orders are accepted during business hours OR pickup hours.
+-- Immediate orders are accepted only during business_hours.
 -- Scheduled orders use pickup_hours (legacy fallback to business_hours when NULL).
 create or replace function public.validate_online_order_schedule()
 returns trigger
@@ -14,13 +14,12 @@ declare
   v_force_closed boolean;
   v_prep_time integer;
   v_schedule jsonb;
-  v_candidate jsonb;
   v_day_key text;
   v_day jsonb;
   v_target_local timestamp without time zone;
   v_open time without time zone;
   v_close time without time zone;
-  v_within_candidate boolean;
+  v_within_business_hours boolean;
 begin
   if new.order_type is distinct from 'online' then
     return new;
@@ -90,14 +89,14 @@ begin
 
     v_open := (v_day ->> 'open')::time;
     v_close := (v_day ->> 'close')::time;
-    v_within_candidate := case
+    v_within_business_hours := case
       when v_close >= v_open then
         v_target_local::time >= v_open and v_target_local::time <= v_close
       else
         v_target_local::time >= v_open or v_target_local::time <= v_close
     end;
 
-    if not v_within_candidate then
+    if not v_within_business_hours then
       raise exception 'El pedido inmediato está fuera del horario comercial.';
     end if;
   end if;
