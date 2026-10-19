@@ -77,7 +77,10 @@ const isWithinDay = (availability, date) => {
 const canOrderNow = (org) => {
   if (org?.force_closed === true || org?.instant_enabled === false) return false;
   const businessHours = org?.business_hours;
-  if (!businessHours || Object.keys(businessHours).length === 0) return true;
+  if (!businessHours || Object.keys(businessHours).length === 0) {
+    const pickupHours = org?.pickup_hours;
+    return !pickupHours || Object.keys(pickupHours).length === 0;
+  }
   return isWithinDay(businessHours, new Date());
 };
 
