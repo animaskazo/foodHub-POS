@@ -804,6 +804,7 @@ const OrderView = () => {
   // Cierre temporal total de la tienda: bloquea navegación y pedido,
   // pero siempre permite ver la confirmación de un pago en curso (retorno con orderId).
   const storeForceClosed = org?.force_closed === true && !searchParams.get('orderId');
+  const showScheduleClosedBanner = org?.settings?.show_closed_banner !== false;
   const closureText = org?.closed_message || 'No hay horarios disponibles ni pedidos para ahora.';
   const marqueeDuration = Math.min(22, Math.max(8, closureText.length * 0.28));
 
@@ -873,7 +874,7 @@ const OrderView = () => {
             </div>
           </div>
         ) : (
-          !isOpen && (
+          !isOpen && showScheduleClosedBanner && (
             <div className="sticky top-0 z-40 bg-red-500 text-white text-[13px] font-bold text-center py-1.5 px-4 w-full tracking-wide">
               En este momento el local se encuentra cerrado
             </div>
