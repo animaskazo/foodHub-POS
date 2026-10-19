@@ -317,9 +317,7 @@ const TablesSettingsView = () => {
                   />
                   <div className="flex gap-3">
                     <div className="relative w-32">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Users className="text-gray-400 h-3.5 w-3.5" />
-                      </div>
+                      <Users className="absolute inset-y-0 left-0 pointer-events-none h-3.5 w-3.5" />
                       <input 
                         type="number" 
                         min="1"

@@ -8,9 +8,7 @@ export default function AuthLayout({ children }) {
       <div className="flex flex-col gap-4 p-6 md:p-10">
         <div className="flex justify-center gap-2 md:justify-start">
           <Link to="/" className="flex items-center gap-2 font-medium">
-            <div className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <Utensils className="size-4" />
-            </div>
+            <Utensils className="size-4" />
             FoodHub
           </Link>
         </div>

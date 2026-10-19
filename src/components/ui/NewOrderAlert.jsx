@@ -164,7 +164,7 @@ const timer = setTimeout(async () => {
   return (
     <>
       <div 
-        className={`fixed z-[100] bg-[#18181b] text-white shadow-2xl border border-zinc-700/80 transition-all duration-300 transform 
+        className={`fixed z-[100] bg-white text-black shadow-2xl border border-gray-300/80 transition-all duration-300 transform
           ${isVisible ? 'translate-y-0 opacity-100 scale-100' : '-translate-y-4 opacity-0 scale-95 pointer-events-none'}
           top-4 left-4 right-4 p-4 rounded-2xl
           md:top-6 md:right-6 md:left-auto md:w-[420px] md:p-5
@@ -176,7 +176,7 @@ const timer = setTimeout(async () => {
             stopTitleFlash();
             setTimeout(clearLatestNewOrder, 300);
           }}
-          className="absolute top-2 right-2 md:top-3 md:right-3 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+          className="absolute top-2 right-2 md:top-3 md:right-3 text-gray-400 hover:text-black rounded-full hover:bg-white/10 transition-colors"
           title="Cerrar alerta"
         >
           <X className="h-4 w-4 md:h-5 md:w-5" />
@@ -184,35 +184,27 @@ const timer = setTimeout(async () => {
 
         <div className="flex items-start gap-3 md:gap-4">
           {/* Icon based on Channel */}
-          <div className={`p-2.5 md:p-3 rounded-2xl shrink-0 ${
-            isWhatsapp 
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-              : isOnline 
-                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' 
-                : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-          }`}>
-            {isWhatsapp ? (
-              <MessageCircle className="h-6 w-6" />
+          {isWhatsapp ? (
+              <MessageCircle className="shrink-0 h-6 w-6" />
             ) : isOnline ? (
-              <Globe className="h-6 w-6" />
+              <Globe className="shrink-0 h-6 w-6" />
             ) : latestNewOrder?.order_type === 'table' ? (
-              <Store className="h-6 w-6" />
+              <Store className="shrink-0 h-6 w-6" />
             ) : (
-              <ChefHat className="h-6 w-6" />
+              <ChefHat className="shrink-0 h-6 w-6" />
             )}
-          </div>
 
           <div className="flex-1 min-w-0 pr-4 md:pr-0">
             {/* Header: Title & Channel Badges */}
             <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
               <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-base md:text-lg leading-tight tracking-tight text-white">
+                <h3 className="font-extrabold text-base md:text-lg leading-tight tracking-tight text-black">
                   {isWhatsapp ? '¡Nuevo WhatsApp!' : isOnline ? '¡Nuevo Pedido Web!' : '¡Nuevo Pedido!'}
                 </h3>
               </div>
               <div className="flex items-center gap-1.5">
                 {/* Order Number Badge */}
-                <span className="font-mono font-black text-xs px-2 py-0.5 rounded-md bg-white/10 text-white border border-white/10">
+                <span className="font-mono font-black text-xs px-2 py-0.5 rounded-md bg-white/10 text-black border border-white/10">
                   #{latestNewOrder?.order_number || latestNewOrder?.id?.slice(0, 4)}
                 </span>
               </div>
@@ -222,20 +214,20 @@ const timer = setTimeout(async () => {
             <div className="flex items-center gap-1.5 mb-2.5 flex-wrap">
               <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 ${
                 isWhatsapp 
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                  ? 'bg-emerald-500/20 text-emerald-700 border border-emerald-500/30'
                   : isOnline 
-                    ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                    : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
+                    ? 'bg-blue-500/20 text-blue-700 border border-blue-500/30'
+                    : 'bg-gray-100 text-gray-700 border border-gray-300'
               }`}>
                 {isWhatsapp ? 'WhatsApp' : isOnline ? 'Tienda Online' : 'POS'}
               </span>
 
               {isDelivery ? (
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase tracking-wider flex items-center gap-1">
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-700 border border-amber-500/30 uppercase tracking-wider flex items-center gap-1">
                   <Van className="h-3 w-3" /> Delivery
                 </span>
               ) : (
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700 uppercase tracking-wider flex items-center gap-1">
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-gray-100 text-gray-700 border border-gray-300 uppercase tracking-wider flex items-center gap-1">
                   <ShoppingBag className="h-3 w-3" /> Retiro
                 </span>
               )}
@@ -246,7 +238,7 @@ const timer = setTimeout(async () => {
                   e.stopPropagation();
                   testAlertSound(isOnline || isWhatsapp);
                 }}
-                className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 ml-auto flex items-center transition-colors"
+                className="bg-gray-100/80 hover:bg-gray-200 text-gray-700 border border-gray-300 ml-auto flex items-center transition-colors"
                 title="Probar sonido"
                variant="outline" size="default">
                 <Volume2 className="h-2.5 w-2.5" />
@@ -258,19 +250,19 @@ const timer = setTimeout(async () => {
             {(latestNewOrder?.customer_name || latestNewOrder?.delivery_address || latestNewOrder?.customer_phone) && (
               <div className="bg-black/40 rounded-xl p-2.5 mb-3 text-xs border border-white/5 space-y-1">
                 {latestNewOrder.customer_name && (
-                  <div className="font-semibold text-zinc-200 truncate">
-                    Cliente: <span className="text-white font-bold">{latestNewOrder.customer_name}</span>
+                  <div className="font-semibold text-gray-800 truncate">
+                    Cliente: <span className="text-black font-bold">{latestNewOrder.customer_name}</span>
                   </div>
                 )}
                 {latestNewOrder.customer_phone && (
-                  <div className="text-zinc-400 flex items-center gap-1 truncate text-[11px]">
-                    <Phone className="h-3 w-3 shrink-0 text-emerald-400" />
+                  <div className="text-gray-600 flex items-center gap-1 truncate text-[11px]">
+                    <Phone className="h-3 w-3 shrink-0" />
                     <span>{latestNewOrder.customer_phone}</span>
                   </div>
                 )}
                 {isDelivery && latestNewOrder.delivery_address && (
-                  <div className="text-amber-300/90 flex items-start gap-1 text-[11px] font-medium leading-tight">
-                    <MapPin className="h-3 w-3 shrink-0 text-amber-400 mt-0.5" />
+                  <div className="text-amber-700/90 flex items-start gap-1 text-[11px] font-medium leading-tight">
+                    <MapPin className="h-3 w-3 shrink-0 mt-0.5" />
                     <span className="truncate">{latestNewOrder.delivery_address}</span>
                   </div>
                 )}
@@ -278,24 +270,24 @@ const timer = setTimeout(async () => {
             )}
 
             {/* Items Summary */}
-            <div className="bg-zinc-900/90 rounded-xl p-3 mb-3 text-sm border border-white/5">
+            <div className="bg-gray-50/90 rounded-xl p-3 mb-3 text-sm border border-white/5">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">Total</span>
-                <span className="font-black text-base text-emerald-400">${latestNewOrder?.total?.toLocaleString('es-CL')}</span>
+                <span className="font-black text-base text-emerald-700">${latestNewOrder?.total?.toLocaleString('es-CL')}</span>
               </div>
               
               {latestNewOrder?.order_items && latestNewOrder.order_items.length > 0 && (
                 <div className="border-t border-white/10 pt-2 mt-2">
                   <div className="flex justify-between items-center mb-1.5">
                     <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Productos</span>
-                    <span className="bg-white/10 text-white text-[10px] px-2 py-0.5 rounded font-bold">
+                    <span className="bg-white/10 text-black text-[10px] px-2 py-0.5 rounded font-bold">
                       {latestNewOrder.order_items.reduce((acc, item) => acc + item.quantity, 0)} items
                     </span>
                   </div>
                   <ul className="space-y-1">
                     {latestNewOrder.order_items.slice(0, 3).map((item, idx) => (
                       <li key={idx} className="text-gray-300 text-xs truncate flex items-center gap-1.5">
-                        <span className="font-bold text-amber-400">{item.quantity}x</span>
+                        <span className="font-bold text-amber-700">{item.quantity}x</span>
                         <span className="truncate">{item.product_name}</span>
                       </li>
                     ))}
@@ -312,7 +304,7 @@ const timer = setTimeout(async () => {
               <Button
                 onClick={handleManualPrint}
                 disabled={isPrinting}
-                className="bg-white/10 text-white hover:bg-white/20 transition-colors flex items-center justify-center disabled:opacity-50"
+                className="bg-white/10 text-black hover:bg-white/20 transition-colors flex items-center justify-center disabled:opacity-50"
                 title="Imprimir Ticket"
                variant="ghost" size="default">
                 {isPrinting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}

@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/button';
@@ -181,18 +182,10 @@ const VariantSelectionModal = ({ isOpen, onClose, product, onSelectVariant, edit
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0 ${
-                        isUnavailable
-                          ? 'border-gray-300 bg-gray-100'
-                          : isSelected ? 'border-blue-600 bg-blue-600' : 'border-gray-300 bg-white'
-                      }`}>
-                        {isSelected && (
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3.5} stroke="currentColor" className="w-3 h-3 text-white">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                          </svg>
+                      {isSelected && (
+                          <Check className="transition-all shrink-0 w-3 h-3" aria-hidden="true" />
                         )}
-                      </div>
-                      <IngredientIcon icon={ing.icon} className="h-5 w-5 text-gray-900 shrink-0" />
+                      <IngredientIcon icon={ing.icon} className="h-5 w-5 shrink-0" />
                       <span className="font-bold text-[15px] sm:text-sm text-gray-900 leading-snug">{ing.name}</span>
                     </div>
                     {isUnavailable ? (

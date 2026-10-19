@@ -89,7 +89,6 @@ const ShiftsSettingsView = () => {
     <SettingsOptionRow
       className="p-4 bg-white rounded-xl border border-gray-100 hover:border-blue-100 transition-colors"
       icon={Icon}
-      iconClassName="bg-blue-50 text-blue-600"
       title={title}
       description={description}
       control={(labelProps) => (
@@ -104,9 +103,7 @@ const ShiftsSettingsView = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-      </div>
+      <Loader2 className="h-8 w-8 animate-spin" />
     );
   }
 
@@ -120,7 +117,7 @@ const ShiftsSettingsView = () => {
             <Button 
               onClick={handleSave} 
               disabled={saving}
-              className="bg-black hover:bg-gray-800 text-white gap-2 w-full sm:w-auto"
+              className="bg-gray-100 hover:bg-gray-100 text-black gap-2 w-full sm:w-auto"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Guardar Cambios

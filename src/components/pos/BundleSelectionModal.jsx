@@ -1,9 +1,10 @@
+import { Check, Plus, Minus } from 'lucide-react';
 import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/button';
 import { buildSelection, selectionFromCartOption, defaultSelectionsForSlot } from '../../utils/bundleSelections';
-import { Plus, Minus } from 'lucide-react';
+
 
 const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem, onDelete, outOfStockIds = [] }) => {
   const [selections, setSelections] = useState({});
@@ -360,15 +361,7 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
                     >
                       <div className="flex items-center gap-3">
                         {/* Checkbox Icon */}
-                        <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-all ${
-                          isSelected
-                            ? 'border-blue-600 bg-blue-600 text-white'
-                            : 'border-gray-300 bg-white text-transparent'
-                        }`}>
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3.5} stroke="currentColor" className="w-3.5 h-3.5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                          </svg>
-                        </div>
+                        <Check className={[` shrink-0 transition-all ${isSelected ? " " : " opacity-0"}`, "w-3.5 h-3.5"].filter(Boolean).join(" ")} aria-hidden="true" />
                         <span className="font-bold text-[15px] sm:text-sm text-gray-900 leading-snug">{opt.name}</span>
                         {isOutOfStock ? (
                           <span className="text-[9px] text-white bg-red-500 px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider">Sin stock</span>

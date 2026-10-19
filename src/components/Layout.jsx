@@ -150,14 +150,14 @@ const Layout = () => {
         <div className="h-16 flex items-center justify-between px-6 border-b shrink-0">
           <div className="flex flex-col justify-center">
             <div className="flex items-center">
-              <Store className="h-5 w-5 text-black mr-2" />
+              <Store className="h-5 w-5 mr-2" />
               <span className="font-bold text-lg">{organization?.name || 'FoodHub'}</span>
             </div>
             <span className="text-[10.5px] text-gray-500 mt-0.5 ml-7 leading-none">Tuviste {todayVisits} Visitas hoy</span>
           </div>
           <div className="flex items-center gap-1">
             <IconButton onClick={toggleSidebar} className="hidden lg:flex hover:bg-gray-100 text-gray-500 transition-colors" label="Anterior" variant="ghost">
-              <ChevronLeft className={`h-5 w-5 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`}  aria-hidden="true" />
+              <ChevronLeft className={`h-5 w-5 transition-transform ${isSidebarCollapsed ? "rotate-180" : ""}`}  aria-hidden="true" />
             </IconButton>
             <IconButton onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden hover:bg-gray-100 text-gray-500 transition-colors" label="Cerrar" variant="ghost">
               <X className="h-6 w-6" aria-hidden="true" />
@@ -349,7 +349,7 @@ className={({ isActive }) =>
                   <Settings className="h-[18px] w-[18px]" />
                   Configuración
                 </div>
-                <ChevronDown className={`h-4 w-4 transition-transform ${isSettingsOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`h-4 w-4 transition-transform ${isSettingsOpen ? "rotate-180" : ""}`} />
               </button>
 
               {isSettingsOpen && (
@@ -480,7 +480,7 @@ className={({ isActive }) =>
           <div className="flex flex-col gap-2 mb-1">
             <NavLink
               to="/pos"
-              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[13px] font-bold transition-all border ${isActive ? 'bg-gray-900 text-white border-gray-900 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
+              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[13px] font-bold transition-all border ${isActive ? 'bg-gray-100 text-black border-gray-900 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
                 }`}
             >
               <MonitorPlay className="h-[18px] w-[18px]" />
@@ -488,7 +488,7 @@ className={({ isActive }) =>
             </NavLink>
             <NavLink
               to="/kitchen"
-              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[13px] font-bold transition-all border ${isActive ? 'bg-gray-900 text-white border-gray-900 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
+              className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-[13px] font-bold transition-all border ${isActive ? 'bg-gray-100 text-black border-gray-900 shadow-sm' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
                 }`}
             >
               <ChefHat className="h-[18px] w-[18px]" />

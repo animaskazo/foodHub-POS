@@ -1,7 +1,9 @@
+import { Store, Search, Star, X, Plus, Check, MapPin, ExternalLink, Clock, ChefHat } from 'lucide-react';
+
 import { QuantityStepper } from '../ui/QuantityStepper';
 import { Button } from '@/components/ui/button';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { X, Plus, Check, MapPin, ExternalLink, Clock, ChefHat } from 'lucide-react';
+
 import ProductDetailView from './ProductDetailView';
 import ProductMedia from './ProductMedia';
 import ProductImageFallback from '../ui/ProductImageFallback';
@@ -69,16 +71,10 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
           </div>
         )}
         {product.isFeatured && (
-          <div className={`absolute left-2.5 z-10 w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center shadow-sm border border-yellow-300 ${isOutOfStock ? 'top-12' : 'top-2.5'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-white">
-              <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
-            </svg>
-          </div>
+          <Star className={[`absolute left-2.5 z-10 ${isOutOfStock ? "top-12" : "top-2.5"}`, "w-3.5 h-3.5"].filter(Boolean).join(" ")} aria-hidden="true" />
         )}
         {quantity > 0 && (
-          <div className="absolute top-2.5 right-2.5 w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-black/25 z-10">
-            <Check className="h-4 w-4 text-white" strokeWidth={3.5} />
-          </div>
+          <Check className="absolute top-2.5 right-2.5 z-10 h-4 w-4" strokeWidth={2} />
         )}
 
         {/* Floating Add/Counter inside image */}
@@ -91,7 +87,7 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
             isConfigurable ? (
               <Button
                 onClick={handleTap}
-                className="bg-blue-600 text-white flex items-center shadow-lg hover:bg-blue-700 transition-colors"
+                className="bg-blue-100 text-black flex items-center shadow-lg hover:bg-blue-100 transition-colors"
                variant="ghost" size="sm">
                 <span>{quantity}</span>
                 <Plus className="h-3.5 w-3.5" />
@@ -126,7 +122,7 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
               aria-label={`Agregar ${product.name}`}
              variant="outline" size="sm">
               <span>Agregar</span>
-              <Plus className="h-3 w-3 text-gray-900" />
+              <Plus className="h-3 w-3" />
             </Button>
           )}
         </div>
@@ -359,13 +355,14 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
               {/* Front face: logo */}
               <div
                 className="absolute inset-0 rounded-full bg-white border-2 border-white shadow-md overflow-hidden bg-cover bg-center flex items-center justify-center"
+                data-icon-placeholder={!org.logo_url}
                 style={{
                   backfaceVisibility: 'hidden',
                   WebkitBackfaceVisibility: 'hidden',
                   ...(org.logo_url ? { backgroundImage: `url(${org.logo_url})` } : {})
                 }}
               >
-                {!org.logo_url && <span className="text-4xl">🏬</span>}
+                {!org.logo_url && <Store className="size-8" aria-hidden="true" />}
               </div>
               {/* Back face: white */}
               <div
@@ -478,7 +475,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
         <div className="max-w-3xl mx-auto px-4 py-4">
           {filteredProducts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-gray-300">
-              <span className="text-5xl mb-4">🔍</span>
+              <Search className="size-10 mb-4" aria-hidden="true" />
               <p className="font-semibold text-lg text-gray-400">Sin resultados</p>
               <p className="text-sm text-gray-400 mt-1">Intenta con otro término</p>
             </div>
@@ -587,7 +584,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
       <Modal isOpen={isHoursModalOpen} onClose={() => setIsHoursModalOpen(false)} title="Horarios de Atención">
         <div className="p-4 mb-2">
           <div className="flex items-center gap-2.5 text-gray-800 font-bold mb-4">
-            <Clock className="w-5 h-5 text-gray-500" />
+            <Clock className="w-5 h-5" />
             <span className="text-[15px]">Disponibilidad Semanal</span>
           </div>
           <div className="space-y-1">

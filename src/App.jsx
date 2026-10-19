@@ -28,7 +28,7 @@ import UpdatePasswordView from './pages/UpdatePasswordView';
 import ForgotPasswordView from './pages/ForgotPasswordView';
 import ProtectedRoute from './components/ProtectedRoute';
 import SeoNoIndex from './components/SeoNoIndex';
-import { Toaster } from 'sonner';
+import { Toaster } from './components/ui/Toaster';
 import { getTenantSlug } from './utils/tenant';
 
 function App() {

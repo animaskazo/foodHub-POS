@@ -162,9 +162,7 @@ const CouponsSection = ({ orgId }) => {
   // ── Loading ───────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-      </div>
+      <Loader2 className="h-6 w-6 animate-spin" />
     );
   }
 
@@ -173,7 +171,7 @@ const CouponsSection = ({ orgId }) => {
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
           <input
             type="text"
             value={search}
@@ -195,9 +193,7 @@ const CouponsSection = ({ orgId }) => {
       {/* Empty state */}
       {coupons.length === 0 ? (
         <div className="text-center py-12">
-          <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-            <Tag className="h-6 w-6 text-gray-400" />
-          </div>
+          <Tag className="mx-auto mb-3 h-6 w-6" />
           <p className="text-sm text-gray-500 max-w-sm mx-auto">
             No hay cupones aún. Crea el primero para ofrecer descuentos a tus clientes.
           </p>
@@ -239,7 +235,7 @@ const CouponsSection = ({ orgId }) => {
                 >
                   {/* Coupon info */}
                   <div className="flex items-center gap-3 min-w-0">
-                    <Tag className="h-4 w-4 text-gray-900 shrink-0" />
+                    <Tag className="h-4 w-4 shrink-0" />
                     <div className="min-w-0">
                       <span className="font-bold text-sm text-gray-900 truncate block">{coupon.code}</span>
                     </div>
@@ -249,7 +245,7 @@ const CouponsSection = ({ orgId }) => {
                       onClick={() => handleCopyCode(coupon.code)}
                       title="Copiar código"
                     >
-                      {copiedCode === coupon.code ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                      {copiedCode === coupon.code ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                     </Button>
                   </div>
 
@@ -347,7 +343,7 @@ const CouponsSection = ({ orgId }) => {
                 <button
                   onClick={() => setForm({ ...form, type: 'percentage' })}
                   className={`flex items-center gap-1.5 px-4 text-sm font-bold rounded-full transition-all ${
-                    form.type === 'percentage' ? 'bg-black text-white' : 'text-gray-500 hover:text-black'
+                    form.type === 'percentage' ? 'bg-gray-100 text-black' : 'text-gray-500 hover:text-black'
                   }`}
                 >
                   <Percent className="h-3.5 w-3.5" />
@@ -356,7 +352,7 @@ const CouponsSection = ({ orgId }) => {
                 <button
                   onClick={() => setForm({ ...form, type: 'fixed' })}
                   className={`flex items-center gap-1.5 px-4 text-sm font-bold rounded-full transition-all ${
-                    form.type === 'fixed' ? 'bg-black text-white' : 'text-gray-500 hover:text-black'
+                    form.type === 'fixed' ? 'bg-gray-100 text-black' : 'text-gray-500 hover:text-black'
                   }`}
                 >
                   <DollarSign className="h-3.5 w-3.5" />

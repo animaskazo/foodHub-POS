@@ -1,7 +1,20 @@
+import {
+  ShoppingCart,
+  Trash2,
+  Plus,
+  Monitor,
+  X,
+  Pencil as Edit2,
+  ChefHat,
+  Tag,
+  Check,
+  RotateCcw,
+  ArrowLeftRight
+} from 'lucide-react';
 import { QuantityStepper } from '../ui/QuantityStepper';
 import { IconButton } from '../ui/IconButton';
 import React from 'react';
-import { Trash2, Plus, Monitor, X, Pencil as Edit2, ChefHat, Tag, Check, RotateCcw, ArrowLeftRight } from 'lucide-react';
+
 import { Separator } from "@/components/ui/separator";
 import { getOpenOrders, sumOpenOrdersTotal } from '../../services/orderService';
 import { Button } from "../ui/button";
@@ -93,7 +106,7 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                           : 'rounded-xl bg-white text-gray-900 border-blue-200'
                       }`}
                     >
-                      <Monitor className={`h-4 w-4 md:h-5 md:w-5 shrink-0 ${activeTable ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <Monitor className="h-4 w-4 md:h-5 md:w-5 shrink-0" />
                       {activeTable ? (
                         <span className="whitespace-nowrap">
                           {!/^mesa\b/i.test(activeTable.name) && (
@@ -107,10 +120,10 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                           <span className="hidden md:inline">Venta Directa</span>
                         </>
                       )}
-                      <ArrowLeftRight className="hidden md:block h-4 w-4 shrink-0 text-gray-400" />
+                      <ArrowLeftRight className="hidden md:block h-4 w-4 shrink-0" />
                     </button>
                     {activeTable && (
-                      <button
+                      <button data-icon-button="true"
                         type="button"
                         onClick={onClearTable}
                         title="Quitar mesa"
@@ -124,7 +137,7 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 h-10 md:h-12 select-none">
-                    <Monitor className="h-4 w-4 md:h-5 md:w-5 shrink-0 text-gray-400" />
+                    <Monitor className="h-4 w-4 md:h-5 md:w-5 shrink-0" />
                     <span className="text-sm md:text-base font-semibold text-gray-900">Venta Directa</span>
                   </div>
                 )}
@@ -216,9 +229,7 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
       <div className="flex-1 overflow-y-auto">
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-300 pb-12">
-            <svg className="h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.4 5.6a1 1 0 00.9 1.4h11a1 1 0 00.9-1.4L17 13" />
-            </svg>
+            <ShoppingCart className="h-12 w-12 mb-4" aria-hidden="true" />
             <p className="font-semibold text-lg">Sin artículos</p>
             <p className="text-sm mt-1">Toca un producto para agregarlo</p>
           </div>
@@ -348,7 +359,7 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
             ) : (
               <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
                 <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-600" />
+                  <Check className="h-4 w-4" />
                   <span className="text-xs font-semibold text-green-700">{coupon.code}</span>
                   <span className="text-xs text-green-600">
                     {coupon.type === 'percentage' ? `-${coupon.value}%` : `-$${coupon.value.toLocaleString('es-CL')}`}

@@ -69,7 +69,7 @@ const AIImportModal = ({ isOpen, onClose, onSuccess, organizationId = null }) =>
   }, [isOpen]);
 
   return (
-    <Modal isOpen={isOpen} onClose={step === 'processing' || step === 'saving' ? undefined : onClose} title="Importar Menú con IA ✨" maxWidth="max-w-3xl">
+    <Modal isOpen={isOpen} onClose={step === 'processing' || step === 'saving' ? undefined : onClose} title="Importar Menú con IA" maxWidth="max-w-3xl">
       <div className="p-6">
         {step === 'upload' && (
           <div className="space-y-6">
@@ -85,9 +85,7 @@ const AIImportModal = ({ isOpen, onClose, onSuccess, organizationId = null }) =>
                 {previewUrl ? (
                   <img src={previewUrl} alt="Preview" className="h-48 object-contain rounded-lg mb-4 shadow-sm" />
                 ) : (
-                  <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                    <Upload className="h-8 w-8 text-gray-400" />
-                  </div>
+                  <Upload className="mb-4 h-8 w-8" />
                 )}
                 <span className="font-semibold text-gray-700 text-lg">
                   {file ? file.name : 'Haz clic para subir una foto de tu menú'}
@@ -106,7 +104,7 @@ const AIImportModal = ({ isOpen, onClose, onSuccess, organizationId = null }) =>
 
         {step === 'processing' && (
           <div className="py-20 flex flex-col items-center justify-center text-center">
-            <Loader2 className="h-12 w-12 text-blue-600 animate-spin mb-6" />
+            <Loader2 className="h-12 w-12 animate-spin mb-6" />
             <h3 className="text-xl font-bold text-gray-900 mb-2">La IA está leyendo tu menú...</h3>
             <p className="text-gray-500 max-w-sm">
               Claude está identificando categorías, productos, descripciones e ingredientes extra. Esto puede tomar unos segundos.
@@ -118,7 +116,7 @@ const AIImportModal = ({ isOpen, onClose, onSuccess, organizationId = null }) =>
           <div className="space-y-6">
             <div className="bg-green-50 border border-green-100 p-4 rounded-xl flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-6 w-6 text-green-600" />
+                <CheckCircle2 className="h-6 w-6" />
                 <div>
                   <h4 className="font-semibold text-green-900">¡Análisis completado!</h4>
                   <p className="text-sm text-green-700">Por favor, revisa que la estructura sea correcta antes de guardar.</p>
@@ -203,7 +201,7 @@ const AIImportModal = ({ isOpen, onClose, onSuccess, organizationId = null }) =>
 
         {step === 'saving' && (
           <div className="py-20 flex flex-col items-center justify-center text-center">
-            <Loader2 className="h-12 w-12 text-blue-600 animate-spin mb-6" />
+            <Loader2 className="h-12 w-12 animate-spin mb-6" />
             <h3 className="text-xl font-bold text-gray-900 mb-2">Guardando en tu base de datos...</h3>
             <p className="text-gray-500 max-w-sm">
               Estamos creando todas las categorías, ingredientes y productos automáticamente.

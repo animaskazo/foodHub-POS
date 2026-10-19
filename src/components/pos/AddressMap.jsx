@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import { mapPinIcon } from '../ui/mapIcon';
 import { geocodeAddress } from '../../utils/geo';
 import { MapPin, Loader2 } from 'lucide-react';
 
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
 
 const MapUpdater = ({ coords }) => {
   const map = useMap();
@@ -53,7 +47,7 @@ const AddressMap = ({ address, coords: initialCoords, emptyLabel = 'Ubicación n
   if (state === 'empty' || state === 'error') {
     return (
       <div className="h-full w-full flex flex-col items-center justify-center bg-gray-50 text-gray-400 gap-2">
-        <MapPin className="h-8 w-8 text-gray-300" />
+        <MapPin className="h-8 w-8" />
         <span className="text-sm font-medium">{state === 'error' ? 'No se pudo ubicar la dirección' : emptyLabel}</span>
       </div>
     );
@@ -61,9 +55,7 @@ const AddressMap = ({ address, coords: initialCoords, emptyLabel = 'Ubicación n
 
   if (state === 'loading') {
     return (
-      <div className="h-full w-full flex items-center justify-center bg-gray-50 text-gray-400">
-        <Loader2 className="h-6 w-6 animate-spin" />
-      </div>
+      <Loader2 className="h-6 w-6 animate-spin" />
     );
   }
 
@@ -75,7 +67,7 @@ const AddressMap = ({ address, coords: initialCoords, emptyLabel = 'Ubicación n
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <MapUpdater coords={coords} />
-        <Marker position={[coords.lat, coords.lng]} />
+        <Marker icon={mapPinIcon} position={[coords.lat, coords.lng]} />
       </MapContainer>
     </div>
   );

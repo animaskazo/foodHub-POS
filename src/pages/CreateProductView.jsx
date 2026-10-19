@@ -1,3 +1,21 @@
+import {
+  Film,
+  X,
+  Image as ImageIcon,
+  Store,
+  Globe,
+  MessageCircle,
+  Plus,
+  Minus,
+  Search,
+  ChevronDown,
+  Trash2,
+  Loader2,
+  Sparkles,
+  Check,
+  ShieldAlert,
+  ArrowLeft
+} from 'lucide-react';
 import { SettingsOptionRow } from '@/components/ui/SettingsOptionRow';
 import { QuantityStepper } from '../components/ui/QuantityStepper';
 import { IconButton } from '@/components/ui/IconButton';
@@ -24,9 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  X, Image as ImageIcon, Store, Globe, MessageCircle, Plus, Minus, Search, ChevronDown, Trash2, Loader2, Sparkles, Check, ShieldAlert, ArrowLeft
-} from 'lucide-react';
+
 
 
 const CreateProductView = () => {
@@ -457,9 +473,7 @@ const CreateProductView = () => {
       <main className="max-w-5xl mx-auto px-6 py-8 pt-[104px]">
         {superadminMode && (
           <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 shrink-0">
-              <ShieldAlert className="h-5 w-5 text-amber-700" />
-            </span>
+            <ShieldAlert className="shrink-0 h-5 w-5" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-amber-900">
                 Modo Super Admin{superOrgName ? ` · ${superOrgName}` : ''}
@@ -549,9 +563,9 @@ const CreateProductView = () => {
                       title="Crear descripción con IA"
                       variant="secondary">
                       {isGeneratingDescription ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
-                        <Sparkles className="h-3.5 w-3.5 text-blue-600 fill-current" />
+                        <Sparkles className="h-3.5 w-3.5" />
                       )}
                       Crear con IA
                     </Button>
@@ -578,11 +592,9 @@ const CreateProductView = () => {
                   title={formData.imageUrl ? "Click para ampliar" : ""}
                 >
                   {!formData.imageUrl ? (
-                    <ImageIcon className="h-10 w-10 text-gray-300" />
+                    <ImageIcon className="h-10 w-10" />
                   ) : (
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-200">
-                      <Search className="h-6 w-6 text-white" />
-                    </div>
+                    <Search className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-6 w-6" />
                   )}
                 </div>
 
@@ -615,11 +627,11 @@ const CreateProductView = () => {
                   <p className="text-sm text-gray-500 leading-relaxed">Si hay foto + video, en la tienda pública el video se reproduce al pasar el cursor sobre la foto. MP4/WebM, máx 20MB.</p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className="w-24 h-24 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 overflow-hidden relative">
+                  <div data-icon-placeholder={!formData.videoUrl} className="w-24 h-24 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0 overflow-hidden relative">
                     {formData.videoUrl ? (
                       <video src={formData.videoUrl} muted playsInline preload="metadata" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-2xl">🎬</span>
+                      <Film className="size-6" aria-hidden="true" />
                     )}
                   </div>
 
@@ -673,7 +685,7 @@ const CreateProductView = () => {
                       <div>
                         <div className="flex items-center gap-3 mb-3">
                           <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
                             <Input
                               className="pl-9 w-full rounded-lg"
                               placeholder="Buscar ingredientes..."
@@ -711,12 +723,8 @@ const CreateProductView = () => {
                                         : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40'
                                     }`}
                                   >
-                                    <div className={`flex items-center justify-center w-5 h-5 rounded-md border shrink-0 transition-colors ${
-                                      isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 bg-white text-transparent'
-                                    }`}>
-                                      <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                                    </div>
-                                    <IngredientIcon icon={ing.icon} name={ing.name} className={`h-6 w-6 shrink-0 ${isSelected ? 'text-blue-600' : 'text-gray-900'}`} />
+                                    <Check className={[` shrink-0 transition-colors ${isSelected ? " " : " opacity-0"}`, "h-3.5 w-3.5"].filter(Boolean).join(" ")} strokeWidth={2} />
+                                    <IngredientIcon icon={ing.icon} name={ing.name} className="h-6 w-6 shrink-0" />
                                     <div className="flex flex-col flex-1 min-w-0">
                                       <span className={`text-sm font-medium truncate ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>{ing.name}</span>
                                       <span className={`text-xs mt-0.5 ${ing.portion_quantity ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -835,7 +843,7 @@ const CreateProductView = () => {
                                     return (
                                       <div key={ing.id} className="flex items-center justify-between gap-3 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
                                         <div className="flex items-center gap-2.5 min-w-0">
-                                          <IngredientIcon icon={ing.icon} name={ing.name} className="h-5 w-5 text-gray-900 shrink-0" />
+                                          <IngredientIcon icon={ing.icon} name={ing.name} className="h-5 w-5 shrink-0" />
                                           <div className="flex flex-col min-w-0">
                                             <span className="text-sm font-medium text-gray-800 truncate">{ing.name}</span>
                                             <span className={`text-xs ${ing.portion_quantity ? 'text-gray-400' : 'text-gray-400 italic'}`}>
@@ -883,7 +891,7 @@ const CreateProductView = () => {
                       <div>
                         <div className="flex items-center gap-3 mb-3">
                           <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
                             <Input
                               className="pl-9 w-full rounded-lg"
                               placeholder="Buscar opciones..."
@@ -921,12 +929,8 @@ const CreateProductView = () => {
                                         : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40'
                                     }`}
                                   >
-                                    <div className={`flex items-center justify-center w-5 h-5 rounded-md border shrink-0 transition-colors ${
-                                      isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 bg-white text-transparent'
-                                    }`}>
-                                      <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                                    </div>
-                                    <IngredientIcon icon={ing.icon} name={ing.name} className={`h-6 w-6 shrink-0 ${isSelected ? 'text-blue-600' : 'text-gray-900'}`} />
+                                    <Check className={[` shrink-0 transition-colors ${isSelected ? " " : " opacity-0"}`, "h-3.5 w-3.5"].filter(Boolean).join(" ")} strokeWidth={2} />
+                                    <IngredientIcon icon={ing.icon} name={ing.name} className="h-6 w-6 shrink-0" />
                                     <div className="flex flex-col flex-1 min-w-0">
                                       <span className={`text-sm font-medium truncate ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}>{ing.name}</span>
                                       <span className={`text-xs mt-0.5 ${ing.portion_quantity ? 'text-gray-500' : 'text-gray-400'}`}>
@@ -1261,13 +1265,13 @@ const CreateProductView = () => {
                       Define cuánto de cada materia prima se consume al preparar este artículo (ej: 20 g de café, 150 ml de leche).
                     </p>
                   </div>
-                  <ChevronDown className={`h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200 group-hover:text-gray-600 ${recipeOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-5 w-5 shrink-0 transition-transform duration-200 ${recipeOpen ? "rotate-180" : ""}`} />
                 </button>
 
                 {recipeOpen && (
                   <div className="mt-4 space-y-3">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
                       <Input
                         className="pl-9 w-full rounded-lg"
                         placeholder="Buscar insumos..."
@@ -1491,7 +1495,7 @@ const CreateProductView = () => {
                       className="py-4"
                       title="Presencial / Retiro (POS)"
                       description="Mostrar artículo en el Punto de Venta"
-                      icon={Store} iconClassName="bg-transparent text-gray-900"
+                      icon={Store}
                       control={(labelProps) => (
                         <Switch {...labelProps}
                           checked={channels.table}
@@ -1505,7 +1509,7 @@ const CreateProductView = () => {
                       className="py-4"
                       title="Tienda Online (eCommerce)"
                       description="Mostrar artículo en la tienda web"
-                      icon={Globe} iconClassName="bg-transparent text-gray-900"
+                      icon={Globe}
                       control={(labelProps) => (
                         <Switch {...labelProps}
                           checked={channels.online}
@@ -1519,7 +1523,7 @@ const CreateProductView = () => {
                       className="py-4"
                       title="Agente de WhatsApp"
                       description="Hacer disponible este artículo vía WhatsApp"
-                      icon={MessageCircle} iconClassName="bg-transparent text-gray-900"
+                      icon={MessageCircle}
                       control={(labelProps) => (
                         <Switch {...labelProps}
                           checked={channels.whatsapp}
@@ -1536,7 +1540,7 @@ const CreateProductView = () => {
         {/* Modal para ver la imagen en grande */}
         {showImageModal && formData.imageUrl && createPortal(
           <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm overflow-hidden select-none transition-all duration-300"
+            className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-white/95 backdrop-blur-sm overflow-hidden select-none transition-all duration-300"
             onClick={() => setShowImageModal(false)}
           >
             <div

@@ -1,7 +1,18 @@
+import {
+  Star,
+  Search,
+  Keyboard as KeyboardIcon,
+  X,
+  Menu,
+  ChefHat,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Keyboard as KeyboardIcon, X, Menu, ChefHat, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+
 import { useNavigate } from 'react-router-dom';
 import { useKitchenOrders } from '../../hooks/useKitchenOrders';
 import Keyboard from 'react-simple-keyboard';
@@ -33,7 +44,7 @@ const keyboardDisplay = {
   '{bksp}': '⌫',
   '{shift}': '⇧',
   '{space}': 'Espacio',
-  '{clear}': '✕ Limpiar',
+  '{clear}': 'Limpiar',
 };
 
 const ProductGrid = ({ 
@@ -173,11 +184,7 @@ const ProductGrid = ({
         )}
 
         {product.isFeatured && (
-          <div className={`absolute left-2 z-10 w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center shadow-sm border border-yellow-300 ${isOutOfStock ? 'top-10' : 'top-2'}`}>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-white">
-              <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
-            </svg>
-          </div>
+          <Star className={[`absolute left-2 z-10 ${isOutOfStock ? "top-10" : "top-2"}`, "w-3.5 h-3.5"].filter(Boolean).join(" ")} aria-hidden="true" />
         )}
         
         {hasImage ? (
@@ -285,7 +292,7 @@ const ProductGrid = ({
           </IconButton>
           {/* Search Input */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-gray-400 pointer-events-none" />
+            <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 pointer-events-none" />
             
             {/* Desktop Input */}
             <input
@@ -322,15 +329,15 @@ const ProductGrid = ({
               className="md:hidden flex w-full h-10 pl-9 pr-9 bg-gray-100 rounded-lg text-sm items-center transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
             />
             {search ? (
-              <button
+              <button data-icon-button="true"
                 onClick={handleClearSearch}
                 className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 p-1 md:p-1.5 rounded-full bg-gray-300 active:bg-gray-400 select-none"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
                aria-label="Cerrar">
-                <X className="h-3 w-3 md:h-3.5 md:w-3.5 text-gray-600" aria-hidden="true" />
+                <X className="h-3 w-3 md:h-3.5 md:w-3.5" aria-hidden="true" />
               </button>
             ) : (
-              <button
+              <button data-icon-button="true"
                 onClick={() => {
                   setShowKeyboard(true);
                   setTimeout(() => inputRef.current?.focus(), 100);
@@ -350,7 +357,7 @@ const ProductGrid = ({
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               <span className="truncate flex-1 text-left">{activeTable ? activeTable.name : "V. Directa"}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-1" />
+              <ChevronDown className="w-3.5 h-3.5 shrink-0 ml-1" />
             </button>
           )}
 
@@ -360,7 +367,7 @@ const ProductGrid = ({
           </div>
 
           {/* Mobile Kitchen Badge Trigger (Desktop only now) */}
-          <button
+          <button data-icon-button="true"
             onClick={() => navigate('/kitchen')}
             className={`hidden md:flex relative p-2 rounded-lg shrink-0 select-none transition-colors ${newOrderFlag ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-700 active:bg-gray-200'}`}
             style={{ WebkitTapHighlightColor: 'transparent' }}
@@ -510,7 +517,7 @@ const ProductGrid = ({
           {/* Keyboard Header */}
           <div className="flex items-center justify-between px-4 py-2 border-b border-gray-700">
             <div className="flex items-center gap-3">
-              <Search className="h-4 w-4 text-gray-400" />
+              <Search className="h-4 w-4" />
               <span className="text-white text-sm font-medium">
                 {search ? `"${search}"` : 'Buscar artículo...'}
               </span>

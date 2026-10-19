@@ -12,6 +12,7 @@ const ProductImageFallback = ({ logoUrl, alt = 'Sin imagen', className = '', img
   return (
     <div
       className={`bg-gray-100 flex items-center justify-center overflow-hidden ${className}`}
+      style={logoUrl ? undefined : { background: 'transparent', border: 0, boxShadow: 'none' }}
       role="img"
       aria-label={alt}
     >
@@ -24,7 +25,7 @@ const ProductImageFallback = ({ logoUrl, alt = 'Sin imagen', className = '', img
           className={`object-contain grayscale opacity-40 max-w-[40%] max-h-[40%] rounded-xl select-none pointer-events-none ${imgClassName}`}
         />
       ) : (
-        <UtensilsCrossed className="w-1/3 h-1/3 text-gray-300" strokeWidth={1.5} />
+        <UtensilsCrossed className="w-1/3 h-1/3" strokeWidth={2} />
       )}
     </div>
   );

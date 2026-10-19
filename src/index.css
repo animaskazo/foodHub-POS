@@ -318,3 +318,32 @@
   }
   button:disabled, button[aria-disabled="true"] { cursor: default !important; }
 }
+
+/* One icon language for actions, navigation, ingredients and status symbols.
+   Charts, QR codes and brand images intentionally do not match this selector. */
+svg.lucide {
+  color: #000 !important;
+  stroke: #000 !important;
+  stroke-width: 2 !important;
+  fill: none !important;
+  background: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Functional hit areas stay accessible without drawing a container around an icon. */
+[data-icon-button="true"],
+[data-icon-group="true"] {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: #000 !important;
+}
+.foodhub-map-marker { background: none; border: 0; box-shadow: none; }
+
+[data-icon-placeholder="true"] {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}

@@ -1,9 +1,10 @@
+import { MapPin, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAccessToken, createQuote, createDeliveryWithRetry } from '../services/uberDirectService';
 import { geocodeAddress } from '../utils/geo';
-import { RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+
 
 /**
  * Admin Tool: Retry Failed Uber Deliveries
@@ -240,7 +241,7 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
         ...prev,
         [order.id]: {
           success: true,
-          message: `✅ Delivery creado: ${delivery.id}`,
+          message: `Delivery creado: ${delivery.id}`,
           deliveryId: delivery.id,
         },
       }));
@@ -253,7 +254,7 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
         ...prev,
         [order.id]: {
           success: false,
-          message: `❌ Error: ${error.message || 'No se pudo crear el delivery'}`,
+          message: `Error: ${error.message || 'No se pudo crear el delivery'}`,
           error: error.message,
         },
       }));
@@ -265,7 +266,7 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="flex items-center gap-2 mb-6">
-        <AlertCircle className="w-5 h-5 text-amber-600" />
+        <AlertCircle className="w-5 h-5" />
         <h2 className="text-lg font-bold text-gray-900">
           Reintentar Entregas Fallidas de Uber
         </h2>
@@ -273,14 +274,14 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
 
       {loading ? (
         <div className="text-center py-8">
-          <RefreshCw className="w-6 h-6 text-gray-400 animate-spin mx-auto mb-2" />
+          <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2" />
           <p className="text-gray-600">Cargando pedidos...</p>
         </div>
       ) : orders.length === 0 ? (
         <div className="text-center py-8 bg-green-50 rounded border border-green-200">
-          <CheckCircle2 className="w-8 h-8 text-green-600 mx-auto mb-2" />
+          <CheckCircle2 className="w-8 h-8 mx-auto mb-2" />
           <p className="text-green-700 font-medium">
-            ✅ No hay entregas fallidas. Todos los pedidos tienen delivery asignado.
+            No hay entregas fallidas. Todos los pedidos tienen delivery asignado.
           </p>
         </div>
       ) : (
@@ -303,7 +304,7 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
                     {order.customer_name} • {order.customer_phone}
                   </p>
                   <p className="text-sm text-gray-600 mt-1">
-                    📍 {order.delivery_address}
+                    <MapPin className="inline size-4 mr-1" aria-hidden="true" /> {order.delivery_address}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     {new Date(order.created_at).toLocaleString('es-CL')}

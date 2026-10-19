@@ -1,3 +1,4 @@
+import { ChevronDown, CircleCheck, CircleX, TriangleAlert, Loader2, DollarSign, Store } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/button';
@@ -6,7 +7,7 @@ import { openShift, closeShift, getShiftSalesBreakdown } from '../../services/sh
 import { printShiftReport } from '../../services/printerService';
 import { useAuth } from '../AuthContext';
 import { toast } from 'sonner';
-import { Loader2, DollarSign, Store } from 'lucide-react';
+
 
 const formatCurrency = (value) => '$' + Number(value || 0).toLocaleString('es-CL');
 const parseCurrency = (str) => Number((str || '').replace(/\D/g, '')) || 0;
@@ -64,7 +65,7 @@ const ShiftCloseView = ({ shift, salesData, balance, onBalanceChange, loading, f
       <details className="group border border-gray-100 rounded-xl overflow-hidden">
         <summary className="flex items-center justify-between p-3 bg-gray-50 cursor-pointer list-none">
           <span className="text-sm font-medium text-gray-700">Desglose de ventas</span>
-          <svg className="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="currentColor"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
         </summary>
         <div className="p-3 space-y-2 border-t border-gray-100 bg-white">
           <div className="grid grid-cols-2 gap-2 text-sm">
@@ -83,9 +84,7 @@ const ShiftCloseView = ({ shift, salesData, balance, onBalanceChange, loading, f
       <div className="relative">
         <label className="block text-sm font-semibold text-gray-700 mb-2">Efectivo contado <span className="text-normal font-normal text-gray-400">($)</span></label>
         <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <DollarSign className="h-6 w-6 text-gray-400" />
-          </div>
+          <DollarSign className="absolute inset-y-0 left-0 pointer-events-none h-6 w-6" />
           <Input
             type="text"
             value={balance}
@@ -112,10 +111,10 @@ const ShiftCloseView = ({ shift, salesData, balance, onBalanceChange, loading, f
           'bg-amber-50 border border-amber-200 text-amber-700'
         }`}>
           <div className="flex items-center justify-center gap-2 mb-1">
-            {isExact && <svg className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>}
-            {isShort && <svg className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/></svg>}
-            {isOver && <svg className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>}
-            <span>{isExact ? 'Cuadre exacto ✓' : isShort ? 'Faltante' : 'Sobrante'}</span>
+            {isExact && <CircleCheck className="h-6 w-6" aria-hidden="true" />}
+            {isShort && <CircleX className="h-6 w-6" aria-hidden="true" />}
+            {isOver && <TriangleAlert className="h-6 w-6" aria-hidden="true" />}
+            <span>{isExact ? 'Cuadre exacto' : isShort ? 'Faltante' : 'Sobrante'}</span>
           </div>
           <div className="text-2xl tabular-nums">{formatCurrency(Math.abs(difference))}</div>
         </div>
@@ -146,9 +145,7 @@ const ShiftCloseView = ({ shift, salesData, balance, onBalanceChange, loading, f
 
 const ShiftOpenView = ({ balance, onBalanceChange, loading, requireInput }) => (
   <div className="space-y-4 text-center">
-    <div className="w-16 h-16 mx-auto rounded-full bg-black/5 flex items-center justify-center">
-      <Store className="h-8 w-8 text-black" />
-    </div>
+    <Store className="mx-auto h-8 w-8" />
     <p className="text-gray-500">
       {requireInput
         ? 'Ingresa el monto de efectivo (sencillo) con el que inicias el turno.'
@@ -156,9 +153,7 @@ const ShiftOpenView = ({ balance, onBalanceChange, loading, requireInput }) => (
     </p>
     {requireInput && (
       <div className="relative max-w-xs mx-auto">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <DollarSign className="h-6 w-6 text-gray-400" />
-        </div>
+        <DollarSign className="absolute inset-y-0 left-0 pointer-events-none h-6 w-6" />
 <Input
             type="text"
             value={balance}
@@ -307,7 +302,7 @@ onSuccess();
           <>
             {fetchingData ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                <Loader2 className="h-8 w-8 animate-spin" />
                 <span className="ml-3 text-gray-600">Cargando turno...</span>
               </div>
             ) : shiftData && salesBreakdown ? (

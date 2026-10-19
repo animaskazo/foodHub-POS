@@ -94,9 +94,7 @@ const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable,
         
         <div className="flex-1 overflow-y-auto max-h-[60vh] bg-gray-50/50">
           {loading ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-            </div>
+            <Loader2 className="h-6 w-6 animate-spin" />
           ) : filteredTables.length === 0 ? (
             <div className="px-5 py-8 text-center text-gray-500">No hay mesas configuradas</div>
           ) : (

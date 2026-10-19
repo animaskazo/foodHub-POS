@@ -324,7 +324,7 @@ const CatalogManager = () => {
             <Sparkles className="h-4 w-4" aria-hidden="true" /> Importar menú
           </Button>
           <div className="relative order-3 w-full sm:w-auto sm:order-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
               <Input
                 className="pl-9 w-full sm:w-64 border-gray-300"
                 placeholder="Buscar"
@@ -435,7 +435,7 @@ const CatalogManager = () => {
                       </td>
                       <td colSpan={6} className="px-2 py-4 font-semibold text-gray-850">
                         <div className="flex items-center gap-2">
-                          <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} />
+                          <ChevronDown className={`h-4 w-4 transition-transform ${isCollapsed ? "-rotate-90" : ""}`} />
                           {catName} <span className="text-gray-500 text-sm font-normal">({prods.length})</span>
                         </div>
                       </td>
@@ -488,7 +488,7 @@ const CatalogManager = () => {
                               checked={selectedIds.includes(product.id)}
                               onChange={() => handleToggleSelect(product.id)}
                             />
-                            <GripVertical className="h-4 w-4 text-gray-300 group-hover:text-gray-500 cursor-grab transition-colors" />
+                            <GripVertical className="h-4 w-4 cursor-grab transition-colors" />
                           </div>
                         </td>
                         <td className="pl-4 pr-6 py-4">
@@ -639,7 +639,7 @@ const CatalogManager = () => {
                   onClick={() => toggleCategory(catName)}
                   className="flex-1 flex items-center gap-2 text-left min-w-0 py-1"
                 >
-                  <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform shrink-0 ${isCollapsed ? '-rotate-90' : ''}`} />
+                  <ChevronDown className={`h-4 w-4 transition-transform shrink-0 ${isCollapsed ? "-rotate-90" : ""}`} />
                   <span className="text-sm font-semibold text-gray-900 truncate">{catName}</span>
                   <span className="text-xs text-gray-400 shrink-0">({prods.length})</span>
                 </button>
@@ -792,9 +792,7 @@ const CatalogManager = () => {
               }}
               className="flex items-start text-left p-4 border border-gray-200 rounded-2xl hover:border-black hover:bg-gray-50 bg-white transition-all gap-4 w-full cursor-pointer"
             >
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-xl shrink-0">
-                <Tag className="h-6 w-6" />
-              </div>
+              <Tag className="shrink-0 h-6 w-6" />
               <div>
                 <h4 className="font-bold text-sm text-gray-900">Producto Único</h4>
                 <p className="text-xs text-gray-500 mt-1 leading-relaxed">Registra un plato, bebida o servicio individual con variantes, ingredientes extra y control de inventario.</p>
@@ -809,9 +807,7 @@ const CatalogManager = () => {
               }}
               className="flex items-start text-left p-4 border border-gray-200 rounded-2xl hover:border-black hover:bg-gray-50 bg-white transition-all gap-4 w-full cursor-pointer"
             >
-              <div className="p-3 bg-purple-50 text-purple-600 rounded-xl shrink-0">
-                <Plus className="h-6 w-6" />
-              </div>
+              <Plus className="shrink-0 h-6 w-6" />
               <div>
                 <h4 className="font-bold text-sm text-gray-900">Producto Múltiple (Combo)</h4>
                 <p className="text-xs text-gray-500 mt-1 leading-relaxed">Crea una promoción, paquete o combo que contenga otros productos en su interior (ej: Pizza + Bebida).</p>

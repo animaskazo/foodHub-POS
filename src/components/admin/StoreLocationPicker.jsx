@@ -2,17 +2,10 @@ import { Button } from '@/components/ui/button';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import { mapPinIcon } from '../ui/mapIcon';
 import { Search, MapPin, Navigation, Loader2, CheckCircle2 } from 'lucide-react';
 import { searchAddressSuggestions, reverseGeocode } from '../../utils/geo';
 
-// Fix for default marker icon in Leaflet
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
 
 // Custom component to handle map clicks & center updates
 const MapController = ({ center, onLocationSelect }) => {
@@ -194,14 +187,14 @@ const StoreLocationPicker = ({ address = '', lat = null, lng = null, onChange })
             {isLocatingGPS ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <Navigation className="w-3.5 h-3.5 text-blue-600" />
+              <Navigation className="w-3.5 h-3.5" />
             )}
             Usar mi ubicación actual
           </Button>
         </div>
 
         <div className="form-field flex items-center px-4 bg-white border border-gray-300 rounded-xl focus-within:ring-2 focus-within:ring-black focus-within:border-black transition-all">
-          <Search className="w-5 h-5 text-gray-400 shrink-0 mr-2" />
+          <Search className="w-5 h-5 shrink-0 mr-2" />
           <input
             type="text"
             value={inputAddress}
@@ -212,7 +205,7 @@ const StoreLocationPicker = ({ address = '', lat = null, lng = null, onChange })
             placeholder="Escribe la dirección de tu negocio (ej: Av. Providencia 1234, Santiago)..."
             className="flex-1 h-12 bg-transparent outline-none text-[15px] text-gray-800 placeholder-gray-400"
           />
-          {isSearching && <Loader2 className="w-5 h-5 animate-spin text-gray-400 shrink-0 ml-2" />}
+          {isSearching && <Loader2 className="w-5 h-5 animate-spin shrink-0 ml-2" />}
         </div>
 
         {/* Autocomplete Suggestions Dropdown */}
@@ -225,7 +218,7 @@ const StoreLocationPicker = ({ address = '', lat = null, lng = null, onChange })
                 onClick={() => handleSelectSuggestion(item)}
                 className="w-full px-4 py-3 text-left hover:bg-blue-50/70 transition-colors flex items-start gap-3 group cursor-pointer"
               >
-                <MapPin className="w-4 h-4 text-gray-400 group-hover:text-blue-600 shrink-0 mt-0.5" />
+                <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
                 <span className="text-sm text-gray-800 group-hover:text-blue-900 leading-snug font-medium">
                   {item.displayName}
                 </span>
@@ -239,7 +232,7 @@ const StoreLocationPicker = ({ address = '', lat = null, lng = null, onChange })
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs font-semibold text-gray-500 px-1">
           <span className="flex items-center gap-1.5 text-gray-700 font-bold">
-            <MapPin className="w-4 h-4 text-emerald-600" />
+            <MapPin className="w-4 h-4" />
             Punto exacto en el mapa (arrastra el pin o haz clic para ajustar)
           </span>
           {lat && lng ? (
@@ -268,7 +261,7 @@ const StoreLocationPicker = ({ address = '', lat = null, lng = null, onChange })
               center={mapCenter}
               onLocationSelect={(coords) => handleLocationUpdate(coords, true)}
             />
-            <Marker
+            <Marker icon={mapPinIcon}
               position={[selectedCoords.lat, selectedCoords.lng]}
               draggable={true}
               eventHandlers={markerEventHandlers}
@@ -285,7 +278,7 @@ const StoreLocationPicker = ({ address = '', lat = null, lng = null, onChange })
 
         {statusMsg && (
           <div className="flex items-center gap-2 text-xs text-blue-700 bg-blue-50 border border-blue-200 px-3 py-2 rounded-xl">
-            <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{statusMsg}</span>
           </div>
         )}

@@ -51,7 +51,7 @@ const SelectDisplay = ({ value, placeholder, options }) => {
   return (
     <span className="flex flex-1 items-center gap-2 text-left min-w-0">
       {Icon
-        ? <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: found.dot || '#6b7280' }} />
+        ? <Icon className="h-3.5 w-3.5 shrink-0"  />
         : found.dot && <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: found.dot }} />}
       <span className="truncate">{found.label}</span>
     </span>
@@ -437,7 +437,7 @@ const ExpensesView = () => {
         <div className="bg-white rounded-2xl shadow-[0_1px_3px_0_rgba(0,0,0,0.06)] border border-gray-200/80 overflow-hidden">
           <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col gap-2.5 sm:gap-3 lg:flex-row lg:items-center lg:justify-between border-b">
             <div className="relative w-full lg:w-auto lg:flex-1 lg:max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" />
               <Input className="pl-9 w-full" placeholder="Buscar gasto o proveedor" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
             <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3">
@@ -460,9 +460,9 @@ const ExpensesView = () => {
               </Select>
             </div>
             <div className="flex items-center justify-between gap-1 bg-gray-50 rounded-xl border border-gray-200/80 px-1.5 py-1.5 w-full lg:w-fit">
-              <IconButton onClick={prev} label="Mes anterior" className="hover:bg-white transition-colors" variant="ghost"><ChevronLeft className="h-4 w-4 text-gray-500" aria-hidden="true" /></IconButton>
+              <IconButton onClick={prev} label="Mes anterior" className="hover:bg-white transition-colors" variant="ghost"><ChevronLeft className="h-4 w-4" aria-hidden="true" /></IconButton>
               <span className="text-sm font-semibold text-gray-900 min-w-[130px] text-center select-none">{MONTHS[cm]} {cy}</span>
-              <IconButton onClick={next} label="Mes siguiente" className="hover:bg-white transition-colors" variant="ghost"><ChevronRight className="h-4 w-4 text-gray-500" aria-hidden="true" /></IconButton>
+              <IconButton onClick={next} label="Mes siguiente" className="hover:bg-white transition-colors" variant="ghost"><ChevronRight className="h-4 w-4" aria-hidden="true" /></IconButton>
             </div>
           </div>
 
@@ -494,7 +494,7 @@ const ExpensesView = () => {
                       </td>
                       <td className="px-6 py-4">
                         <Badge variant="secondary" className="bg-gray-100 text-gray-900 border-gray-200 font-semibold inline-flex items-center gap-1.5">
-                          <RowIcon className="h-3.5 w-3.5 text-gray-900" />
+                          <RowIcon className="h-3.5 w-3.5" />
                           {e.expense_categories?.name || 'Sin categoría'}
                         </Badge>
                       </td>
@@ -512,7 +512,7 @@ const ExpensesView = () => {
                       <td className="px-6 py-4 font-medium text-gray-900">
                         <span className="inline-flex items-center gap-1.5">
                           {e.description}
-                          {e.receipt_url && <Paperclip className="h-3.5 w-3.5 text-gray-400 shrink-0" />}
+                          {e.receipt_url && <Paperclip className="h-3.5 w-3.5 shrink-0" />}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-gray-500">{e.supplier || '—'}</td>
@@ -560,12 +560,10 @@ const ExpensesView = () => {
                   className="p-3.5 rounded-2xl border border-gray-100 bg-white active:bg-gray-50 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-gray-100 text-gray-900">
-                      <CatIcon className="h-5 w-5" />
-                    </span>
+                    <CatIcon className="shrink-0 h-5 w-5" />
                     <p className="flex-1 min-w-0 text-sm font-semibold text-gray-900 truncate">
                       {e.description}
-                      {e.receipt_url && <Paperclip className="inline h-3.5 w-3.5 text-gray-400 ml-1.5 -mt-0.5" />}
+                      {e.receipt_url && <Paperclip className="inline h-3.5 w-3.5 ml-1.5 -mt-0.5" />}
                     </p>
                     <span className="text-base font-bold text-gray-900 tabular-nums tracking-tight whitespace-nowrap">{fmt(e.amount)}</span>
                   </div>
@@ -631,11 +629,11 @@ const ExpensesView = () => {
                     receiptPreview ? (
                       <img src={receiptPreview} alt="Comprobante" className="w-11 h-11 rounded-lg object-cover shrink-0" />
                     ) : (
-                      <span className="w-11 h-11 rounded-lg bg-white text-red-600 border border-gray-200 flex items-center justify-center shrink-0"><FileText className="h-5 w-5" /></span>
+                      <FileText className="shrink-0 h-5 w-5" />
                     )
                   ) : (
                     receiptExisting.type === 'pdf' ? (
-                      <span className="w-11 h-11 rounded-lg bg-white text-red-600 border border-gray-200 flex items-center justify-center shrink-0"><FileText className="h-5 w-5" /></span>
+                      <FileText className="shrink-0 h-5 w-5" />
                     ) : (
                       <img src={receiptExisting.url} alt="Comprobante" className="w-11 h-11 rounded-lg object-cover shrink-0" />
                     )
@@ -648,7 +646,7 @@ const ExpensesView = () => {
                     type="button"
                     onClick={handleAnalyzeReceipt}
                     disabled={isAnalyzing}
-                    className="flex items-center text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 transition-colors shrink-0"
+                    className="flex items-center text-black bg-emerald-100 hover:bg-emerald-100 disabled:opacity-50 transition-colors shrink-0"
                    variant="ghost" size="sm">
                     {isAnalyzing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                     {isAnalyzing ? 'Leyendo…' : 'Autocompletar'}
@@ -669,9 +667,7 @@ const ExpensesView = () => {
                 </div>
               ) : (
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <span className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                    <Sparkles className="h-5 w-5" />
-                  </span>
+                  <Sparkles className="shrink-0 h-5 w-5" />
                   <span className="flex-1 min-w-0">
                     <span className="block text-sm font-semibold text-gray-800">Sube tu boleta y autocompletamos</span>
                     <span className="block text-xs text-gray-500">Foto o PDF · comercio, monto, fecha y categoría</span>
@@ -736,7 +732,7 @@ const ExpensesView = () => {
                           const ItemIcon = resolveCategoryIcon(c);
                           return (
                             <SelectItem key={c.id} value={c.id}>
-                              <ItemIcon className="h-4 w-4 shrink-0" style={{ color: c.color || '#6b7280' }} />
+                              <ItemIcon className="h-4 w-4 shrink-0"  />
                               {c.name}
                             </SelectItem>
                           );
@@ -768,7 +764,7 @@ const ExpensesView = () => {
               <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} className="mt-1 h-4 w-4 accent-black" />
               <span className="flex-1 min-w-0">
                 <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
-                  <Repeat className="h-3.5 w-3.5 text-violet-600" /> Se repite cada mes
+                  <Repeat className="h-3.5 w-3.5" /> Se repite cada mes
                 </span>
                 <span className="block text-xs text-gray-500 mt-0.5">Para arriendo y sueldos. Se crea solo en Gastos y Reportes.</span>
               </span>
@@ -873,9 +869,7 @@ const ExpensesView = () => {
             return (
               <div className="p-4 sm:p-6 space-y-5">
                 <div className="flex items-start gap-3">
-                  <span className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-gray-100 text-gray-900">
-                    <CatIcon className="h-5 w-5" />
-                  </span>
+                  <CatIcon className="shrink-0 h-5 w-5" />
                   <div className="flex-1 min-w-0">
                     <div className="text-3xl font-bold text-gray-900 tracking-tight tabular-nums">{fmt(viewing.amount)}</div>
                     <div className="text-sm text-gray-600 truncate mt-0.5">{viewing.description || 'Gasto'}</div>
@@ -883,7 +877,7 @@ const ExpensesView = () => {
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary" className="bg-gray-100 text-gray-900 border-gray-200 font-semibold inline-flex items-center gap-1.5">
-                    <CatIcon className="h-3.5 w-3.5 text-gray-900" />
+                    <CatIcon className="h-3.5 w-3.5" />
                     {viewing.expense_categories?.name || 'Sin categoría'}
                   </Badge>
                   {viewing.is_recurring && <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-900 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full"><Repeat className="h-3 w-3" />{viewing._virtual ? 'Ocurrencia automática' : 'Serie mensual'}</span>}
@@ -908,7 +902,7 @@ const ExpensesView = () => {
                     className="w-full flex items-center gap-3 p-2.5 rounded-xl border border-gray-200 bg-gray-50/60 hover:bg-gray-50 transition-colors text-left"
                   >
                     {viewing.receipt_type === 'pdf' ? (
-                      <span className="w-11 h-11 rounded-lg bg-white text-red-600 border border-gray-200 flex items-center justify-center shrink-0"><FileText className="h-5 w-5" /></span>
+                      <FileText className="shrink-0 h-5 w-5" />
                     ) : (
                       <img src={viewing.receipt_url} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0 border border-gray-200" />
                     )}
@@ -916,7 +910,7 @@ const ExpensesView = () => {
                       <span className="block text-sm font-semibold text-gray-800 truncate">{viewing.receipt_name || 'Comprobante'}</span>
                       <span className="block text-xs text-gray-500">Toca para ver en grande</span>
                     </span>
-                    <Receipt className="h-4 w-4 text-gray-400 shrink-0" />
+                    <Receipt className="h-4 w-4 shrink-0" />
                   </button>
                 )}
               </div>

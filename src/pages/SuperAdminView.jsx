@@ -497,9 +497,7 @@ const SuperAdminView = () => {
         )}
 
         {loading ? (
-          <div className="flex justify-center items-center py-32 bg-white rounded-xl border">
-            <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
-          </div>
+          <Loader2 className="h-8 w-8 animate-spin" />
         ) : !selectedOrganization ? (
           
           /* =========================================================
@@ -540,7 +538,7 @@ const SuperAdminView = () => {
                       </p>
                     </div>
                   </button>
-                  <button
+                  <button data-icon-button="true"
                     type="button"
                     title="Enviar email de bienvenida"
                     aria-label={`Enviar email de bienvenida a ${org.name}`}
@@ -619,7 +617,7 @@ const SuperAdminView = () => {
                       </td>
                       <td className="px-6 py-3.5 text-right">
                         <div className="flex items-center justify-end">
-                          <button
+                          <button data-icon-button="true"
                             type="button"
                             title="Enviar email de bienvenida"
                             aria-label={`Enviar email de bienvenida a ${org.name}`}
@@ -631,9 +629,7 @@ const SuperAdminView = () => {
                               ? <Loader2 className="h-4 w-4 animate-spin" />
                               : <Mail className="h-4 w-4" />}
                           </button>
-                          <span className="p-2 text-gray-300">
-                            <ChevronRight className="h-4 w-4" />
-                          </span>
+                          <ChevronRight className="h-4 w-4" />
                         </div>
                       </td>
                     </tr>
@@ -691,7 +687,7 @@ const SuperAdminView = () => {
                   href={getStoreUrl(selectedOrganization.slug) || `/order/${encodeURIComponent(selectedOrganization.name)}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-full bg-gray-900 hover:bg-gray-700 px-4 py-2 text-sm font-medium text-white transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 hover:bg-gray-100 px-4 py-2 text-sm font-medium text-black transition-colors"
                 >
                   <ExternalLink className="h-4 w-4" />
                   Ver tienda
@@ -746,7 +742,7 @@ const SuperAdminView = () => {
                 variant="ghost"
                 onClick={() => setDetailTab('branding')}
                 className={`shrink-0 h-auto rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors flex items-center gap-2 ${
-                  detailTab === 'branding' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                  detailTab === 'branding' ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <Store className="h-4 w-4" aria-hidden="true" />
@@ -756,7 +752,7 @@ const SuperAdminView = () => {
                 variant="ghost"
                 onClick={() => setDetailTab('hours')}
                 className={`shrink-0 h-auto rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors flex items-center gap-2 ${
-                  detailTab === 'hours' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                  detailTab === 'hours' ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <Clock className="h-4 w-4" aria-hidden="true" />
@@ -796,7 +792,7 @@ const SuperAdminView = () => {
                 variant="ghost"
                 onClick={() => setDetailTab('categories')}
                 className={`shrink-0 h-auto rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors flex items-center gap-2 ${
-                  detailTab === 'categories' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                  detailTab === 'categories' ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <Tags className="h-4 w-4" aria-hidden="true" />
@@ -807,7 +803,7 @@ const SuperAdminView = () => {
                 variant="ghost"
                 onClick={() => setDetailTab('klap')}
                 className={`shrink-0 h-auto rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors flex items-center gap-2 ${
-                  detailTab === 'klap' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                  detailTab === 'klap' ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <DollarSign className="h-4 w-4" aria-hidden="true" />
@@ -845,12 +841,10 @@ const SuperAdminView = () => {
               {detailTab === 'orders' && (
                 <div>
                   {loadingOrders ? (
-                    <div className="flex justify-center items-center py-12">
-                      <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
-                    </div>
+                    <Loader2 className="h-8 w-8 animate-spin" />
                   ) : orgOrders.length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
-                      <ShoppingBag className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                      <ShoppingBag className="h-12 w-12 mx-auto mb-3" />
                       <p>Este negocio no tiene pedidos registrados.</p>
                     </div>
                   ) : (
@@ -896,7 +890,7 @@ const SuperAdminView = () => {
                               <p className="text-sm font-bold text-gray-900">${Number(order.total || 0).toLocaleString('es-CL')}</p>
                               <p className="text-[10px] text-gray-500 mt-0.5">{getPaymentMethod(order)}</p>
                             </div>
-                            <ChevronRight className="h-5 w-5 text-gray-300 shrink-0" />
+                            <ChevronRight className="h-5 w-5 shrink-0" />
                           </button>
                         );
                       })}
@@ -1107,11 +1101,9 @@ const SuperAdminView = () => {
                     const busy = staffBusy === user.id;
                     return (
                     <div key={user.id} className={`px-4 py-4 flex items-center gap-3 ${user.isActive ? '' : 'opacity-60'}`}>
-                      <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                        <User className="h-5 w-5 text-gray-500" />
-                      </div>
+                      <User className="shrink-0 h-5 w-5" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate flex items-center gap-1.5">{user.name} {isSup && <Shield className="h-3.5 w-3.5 text-purple-600" />}</p>
+                        <p className="text-sm font-semibold text-gray-900 truncate flex items-center gap-1.5">{user.name} {isSup && <Shield className="h-3.5 w-3.5" />}</p>
                         <p className="text-xs text-gray-400 mt-0.5">
                           {isSup ? 'Super Admin' : user.role} · {user.isActive ? 'Activo' : 'Desactivado'} · {new Date(user.createdAt).toLocaleDateString()}
                         </p>
@@ -1155,10 +1147,8 @@ const SuperAdminView = () => {
                         <tr key={user.id} className={`transition-colors ${user.isActive ? 'hover:bg-gray-50' : 'bg-gray-50/60 opacity-70'}`}>
                           <td className="px-6 py-3.5">
                             <div className="flex items-center gap-3">
-                              <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                                <User className="h-4 w-4 text-gray-400" />
-                              </div>
-                              <div className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">{user.name} {isSup && <Shield className="h-4 w-4 text-purple-600" />}</div>
+                              <User className="shrink-0 h-4 w-4" />
+                              <div className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">{user.name} {isSup && <Shield className="h-4 w-4" />}</div>
                             </div>
                           </td>
                           <td className="px-6 py-3.5 text-sm text-gray-500">
@@ -1183,10 +1173,10 @@ const SuperAdminView = () => {
                                 </Button>
                               )}
                               <Button variant="ghost" size="icon-sm" onClick={() => handleToggleActive(user)} disabled={busy} title={user.isActive ? 'Desactivar cuenta' : 'Activar cuenta'}>
-                                {user.isActive ? <ToggleRight className="h-5 w-5 text-emerald-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
+                                {user.isActive ? <ToggleRight className="h-5 w-5" /> : <ToggleLeft className="h-5 w-5" />}
                               </Button>
                               <IconButton variant="ghost" size="icon" onClick={() => handleToggleSupremo(user)} disabled={busy} title={isSup ? 'Quitar Super Admin' : 'Otorgar Super Admin'} label={isSup ? 'Quitar Super Admin' : 'Otorgar Super Admin'}>
-                                <Shield className={`h-5 w-5 ${isSup ? 'text-purple-700' : 'text-gray-300'}`}  aria-hidden="true" />
+                                <Shield className="h-5 w-5"  aria-hidden="true" />
                               </IconButton>
                             </div>
                           </td>
@@ -1218,7 +1208,7 @@ const SuperAdminView = () => {
                 <div>
                   {orgFeedbacks.length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
-                      <MessageSquare className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                      <MessageSquare className="h-12 w-12 mx-auto mb-3" />
                       <p>Este negocio no tiene reportes de problemas.</p>
                     </div>
                   ) : (
@@ -1273,7 +1263,7 @@ const SuperAdminView = () => {
                       className="p-4 md:p-5 border-b"
                       title="WhatsApp"
                       description="Inbox de conversaciones"
-                      icon={MessageCircle} iconClassName="bg-green-100 text-green-600"
+                      icon={MessageCircle}
                       stackControl
                       control={(labelProps) => (<label className="flex items-center justify-between sm:justify-end gap-3 cursor-pointer select-none w-full sm:w-auto">
                                             <span className={`text-sm font-semibold ${selectedOrganization.whatsappInboxEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
@@ -1367,7 +1357,7 @@ const SuperAdminView = () => {
                       className="p-4 md:p-5 border-b"
                       title="Uber Direct"
                       description="Delivery a través de Uber"
-                      icon={Globe} iconClassName="bg-blue-100 text-blue-600"
+                      icon={Globe}
                       stackControl
                       control={(labelProps) => (<label className="flex items-center justify-between sm:justify-end gap-3 cursor-pointer select-none w-full sm:w-auto">
                                             <span className={`text-sm font-semibold ${selectedOrganization.uberEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
@@ -1424,7 +1414,7 @@ const SuperAdminView = () => {
                       className="p-4 md:p-5"
                       title="Modo Salón (Mesas)"
                       description="Permite gestionar mesas y sectores en el POS"
-                      icon={Store} iconClassName="bg-orange-100 text-orange-600"
+                      icon={Store}
                       stackControl
                       control={(labelProps) => (<label className="flex items-center justify-between sm:justify-end gap-3 cursor-pointer select-none w-full sm:w-auto">
                                             <span className={`text-sm font-semibold ${selectedOrganization.dineInEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
@@ -1620,7 +1610,7 @@ const SuperAdminView = () => {
                         disabled={loadingCategories}
                         className="w-full sm:w-auto h-10"
                       >
-                        <RefreshCw className={`h-4 w-4 mr-2 ${loadingCategories ? 'animate-spin' : ''}`}  aria-hidden="true" /> Recargar
+                        <RefreshCw className={`h-4 w-4 mr-2 ${loadingCategories ? "animate-spin" : ""}`}  aria-hidden="true" /> Recargar
                       </Button>
                       <Button onClick={openNewCategoryEditor} className="w-full sm:w-auto h-10">
                         <Plus className="h-4 w-4" aria-hidden="true" /> Nueva categoría
@@ -1628,9 +1618,7 @@ const SuperAdminView = () => {
                     </div>
                   </div>
                   {loadingCategories ? (
-                    <div className="flex justify-center items-center py-12">
-                      <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
-                    </div>
+                    <Loader2 className="h-8 w-8 animate-spin" />
                   ) : (
                     <>
                     {/* Mobile: cards */}
@@ -1641,9 +1629,7 @@ const SuperAdminView = () => {
                             {cat.image_url ? (
                               <img src={cat.image_url} alt={cat.name} className="h-12 w-12 object-cover bg-gray-100 border border-gray-200 rounded-xl shrink-0" />
                             ) : (
-                              <div className="h-12 w-12 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-center shrink-0">
-                                <Tags className="h-5 w-5 text-gray-400" />
-                              </div>
+                              <Tags className="shrink-0 h-5 w-5" />
                             )}
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-gray-900 truncate">{cat.name}</p>
@@ -1743,9 +1729,7 @@ const SuperAdminView = () => {
                                   {cat.image_url ? (
                                     <img src={cat.image_url} alt={cat.name} className="h-10 w-10 object-cover bg-gray-100 border border-gray-200 rounded-md" />
                                   ) : (
-                                    <div className="h-10 w-10 bg-gray-100 border border-gray-200 rounded-md flex items-center justify-center shrink-0">
-                                      <Tags className="h-5 w-5 text-gray-400" />
-                                    </div>
+                                    <Tags className="shrink-0 h-5 w-5" />
                                   )}
                                   <span className="font-medium text-gray-900">{cat.name}</span>
                                 </div>

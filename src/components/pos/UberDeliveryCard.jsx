@@ -70,7 +70,7 @@ const provider = order?.delivery_provider;
       return (
         <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-4 text-xs">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
             <div className="flex-1">
               <h4 className="font-bold text-red-800 text-sm mb-1">Error al asignar repartidor</h4>
               <p className="text-red-800 mb-3 leading-relaxed">
@@ -97,7 +97,7 @@ const provider = order?.delivery_provider;
                     toast.error(result.message, { id: toastId, duration: 5000 });
                   }
                 }}
-                className="bg-red-600 hover:bg-red-700 text-white flex items-center transition-colors"
+                className="bg-red-100 hover:bg-red-100 text-black flex items-center transition-colors"
                variant="ghost" size="default">
                 <RefreshCw className="h-4 w-4" />
                 Reintentar solicitud en Uber
@@ -176,7 +176,7 @@ const provider = order?.delivery_provider;
       return (
         <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs">
           <div className="flex items-start gap-3">
-            <Truck className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+            <Truck className="h-5 w-5 shrink-0 mt-0.5" />
             <div className="flex-1">
               <h4 className="font-bold text-blue-900 text-sm mb-1">Delivery con repartidor propio</h4>
 
@@ -188,7 +188,7 @@ const provider = order?.delivery_provider;
                   <Button
                     onClick={handleQuoteUber}
                     disabled={quotingUber}
-                    className="bg-blue-600 hover:bg-blue-700 text-white flex items-center transition-colors disabled:opacity-50"
+                    className="bg-blue-100 hover:bg-blue-100 text-black flex items-center transition-colors disabled:opacity-50"
                    variant="ghost" size="default">
                     {quotingUber ? <Clock className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
                     {quotingUber ? 'Cotizando...' : 'Cotizar repartidor Uber'}
@@ -209,7 +209,7 @@ const provider = order?.delivery_provider;
                     <Button
                       onClick={handleConfirmUber}
                       disabled={requestingUber}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition-colors disabled:opacity-50"
+                      className="flex-1 bg-blue-100 hover:bg-blue-100 text-black flex items-center justify-center transition-colors disabled:opacity-50"
                      variant="ghost" size="sm">
                       {requestingUber ? <Clock className="h-3 w-3 animate-spin" /> : <Truck className="h-3 w-3" />}
                       {requestingUber ? 'Solicitando...' : 'Confirmar y solicitar'}
@@ -248,10 +248,10 @@ const provider = order?.delivery_provider;
   const currentStatus = statusLabels[status] || { label: status, color: 'bg-gray-50 text-gray-700 border-gray-200' };
 
   const vehicleIcons = {
-    CAR: '🚗 Auto',
-    MOTORCYCLE: '🏍️ Moto',
-    BICYCLE: '🚲 Bicicleta',
-    FOOT: '🏃 A pie',
+    CAR: 'Auto',
+    MOTORCYCLE: 'Moto',
+    BICYCLE: 'Bicicleta',
+    FOOT: 'A pie',
   };
 
   return (
@@ -262,9 +262,9 @@ const provider = order?.delivery_provider;
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-1.5 font-bold text-gray-800">
-          <Truck className="h-4 w-4 text-black" />
+          <Truck className="h-4 w-4" />
           <span>Uber Direct <span className="font-normal text-gray-500">({currentStatus.label})</span></span>
-          {isExpanded ? <ChevronUp className="h-4 w-4 ml-1 text-gray-500" /> : <ChevronDown className="h-4 w-4 ml-1 text-gray-500" />}
+          {isExpanded ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />}
         </div>
         <IconButton
           onClick={(e) => {
@@ -275,7 +275,7 @@ const provider = order?.delivery_provider;
           className="text-gray-600 hover:text-black transition-colors hover:bg-gray-100"
           title="Actualizar estado"
          label="Actualizar estado" variant="ghost">
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-blue-500' : ''}`}  aria-hidden="true" />
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin " : ""}`}  aria-hidden="true" />
         </IconButton>
       </div>
 
@@ -298,9 +298,7 @@ const provider = order?.delivery_provider;
                 {courier.img_href ? (
                   <img src={courier.img_href} alt={courier.name} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold border border-gray-200">
-                    <User className="h-5 w-5" />
-                  </div>
+                  <User className="h-5 w-5" />
                 )}
                 <div className="flex-1">
                   <p className="font-bold text-gray-900 text-sm">{courier.name}</p>
@@ -327,7 +325,7 @@ const provider = order?.delivery_provider;
             </div>
           ) : !loading && (
             <div className="bg-amber-50 p-2.5 rounded-lg border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+              <AlertCircle className="h-4 w-4 shrink-0" />
               <span>Uber está asignando un repartidor. Presiona "Actualizar" en unos momentos.</span>
             </div>
           )}

@@ -76,7 +76,7 @@ const DateRangePicker = ({ from, to, onSelect, activePreset, onPresetChange }) =
             className={cn(
               "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all select-none border",
               activePreset || (from && to)
-                ? "bg-gray-900 text-white border-gray-900"
+                ? "bg-white text-black border-black"
                 : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
             )}
             style={{ WebkitTapHighlightColor: 'transparent' }}

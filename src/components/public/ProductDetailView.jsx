@@ -1,8 +1,9 @@
+import { Check, ArrowLeft, Plus, Minus } from 'lucide-react';
 import { QuantityStepper } from '../ui/QuantityStepper';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ArrowLeft, Plus, Minus } from 'lucide-react';
+
 import IngredientIcon from '../ui/IngredientIcon';
 import ProductImageFallback from '../ui/ProductImageFallback';
 import { buildSelection, selectionFromCartOption, defaultSelectionsForSlot } from '../../utils/bundleSelections';
@@ -322,12 +323,12 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
         onClick={(e) => e.stopPropagation()}
         className={`w-full max-w-2xl h-[100dvh] sm:h-[90dvh] sm:max-h-[800px] sm:rounded-3xl bg-gray-50 flex flex-col overflow-hidden relative shadow-2xl ${isClosing ? 'opacity-0 translate-y-8 transition-all duration-200 ease-in' : 'animate-in slide-in-from-bottom-8 zoom-in-95 fade-in duration-300'}`}>
         {/* Botón atrás fijo — fuera del scroll para que no se pierda al bajar */}
-        <button
+        <button data-icon-button="true"
           onClick={handleClose}
           aria-label="Volver"
           className="absolute top-4 left-4 z-30 p-2.5 bg-white/95 backdrop-blur-md rounded-full hover:bg-white transition-colors border border-black/10 shadow-[0_2px_12px_rgba(0,0,0,0.28)]"
         >
-          <ArrowLeft className="h-6 w-6 text-gray-900" aria-hidden="true" />
+          <ArrowLeft className="h-6 w-6" aria-hidden="true" />
         </button>
 
         {/* Scrollable Content */}
@@ -376,7 +377,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                       key={i.id || i.name}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-gray-600 text-[12px] font-semibold"
                     >
-                      <IngredientIcon name={i.name} icon={i.icon} size={14} className="text-gray-500 shrink-0" />
+                      <IngredientIcon name={i.name} icon={i.icon} size={14} className="shrink-0" />
                       {i.name}
                     </span>
                   ))}
@@ -442,18 +443,10 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
-                            isUnavailable
-                              ? 'border-gray-300 bg-gray-100'
-                              : selected ? 'border-black bg-black' : 'border-gray-300 bg-white'
-                          }`}>
-                            {selected && (
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3.5} stroke="currentColor" className="w-3 h-3 text-white">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                              </svg>
+                          {selected && (
+                              <Check className="transition-all w-3 h-3" aria-hidden="true" />
                             )}
-                          </div>
-                          <IngredientIcon name={ing.name} icon={ing.icon} className="h-5 w-5 text-gray-900 shrink-0" />
+                          <IngredientIcon name={ing.name} icon={ing.icon} className="h-5 w-5 shrink-0" />
                           <span className="font-bold text-sm text-gray-900">{ing.name}</span>
                         </div>
                         {isUnavailable ? (
@@ -537,15 +530,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-all ${
-                              isSelected 
-                                ? 'border-black bg-black text-white' 
-                                : 'border-gray-300 bg-white text-transparent'
-                            }`}>
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3.5} stroke="currentColor" className="w-3.5 h-3.5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                              </svg>
-                            </div>
+                            <Check className={[` shrink-0 transition-all ${isSelected ? " " : " opacity-0"}`, "w-3.5 h-3.5"].filter(Boolean).join(" ")} aria-hidden="true" />
                             <span className="font-bold text-sm text-gray-900 leading-snug">{opt.name}</span>
                             {isOptOut ? (
                               <span className="text-[9px] text-white bg-red-500 px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider">Sin stock</span>
@@ -658,7 +643,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                                     }`}
                                   >
                                     <span className="flex items-center gap-1.5 truncate min-w-0">
-                                      <IngredientIcon name={ing.name} icon={ing.icon} size={14} className="text-gray-500 shrink-0" />
+                                      <IngredientIcon name={ing.name} icon={ing.icon} size={14} className="shrink-0" />
                                       <span className="truncate">{ing.name}</span>
                                     </span>
                                     {isUnavailable ? (

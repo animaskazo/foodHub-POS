@@ -3,14 +3,12 @@ import { cn } from '@/lib/utils';
 
 // Descriptions span the full mobile row. Decorative icons only occupy space on desktop.
 export function SettingsOptionRow({ title, description, icon: Icon, control, className,
-  iconClassName, stackControl = false, as: Component = 'div' }) {
+  stackControl = false, as: Component = 'div' }) {
   const id = useId();
   return (
     <Component className={cn('grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-x-4', className)}>
       {Icon && (
-        <span aria-hidden="true" className={cn('hidden size-11 shrink-0 items-center justify-center rounded-2xl bg-black text-white sm:row-span-2 sm:flex', iconClassName)}>
-          <Icon className="size-5" />
-        </span>
+        <Icon className="hidden size-5 shrink-0 text-black sm:row-span-2 sm:block" strokeWidth={2} aria-hidden="true" />
       )}
       <span id={`${id}-title`} className={cn('min-w-0 self-center text-sm font-bold text-gray-800',
         !Icon && 'sm:col-span-2', stackControl && 'col-span-2 sm:col-span-1', stackControl && !Icon && 'sm:col-span-2')}>

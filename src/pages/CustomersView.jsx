@@ -334,9 +334,7 @@ const CustomersView = () => {
 
           {/* Search Bar */}
           <div className="relative max-w-md bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-              <Search className="h-4 w-4" />
-            </div>
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none h-4 w-4" />
             <input 
               type="text" 
               placeholder="Buscar por nombre, teléfono o email..." 
@@ -445,7 +443,7 @@ const CustomersView = () => {
                             ${fmt(customer.total_spent || 0)}
                           </td>
                           <td className="px-6 py-4 text-right text-gray-400">
-                            <ChevronRight className="h-5 w-5 group-hover:text-blue-600 transition-colors" />
+                            <ChevronRight className="h-5 w-5 transition-colors" />
                           </td>
                         </tr>
                       ))}
@@ -483,14 +481,14 @@ const CustomersView = () => {
                         <span className="text-gray-900">${fmt(customer.total_spent || 0)} gastado</span>
                       </div>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400 shrink-0" />
+                    <ChevronRight className="h-5 w-5 shrink-0" />
                   </div>
                 ))}
               </div>
             </>
           ) : (
             <div className="bg-white rounded-2xl border border-gray-200 py-16 text-center text-gray-500">
-              <Users className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+              <Users className="h-12 w-12 mx-auto mb-3" />
               <p className="font-semibold text-lg text-gray-700">No se encontraron clientes</p>
               <p className="text-sm mt-1">Prueba a realizar otra búsqueda.</p>
             </div>
@@ -554,19 +552,19 @@ const CustomersView = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   {selectedCustomer.email && (
                     <div className="flex items-center gap-2.5 text-gray-700">
-                      <Mail className="h-4 w-4 text-gray-400" />
+                      <Mail className="h-4 w-4" />
                       <span className="truncate">{selectedCustomer.email}</span>
                     </div>
                   )}
                   {selectedCustomer.phone && (
                     <div className="flex items-center gap-2.5 text-gray-700">
-                      <Phone className="h-4 w-4 text-gray-400" />
+                      <Phone className="h-4 w-4" />
                       <span>{selectedCustomer.phone}</span>
                     </div>
                   )}
                   {selectedCustomer.address && (
                     <div className="flex items-center gap-2.5 text-gray-700 md:col-span-2">
-                      <MapPin className="h-4 w-4 text-gray-400 shrink-0" />
+                      <MapPin className="h-4 w-4 shrink-0" />
                       <span className="leading-tight">{selectedCustomer.address}</span>
                     </div>
                   )}
@@ -577,7 +575,7 @@ const CustomersView = () => {
               <div>
                 <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-2">
                   <h3 className="font-bold text-lg text-gray-950 flex items-center gap-2">
-                    <ShoppingBag className="h-5 w-5 text-gray-450" />
+                    <ShoppingBag className="h-5 w-5" />
                     Historial de Pedidos
                   </h3>
                   <span className="text-xs text-gray-500 font-medium">{customerOrders.length} registros</span>
@@ -585,7 +583,7 @@ const CustomersView = () => {
 
                 {loadingOrders ? (
                   <div className="py-12 text-center text-gray-500 flex flex-col items-center gap-2">
-                    <Loader2 className="h-6 w-6 animate-spin text-black" />
+                    <Loader2 className="h-6 w-6 animate-spin" />
                     <p className="text-xs font-semibold">Cargando historial...</p>
                   </div>
                 ) : customerOrders.length > 0 ? (

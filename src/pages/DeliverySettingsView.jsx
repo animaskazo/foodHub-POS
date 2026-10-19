@@ -438,7 +438,7 @@ const DeliverySettingsView = () => {
                           {isOwnActive ? 'Activado' : 'Desactivado'}
                         </span></>}
   description="Tus propios repartidores gestionan las entregas. Apágalo para ofrecer solo Uber Direct o retiro."
-  icon={Truck} iconClassName="bg-transparent text-gray-900"
+  icon={Truck}
   control={(labelProps) => (
     <Switch {...labelProps}
       checked={isOwnActive}
@@ -828,7 +828,7 @@ const DeliverySettingsView = () => {
                     description={<>{lockedUber
                                             ? 'Disponible solo con permiso del super admin.'
                                             : 'Usa la red de repartidores de Uber para las entregas. Apágalo para ofrecer solo delivery propio o retiro.'}</>}
-                    icon={Globe} iconClassName="bg-transparent text-gray-900"
+                    icon={Globe}
                     control={(labelProps) => (
                       <Switch {...labelProps}
                         checked={isUberActive}
@@ -959,16 +959,16 @@ const DeliverySettingsView = () => {
                           : 'bg-green-50 border-green-200'
                       }`}>
                         {modeInfo.live_mode
-                          ? <XCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                          : <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+                          ? <XCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                          : <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5" />
                         }
                         <div className="flex-1 min-w-0">
                           <h4 className={`text-sm font-bold ${
                             modeInfo.live_mode ? 'text-red-800' : 'text-green-800'
                           }`}>
                             {modeInfo.live_mode
-                              ? '⚠️ MODO PRODUCCIÓN — Las credenciales son reales'
-                              : '✅ MODO SANDBOX — Ambiente de pruebas seguro'
+                              ? 'MODO PRODUCCIÓN — Las credenciales son reales'
+                              : 'MODO SANDBOX — Ambiente de pruebas seguro'
                             }
                           </h4>
                           <p className={`text-xs mt-0.5 ${
@@ -1024,7 +1024,7 @@ const DeliverySettingsView = () => {
                               ? 'bg-red-100 text-red-700 border border-red-300'
                               : 'bg-green-100 text-green-700 border border-green-300'
                           }`}>
-                            {deliveryResult.delivery.live_mode ? '⚠️ MODO PRODUCCIÓN — Cargo real' : '✅ MODO SANDBOX — Solo prueba'}
+                            {deliveryResult.delivery.live_mode ? 'MODO PRODUCCIÓN — Cargo real' : 'MODO SANDBOX — Solo prueba'}
                           </div>
 
                           <div className="grid grid-cols-2 gap-3 text-sm">

@@ -47,18 +47,14 @@ const ConversationsView = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
-      </div>
+      <Loader2 className="h-8 w-8 animate-spin" />
     );
   }
 
   if (error || !inboxUrl) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center px-6">
-        <div className="bg-gray-100 rounded-full p-5 mb-5">
-          <MessageSquareOff className="h-10 w-10 text-gray-400" />
-        </div>
+        <MessageSquareOff className="mb-5 h-10 w-10" />
         <h2 className="text-xl font-bold text-gray-900 mb-2">
           Inbox de WhatsApp no disponible
         </h2>
@@ -74,9 +70,7 @@ const ConversationsView = () => {
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
       <header className="border-b px-4 md:px-6 py-4 shrink-0 flex items-center gap-3">
-        <div className="bg-green-100 rounded-lg p-2">
-          <MessageCircle className="h-5 w-5 text-green-700" />
-        </div>
+        <MessageCircle className="h-5 w-5" />
         <div>
           <h1 className="text-lg font-bold text-gray-900">Conversaciones WhatsApp</h1>
           <p className="text-xs text-gray-500">Visualiza y responde los mensajes de tus clientes</p>

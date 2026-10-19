@@ -340,10 +340,10 @@ const IngredientsManager = () => {
             <Plus className="h-4 w-4" aria-hidden="true" /> Crear ingrediente
           </Button>
           <Button variant="outline" className="order-2 w-full sm:w-auto sm:order-3 sm:ml-auto" onClick={() => setIsExcelModalOpen(true)}>
-            <FileSpreadsheet className="h-4 w-4 text-green-600" aria-hidden="true" /> Importar Excel
+            <FileSpreadsheet className="h-4 w-4" aria-hidden="true" /> Importar Excel
           </Button>
           <div className="relative order-3 w-full sm:w-auto sm:order-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
             <Input
               className="pl-9 w-full sm:w-64 border-gray-300"
               placeholder="Buscar ingrediente"
@@ -416,7 +416,7 @@ const IngredientsManager = () => {
                     <div className="flex items-center gap-3">
                       <IngredientIcon
                         icon={ingredient.icon}
-                        className={`h-6 w-6 shrink-0 ${ingredient.icon ? 'text-gray-900' : 'text-gray-400'}`}
+                        className="h-6 w-6 shrink-0"
                       />
                       <span>{ingredient.name}</span>
                     </div>
@@ -523,7 +523,7 @@ const IngredientsManager = () => {
               />
               <IngredientIcon
                 icon={ingredient.icon}
-                className={`h-6 w-6 shrink-0 ${ingredient.icon ? 'text-gray-900' : 'text-gray-400'}`}
+                className="h-6 w-6 shrink-0"
               />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate">{ingredient.name}</p>
@@ -587,7 +587,7 @@ const IngredientsManager = () => {
                   }}
                   className="flex items-center justify-center gap-2 w-full h-11 px-3 bg-white border border-gray-200 hover:border-gray-300 rounded-lg text-[14px] font-semibold text-gray-700 cursor-pointer transition-colors"
                 >
-                  <Shapes className="h-4 w-4 text-gray-500" />
+                  <Shapes className="h-4 w-4" />
                   {icon ? 'Cambiar icono' : 'Elegir icono'}
                 </button>
                 <p className="text-xs text-gray-400 mt-1">Identifica el ingrediente visualmente en el menú.</p>
@@ -698,7 +698,7 @@ const IngredientsManager = () => {
           <div className="p-6 space-y-4 flex-1 overflow-auto">
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
                 <Input
                   className="pl-9 w-full"
                   placeholder="Buscar icono (ej: pollo, queso, café)"
@@ -834,9 +834,7 @@ const IngredientsManager = () => {
       <Modal isOpen={movementsModal.isOpen} onClose={() => setMovementsModal({ isOpen: false, item: null, movements: [], loading: false })} title={`Movimientos: ${movementsModal.item?.name}`}>
         <div className="p-6">
           {movementsModal.loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-            </div>
+            <Loader2 className="h-6 w-6 animate-spin" />
           ) : movementsModal.movements.length === 0 ? (
             <p className="text-center text-gray-500 py-8">Sin movimientos registrados.</p>
           ) : (

@@ -36,7 +36,7 @@ const renderDayRow = (dayKey, dayData, onToggle, onTimeChange) => (
       {!dayData.closed && (
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 h-11">
-            <Clock className="h-4 w-4 text-gray-400 shrink-0" />
+            <Clock className="h-4 w-4 shrink-0" />
             <input
               type="time"
               value={dayData.open || '09:00'}
@@ -46,7 +46,7 @@ const renderDayRow = (dayKey, dayData, onToggle, onTimeChange) => (
           </div>
           <span className="text-gray-400 font-semibold text-xs">a</span>
           <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 h-11">
-            <Clock className="h-4 w-4 text-gray-400 shrink-0" />
+            <Clock className="h-4 w-4 shrink-0" />
             <input
               type="time"
               value={dayData.close || '22:00'}
@@ -153,9 +153,7 @@ const OrgHoursTab = ({ organizationId }) => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
-      </div>
+      <Loader2 className="h-8 w-8 animate-spin" />
     );
   }
 
@@ -197,7 +195,7 @@ const OrgHoursTab = ({ organizationId }) => {
             )}
           </div>
           <div className="pt-2 flex justify-stretch sm:justify-end">
-            <Button onClick={handleSaveHours} disabled={saving} className="w-full sm:w-auto h-12 flex items-center justify-center gap-2 px-6 bg-black text-white font-bold hover:bg-gray-800 disabled:opacity-50">
+            <Button onClick={handleSaveHours} disabled={saving} className="w-full sm:w-auto h-12 flex items-center justify-center gap-2 px-6 bg-gray-100 text-black font-bold hover:bg-gray-100 disabled:opacity-50">
               {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
               Guardar Horarios
             </Button>
@@ -218,7 +216,7 @@ const OrgHoursTab = ({ organizationId }) => {
               className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl"
               title="Pedidos para Ahora"
               description="Permite recibir pedidos para ahora cuando el local está dentro del horario comercial."
-              icon={Clock} iconClassName="bg-black text-white"
+              icon={Clock}
               control={(labelProps) => (
                 <Switch {...labelProps}
                   checked={instantEnabled} onCheckedChange={setInstantEnabled}
@@ -229,7 +227,7 @@ const OrgHoursTab = ({ organizationId }) => {
               className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl"
               title="Pedidos Programados"
               description="Permite agendar pedidos para una hora futura dentro del horario de retiro, incluso si el local está cerrado ahora."
-              icon={CalendarClock} iconClassName="bg-black text-white"
+              icon={CalendarClock}
               control={(labelProps) => (
                 <Switch {...labelProps}
                   checked={schedulingEnabled} onCheckedChange={setSchedulingEnabled}
@@ -240,7 +238,7 @@ const OrgHoursTab = ({ organizationId }) => {
               className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl"
               title="Tiempo de preparación"
               description="Minutos de anticipación que necesita el local antes de agendar o retirar."
-              icon={Timer} iconClassName="bg-black text-white"
+              icon={Timer}
               control={(labelProps) => (<select {...labelProps}
                             value={prepTime}
                             onChange={(e) => setPrepTime(Number(e.target.value))}
@@ -263,7 +261,7 @@ const OrgHoursTab = ({ organizationId }) => {
             )}
           </div>
           <div className="pt-2 flex justify-stretch sm:justify-end">
-            <Button onClick={handleSavePickupHours} disabled={saving} className="w-full sm:w-auto h-12 flex items-center justify-center gap-2 px-6 bg-black text-white font-bold hover:bg-gray-800 disabled:opacity-50">
+            <Button onClick={handleSavePickupHours} disabled={saving} className="w-full sm:w-auto h-12 flex items-center justify-center gap-2 px-6 bg-gray-100 text-black font-bold hover:bg-gray-100 disabled:opacity-50">
               {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
               Guardar Horarios de Retiro
             </Button>

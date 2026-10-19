@@ -61,15 +61,13 @@ const PrepTimeSelector = ({ compact = false, menuVariant = false }) => {
               <option key={m} value={m}>{m === 0 ? 'No informar' : `${m} min`}</option>
             ))}
           </select>
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-            {saved ? (
-              <Check className="h-5 w-5 text-emerald-500" />
+          {saved ? (
+              <Check className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none h-5 w-5" />
             ) : saving ? (
-              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none h-5 w-5 animate-spin" />
             ) : (
-              <ChevronDown className="h-5 w-5 text-gray-400" />
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none h-5 w-5" />
             )}
-          </div>
         </div>
       </div>
     );
@@ -85,11 +83,11 @@ const PrepTimeSelector = ({ compact = false, menuVariant = false }) => {
         }`}
       >
       {saved ? (
-        <Check className="h-4 w-4 text-emerald-500" />
+        <Check className="h-4 w-4" />
       ) : saving ? (
-        <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+        <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
-        <Timer className={compact ? 'h-4 w-4 text-gray-600' : 'h-4 w-4 text-gray-500'} />
+        <Timer className="h-4 w-4" />
       )}
       <select
         value={current}

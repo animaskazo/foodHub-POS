@@ -1,5 +1,21 @@
+import {
+  NotebookPen,
+  AlertTriangle,
+  CreditCard,
+  Timer,
+  User,
+  Van,
+  PaperBag,
+  CalendarClock,
+  ShoppingBag,
+  CheckCircle2,
+  Printer,
+  XCircle,
+  Info,
+  Loader2
+} from 'lucide-react';
 import React, { useState } from 'react';
-import { AlertTriangle, CreditCard, Timer, User, Van, PaperBag, CalendarClock, ShoppingBag, CheckCircle2, Printer, XCircle, Info, Loader2 } from 'lucide-react';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Modal from '../ui/Modal';
@@ -92,7 +108,7 @@ const OrderDetailModal = ({
           {order.customer_name && (
             <div>
               <div className="flex items-center gap-2 mb-2 text-gray-900">
-                <User className="h-5 w-5 text-gray-400" />
+                <User className="h-5 w-5" />
                 <h3 className="font-bold text-lg">Detalles del Cliente</h3>
               </div>
               <p className="text-sm text-gray-900 font-medium">
@@ -108,7 +124,7 @@ const OrderDetailModal = ({
               {order.delivery_type === 'delivery' ? (
                 <div>
                   <div className="flex items-center gap-2 mb-2 text-gray-900">
-                    <Van className="h-5 w-5 text-gray-400" />
+                    <Van className="h-5 w-5" />
                     <h3 className="font-bold text-lg">Despacho a Domicilio</h3>
                   </div>
                   {order.delivery_address ? (
@@ -118,7 +134,7 @@ const OrderDetailModal = ({
                   )}
                   {order.delivery_notes && (
                     <div className="flex items-start gap-3 text-sm mt-3 pt-3 border-t border-gray-100">
-                      <Info className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                      <Info className="w-4 h-4 mt-0.5 shrink-0" />
                       <div>
                         <p className="text-gray-500 font-medium text-xs mb-0.5">Referencias de entrega</p>
                         <p className="text-gray-800 font-semibold">{order.delivery_notes}</p>
@@ -130,12 +146,12 @@ const OrderDetailModal = ({
               ) : (
                 <div>
                   <div className="flex items-center gap-2 mb-1 text-gray-900">
-                    <PaperBag className="h-5 w-5 text-gray-400" />
+                    <PaperBag className="h-5 w-5" />
                     <h3 className="font-bold text-lg">Retiro en Local</h3>
                   </div>
                   {order.delivery_notes && (
                     <div className="flex items-start gap-3 text-sm mt-3 pt-3 border-t border-gray-100">
-                      <Info className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                      <Info className="w-4 h-4 mt-0.5 shrink-0" />
                       <div>
                         <p className="text-gray-500 font-medium text-xs mb-0.5">Referencias de entrega</p>
                         <p className="text-gray-800 font-semibold">{order.delivery_notes}</p>
@@ -161,7 +177,7 @@ const OrderDetailModal = ({
           {/* Pago Klap pendiente */}
           {isKlapPendingOrder(order) && (
             <div className="flex w-fit max-w-full items-start gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3.5">
-              <AlertTriangle className="size-5 text-red-600 shrink-0 mt-px" />
+              <AlertTriangle className="size-5 shrink-0 mt-px" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-gray-900 leading-tight">Pago pendiente en Klap</p>
                 <p className="text-[13px] text-gray-900 leading-relaxed mt-0.5">
@@ -200,7 +216,7 @@ const OrderDetailModal = ({
               const d = new Date(order.scheduled_at);
               return (
                 <div className="bg-purple-100 border border-purple-200 rounded-xl px-3 py-2.5 flex items-center gap-3">
-                  <CalendarClock className="h-4 w-4 text-purple-700 shrink-0" />
+                  <CalendarClock className="h-4 w-4 shrink-0" />
                   <p className="text-sm font-bold text-purple-700 leading-tight">
                     Programado: {d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })} a las{' '}
                     {d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} hrs
@@ -213,7 +229,7 @@ const OrderDetailModal = ({
           {/* Notas del cliente */}
           {order.notes && (
             <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-              <span className="text-amber-500 text-base shrink-0 mt-0.5">📝</span>
+              <NotebookPen className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
               <div>
                 <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider mb-0.5">Nota del cliente</p>
                 <p className="text-sm text-amber-900 font-medium leading-relaxed">{order.notes}</p>
@@ -224,7 +240,7 @@ const OrderDetailModal = ({
           {/* Lista de Productos */}
           <div>
             <div className="flex items-center gap-2 mb-4 text-gray-900">
-              <ShoppingBag className="h-5 w-5 text-gray-400" />
+              <ShoppingBag className="h-5 w-5" />
               <h3 className="font-bold text-lg">Productos</h3>
             </div>
 

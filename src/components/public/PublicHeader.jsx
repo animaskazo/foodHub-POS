@@ -21,12 +21,10 @@ const PublicHeader = ({ org, cartCount, step, onBack, isOpen = true }) => {
               className="-ml-2 hover:bg-gray-100 transition-colors shrink-0"
               label="Volver"
              variant="ghost">
-              <ArrowLeft className="h-5 w-5 text-gray-700" aria-hidden="true" />
+              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
             </IconButton>
           ) : (
-            <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center shrink-0">
-              <Store className="h-4 w-4 text-white" />
-            </div>
+            <Store className="shrink-0 h-4 w-4" />
           )}
           <span className="font-bold text-gray-900 text-[15px] truncate">
             {org?.name || 'Cargando…'}
@@ -51,7 +49,7 @@ const PublicHeader = ({ org, cartCount, step, onBack, isOpen = true }) => {
           <div className="shrink-0 w-8 flex justify-end">
             {cartCount > 0 && (
               <div className="relative">
-                <ShoppingBag className="h-6 w-6 text-gray-700" />
+                <ShoppingBag className="h-6 w-6" />
                 <span className="absolute -top-1.5 -right-1.5 bg-black text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                   {cartCount > 9 ? '9+' : cartCount}
                 </span>

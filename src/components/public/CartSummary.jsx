@@ -15,9 +15,7 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
   if (cartItems.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 mt-12 text-center">
-        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-          <ShoppingBag className="h-10 w-10 text-gray-400" />
-        </div>
+        <ShoppingBag className="mb-6 h-10 w-10" />
         <h2 className="text-xl font-bold text-gray-900 mb-2">Tu pedido está vacío</h2>
         <p className="text-sm text-gray-500 max-w-xs mx-auto">
           Aún no has agregado productos. Vuelve al menú para elegir qué pedir.
@@ -68,7 +66,7 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
                     <div className="flex flex-wrap gap-1 mt-1">
                       {item.selectedIngredients.map(ing => (
                         <span key={ing.id} className="inline-flex items-center gap-1 text-[10px] bg-orange-100 text-orange-700 font-bold px-2 py-0.5 rounded-full">
-                          <IngredientIcon name={ing.name} icon={ing.icon} size={11} className="text-orange-600 shrink-0" />
+                          <IngredientIcon name={ing.name} icon={ing.icon} size={11} className="shrink-0" />
                           {ing.name}
                         </span>
                       ))}
@@ -154,10 +152,10 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
       {/* Image lightbox */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-white/95 flex items-center justify-center p-4"
           onClick={() => setPreviewImage(null)}
         >
-          <button
+          <button data-icon-button="true"
             onClick={() => setPreviewImage(null)}
             className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white hover:bg-white/25 transition-colors z-10"
             aria-label="Cerrar imagen"

@@ -91,9 +91,7 @@ const EditProductModal = ({ isOpen, onClose, onSuccess, productId, organizationI
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Editar Producto" maxWidth="max-w-lg">
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
-        </div>
+        <Loader2 className="h-8 w-8 animate-spin" />
       ) : (
         <>
           <div className="p-6 space-y-5">

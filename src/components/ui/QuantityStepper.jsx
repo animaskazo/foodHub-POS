@@ -6,8 +6,8 @@ export function QuantityStepper({ value, onDecrease, onIncrease, label, disabled
   decreaseDisabled = false, increaseDisabled = false, removeOnDecrease = false,
   children, className, compact = false }) {
   return (
-    <div role="group" aria-label={`Cantidad de ${label}`} className={cn(
-      'inline-flex shrink-0 items-center gap-1 rounded-full bg-gray-100 text-gray-900', className
+    <div data-icon-group="true" role="group" aria-label={`Cantidad de ${label}`} className={cn(
+      'inline-flex shrink-0 items-center gap-1 text-gray-900', className
     )}>
       <IconButton size={compact ? 'icon-sm' : 'icon'}
         label={`${removeOnDecrease ? 'Eliminar' : 'Reducir cantidad de'} ${label}`}

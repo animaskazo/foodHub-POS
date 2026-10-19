@@ -1,17 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Polygon, Circle, Tooltip, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import { mapPinIcon } from '../ui/mapIcon';
 import { MapPin, MousePointer2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// Fix for default marker icon in Leaflet
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
 
 const MapEvents = ({ onLocationSelect }) => {
   useMapEvents({
@@ -76,7 +69,7 @@ const DeliveryMap = ({ lat, lng, storeAddress = '', polygon, zones = [], activeZ
       </div>
       
       <div className="absolute top-4 left-16 z-[1000] bg-white/95 backdrop-blur-sm px-3.5 py-2 rounded-xl border border-gray-200 flex items-center gap-2 pointer-events-none shadow-md max-w-sm">
-        <MapPin className="w-4 h-4 text-red-500 shrink-0" />
+        <MapPin className="w-4 h-4 shrink-0" />
         <span className="text-xs font-semibold text-gray-800 truncate">
           {isDrawingMode 
             ? 'Haz clics en el mapa para trazar el perímetro' 
@@ -97,10 +90,10 @@ const DeliveryMap = ({ lat, lng, storeAddress = '', polygon, zones = [], activeZ
         />
         
         {lat && lng && (
-          <Marker position={[lat, lng]}>
+          <Marker icon={mapPinIcon} position={[lat, lng]}>
             <Tooltip permanent font-bold direction="top" offset={[0, -20]}>
               <div className="text-center">
-                <span className="font-extrabold text-xs text-gray-900 block">🏠 Tu Local</span>
+                <span className="font-extrabold text-xs text-gray-900 block"><MapPin className="inline size-3 mr-1" aria-hidden="true" /> Tu Local</span>
                 {storeAddress && <span className="text-[10px] text-gray-600 block max-w-[150px] truncate">{storeAddress}</span>}
               </div>
             </Tooltip>

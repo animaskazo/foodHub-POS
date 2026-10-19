@@ -143,7 +143,7 @@ const ExcelImportIngredientsModal = ({ isOpen, onClose, onSuccess }) => {
             onClick={downloadIngredientExcelTemplate}
             className="shrink-0 bg-white hover:bg-gray-100 border-gray-300 text-gray-700"
           >
-            <Download className="h-4 w-4 text-green-600" aria-hidden="true" />
+            <Download className="h-4 w-4" aria-hidden="true" />
             Descargar Plantilla Excel
           </Button>
         </div>
@@ -171,9 +171,7 @@ const ExcelImportIngredientsModal = ({ isOpen, onClose, onSuccess }) => {
                 className="hidden"
                 onChange={handleFileChange}
               />
-              <div className="h-16 w-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-4">
-                <FileSpreadsheet className="h-8 w-8" />
-              </div>
+              <FileSpreadsheet className="mb-4 h-8 w-8" />
               <p className="text-base font-semibold text-gray-900 mb-1">
                 Arrastra tu archivo Excel aquí o haz clic para examinar
               </p>
@@ -184,7 +182,7 @@ const ExcelImportIngredientsModal = ({ isOpen, onClose, onSuccess }) => {
           ) : isParsing ? (
             /* Loading parse state */
             <div className="py-12 flex flex-col items-center justify-center text-center">
-              <Loader2 className="h-10 w-10 animate-spin text-orange-500 mb-3" />
+              <Loader2 className="h-10 w-10 animate-spin mb-3" />
               <p className="text-sm font-medium text-gray-700">Leyendo y analizando archivo Excel...</p>
             </div>
           ) : (
@@ -193,7 +191,7 @@ const ExcelImportIngredientsModal = ({ isOpen, onClose, onSuccess }) => {
               {/* File Info Bar */}
               <div className="flex items-center justify-between bg-blue-50/70 border border-blue-200 rounded-xl px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <FileSpreadsheet className="h-5 w-5 text-blue-600 shrink-0" />
+                  <FileSpreadsheet className="h-5 w-5 shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-blue-900">{file.name}</p>
                     <p className="text-xs text-blue-700">
@@ -239,7 +237,7 @@ const ExcelImportIngredientsModal = ({ isOpen, onClose, onSuccess }) => {
                         </td>
                         <td className="px-4 py-2.5 font-medium text-gray-900">
                           <div className="flex items-center gap-2">
-                            <IngredientIcon icon={item.icon} className="h-5 w-5 text-gray-700 shrink-0" />
+                            <IngredientIcon icon={item.icon} className="h-5 w-5 shrink-0" />
                             <span>{item.name || <span className="text-red-500 italic">Sin nombre</span>}</span>
                           </div>
                         </td>
@@ -261,11 +259,11 @@ const ExcelImportIngredientsModal = ({ isOpen, onClose, onSuccess }) => {
                         <td className="px-4 py-2.5 text-center">
                           {item.isValid ? (
                             <span className="inline-flex items-center text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
-                              <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-green-600" /> Listo
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Listo
                             </span>
                           ) : (
                             <span className="inline-flex items-center text-xs font-medium text-red-700 bg-red-50 px-2 py-0.5 rounded-full border border-red-200" title={item.error}>
-                              <AlertTriangle className="h-3.5 w-3.5 mr-1 text-red-600" /> {item.error}
+                              <AlertTriangle className="h-3.5 w-3.5 mr-1" /> {item.error}
                             </span>
                           )}
                         </td>

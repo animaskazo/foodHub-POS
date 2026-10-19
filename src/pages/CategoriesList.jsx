@@ -191,7 +191,7 @@ const CategoriesList = () => {
             <Plus className="h-4 w-4" aria-hidden="true" /> Nueva categoría
           </Button>
           <div className="relative order-2 w-full sm:w-auto sm:order-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
               <Input
                 className="pl-9 w-full sm:w-64 border-gray-300"
                 placeholder="Buscar categoría"
@@ -297,7 +297,7 @@ const CategoriesList = () => {
                         onChange={() => handleToggleSelect(category.id)}
                       />
                       {statusFilter === 'all' && (
-                        <GripVertical className="h-4 w-4 text-gray-300 group-hover:text-gray-500 cursor-grab transition-colors" />
+                        <GripVertical className="h-4 w-4 cursor-grab transition-colors" />
                       )}
                     </div>
                   </td>

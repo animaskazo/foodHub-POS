@@ -1,3 +1,35 @@
+import {
+  Film,
+  EyeOff,
+  Eye,
+  X,
+  Store,
+  User,
+  Clock,
+  CalendarClock,
+  Check,
+  Save,
+  Link,
+  Copy,
+  ExternalLink,
+  Download,
+  MapPin,
+  Truck,
+  Search,
+  Printer,
+  Monitor,
+  Info,
+  CheckCircle2,
+  Timer,
+  CreditCard,
+  Image as ImageIcon,
+  Sparkles,
+  Globe,
+  QrCode,
+  Apple,
+  KeyRound
+} from 'lucide-react';
+
 import { SettingsOptionRow } from '../components/ui/SettingsOptionRow';
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -11,7 +43,7 @@ import {
 import { uploadImage } from '../services/storageService';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
-import { Store, User, Clock, CalendarClock, Check, Save, Link, Copy, ExternalLink, Download, MapPin, Truck, Search, Printer, Monitor, Info, CheckCircle2, Timer, CreditCard, Image as ImageIcon, Sparkles, Globe, QrCode, Apple, KeyRound } from 'lucide-react';
+
 import { FullScreenSpinner, ButtonSpinner, InlineSpinner } from '@/components/ui/Spinner';
 import PageHeader from '../components/ui/PageHeader';
 import Modal from '../components/ui/Modal';
@@ -576,7 +608,7 @@ const SettingsView = () => {
         {!dayData.closed && (
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 h-11">
-              <Clock className="h-4 w-4 text-gray-400 shrink-0" />
+              <Clock className="h-4 w-4 shrink-0" />
               <input
                 type="time"
                 value={dayData.open || '09:00'}
@@ -586,7 +618,7 @@ const SettingsView = () => {
             </div>
             <span className="text-gray-400 font-semibold text-xs">a</span>
             <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 h-11">
-              <Clock className="h-4 w-4 text-gray-400 shrink-0" />
+              <Clock className="h-4 w-4 shrink-0" />
               <input
                 type="time"
                 value={dayData.close || '22:00'}
@@ -632,9 +664,7 @@ const SettingsView = () => {
                 {/* BLOQUE 1: Identidad y Marca */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-6">
                   <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                    <div aria-hidden="true" className="hidden shrink-0 p-2.5 bg-purple-50 text-purple-600 rounded-xl sm:block">
-                      <Sparkles className="w-5 h-5" />
-                    </div>
+                    <Sparkles className="hidden shrink-0 sm:block w-5 h-5" />
                     <div>
                       <h3 className="text-base font-bold text-gray-900">Identidad y Marca</h3>
                       <p className="text-xs text-gray-500">Personaliza el logotipo y la imagen o video de portada de tu negocio.</p>
@@ -647,13 +677,12 @@ const SettingsView = () => {
                       <p className="font-semibold text-sm text-gray-700 mb-3 text-left w-full">Logotipo de la Empresa</p>
                       <div 
                         className="w-24 h-24 bg-white border-2 border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden relative group rounded-full shadow-md"
-                        style={formData.logo_url ? { backgroundImage: `url(${formData.logo_url})` } : {}}
+                        data-icon-placeholder={!formData.logo_url}
+            style={formData.logo_url ? { backgroundImage: `url(${formData.logo_url})` } : {}}
                       >
-                        {!formData.logo_url && <span className="text-3xl">🏬</span>}
+                        {!formData.logo_url && <Store className="size-6" aria-hidden="true" />}
                         {isUploadingLogo && (
-                          <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-                            <InlineSpinner size="md" />
-                          </div>
+                          <InlineSpinner className="absolute inset-0" size="md" />
                         )}
                       </div>
                       <label className="mt-4 px-4 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors shadow-sm">
@@ -673,17 +702,16 @@ const SettingsView = () => {
                       <p className="font-semibold text-sm text-gray-700 mb-3 text-left w-full">Portada (foto o video)</p>
                       <div 
                         className="w-full h-24 rounded-xl bg-white border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden relative"
-                        style={!formData.cover_is_video && formData.cover_url ? { backgroundImage: `url(${formData.cover_url})` } : {}}
+                        data-icon-placeholder={!formData.cover_url}
+            style={!formData.cover_is_video && formData.cover_url ? { backgroundImage: `url(${formData.cover_url})` } : {}}
                       >
                         {formData.cover_is_video && formData.cover_url ? (
                           <video src={formData.cover_url} autoPlay muted loop playsInline className="w-full h-full object-cover" />
                         ) : !formData.cover_url ? (
-                          <span className="text-3xl">🎞️</span>
+                          <Film className="size-6" aria-hidden="true" />
                         ) : null}
                         {isUploadingCover && (
-                          <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-                            <InlineSpinner size="md" />
-                          </div>
+                          <InlineSpinner className="absolute inset-0" size="md" />
                         )}
                       </div>
                       <label className="mt-4 px-4 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors shadow-sm">
@@ -704,9 +732,7 @@ const SettingsView = () => {
                 {/* BLOQUE 2: Información Principal */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-6">
                   <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                    <div aria-hidden="true" className="hidden shrink-0 p-2.5 bg-blue-50 text-blue-600 rounded-xl sm:block">
-                      <Store className="w-5 h-5" />
-                    </div>
+                    <Store className="hidden shrink-0 sm:block w-5 h-5" />
                     <div>
                       <h3 className="text-base font-bold text-gray-900">Información Principal</h3>
                       <p className="text-xs text-gray-500">Nombre comercial, enlace web personalizado y presentación del negocio.</p>
@@ -749,7 +775,7 @@ const SettingsView = () => {
                   {formData.slug && (
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-blue-50/70 border border-blue-200 rounded-xl p-3.5">
                       <div className="flex items-center gap-2 overflow-hidden">
-                        <Globe className="w-4 h-4 text-blue-600 shrink-0" />
+                        <Globe className="w-4 h-4 shrink-0" />
                         <span className="text-xs font-semibold text-blue-950 truncate">
                           {storeUrl}
                         </span>
@@ -769,7 +795,7 @@ const SettingsView = () => {
                           href={storeUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="h-8 px-4 bg-black text-white rounded-full text-xs font-semibold hover:bg-gray-800 flex items-center gap-1.5 cursor-pointer transition-colors"
+                          className="h-8 px-4 bg-gray-100 text-black rounded-full text-xs font-semibold hover:bg-gray-100 flex items-center gap-1.5 cursor-pointer transition-colors"
                           title="Abrir tienda"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
@@ -795,9 +821,7 @@ const SettingsView = () => {
                 {/* BLOQUE 3: Contacto y Geolocalización */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-6">
                   <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                    <div aria-hidden="true" className="hidden shrink-0 p-2.5 bg-emerald-50 text-emerald-600 rounded-xl sm:block">
-                      <MapPin className="w-5 h-5" />
-                    </div>
+                    <MapPin className="hidden shrink-0 sm:block w-5 h-5" />
                     <div>
                       <h3 className="text-base font-bold text-gray-900">Contacto y Geolocalización</h3>
                       <p className="text-xs text-gray-500">Teléfono, correo electrónico de contacto y punto de ubicación en el mapa.</p>
@@ -849,9 +873,7 @@ const SettingsView = () => {
                 {/* BLOQUE 4: Operación y Métodos de Pago */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-6">
                   <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                    <div aria-hidden="true" className="hidden shrink-0 p-2.5 bg-amber-50 text-amber-600 rounded-xl sm:block">
-                      <CreditCard className="w-5 h-5" />
-                    </div>
+                    <CreditCard className="hidden shrink-0 sm:block w-5 h-5" />
                     <div>
                       <h3 className="text-base font-bold text-gray-900">Operación y Métodos de Pago</h3>
                       <p className="text-xs text-gray-500">Gestión de pagos en caja, pasarela online y preferencias del historial.</p>
@@ -884,9 +906,7 @@ const SettingsView = () => {
                 {formData.slug && (
                   <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-4">
                     <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                      <div aria-hidden="true" className="hidden shrink-0 p-2.5 bg-indigo-50 text-indigo-600 rounded-xl sm:block">
-                        <QrCode className="w-5 h-5" />
-                      </div>
+                      <QrCode className="hidden shrink-0 sm:block w-5 h-5" />
                       <div>
                         <h3 className="text-base font-bold text-gray-900">Código QR del Menú</h3>
                         <p className="text-xs text-gray-500">Descarga e imprime tu QR para mesas o vitrina.</p>
@@ -942,7 +962,7 @@ const SettingsView = () => {
                 {/* Barra inferior de guardar cambios */}
                 <div className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
                   <div className="flex items-center gap-2 text-xs text-gray-500 font-medium text-center sm:text-left">
-                    <Info className="w-4 h-4 text-blue-600 shrink-0" />
+                    <Info className="w-4 h-4 shrink-0" />
                     <span>Recuerda guardar los cambios para actualizar la información de tu negocio.</span>
                   </div>
                   <Button
@@ -967,7 +987,6 @@ const SettingsView = () => {
                     title="Cerrar tienda temporalmente"
                     description="Los clientes podrán ver el menú, pero no podrán hacer pedidos (ni ahora ni programado). El aviso de cierre temporal se mostrará mientras esta opción esté activa."
                     icon={Store}
-                    iconClassName={forceClosed ? 'bg-red-600' : 'bg-black'}
                     control={(labelProps) => <Switch {...labelProps} checked={forceClosed} onCheckedChange={setForceClosed} />}
                   />
                   <SettingsOptionRow
@@ -1176,7 +1195,7 @@ const SettingsView = () => {
 
                 {staff.length === 0 ? (
                   <div className="text-center py-10 text-gray-400">
-                    <User className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+                    <User className="h-10 w-10 mx-auto mb-2" />
                     <p>No se encontraron miembros del staff.</p>
                   </div>
                 ) : (
@@ -1187,9 +1206,7 @@ const SettingsView = () => {
                       return (
                       <div key={member.id} className={`flex items-center justify-between p-4 border border-gray-100 rounded-xl ${active ? '' : 'opacity-60'}`}>
                         <div className="flex items-center gap-4 min-w-0">
-                          <div className="w-10 h-10 bg-gray-100 flex items-center justify-center shrink-0 rounded-full">
-                            <User className="h-5 w-5 text-black" />
-                          </div>
+                          <User className="shrink-0 h-5 w-5" />
                           <div className="min-w-0">
                             <p className="font-semibold text-gray-900 truncate">{member.full_name}</p>
                             <p className="text-sm text-gray-500 capitalize">{member.role === 'cashier' ? 'Vendedor' : (member.role || 'Staff')} · {active ? 'Activo' : 'Inactivo'}</p>
@@ -1310,7 +1327,7 @@ const SettingsView = () => {
                   <SettingsOptionRow
                     title="Impresión Automática"
                     description={<>Imprime los pedidos apenas llegan. <br/><span className="font-semibold text-blue-600">Nota:</span> Esta opción se guarda solo en este computador.</>}
-                    icon={Printer} iconClassName="bg-transparent text-gray-900"
+                    icon={Printer}
                     control={(labelProps) => (
                       <Switch {...labelProps}
                         checked={autoPrintEnabled}
@@ -1369,14 +1386,14 @@ const SettingsView = () => {
                   {/* Guía de Configuración */}
                   <div className="border-t border-gray-200 pt-8">
                     <h3 className="font-bold text-gray-900 text-lg mb-4 flex items-center gap-2">
-                      <Info className="h-5 w-5 text-blue-600" /> Guía de Instalación (Python Print Server)
+                      <Info className="h-5 w-5" /> Guía de Instalación (Python Print Server)
                     </h3>
 
                     <div className="space-y-6 text-sm text-gray-700">
                       {/* Windows */}
                       <div>
                         <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-                          <Monitor className="h-4 w-4 text-blue-600" /> Windows
+                          <Monitor className="h-4 w-4" /> Windows
                         </h4>
                         <a
                             href="https://github.com/animaskazo/foodHub-POS/releases/latest/download/FoodHubPrint.exe"
@@ -1402,7 +1419,7 @@ const SettingsView = () => {
                       {/* Mac */}
                       <div className="border-t border-gray-200 pt-6">
                         <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-                          <Apple className="h-4 w-4 text-gray-700" /> Mac
+                          <Apple className="h-4 w-4" /> Mac
                         </h4>
                         <a
                             href="https://github.com/animaskazo/foodHub-POS/raw/main/public/foodhub-printer-mac.zip"
@@ -1460,9 +1477,9 @@ const SettingsView = () => {
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                           >
                             {showKlapKey ? (
-                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                              <EyeOff className="h-4 w-4" aria-hidden="true" />
                             ) : (
-                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                              <Eye className="h-4 w-4" aria-hidden="true" />
                             )}
                           </Button>
                         </div>
@@ -1475,7 +1492,7 @@ const SettingsView = () => {
                           {klapApiKeyValidating ? (
                             <ButtonSpinner size="sm" />
                           ) : (
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                           )}
                           Validar
                         </Button>
@@ -1487,7 +1504,7 @@ const SettingsView = () => {
                       )}
                       {klapApiKeyStatus === 'invalid' && (
                         <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                          <X className="h-3.5 w-3.5" aria-hidden="true" />
                           API key inválida o no accesible
                         </p>
                       )}

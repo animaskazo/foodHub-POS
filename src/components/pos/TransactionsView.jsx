@@ -140,7 +140,7 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
           className="flex items-center bg-white border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-colors text-gray-700 shadow-sm select-none"
           style={{ WebkitTapHighlightColor: 'transparent' }}
          variant="outline" size="default">
-          <RefreshCcw className={`h-5 w-5 md:h-4 md:w-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCcw className={`h-5 w-5 md:h-4 md:w-4 ${loading ? "animate-spin" : ""}`} />
           <span className="hidden md:inline">Actualizar</span>
         </Button>
       </div>
@@ -148,7 +148,7 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
       {/* Date Range Selector */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-3">
-          <CalendarDays className="h-4 w-4 text-gray-500" />
+          <CalendarDays className="h-4 w-4" />
           <span className="text-sm font-medium text-gray-600">Período</span>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -170,13 +170,13 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
             onClick={() => setShowCustom(!showCustom)}
             className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all select-none flex items-center gap-1.5 ${
               activePreset === 'custom'
-                ? 'bg-gray-900 text-white shadow-sm'
+                ? 'bg-gray-100 text-black shadow-sm'
                 : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 active:bg-gray-100'
             }`}
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             Rango personalizado
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showCustom ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showCustom ? "rotate-180" : ""}`} />
           </button>
         </div>
 
@@ -214,14 +214,14 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <div className="bg-white p-6 rounded-2xl border border-gray-200 flex items-center gap-4">
-          <TrendingUp className="h-8 w-8 text-gray-900" />
+          <TrendingUp className="h-8 w-8" />
           <div>
             <p className="text-gray-500 text-sm font-medium">Ventas Totales</p>
             <p className="text-2xl font-bold text-gray-900">${fmt(totalVentas)}</p>
           </div>
         </div>
         <div className="bg-white p-6 rounded-2xl border border-gray-200 flex items-center gap-4">
-          <ReceiptText className="h-8 w-8 text-gray-900" />
+          <ReceiptText className="h-8 w-8" />
           <div>
             <p className="text-gray-500 text-sm font-medium">Transacciones</p>
             <p className="text-2xl font-bold text-gray-900">{totalTransacciones}</p>
@@ -234,7 +234,7 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
         <div className="py-4 md:p-4 md:border-b border-gray-100 flex items-center justify-between sticky top-0 bg-gray-50 md:bg-white z-10">
           <h2 className="text-lg font-bold text-gray-800">Transacciones</h2>
           <div className="relative w-40 md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
             <input
               type="text"
               placeholder="Buscar"

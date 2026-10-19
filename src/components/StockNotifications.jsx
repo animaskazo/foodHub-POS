@@ -96,10 +96,10 @@ const StockNotifications = () => {
 
   return (
     <div ref={ref} className="relative">
-      <button
+      <button data-icon-button="true"
         onClick={() => setOpen(!open)}
         title="Insumos en riesgo"
-        className="relative p-2.5 bg-red-500 text-white hover:bg-red-600 rounded-full transition-colors shadow-sm shadow-red-200"
+        className="relative p-2.5 bg-red-500 text-black hover:bg-red-100 rounded-full transition-colors shadow-sm shadow-red-200"
       >
         <Bell className="h-5 w-5" />
         <span className="absolute -top-1 -right-1 bg-white text-red-600 text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-sm">
@@ -124,9 +124,7 @@ const StockNotifications = () => {
                 onClick={() => goTo(item.type)}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 text-left transition-colors"
               >
-                <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center shrink-0">
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
-                </div>
+                <AlertTriangle className="shrink-0 h-4 w-4" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
                   <p className="text-xs text-red-600">

@@ -38,7 +38,7 @@ const MenuItem = ({ icon: Icon, onClick, children, danger = false }) => (
         : 'text-gray-700 hover:bg-gray-50'
     }`}
   >
-    <Icon className={`h-4 w-4 ${danger ? 'text-red-500' : 'text-gray-400'}`} />
+    <Icon className="h-4 w-4" />
     {children}
   </button>
 );
@@ -77,7 +77,7 @@ const BottomNav = ({ active = 'pago', onChange, isAdmin = false, onLogout, onCha
   }, []);
 
   return (
-    <div className="bg-[#111111] text-white hidden md:flex items-center justify-between gap-2 px-6 h-16 shrink-0 z-50">
+    <div className="bg-white text-black hidden md:flex items-center justify-between gap-2 px-6 h-16 shrink-0 z-50">
       {/* Left: Vender + Cocina */}
       <div className="flex items-center gap-2">
         {leftItems.map(({ id, label, icon: Icon }) => (
@@ -96,13 +96,13 @@ const BottomNav = ({ active = 'pago', onChange, isAdmin = false, onLogout, onCha
               }
             }}
             className={`px-5 relative ${active === id
-              ? 'text-white bg-white/10 hover:bg-white/10 hover:text-white'
-              : 'text-gray-400 hover:text-white hover:bg-gray-100/5'
+              ? 'text-black bg-white/10 hover:bg-white/10 hover:text-black'
+              : 'text-gray-400 hover:text-black hover:bg-gray-100/5'
               } ${id === 'cocina' && triggerAnimation ? 'animate-pulse' : ''}`}
           >
             <Icon className="size-5" />
             {id === 'cocina' && pendingCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex items-center justify-center h-5 w-5 rounded-full bg-red-600 text-xs text-white font-bold">{pendingCount}</span>
+              <span className="absolute -top-1 -right-1 flex items-center justify-center h-5 w-5 rounded-full bg-red-600 text-xs text-black font-bold">{pendingCount}</span>
             )}
             <span className="text-sm font-semibold">
               {label}
@@ -120,7 +120,7 @@ const BottomNav = ({ active = 'pago', onChange, isAdmin = false, onLogout, onCha
             e.preventDefault();
             setMenuOpen((open) => !open);
           }}
-          className={`px-5 ${menuOpen ? 'text-white bg-white/10' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
+          className={`px-5 ${menuOpen ? 'text-black bg-white/10' : 'text-gray-400 hover:text-black hover:bg-white/10'}`}
           title="Opciones de sesión"
         >
           <Menu className="size-5" aria-hidden="true" />

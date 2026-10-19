@@ -1,6 +1,7 @@
+import { Check, X, Search } from 'lucide-react';
 import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
-import { X, Search } from 'lucide-react';
+
 import { Button } from '../ui/button';
 
 const CategoryProductsModal = ({ isOpen, onClose, onSave, allProducts, selectedProductIds }) => {
@@ -63,14 +64,14 @@ const CategoryProductsModal = ({ isOpen, onClose, onSave, allProducts, selectedP
             onClick={onClose}
             className="flex items-center justify-center hover:bg-gray-100 transition-colors"
            label="Cerrar" variant="ghost">
-            <X className="h-5 w-5 text-gray-500" aria-hidden="true" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </IconButton>
         </div>
 
         {/* Search */}
         <div className="p-4 border-b border-gray-100 bg-gray-50/50">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
             <input
               type="text"
               placeholder="Buscar artículos..."
@@ -105,11 +106,9 @@ const CategoryProductsModal = ({ isOpen, onClose, onSave, allProducts, selectedP
                             type="checkbox"
                             checked={selectedIds.has(product.id)}
                             onChange={() => toggleProduct(product.id)}
-                            className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border-2 border-gray-300 checked:border-blue-600 checked:bg-blue-600 transition-all"
+                            className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border-2 border-gray-300 checked:border-black checked:bg-white transition-all"
                           />
-                          <svg className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
+                          <Check className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" aria-hidden="true" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-gray-900 text-[15px] truncate">{product.name}</p>

@@ -5,9 +5,7 @@ import { CheckCircle2 } from 'lucide-react';
 const SubscriptionConfirmation = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-violet-50 px-6 text-center">
-      <div className="w-16 h-16 bg-violet-600 rounded-full flex items-center justify-center mb-5 shadow-lg shadow-violet-200">
-        <CheckCircle2 className="h-8 w-8 text-white" strokeWidth={2.5} />
-      </div>
+      <CheckCircle2 className="mb-5 h-8 w-8" strokeWidth={2} />
       <h1 className="text-2xl font-black text-gray-900 leading-snug">
         ¡Gracias por suscribirte a FoodHub!
       </h1>

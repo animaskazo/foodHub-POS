@@ -1,3 +1,4 @@
+import { Truck, CircleAlert, ArrowLeft, Info } from 'lucide-react';
 import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
@@ -8,7 +9,7 @@ import CheckoutForm from '../components/public/CheckoutForm';
 import OrderConfirmation from '../components/public/OrderConfirmation';
 import OrderError from '../components/public/OrderError';
 import ProductDetailView from '../components/public/ProductDetailView';
-import { ArrowLeft, Info } from 'lucide-react';
+
 import { getOrganizationByName, getPublicCatalog, createPublicOrder } from '../services/publicOrderService';
 import { getAccessToken, createQuote, createDeliveryWithRetry } from '../services/uberDirectService';
 import { geocodeAddress } from '../utils/geo';
@@ -555,7 +556,7 @@ const OrderView = () => {
       try {
         const { toast } = await import('sonner')
         toast('Tu pedido fue recibido. Estamos coordinando el despacho y te contactaremos pronto.', {
-          icon: '🛵',
+          icon: <Truck className="size-5" aria-hidden="true" />,
           duration: 8000,
         })
       } catch (_) { /* toast no disponible en este contexto */ }
@@ -792,7 +793,7 @@ const OrderView = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
         <div className="text-center max-w-sm">
-          <div className="text-5xl mb-4">😕</div>
+          <CircleAlert className="size-10 mx-auto mb-4" aria-hidden="true" />
           <h1 className="text-xl font-bold text-gray-900 mb-2">Página no encontrada</h1>
           <p className="text-gray-500 text-sm">{error}</p>
         </div>
@@ -852,7 +853,7 @@ const OrderView = () => {
 
       <div className="flex-1 flex flex-col min-h-0">
         {storeForceClosed ? (
-          <div className="sticky top-0 z-40 bg-blue-600 text-white w-full h-8 flex items-center justify-center gap-1.5 px-4">
+          <div className="sticky top-0 z-40 bg-blue-100 text-black w-full h-8 flex items-center justify-center gap-1.5 px-4">
             <Info className="h-3.5 w-3.5 shrink-0" />
             <div ref={bannerViewportRef} className="relative flex-1 min-w-0 h-full overflow-hidden">
               <p ref={bannerCopyRef} aria-hidden="true" className="absolute top-0 left-0 invisible whitespace-nowrap text-[12px]">
@@ -888,7 +889,7 @@ const OrderView = () => {
               className="bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors shrink-0"
               label="Volver"
              variant="ghost">
-              <ArrowLeft className="h-5 w-5 text-gray-700" aria-hidden="true" />
+              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
             </IconButton>
             <h1 className="font-black text-2xl text-gray-900">{step === 2 ? 'Mi pedido' : 'Checkout'}</h1>
           </div>

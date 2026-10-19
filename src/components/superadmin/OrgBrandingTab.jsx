@@ -1,6 +1,7 @@
+import { Store, Film, Loader2, ExternalLink, Copy } from 'lucide-react';
 import { SettingsOptionRow } from '@/components/ui/SettingsOptionRow';
 import React, { useEffect, useState } from 'react';
-import { Loader2, ExternalLink, Copy } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { getOrganizationDetails, updateOrganizationDetails } from '../../services/organizationService';
@@ -112,9 +113,7 @@ const OrgBrandingTab = ({ organizationId, onSaved }) => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
-      </div>
+      <Loader2 className="h-8 w-8 animate-spin" />
     );
   }
 
@@ -128,13 +127,12 @@ const OrgBrandingTab = ({ organizationId, onSaved }) => {
           <p className="font-semibold text-sm text-gray-700 mb-3 text-left w-full">Logotipo</p>
           <div
             className="w-24 h-24 bg-white border-2 border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden relative rounded-full shadow-md"
+            data-icon-placeholder={!form.logo_url}
             style={form.logo_url ? { backgroundImage: `url(${form.logo_url})` } : {}}
           >
-            {!form.logo_url && <span className="text-3xl">🏬</span>}
+            {!form.logo_url && <Store className="size-6" aria-hidden="true" />}
             {uploadingLogo && (
-              <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-              </div>
+              <Loader2 className="absolute inset-0 h-6 w-6 animate-spin" />
             )}
           </div>
           <label className="mt-4 px-4 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors shadow-sm">
@@ -156,17 +154,16 @@ const OrgBrandingTab = ({ organizationId, onSaved }) => {
           <p className="font-semibold text-sm text-gray-700 mb-3 text-left w-full">Portada (foto o video)</p>
           <div
             className="w-full h-24 rounded-xl bg-white border border-gray-200 flex items-center justify-center shrink-0 bg-cover bg-center overflow-hidden relative"
+            data-icon-placeholder={!form.cover_url}
             style={!form.cover_is_video && form.cover_url ? { backgroundImage: `url(${form.cover_url})` } : {}}
           >
             {form.cover_is_video && form.cover_url ? (
               <video src={form.cover_url} autoPlay muted loop playsInline className="w-full h-full object-cover" />
             ) : !form.cover_url ? (
-              <span className="text-3xl">🎞️</span>
+              <Film className="size-6" aria-hidden="true" />
             ) : null}
             {uploadingCover && (
-              <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-              </div>
+              <Loader2 className="absolute inset-0 h-6 w-6 animate-spin" />
             )}
           </div>
           <label className="mt-4 px-4 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors shadow-sm">
@@ -227,7 +224,7 @@ const OrgBrandingTab = ({ organizationId, onSaved }) => {
               href={storeUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="h-8 px-3 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 flex items-center gap-1.5 transition-colors"
+              className="h-8 px-3 bg-blue-100 text-black rounded-lg text-xs font-bold hover:bg-blue-100 flex items-center gap-1.5 transition-colors"
             >
               <ExternalLink className="h-3.5 w-3.5" /> Ver Tienda
             </a>
@@ -274,7 +271,7 @@ const OrgBrandingTab = ({ organizationId, onSaved }) => {
       </div>
 
       <div className="flex justify-stretch sm:justify-end">
-        <Button onClick={handleSave} disabled={saving || uploadingLogo || uploadingCover} className="w-full sm:w-auto h-12 bg-black text-white hover:bg-gray-800 font-bold px-6">
+        <Button onClick={handleSave} disabled={saving || uploadingLogo || uploadingCover} className="w-full sm:w-auto h-12 bg-gray-100 text-black hover:bg-gray-100 font-bold px-6">
           {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Guardar cambios
         </Button>

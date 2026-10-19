@@ -6,7 +6,7 @@ export function ActionDropdown({ actions, children, label, iconOnly = false }) {
   return (
     <Menu.Root>
       <Menu.Trigger render={<Button variant={iconOnly ? 'ghost' : 'outline'} size={iconOnly ? 'icon' : 'default'}
-        aria-label={label} className={iconOnly ? 'max-md:min-h-11 max-md:min-w-11 p-0' : undefined} />}
+        aria-label={label} data-icon-button={iconOnly || undefined} className={iconOnly ? 'max-md:min-h-11 max-md:min-w-11 p-0' : undefined} />}
         onClick={(event) => event.stopPropagation()}>
         {children}
       </Menu.Trigger>

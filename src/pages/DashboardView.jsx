@@ -499,7 +499,7 @@ const DashboardView = () => {
         ) : (
           <Button 
             onClick={() => { setShiftModalType('open'); setIsShiftModalOpen(true); }}
-            className="flex items-center gap-2 bg-black text-white hover:bg-gray-800 px-6 h-11 text-base"
+            className="flex items-center gap-2 bg-gray-100 text-black hover:bg-gray-100 px-6 h-11 text-base"
           >
             <Store className="h-5 w-5" aria-hidden="true" />
             Abrir Caja
@@ -626,7 +626,7 @@ const DashboardView = () => {
                   <div className="w-1.5 h-1.5 rounded-full bg-black"></div>
                   Ventas totales 
                   <Tooltip text={sparklineDateRangeText}>
-                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                    <Info className="h-3.5 w-3.5 cursor-pointer" />
                   </Tooltip>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
@@ -645,7 +645,7 @@ const DashboardView = () => {
                   <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
                   Órdenes totales 
                   <Tooltip text={sparklineDateRangeText}>
-                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                    <Info className="h-3.5 w-3.5 cursor-pointer" />
                   </Tooltip>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
@@ -664,7 +664,7 @@ const DashboardView = () => {
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                   Ticket promedio 
                   <Tooltip text={sparklineDateRangeText}>
-                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                    <Info className="h-3.5 w-3.5 cursor-pointer" />
                   </Tooltip>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
@@ -683,7 +683,7 @@ const DashboardView = () => {
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                   Visitas totales
                   <Tooltip text={sparklineDateRangeText}>
-                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                    <Info className="h-3.5 w-3.5 cursor-pointer" />
                   </Tooltip>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
@@ -704,7 +704,7 @@ const DashboardView = () => {
                   <div className="w-1.5 h-1.5 rounded-full bg-black"></div>
                   Ventas totales 
                   <Tooltip text={sparklineDateRangeText}>
-                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                    <Info className="h-3.5 w-3.5 cursor-pointer" />
                   </Tooltip>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
@@ -722,7 +722,7 @@ const DashboardView = () => {
                   <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
                   Órdenes totales 
                   <Tooltip text={sparklineDateRangeText}>
-                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                    <Info className="h-3.5 w-3.5 cursor-pointer" />
                   </Tooltip>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
@@ -740,7 +740,7 @@ const DashboardView = () => {
                   <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                   Ticket promedio 
                   <Tooltip text={sparklineDateRangeText}>
-                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                    <Info className="h-3.5 w-3.5 cursor-pointer" />
                   </Tooltip>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">
@@ -758,7 +758,7 @@ const DashboardView = () => {
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                   Visitas totales
                   <Tooltip text={sparklineDateRangeText}>
-                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-pointer" />
+                    <Info className="h-3.5 w-3.5 cursor-pointer" />
                   </Tooltip>
                 </div>
                 <div className="text-2xl font-bold text-gray-900">

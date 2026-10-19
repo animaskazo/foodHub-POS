@@ -15,7 +15,6 @@ const SectionRow = ({ icon, title, description, children }) => (
   <SettingsOptionRow
     className="py-4"
     icon={icon}
-    iconClassName="bg-transparent text-gray-900"
     title={title}
     description={description}
     stackControl={children.type === Button}
@@ -170,9 +169,7 @@ const CreateCategoryView = () => {
       <main className="max-w-2xl mx-auto px-6 py-8 pt-[104px]">
         {superadminMode && (
           <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-100 shrink-0">
-              <ShieldAlert className="h-5 w-5 text-amber-700" />
-            </span>
+            <ShieldAlert className="shrink-0 h-5 w-5" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-amber-900">
                 Modo Super Admin{superOrgName ? ` · ${superOrgName}` : ''}

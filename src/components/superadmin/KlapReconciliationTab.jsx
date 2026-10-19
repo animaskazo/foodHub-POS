@@ -343,7 +343,7 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-xl border border-gray-200">
         <div>
           <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <FileText className="h-5 w-5 text-blue-600" />
+            <FileText className="h-5 w-5" />
             Conciliación Klap
           </h3>
           <p className="text-sm text-gray-500 mt-1">Sube la liquidación oficial de Klap (CSV/Excel) para cruzar los montos liquidados con tus pedidos.</p>
@@ -359,7 +359,7 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
           />
           <Button
             onClick={() => fileInputRef.current?.click()}
-            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center justify-center gap-2 shadow-sm h-11"
+            className="w-full sm:w-auto bg-blue-100 hover:bg-blue-100 text-black font-semibold flex items-center justify-center gap-2 shadow-sm h-11"
           >
             <Upload className="h-4 w-4" aria-hidden="true" />
             {csvData ? 'Cambiar Archivo' : 'Subir Liquidación'}
@@ -390,7 +390,7 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
           <div className="bg-green-50 border border-green-100 rounded-xl p-5 shadow-sm">
             <p className="text-sm font-medium text-green-700 mb-1">Total Liquidado por Klap</p>
             <div className="flex items-center gap-2">
-              <DollarSign className="h-6 w-6 text-green-600" />
+              <DollarSign className="h-6 w-6" />
               <p className="text-3xl font-black text-green-700">${totalLiquidado.toLocaleString('es-CL')}</p>
             </div>
           </div>
@@ -400,7 +400,7 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
       {/* Floating action bar */}
       {selectedOrders.size > 0 && (
         <div className="sticky top-4 z-20 mx-auto w-full max-w-2xl">
-          <div className="bg-gray-900 text-white rounded-xl shadow-2xl px-5 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="bg-gray-100 text-black rounded-xl shadow-2xl px-5 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium">{selectedOrders.size} seleccionado(s)</span>
               <div className="h-4 w-px bg-white/20" />
@@ -412,14 +412,14 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
             <div className="flex items-center gap-2">
               <Button
                 onClick={() => setSelectedOrders(new Set())}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="text-gray-400 hover:text-black transition-colors"
                variant="ghost" size="sm">
                 Cancelar
               </Button>
               <Button
                 onClick={handleMarkSelectedAsPaid}
                 disabled={isSaving}
-                className="bg-green-500 hover:bg-green-400 text-white font-semibold text-sm flex items-center gap-2 h-9"
+                className="bg-green-500 hover:bg-green-400 text-black font-semibold text-sm flex items-center gap-2 h-9"
               >
                 {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
                 Marcar como Abonado
@@ -433,7 +433,7 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
         <div className="p-4 border-b bg-gray-50 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
           <h4 className="font-semibold text-gray-800">Detalle de Transacciones</h4>
           <div className="relative w-full sm:w-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
             <input
               type="text"
               placeholder="Buscar pedido o Klap ID..."
@@ -555,7 +555,7 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
                     </td>
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-1.5">
-                        {isSavingThis && <Loader2 className="h-3 w-3 animate-spin text-gray-400 shrink-0" />}
+                        {isSavingThis && <Loader2 className="h-3 w-3 animate-spin shrink-0" />}
                         <select
                           value={currentCardType}
                           onChange={e => handleCardTypeChange(paymentId, order.id, e.target.value, order.total)}
@@ -638,7 +638,7 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
             <Button 
               onClick={handleMarkAsReconciled}
               disabled={isSaving}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-2 shadow-sm"
+              className="bg-emerald-100 hover:bg-emerald-100 text-black font-semibold flex items-center gap-2 shadow-sm"
             >
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Marcar {pendingToReconcile.length} como Abonados

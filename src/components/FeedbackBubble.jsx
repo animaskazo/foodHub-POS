@@ -107,14 +107,14 @@ const FeedbackBubble = () => {
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end" ref={popoverRef}>
       {isOpen && (
         <div className="mb-4 w-80 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden animate-in slide-in-from-bottom-5">
-          <div className="bg-gray-900 px-4 py-3 flex justify-between items-center">
-            <h3 className="text-white font-medium flex items-center gap-2">
+          <div className="bg-gray-100 px-4 py-3 flex justify-between items-center">
+            <h3 className="text-black font-medium flex items-center gap-2">
               <Camera size={16} />
               Reportar Problema
             </h3>
             <IconButton
               onClick={() => setIsOpen(false)}
-              className="text-gray-600 hover:text-white transition-colors"
+              className="text-gray-600 hover:text-black transition-colors"
              label="Cerrar" variant="ghost">
               <X size={18}  aria-hidden="true" />
             </IconButton>
@@ -134,7 +134,7 @@ const FeedbackBubble = () => {
             <Button
               type="submit"
               disabled={isSubmitting || !description.trim()}
-              className="mt-3 w-full bg-black text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+              className="mt-3 w-full bg-gray-100 text-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
              variant="default" size="default">
               {isSubmitting ? (
                 <>
@@ -152,7 +152,7 @@ const FeedbackBubble = () => {
       {!isOpen && (
         <IconButton
           onClick={() => setIsOpen(true)}
-          className="bg-black text-white shadow-lg hover:bg-gray-800 transition-transform hover:scale-105"
+          className="bg-gray-100 text-black shadow-lg hover:bg-gray-100 transition-transform hover:scale-105"
           title="Reportar problema"
          label="Reportar problema" variant="ghost">
           <MessageCircle size={24}  aria-hidden="true" />

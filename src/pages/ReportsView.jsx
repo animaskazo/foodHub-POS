@@ -606,15 +606,15 @@ const ReportsView = () => {
 
               {selected === 'anual' ? (
                 <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200/80 px-2 py-1.5 w-fit">
-                  <IconButton onClick={() => setAnnualYear(y => y - 1)} label="Año anterior" className="hover:bg-gray-100 transition-colors" variant="ghost"><ChevronLeft className="h-4 w-4 text-gray-500" aria-hidden="true" /></IconButton>
+                  <IconButton onClick={() => setAnnualYear(y => y - 1)} label="Año anterior" className="hover:bg-gray-100 transition-colors" variant="ghost"><ChevronLeft className="h-4 w-4" aria-hidden="true" /></IconButton>
                   <span className="text-sm font-semibold text-gray-900 min-w-[60px] text-center select-none">{annualYear}</span>
-                  <IconButton onClick={() => setAnnualYear(y => y + 1)} disabled={annualYear >= today.getFullYear()} label="Año siguiente" className="hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" variant="ghost"><ChevronRight className="h-4 w-4 text-gray-500" aria-hidden="true" /></IconButton>
+                  <IconButton onClick={() => setAnnualYear(y => y + 1)} disabled={annualYear >= today.getFullYear()} label="Año siguiente" className="hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" variant="ghost"><ChevronRight className="h-4 w-4" aria-hidden="true" /></IconButton>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200/80 px-2 py-1.5">
-                  <IconButton onClick={prev} label="Mes anterior" className="hover:bg-gray-100 transition-colors" variant="ghost"><ChevronLeft className="h-4 w-4 text-gray-500" aria-hidden="true" /></IconButton>
+                  <IconButton onClick={prev} label="Mes anterior" className="hover:bg-gray-100 transition-colors" variant="ghost"><ChevronLeft className="h-4 w-4" aria-hidden="true" /></IconButton>
                   <span className="text-sm font-semibold text-gray-900 min-w-[130px] text-center select-none">{MONTHS[cm]} {cy}</span>
-                  <IconButton onClick={next} disabled={isCm} label="Mes siguiente" className="hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" variant="ghost"><ChevronRight className="h-4 w-4 text-gray-500" aria-hidden="true" /></IconButton>
+                  <IconButton onClick={next} disabled={isCm} label="Mes siguiente" className="hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" variant="ghost"><ChevronRight className="h-4 w-4" aria-hidden="true" /></IconButton>
                 </div>
               )}
 
@@ -622,7 +622,7 @@ const ReportsView = () => {
               <Button
                 onClick={() => setIsChatOpen(true)}
                 aria-label="Asistente IA"
-                className="hidden sm:flex items-center bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+                className="hidden sm:flex items-center bg-emerald-100 text-black hover:bg-emerald-100 transition-colors"
                variant="ghost" size="default">
                 <Sparkles className="h-4 w-4" /> Asistente IA
               </Button>
@@ -633,7 +633,7 @@ const ReportsView = () => {
         {error && <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl border border-red-100 text-sm">{error}</div>}
 
         {loading ? (
-          <div className="flex justify-center py-32"><Loader2 className="h-6 w-6 animate-spin text-gray-300" /></div>
+          <Loader2 className="h-6 w-6 animate-spin" />
         ) : (
           <div className="space-y-4" ref={printRef}>
               {selected === 'anual' ? (
@@ -819,7 +819,7 @@ const ReportsView = () => {
                           const CatIcon = resolveCategoryIcon({ name: c.name })
                           return (
                             <div key={c.categoryId || c.name} className="flex items-center gap-3">
-                              <CatIcon className="h-5 w-5 text-black shrink-0" />
+                              <CatIcon className="h-5 w-5 shrink-0" />
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between gap-2 mb-1">
                                   <span className="text-sm font-medium text-gray-900 truncate">{c.name}</span>
@@ -849,7 +849,7 @@ const ReportsView = () => {
                     <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6">
                       <div className="mb-4">
                         <div className="flex items-center gap-2">
-                          <Trophy className="h-4 w-4 text-black" />
+                          <Trophy className="h-4 w-4" />
                           <h3 className="text-sm font-semibold text-gray-900">Productos más vendidos</h3>
                         </div>
                         <p className="text-xs text-gray-400 mt-1">Sin extras bajo {fmt(MIN_TOP_PRODUCT_PRICE)}.</p>
@@ -897,7 +897,7 @@ const ReportsView = () => {
                           return (
                             <div key={item.key} className="flex items-center gap-3">
                               {PayIcon && (
-                                <PayIcon className="h-5 w-5 text-black shrink-0" />
+                                <PayIcon className="h-5 w-5 shrink-0" />
                               )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between gap-2 mb-1">
@@ -918,7 +918,7 @@ const ReportsView = () => {
                     )}
                     {mFees > 0 && (
                       <div className="mt-4 pt-3 border-t border-gray-100 flex items-center gap-2.5 text-sm">
-                        <Truck className="h-5 w-5 text-black shrink-0" />
+                        <Truck className="h-5 w-5 shrink-0" />
                         <span className="flex-1 text-gray-700 font-medium">Delivery fees</span>
                         <span className="font-semibold text-gray-900 tabular-nums shrink-0">{fmt(mFees)}</span>
                       </div>
@@ -1090,7 +1090,7 @@ const ReportsView = () => {
       <Button
         onClick={() => setIsChatOpen(true)}
         aria-label="Asistente IA"
-        className="md:hidden fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-30 inline-flex items-center bg-emerald-600 text-white shadow-[0_8px_24px_-6px_rgba(5,150,105,0.5)] active:scale-95 transition-transform whitespace-nowrap"
+        className="md:hidden fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-30 inline-flex items-center bg-emerald-100 text-black shadow-[0_8px_24px_-6px_rgba(5,150,105,0.5)] active:scale-95 transition-transform whitespace-nowrap"
        variant="ghost" size="default">
         <Sparkles className="h-4 w-4" /> Asistente IA
       </Button>

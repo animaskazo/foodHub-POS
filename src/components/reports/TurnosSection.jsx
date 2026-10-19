@@ -143,9 +143,7 @@ const TurnosSection = ({ shifts, orders, cm, cy }) => {
   if (rows.length === 0) {
     return (
       <div className="bg-white rounded-2xl border border-gray-200/80 p-10 text-center">
-        <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-50 flex items-center justify-center">
-          <CalendarClock className="h-6 w-6 text-gray-300" />
-        </div>
+        <CalendarClock className="mx-auto mb-3 h-6 w-6" />
         <p className="text-sm font-medium text-gray-400">No hay turnos en este período.</p>
         <p className="text-xs text-gray-400 mt-1">Los turnos aparecen aquí al abrir o cerrar caja desde el POS.</p>
       </div>
@@ -240,7 +238,7 @@ const TurnosSection = ({ shifts, orders, cm, cy }) => {
                 )}
               </div>
 
-              <ChevronDown className={`h-4 w-4 text-gray-400 shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`} />
             </button>
 
             {expanded && (

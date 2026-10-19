@@ -110,7 +110,7 @@ const ReportsChatDrawer = ({ isOpen, onClose, reportData }) => {
       const errorMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        text: `⚠️ No pude analizar los datos en este momento: ${err.message || 'Error de conexión'}. Inténtalo nuevamente.`,
+        text: `No pude analizar los datos en este momento: ${err.message || 'Error de conexión'}. Inténtalo nuevamente.`,
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -126,9 +126,7 @@ const ReportsChatDrawer = ({ isOpen, onClose, reportData }) => {
           <div className="p-4 sm:p-5 bg-gradient-to-r from-gray-900 to-gray-800 text-white border-b border-gray-800 shrink-0">
             <div className="w-full max-w-3xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
-                <Sparkles className="w-5 h-5" />
-              </div>
+              <Sparkles className="w-5 h-5" />
               <div>
                 <h3 className="font-bold text-base text-white flex items-center gap-2">
                   FoodHub BI <span className="text-[10px] bg-emerald-500/30 text-emerald-300 font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider">IA</span>
@@ -154,9 +152,7 @@ const ReportsChatDrawer = ({ isOpen, onClose, reportData }) => {
                 className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {msg.role === 'assistant' && (
-                  <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
-                    <Bot className="w-4 h-4" />
-                  </div>
+                  <Bot className="shrink-0 mt-0.5 w-4 h-4" />
                 )}
 
                 <div
@@ -174,20 +170,16 @@ const ReportsChatDrawer = ({ isOpen, onClose, reportData }) => {
                 </div>
 
                 {msg.role === 'user' && (
-                  <div className="w-7 h-7 rounded-lg bg-gray-200 text-gray-600 flex items-center justify-center shrink-0 mt-0.5">
-                    <User className="w-4 h-4" />
-                  </div>
+                  <User className="shrink-0 mt-0.5 w-4 h-4" />
                 )}
               </div>
             ))}
 
             {loading && (
               <div className="flex gap-3 items-center text-gray-400 text-xs py-2">
-                <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                  <Bot className="w-4 h-4 animate-pulse" />
-                </div>
+                <Bot className="shrink-0 w-4 h-4 animate-pulse" />
                 <div className="bg-white border border-gray-200/80 rounded-2xl px-4 py-2.5 flex items-center gap-2 text-gray-500 shadow-xs">
-                  <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Analizando los datos del reporte...</span>
                 </div>
               </div>
@@ -240,7 +232,7 @@ const ReportsChatDrawer = ({ isOpen, onClose, reportData }) => {
               <IconButton label="Enviar mensaje"
                 type="submit"
                 disabled={!input.trim() || loading}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                className="bg-emerald-100 hover:bg-emerald-100 text-black rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </IconButton>

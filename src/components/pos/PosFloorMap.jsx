@@ -227,7 +227,7 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
               <span className="font-semibold text-center px-4 text-[17px] tracking-tight">{t.name}</span>
               
               <div className="flex flex-col items-center mt-1.5 gap-1.5">
-                <div className={`flex items-center gap-1.5 text-[12px] font-medium opacity-60`}>
+                <div className="flex items-center gap-1.5 text-[12px] font-medium opacity-60">
                   <Users className="w-3.5 h-3.5" />
                   <span>{t.capacity}</span>
                 </div>

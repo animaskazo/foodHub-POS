@@ -99,9 +99,7 @@ const AddressAutocomplete = ({ value, onChange, onSelectAddress, onBlur, error, 
       </label>
       
       <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-          <MapPin className="h-5 w-5 text-gray-400" />
-        </div>
+        <MapPin className="absolute inset-y-0 left-0 pointer-events-none h-5 w-5" />
         
         <input
           type="text"
@@ -121,13 +119,11 @@ const AddressAutocomplete = ({ value, onChange, onSelectAddress, onBlur, error, 
           }`}
         />
         
-        <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none">
-          {isLoading ? (
-            <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
+        {isLoading ? (
+            <Loader2 className="absolute inset-y-0 right-0 pointer-events-none h-5 w-5 animate-spin" />
           ) : (
-            <Search className="h-5 w-5 text-gray-400" />
+            <Search className="absolute inset-y-0 right-0 pointer-events-none h-5 w-5" />
           )}
-        </div>
       </div>
 
       {isOpen && suggestions.length > 0 && (
@@ -139,7 +135,7 @@ const AddressAutocomplete = ({ value, onChange, onSelectAddress, onBlur, error, 
                 onClick={() => handleSelect(sugg)}
                 className="px-4 py-3 hover:bg-gray-50 cursor-pointer flex items-start gap-3 transition-colors border-b border-gray-50 last:border-0"
               >
-                <MapPin className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+                <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
                 <div className="flex flex-col">
                   <span className="text-[14px] font-semibold text-gray-900 leading-tight">
                     {sugg.addressData.street} {sugg.addressData.housenumber}

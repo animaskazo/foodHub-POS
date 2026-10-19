@@ -290,9 +290,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
       >
         <div className="relative mb-6 mx-auto w-max" style={{ animation: 'bounceIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both' }}>
           <div className="absolute inset-0 bg-blue-400 rounded-full animate-ping opacity-20"></div>
-          <div className="w-24 h-24 bg-blue-500 rounded-full flex items-center justify-center relative z-10 shadow-lg">
-            <CheckCircle2 className="h-12 w-12 text-white" strokeWidth={2.5} />
-          </div>
+          <CheckCircle2 className="relative z-10 h-12 w-12" strokeWidth={2} />
         </div>
         
         <h2 className="text-3xl font-black text-gray-900 mb-2 tracking-tight" style={{ animation: 'fadeUp 0.5s ease-out 0.4s both' }}>
@@ -430,7 +428,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                     onClick={() => setOrderType('table')}
                     className={`flex items-center justify-center py-2.5 px-3 rounded-xl border transition-all cursor-pointer font-bold text-xs ${
                       orderType === 'table'
-                        ? 'border-black bg-black text-white shadow-sm'
+                        ? 'border-black bg-gray-100 text-black shadow-sm'
                         : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
@@ -443,7 +441,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                     onClick={() => setOrderType('pickup')}
                     className={`flex items-center justify-center py-2.5 px-3 rounded-xl border transition-all cursor-pointer font-bold text-xs ${
                       orderType === 'pickup'
-                        ? 'border-black bg-black text-white shadow-sm'
+                        ? 'border-black bg-gray-100 text-black shadow-sm'
                         : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
@@ -456,7 +454,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                     onClick={() => setOrderType('delivery')}
                     className={`flex items-center justify-center py-2.5 px-3 rounded-xl border transition-all cursor-pointer font-bold text-xs ${
                       orderType === 'delivery'
-                        ? 'border-black bg-black text-white shadow-sm'
+                        ? 'border-black bg-gray-100 text-black shadow-sm'
                         : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
@@ -468,9 +466,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
 
               {orderType === 'delivery' && isDeliveryCollapsed && isDeliveryReady && (
                 <div className="mb-6 flex items-center gap-3 rounded-2xl border-2 border-gray-900 bg-white p-3.5 animate-in fade-in">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white">
-                    <CheckCircle2 className="h-4.5 w-4.5" />
-                  </span>
+                  <CheckCircle2 className="shrink-0 h-4.5 w-4.5" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-extrabold text-gray-900">{deliveryAddress}</p>
                     <p className="truncate text-xs font-medium text-gray-500">
@@ -491,9 +487,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                 <div className="mb-6 rounded-2xl border-2 border-gray-900 bg-white animate-in fade-in slide-in-from-top-2">
                   <div className="p-4 space-y-4">
                     <h4 className="font-extrabold text-gray-900 text-[15px] flex items-center gap-2">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gray-900 text-white">
-                        <Truck className="h-4 w-4" />
-                      </span>
+                      <Truck className="h-4 w-4" />
                       Despacho a domicilio
                     </h4>
                     {isLoadingZones && !isAddressValid && !addressError && (
@@ -547,14 +541,14 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                         type="button"
                         disabled={isValidatingAddress || isAddressValid}
                         onClick={() => handleValidateAddress()}
-                        className={`mt-7 transition-all shrink-0 flex items-center justify-center min-w-[90px] ${ isAddressValid ? 'bg-emerald-100 text-emerald-700' : isValidatingAddress ? 'bg-gray-100 text-gray-400' : 'bg-gray-900 text-white hover:bg-black active:scale-[0.98]' }`}
+                        className={`mt-7 transition-all shrink-0 flex items-center justify-center min-w-[90px] ${ isAddressValid ? 'bg-emerald-100 text-emerald-700' : isValidatingAddress ? 'bg-gray-100 text-gray-400' : 'bg-gray-100 text-black hover:bg-gray-100 active:scale-[0.98]' }`}
                        variant="default" size="default">
                         {isValidatingAddress ? <Loader2 className="w-4 h-4 animate-spin" /> : isAddressValid ? <CheckCircle2 className="w-5 h-5" /> : 'Validar'}
                       </Button>
                     </div>
                     {addressError && (
                       <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3">
-                        <AlertTriangle className="h-4 w-4 shrink-0 text-red-500 mt-0.5" />
+                        <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                         <div className="min-w-0">
                           <p className="text-[13px] font-bold text-red-700 leading-snug">{addressError}</p>
                           <p className="text-xs font-medium text-red-500 mt-0.5">Revisa calle, número y comuna e intenta de nuevo.</p>
@@ -562,7 +556,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                       </div>
                     )}
                     {isAddressValid && (
-                      <div className="flex items-center gap-3 rounded-xl bg-emerald-700 px-4 py-3 text-white">
+                      <div className="flex items-center gap-3 rounded-xl bg-emerald-100 px-4 py-3 text-black">
                         <CheckCircle2 className="h-5 w-5 shrink-0" />
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-extrabold leading-tight">Cobertura confirmada</p>
@@ -628,7 +622,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
 
           {!isDeliveryReady ? (
             <div className="flex items-start gap-2.5 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3.5">
-              <Truck className="h-4 w-4 shrink-0 text-gray-400 mt-0.5" />
+              <Truck className="h-4 w-4 shrink-0 mt-0.5" />
               <p className="text-[13px] font-semibold text-gray-500 leading-snug">
                 Completa la dirección y los datos del cliente para ver los métodos de pago.
               </p>
@@ -649,23 +643,17 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                 disabled={isDisabled}
                 className={`flex items-center p-4 border-2 rounded-2xl md:rounded-full transition-all text-left cursor-pointer ${
                   isProcessingThis
-                    ? 'border-black bg-black shadow-md opacity-100 cursor-wait'
+                    ? 'border-black bg-gray-100 shadow-md opacity-100 cursor-wait'
                     : isDisabled
                     ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed grayscale'
                     : 'border-gray-200 bg-white hover:border-black hover:bg-gray-50 active:scale-[0.98] group'
                 }`}
               >
-                <method.icon className={`h-6 w-6 mr-4 shrink-0 transition-colors ${
-                  isProcessingThis 
-                    ? 'text-white' 
-                    : processingMethod 
-                      ? 'text-gray-400' 
-                      : 'text-gray-700 group-hover:text-black'
-                }`} />
+                <method.icon className="h-6 w-6 mr-4 shrink-0 transition-colors" />
                 <div className="flex-1 min-w-0">
                   <span className={`font-bold text-base md:text-lg truncate block transition-colors ${
                     isProcessingThis 
-                      ? 'text-white' 
+                      ? 'text-black'
                       : processingMethod 
                         ? 'text-gray-400' 
                         : 'text-gray-800 group-hover:text-black'
@@ -674,7 +662,7 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                   </span>
                 </div>
                 {isProcessingThis && (
-                  <Loader2 className="h-5 w-5 text-white ml-3 shrink-0 animate-spin" />
+                  <Loader2 className="h-5 w-5 ml-3 shrink-0 animate-spin" />
                 )}
               </button>
             )})}

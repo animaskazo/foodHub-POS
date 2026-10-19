@@ -1,9 +1,8 @@
-import { HugeiconsIcon } from '@hugeicons/react';
 import { getIngredientIcon, recommendIngredientIcon } from '../../utils/ingredientIcons';
 
 export const IngredientIcon = ({ icon, name, className, size = 24 }) => {
-  const resolved = getIngredientIcon(icon || (name ? recommendIngredientIcon(name) : null));
-  return <HugeiconsIcon icon={resolved} className={className} size={size} color="currentColor" strokeWidth={1.5} />;
+  const Icon = getIngredientIcon(icon || (name ? recommendIngredientIcon(name) : null));
+  return <Icon className={className} size={size} color="#000" strokeWidth={2} fill="none" aria-hidden="true" />;
 };
 
 export default IngredientIcon;

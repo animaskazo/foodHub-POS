@@ -805,9 +805,7 @@ const PosView = () => {
         <>
           <div className="flex flex-col items-center justify-center h-screen bg-gray-50 text-center p-6">
             <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
-              <div className="bg-red-50 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-                <Store className="h-10 w-10 text-red-500" />
-              </div>
+              <Store className="mx-auto mb-6 h-10 w-10" />
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Caja Cerrada</h2>
               <p className="text-gray-500 mb-8">El terminal de ventas está bloqueado porque el turno actual se encuentra cerrado. Abre la caja para comenzar a recibir pagos y procesar órdenes.</p>
               <Button onClick={() => { setShiftModalType('open'); setIsShiftModalOpen(true); }}>
@@ -832,9 +830,7 @@ const PosView = () => {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-50 text-center p-6">
         <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
-          <div className="bg-red-50 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-            <LogOut className="h-10 w-10 text-red-500" />
-          </div>
+          <LogOut className="mx-auto mb-6 h-10 w-10" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Caja Cerrada</h2>
           <p className="text-gray-500 mb-8">El terminal de ventas está bloqueado porque el turno actual se encuentra cerrado. Para poder recibir pagos y procesar órdenes, por favor abre la caja desde el Dashboard administrativo.</p>
           <Button 
@@ -1000,7 +996,7 @@ const PosView = () => {
                     activeTab === id ? 'text-black font-extrabold bg-gray-50' : 'text-gray-500 font-semibold hover:bg-gray-50'
                   }`}
                 >
-                  <Icon className={`h-8 w-8 ${activeTab === id ? 'text-black' : 'text-gray-400'}`} />
+                  <Icon className="h-8 w-8" />
                   <span className="text-lg">{label}</span>
                 </Button>
               ))}
@@ -1171,9 +1167,7 @@ const PosView = () => {
       {toastMessage && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-top-4 fade-in duration-300">
           <div className="bg-emerald-500 text-white px-5 py-3.5 rounded-full shadow-2xl flex items-center gap-3 font-bold whitespace-nowrap text-sm sm:text-base border border-emerald-400">
-            <div className="bg-white/20 rounded-full p-1.5 flex items-center justify-center">
-              <ChefHat className="h-5 w-5 text-white" />
-            </div>
+            <ChefHat className="h-5 w-5" />
             <span>{toastMessage}</span>
           </div>
         </div>

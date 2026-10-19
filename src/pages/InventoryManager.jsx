@@ -1,10 +1,10 @@
-import { Pencil } from 'lucide-react';
+import { Pencil, Search, Plus, Loader2, ListFilter, ChevronDown, Trash2, Package, History, BarChart3 } from 'lucide-react';
 import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Loader2, ListFilter, ChevronDown, Trash2, Package, History, BarChart3 } from 'lucide-react';
+
 import { getFirstOrganizationId, getInventoryItems, createInventoryItem, updateInventoryItem, deleteInventoryItem, bulkDeleteInventoryItems, adjustInventoryStock, getMovements, getInventoryUsage } from '../services/inventoryService';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -281,7 +281,7 @@ const InventoryManager = () => {
             <div className="px-6 py-4 flex flex-col sm:flex-row gap-4 items-center justify-between border-b">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
                   <Input
                     className="pl-9 w-full sm:w-64 border-gray-300"
                     placeholder="Buscar insumo"
@@ -560,9 +560,7 @@ const InventoryManager = () => {
         <Modal isOpen={movementsModal.isOpen} onClose={() => setMovementsModal({ isOpen: false, item: null, movements: [], loading: false })} title={`Movimientos: ${movementsModal.item?.name}`}>
           <div className="p-6">
             {movementsModal.loading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-              </div>
+              <Loader2 className="h-6 w-6 animate-spin" />
             ) : movementsModal.movements.length === 0 ? (
               <p className="text-center text-gray-500 py-8">Sin movimientos registrados.</p>
             ) : (
