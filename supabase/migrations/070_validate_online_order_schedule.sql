@@ -99,6 +99,7 @@ begin
     if not v_within_business_hours then
       raise exception 'El pedido inmediato está fuera del horario comercial.';
     end if;
+    return new;
   end if;
 
   if not v_scheduling_enabled then
