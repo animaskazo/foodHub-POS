@@ -279,32 +279,36 @@ const OrderView = () => {
     load();
   }, [slug]);
 
-  // ── Calculate isOpen ──────────────────────────────────────
+  // ── Availability for immediate online orders ───────────────
+  // "Ahora" is available during business hours OR pickup hours.
   useEffect(() => {
-    if (!org || !org.business_hours) return;
-    
+    if (!org) return;
+
     const checkIsOpen = () => {
       const now = new Date();
       const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-      const todayStr = days[now.getDay()];
-      const todayHours = org.business_hours[todayStr];
-      
-      if (!todayHours || todayHours.closed) return false;
-      
-      const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
-      const parseTime = (timeStr) => {
-        if (!timeStr) return 0;
-        const [h, m] = timeStr.split(':').map(Number);
-        return h * 60 + m;
+      const todayKey = days[now.getDay()];
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const configuredSchedules = [org.business_hours, org.pickup_hours]
+        .filter(hours => hours && Object.keys(hours).length > 0);
+
+      if (configuredSchedules.length === 0) return true;
+
+      const isWithin = (schedule) => {
+        const day = schedule?.[todayKey];
+        if (!day || day.closed) return false;
+        const parseTime = (timeStr) => {
+          if (!timeStr) return 0;
+          const [h, m] = String(timeStr).split(':').map(Number);
+          return (h || 0) * 60 + (m || 0);
+        };
+        const open = parseTime(day.open);
+        const close = parseTime(day.close);
+        if (close < open) return currentMinutes >= open || currentMinutes <= close;
+        return currentMinutes >= open && currentMinutes <= close;
       };
-      
-      const openMinutes = parseTime(todayHours.open);
-      const closeMinutes = parseTime(todayHours.close);
-      
-      if (closeMinutes < openMinutes) { // midnight cross
-        return currentTotalMinutes >= openMinutes || currentTotalMinutes <= closeMinutes;
-      }
-      return currentTotalMinutes >= openMinutes && currentTotalMinutes <= closeMinutes;
+
+      return configuredSchedules.some(isWithin);
     };
 
     setIsOpen(checkIsOpen());
