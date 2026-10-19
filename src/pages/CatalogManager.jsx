@@ -1,3 +1,4 @@
+import { QuantityStepper } from '../components/ui/QuantityStepper';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
@@ -317,10 +318,10 @@ const CatalogManager = () => {
         ) : (
         <div className="py-4 md:px-6 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3 md:border-b">
           <Button className="order-1 w-full sm:w-auto sm:order-5" onClick={() => setIsTypeSelectionModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" /> Nuevo artículo
+            <Plus className="h-4 w-4" aria-hidden="true" /> Nuevo artículo
           </Button>
           <Button variant="outline" className="order-2 w-full sm:w-auto sm:order-3 sm:ml-auto text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => setIsAIModalOpen(true)}>
-            <Sparkles className="h-4 w-4 mr-2" /> Importar menú
+            <Sparkles className="h-4 w-4" aria-hidden="true" /> Importar menú
           </Button>
           <div className="relative order-3 w-full sm:w-auto sm:order-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -344,7 +345,7 @@ const CatalogManager = () => {
             </SelectContent>
           </Select>
           <Button variant="outline" className="hidden sm:inline-flex sm:order-4">
-            Acciones <ChevronDown className="ml-2 h-4 w-4" />
+            Acciones <ChevronDown className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
       )}
@@ -536,15 +537,12 @@ const CatalogManager = () => {
                         </td>
                         <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                           {isTracked(product) ? (
-                            <div className="inline-flex items-center gap-0.5 bg-gray-50 border border-gray-200 rounded-full pl-0.5 pr-0.5 py-0.5">
-                              <button
-                                onClick={() => stepStock(product, -1)}
-                                disabled={savingStockId === product.id}
-                                className="h-7 w-7 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-800 active:scale-95 transition-all disabled:opacity-40 text-base leading-none"
-                                aria-label="Quitar uno"
-                              >
-                                −
-                              </button>
+                            <QuantityStepper compact value={getStock(product)} label={product.name}
+                              disabled={savingStockId === product.id}
+                              decreaseDisabled={getStock(product) <= 0}
+                              onDecrease={() => stepStock(product, -1)}
+                              onIncrease={() => stepStock(product, 1)}>
+
                               {editingStockId === product.id ? (
                                 <input
                                   autoFocus
@@ -569,15 +567,7 @@ const CatalogManager = () => {
                                 <StockNumber value={getStock(product)} direction={stockDir[product.id] ?? 1} />
                               </button>
                               )}
-                              <button
-                                onClick={() => stepStock(product, 1)}
-                                disabled={savingStockId === product.id}
-                                className="h-7 w-7 flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-200 hover:text-gray-800 active:scale-95 transition-all disabled:opacity-40 text-base leading-none"
-                                aria-label="Agregar uno"
-                              >
-                                +
-                              </button>
-                            </div>
+                              </QuantityStepper>
                           ) : (
                             <button
                               onClick={() => persistStock(product, 0, true)}
@@ -681,15 +671,12 @@ const CatalogManager = () => {
                     <p className="text-sm font-bold text-gray-900 tabular-nums mt-0.5">${Math.round(product.price).toLocaleString('es-CL')}</p>
                     <div onClick={(e) => e.stopPropagation()} className="mt-1.5">
                       {isTracked(product) ? (
-                        <div className="inline-flex items-center gap-0.5 bg-gray-50 border border-gray-200 rounded-full px-0.5 py-0.5">
-                          <button
-                            onClick={() => stepStock(product, -1)}
-                            disabled={savingStockId === product.id}
-                            className="h-7 w-7 flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 text-base leading-none disabled:opacity-40"
-                            aria-label="Quitar uno"
-                          >
-                            −
-                          </button>
+                        <QuantityStepper compact value={getStock(product)} label={product.name}
+                              disabled={savingStockId === product.id}
+                              decreaseDisabled={getStock(product) <= 0}
+                              onDecrease={() => stepStock(product, -1)}
+                              onIncrease={() => stepStock(product, 1)}>
+
                           {editingStockId === product.id ? (
                             <input
                               autoFocus
@@ -713,15 +700,7 @@ const CatalogManager = () => {
                               <StockNumber value={getStock(product)} direction={stockDir[product.id] ?? 1} />
                             </button>
                           )}
-                          <button
-                            onClick={() => stepStock(product, 1)}
-                            disabled={savingStockId === product.id}
-                            className="h-7 w-7 flex items-center justify-center rounded-full text-gray-500 active:bg-gray-200 text-base leading-none disabled:opacity-40"
-                            aria-label="Agregar uno"
-                          >
-                            +
-                          </button>
-                        </div>
+                          </QuantityStepper>
                       ) : (
                         <button
                           onClick={() => persistStock(product, 0, true)}

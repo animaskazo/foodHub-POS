@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import React from 'react';
 import { CheckCircle2 } from 'lucide-react';
 
@@ -13,12 +14,12 @@ const SubscriptionConfirmation = () => {
       <p className="text-base text-gray-600 font-medium mt-3">
         Inicia sesión ahora para comenzar.
       </p>
-      <button
+      <Button
         onClick={() => (window.location.href = '/login')}
-        className="mt-8 w-full max-w-xs bg-black text-white font-bold py-4 rounded-full hover:bg-gray-800 transition-colors active:scale-[0.98]"
-      >
+        className="mt-8 w-full max-w-xs bg-black text-white hover:bg-gray-800 transition-colors active:scale-[0.98]"
+       variant="default" size="default">
         Iniciar sesión
-      </button>
+      </Button>
     </div>
   );
 };

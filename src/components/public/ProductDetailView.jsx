@@ -1,3 +1,6 @@
+import { QuantityStepper } from '../ui/QuantityStepper';
+import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ArrowLeft, Plus, Minus } from 'lucide-react';
 import IngredientIcon from '../ui/IngredientIcon';
@@ -324,7 +327,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
           aria-label="Volver"
           className="absolute top-4 left-4 z-30 p-2.5 bg-white/95 backdrop-blur-md rounded-full hover:bg-white transition-colors border border-black/10 shadow-[0_2px_12px_rgba(0,0,0,0.28)]"
         >
-          <ArrowLeft className="h-6 w-6 text-gray-900" />
+          <ArrowLeft className="h-6 w-6 text-gray-900" aria-hidden="true" />
         </button>
 
         {/* Scrollable Content */}
@@ -559,20 +562,20 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                             )}
                             {max > 1 && isSelected && !isSingleOption && (
                               <div className="flex items-center bg-gray-100 rounded-full h-8 px-1 shrink-0" onClick={e => e.stopPropagation()}>
-                                <button 
+                                <IconButton
                                   onClick={(e) => handleDecrementOption(e, slot.id, opt)}
-                                  className="w-6 h-6 flex items-center justify-center rounded-full text-gray-600 hover:bg-gray-200 hover:text-black transition-colors"
-                                >
-                                  <Minus className="w-3.5 h-3.5" />
-                                </button>
+                                  className="flex items-center justify-center text-gray-600 hover:bg-gray-200 hover:text-black transition-colors"
+                                 label={`Reducir cantidad ${opt.name}`} variant="ghost">
+                                  <Minus className="w-3.5 h-3.5" aria-hidden="true" />
+                                </IconButton>
                                 <span className="font-bold text-sm w-5 text-center text-gray-900">{currentQty}</span>
-                                <button 
+                                <IconButton
                                   onClick={(e) => handleIncrementOption(e, slot.id, opt)}
                                   disabled={count >= max}
-                                  className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${count >= max ? 'text-gray-400' : 'text-gray-600 hover:bg-gray-200 hover:text-black'}`}
-                                >
-                                  <Plus className="w-3.5 h-3.5" />
-                                </button>
+                                  className={` flex items-center justify-center transition-colors ${count >= max ? 'text-gray-600' : 'text-gray-600 hover:bg-gray-200 hover:text-black'}`}
+                                 label={`Aumentar cantidad ${opt.name}`} variant="ghost">
+                                  <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                                </IconButton>
                               </div>
                             )}
                           </div>
@@ -681,27 +684,18 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
         {/* Sticky Bottom Actions */}
         <div className="absolute bottom-0 w-full bg-white border-t border-gray-100 px-5 py-4 pb-8 sm:pb-4 z-50">
           <div className="flex items-center gap-4">
-            <div className="flex items-center bg-gray-100 rounded-full h-14 p-1 shrink-0">
-              <button
-                onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-gray-600 hover:bg-gray-200 transition-colors text-xl"
-              >−</button>
-              <span className="font-black text-lg w-8 text-center">{quantity}</span>
-              <button
-                onClick={() => setQuantity(q => q + 1)}
-                className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-gray-600 hover:bg-gray-200 transition-colors text-xl"
-              >+</button>
-            </div>
+            <QuantityStepper
+              value={quantity} label={product.name}
+              decreaseDisabled={quantity <= 1}
+              onDecrease={() => setQuantity(q => Math.max(1, q - 1))}
+              onIncrease={() => setQuantity(q => q + 1)}
+            />
             
-            <button
+            <Button
               onClick={handleConfirm}
               disabled={isOutOfStock || orderingBlocked || !slotsComplete || (!isBundle && hasVariants && !selectedVariant)}
-              className={`flex-1 h-14 font-bold rounded-full flex items-center justify-center px-6 transition-colors active:scale-[0.98] disabled:active:scale-100 ${
-                isOutOfStock || orderingBlocked || !slotsComplete || (!isBundle && hasVariants && !selectedVariant)
-                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none'
-                  : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/20'
-              }`}
-            >
+              className={`flex-1 flex items-center justify-center transition-colors active:scale-[0.98] disabled:active:scale-100 ${ isOutOfStock || orderingBlocked || !slotsComplete || (!isBundle && hasVariants && !selectedVariant) ? 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/20' }`}
+             variant="ghost" size="pos">
               <span className="font-bold">{isOutOfStock ? 'Sin stock' : orderingBlocked ? 'Tienda cerrada' : 'Agregar'}</span>
               {!isOutOfStock && !orderingBlocked && (
                 <>
@@ -709,7 +703,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                   <span className="text-lg">${(finalGross * quantity).toLocaleString('es-CL')}</span>
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

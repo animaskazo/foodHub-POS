@@ -1,3 +1,4 @@
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -810,7 +811,7 @@ const PosView = () => {
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Caja Cerrada</h2>
               <p className="text-gray-500 mb-8">El terminal de ventas está bloqueado porque el turno actual se encuentra cerrado. Abre la caja para comenzar a recibir pagos y procesar órdenes.</p>
               <Button onClick={() => { setShiftModalType('open'); setIsShiftModalOpen(true); }}>
-                <Store className="h-4 w-4 mr-2" />
+                <Store className="h-4 w-4" aria-hidden="true" />
                 Abrir Caja
               </Button>
             </div>
@@ -971,14 +972,14 @@ const PosView = () => {
           <div className="relative w-4/5 max-w-xs bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <h2 className="font-bold text-lg">Menú</h2>
-              <Button
+              <IconButton
                 variant="ghost"
-                size="icon-sm"
+                size="icon"
                 onPointerDown={() => setIsMobileMenuOpen(false)}
-                className="text-gray-400"
-              >
-                <X className="size-6" />
-              </Button>
+                className="text-gray-600"
+               label="Cerrar">
+                <X className="size-6" aria-hidden="true" />
+              </IconButton>
             </div>
             <div className="flex-1 overflow-y-auto py-4">
               {getNavItems(role, organization?.dine_in_enabled === true, isAdmin).map(({ id, label, icon: Icon }) => (
@@ -1018,7 +1019,7 @@ const PosView = () => {
                   }}
                   className="w-full justify-start h-14 text-base text-red-600 hover:text-red-600 hover:bg-red-50"
                 >
-                  <Lock className="size-6" />
+                  <Lock className="size-6" aria-hidden="true" />
                   Cerrar Caja
                 </Button>
               )}
@@ -1027,7 +1028,7 @@ const PosView = () => {
                 onPointerDown={() => { setIsMobileMenuOpen(false); requestChangePin(); }}
                 className="w-full justify-start h-14 text-base"
               >
-                <KeyRound className="size-6" />
+                <KeyRound className="size-6" aria-hidden="true" />
                 Cambiar mi PIN
               </Button>
               <Button
@@ -1035,7 +1036,7 @@ const PosView = () => {
                 onPointerDown={() => { setIsMobileMenuOpen(false); requestLogout(); }}
                 className="w-full justify-start h-14 text-base text-red-600 hover:text-red-600 hover:bg-red-50"
               >
-                <LogOut className="size-6" />
+                <LogOut className="size-6" aria-hidden="true" />
                 Cerrar Sesión
               </Button>
             </div>

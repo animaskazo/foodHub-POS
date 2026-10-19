@@ -1,3 +1,5 @@
+import { QuantityStepper } from '../ui/QuantityStepper';
+import { Button } from '@/components/ui/button';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { X, Plus, Check, MapPin, ExternalLink, Clock, ChefHat } from 'lucide-react';
 import ProductDetailView from './ProductDetailView';
@@ -87,48 +89,32 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
             </span>
           ) : quantity > 0 ? (
             isConfigurable ? (
-              <button
+              <Button
                 onClick={handleTap}
-                className="h-8 px-3 bg-blue-600 text-white rounded-full flex items-center gap-1 font-bold text-xs shadow-lg hover:bg-blue-700 transition-colors"
-              >
+                className="bg-blue-600 text-white flex items-center shadow-lg hover:bg-blue-700 transition-colors"
+               variant="ghost" size="sm">
                 <span>{quantity}</span>
                 <Plus className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             ) : (
-              <div
-                className="flex items-center bg-blue-600 text-white rounded-full h-8 p-0.5 gap-1.5 shadow-lg"
-              >
-                <button
-                  onClick={(e) => {
-                    if (quantity === 1) {
-                      onRemoveItem(cartItemId);
-                    } else {
-                      onUpdateQty(cartItemId, quantity - 1);
-                    }
-                  }}
-                  className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
-                >
-                  −
-                </button>
-                <span className="font-extrabold text-sm min-w-[12px] text-center">{quantity}</span>
-                <button
-                  onClick={onAddDirect}
-                  className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
-                >
-                  +
-                </button>
-              </div>
+              <QuantityStepper compact
+                value={quantity} label={product.name}
+                className="bg-white shadow-lg"
+                removeOnDecrease={quantity === 1}
+                onDecrease={() => quantity === 1 ? onRemoveItem(cartItemId) : onUpdateQty(cartItemId, quantity - 1)}
+                onIncrease={onAddDirect}
+              />
             )
           ) : isOutOfStock ? (
-            <button
+            <Button
               disabled
-              className="px-3 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center gap-1 font-extrabold text-xs cursor-not-allowed"
+              className="bg-gray-200 text-gray-500 flex items-center cursor-not-allowed"
               aria-label={`Agotado ${product.name}`}
-            >
+             variant="ghost" size="sm">
               <span>Agotado</span>
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               onClick={(e) => {
                 if (isConfigurable) {
                   onAdd(product);
@@ -136,12 +122,12 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
                   onAddDirect();
                 }
               }}
-              className="px-3 h-8 bg-white text-gray-900 rounded-full flex items-center gap-1 font-extrabold text-xs active:scale-90 transition-transform shadow-lg shadow-black/20 border border-gray-100/50 hover:bg-gray-50"
+              className="bg-white text-gray-900 flex items-center active:scale-90 transition-transform shadow-lg shadow-black/20 border border-gray-100/50 hover:bg-gray-50"
               aria-label={`Agregar ${product.name}`}
-            >
+             variant="outline" size="sm">
               <span>Agregar</span>
               <Plus className="h-3 w-3 text-gray-900" />
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -415,12 +401,12 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                   </span>
                 )}
                 {org.business_hours && (
-                  <button
+                  <Button
                     onClick={() => setIsHoursModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 text-[13px] text-blue-700 font-bold bg-blue-50/80 border border-blue-100 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors active:scale-95"
-                  >
+                    className="inline-flex items-center text-blue-700 bg-blue-50/80 border border-blue-100 hover:bg-blue-100 transition-colors active:scale-95"
+                   variant="outline" size="default">
                     <Clock className="w-3.5 h-3.5" /> Horarios
-                  </button>
+                  </Button>
                 )}
                 {org.address && (
                   <a
@@ -563,16 +549,16 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
       {totalQty > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-8">
           <div className="max-w-3xl mx-auto">
-            <button
+            <Button
               onClick={onViewCart}
-              className="relative w-full h-16 bg-black text-white font-bold rounded-full flex items-center justify-between px-8 shadow-2xl hover:bg-gray-900 transition-colors active:scale-[0.98]"
-            >
+              className="relative w-full bg-black text-white flex items-center justify-between shadow-2xl hover:bg-gray-900 transition-colors active:scale-[0.98]"
+             variant="default" size="pos">
               <span className="bg-white/20 text-white text-base font-extrabold px-3 py-0.5 rounded-full z-10">
                 {totalQty}
               </span>
               <span className="absolute left-1/2 -translate-x-1/2 text-[17px] tracking-wide z-10">Ver Pedido</span>
               <span className="text-lg font-extrabold z-10">${totalPrice.toLocaleString('es-CL')}</span>
-            </button>
+            </Button>
           </div>
         </div>
       )}

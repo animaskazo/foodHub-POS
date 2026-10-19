@@ -141,13 +141,13 @@ const OrgBrandingTab = ({ organizationId, onSaved }) => {
             <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'logo')} disabled={uploadingLogo} className="hidden" />
           </label>
           {form.logo_url && (
-            <button
+            <Button
               type="button"
               onClick={() => setForm((prev) => ({ ...prev, logo_url: '' }))}
-              className="mt-2 text-[11px] text-red-500 hover:text-red-700 font-semibold"
-            >
+              className="mt-2 text-red-500 hover:text-red-700"
+             variant="ghost" size="sm">
               Quitar logo
-            </button>
+            </Button>
           )}
         </div>
 
@@ -174,13 +174,13 @@ const OrgBrandingTab = ({ organizationId, onSaved }) => {
           </label>
           <p className="mt-2 text-[11px] text-gray-400 text-center">Videos: máx. 10MB</p>
           {form.cover_url && (
-            <button
+            <Button
               type="button"
               onClick={() => setForm((prev) => ({ ...prev, cover_url: '', cover_is_video: false }))}
-              className="mt-1 text-[11px] text-red-500 hover:text-red-700 font-semibold"
-            >
+              className="mt-1 text-red-500 hover:text-red-700"
+             variant="ghost" size="sm">
               Quitar portada
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -220,7 +220,7 @@ const OrgBrandingTab = ({ organizationId, onSaved }) => {
               onClick={() => navigator.clipboard.writeText(storeUrl)}
               className="h-8 px-3 text-xs text-blue-700 hover:bg-blue-100/80 font-bold rounded-lg"
             >
-              <Copy className="h-3.5 w-3.5 mr-1" /> Copiar
+              <Copy className="h-3.5 w-3.5" aria-hidden="true" /> Copiar
             </Button>
             <a
               href={storeUrl}

@@ -38,7 +38,7 @@ const OrderDetailModal = ({
           <div className="flex items-center gap-2 shrink-0 ml-4">
             {canCancel && order.status !== 'cancelled' && order.status !== 'delivered' && onCancel && (
               <Button size="sm" variant="destructive" onClick={onCancel} aria-label="Cancelar">
-                <XCircle className="w-4 h-4" />
+                <XCircle className="w-4 h-4" aria-hidden="true" />
                 <span className="hidden md:inline ml-1.5">Cancelar</span>
               </Button>
             )}
@@ -174,7 +174,7 @@ const OrderDetailModal = ({
                         size="sm"
                         onClick={(e) => onConfirmPayment(e, order)}
                       >
-                        <CheckCircle2 />
+                        <CheckCircle2  aria-hidden="true" />
                         Confirmar pago
                       </Button>
                     )}
@@ -184,7 +184,7 @@ const OrderDetailModal = ({
                         variant="destructive"
                         onClick={onCancel}
                       >
-                        <XCircle />
+                        <XCircle  aria-hidden="true" />
                         Cancelar pedido
                       </Button>
                     )}

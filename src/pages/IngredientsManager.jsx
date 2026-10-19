@@ -1,3 +1,4 @@
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
@@ -329,17 +330,17 @@ const IngredientsManager = () => {
                 Desactivar
               </Button>
               <Button variant="destructive" size="sm" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })} className="flex-1 sm:flex-none justify-center">
-                <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+                <Trash2 className="h-4 w-4" aria-hidden="true" /> Eliminar
               </Button>
             </div>
           </div>
         ) : (
         <div className="py-4 md:px-6 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3 md:border-b">
           <Button className="order-1 w-full sm:w-auto sm:order-4" onClick={() => openModal()}>
-            <Plus className="h-4 w-4 mr-2" /> Crear ingrediente
+            <Plus className="h-4 w-4" aria-hidden="true" /> Crear ingrediente
           </Button>
           <Button variant="outline" className="order-2 w-full sm:w-auto sm:order-3 sm:ml-auto" onClick={() => setIsExcelModalOpen(true)}>
-            <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" /> Importar Excel
+            <FileSpreadsheet className="h-4 w-4 text-green-600" aria-hidden="true" /> Importar Excel
           </Button>
           <div className="relative order-3 w-full sm:w-auto sm:order-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -460,25 +461,25 @@ const IngredientsManager = () => {
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Tooltip text="Ajustar stock">
-                        <button
+                        <IconButton
                           onClick={() => {
                             setAdjustModal({ isOpen: true, item: ingredient });
                             setAdjustQuantity('');
                             setAdjustNotes('');
                             setAdjustType('adjustment');
                           }}
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        >
-                          <Package className="h-4 w-4" />
-                        </button>
+                          className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                         label={`Ajustar stock ${ingredient.name}`} variant="ghost">
+                          <Package className="h-4 w-4" aria-hidden="true" />
+                        </IconButton>
                       </Tooltip>
                       <Tooltip text="Historial">
-                        <button
+                        <IconButton
                           onClick={() => openMovements(ingredient)}
-                          className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                          <History className="h-4 w-4" />
-                        </button>
+                          className="text-gray-600 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                         label={`Ver historial ${ingredient.name}`} variant="ghost">
+                          <History className="h-4 w-4" aria-hidden="true" />
+                        </IconButton>
                       </Tooltip>
                       <Button 
                         onClick={() => openModal(ingredient)}
@@ -720,22 +721,22 @@ const IngredientsManager = () => {
                     }
                   }}
                 >
-                  <Wand2 className="h-4 w-4 mr-2" /> Recomendar
+                  <Wand2 className="h-4 w-4" aria-hidden="true" /> Recomendar
                 </Button>
               </Tooltip>
             </div>
 
             {icon && (
-              <button
+              <Button
                 type="button"
                 onClick={() => {
                   setIcon(null);
                   setIconPickerOpen(false);
                 }}
-                className="text-xs font-semibold text-red-500 hover:text-red-600"
-              >
+                className="text-red-500 hover:text-red-600"
+               variant="ghost" size="sm">
                 Quitar icono seleccionado
-              </button>
+              </Button>
             )}
 
             <div className="grid grid-cols-6 sm:grid-cols-8 gap-2">

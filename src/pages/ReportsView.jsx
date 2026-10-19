@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { supabase } from '../lib/supabase'
@@ -604,26 +606,26 @@ const ReportsView = () => {
 
               {selected === 'anual' ? (
                 <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200/80 px-2 py-1.5 w-fit">
-                  <button onClick={() => setAnnualYear(y => y - 1)} aria-label="Año anterior" className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><ChevronLeft className="h-4 w-4 text-gray-500" /></button>
+                  <IconButton onClick={() => setAnnualYear(y => y - 1)} label="Año anterior" className="hover:bg-gray-100 transition-colors" variant="ghost"><ChevronLeft className="h-4 w-4 text-gray-500" aria-hidden="true" /></IconButton>
                   <span className="text-sm font-semibold text-gray-900 min-w-[60px] text-center select-none">{annualYear}</span>
-                  <button onClick={() => setAnnualYear(y => y + 1)} disabled={annualYear >= today.getFullYear()} aria-label="Año siguiente" className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"><ChevronRight className="h-4 w-4 text-gray-500" /></button>
+                  <IconButton onClick={() => setAnnualYear(y => y + 1)} disabled={annualYear >= today.getFullYear()} label="Año siguiente" className="hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" variant="ghost"><ChevronRight className="h-4 w-4 text-gray-500" aria-hidden="true" /></IconButton>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200/80 px-2 py-1.5">
-                  <button onClick={prev} aria-label="Mes anterior" className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><ChevronLeft className="h-4 w-4 text-gray-500" /></button>
+                  <IconButton onClick={prev} label="Mes anterior" className="hover:bg-gray-100 transition-colors" variant="ghost"><ChevronLeft className="h-4 w-4 text-gray-500" aria-hidden="true" /></IconButton>
                   <span className="text-sm font-semibold text-gray-900 min-w-[130px] text-center select-none">{MONTHS[cm]} {cy}</span>
-                  <button onClick={next} disabled={isCm} aria-label="Mes siguiente" className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"><ChevronRight className="h-4 w-4 text-gray-500" /></button>
+                  <IconButton onClick={next} disabled={isCm} label="Mes siguiente" className="hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed" variant="ghost"><ChevronRight className="h-4 w-4 text-gray-500" aria-hidden="true" /></IconButton>
                 </div>
               )}
 
               {/* AI Chat button (desktop; en móvil va fijo abajo) */}
-              <button
+              <Button
                 onClick={() => setIsChatOpen(true)}
                 aria-label="Asistente IA"
-                className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 rounded-xl text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
-              >
+                className="hidden sm:flex items-center bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+               variant="ghost" size="default">
                 <Sparkles className="h-4 w-4" /> Asistente IA
-              </button>
+              </Button>
             </div>
           }
         />
@@ -994,9 +996,9 @@ const ReportsView = () => {
                 return (
                   <>
                     <div className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6">
-                      <button onClick={() => setSelected('resumen')} className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-900 transition-colors mb-4">
+                      <Button onClick={() => setSelected('resumen')} className="inline-flex items-center text-gray-500 hover:text-gray-900 transition-colors mb-4" variant="ghost" size="sm">
                         <ChevronLeft className="h-3.5 w-3.5" /> Volver al resumen
-                      </button>
+                      </Button>
                       <div className="flex items-center justify-between mb-4">
                         <div>
                           <h2 className="text-lg font-bold text-gray-900">{DAYS[dt.getDay()]}</h2>
@@ -1085,13 +1087,13 @@ const ReportsView = () => {
       </div>
 
       {/* AI CTA fijo solo móvil */}
-      <button
+      <Button
         onClick={() => setIsChatOpen(true)}
         aria-label="Asistente IA"
-        className="md:hidden fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-2 px-5 py-3 rounded-full bg-emerald-600 text-white text-sm font-semibold shadow-[0_8px_24px_-6px_rgba(5,150,105,0.5)] active:scale-95 transition-transform whitespace-nowrap"
-      >
+        className="md:hidden fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-30 inline-flex items-center bg-emerald-600 text-white shadow-[0_8px_24px_-6px_rgba(5,150,105,0.5)] active:scale-95 transition-transform whitespace-nowrap"
+       variant="ghost" size="default">
         <Sparkles className="h-4 w-4" /> Asistente IA
-      </button>
+      </Button>
 
       {/* AI Reports Chat Drawer */}
       <ReportsChatDrawer

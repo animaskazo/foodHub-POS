@@ -123,7 +123,7 @@ const BottomNav = ({ active = 'pago', onChange, isAdmin = false, onLogout, onCha
           className={`px-5 ${menuOpen ? 'text-white bg-white/10' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
           title="Opciones de sesión"
         >
-          <Menu className="size-5" />
+          <Menu className="size-5" aria-hidden="true" />
           <span className="text-sm font-semibold">Menú</span>
         </Button>
 

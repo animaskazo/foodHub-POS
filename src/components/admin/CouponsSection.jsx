@@ -1,3 +1,4 @@
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import { Loader2, Plus, Trash2, Check, Tag, CalendarIcon, Percent, DollarSign, Search, Copy, X, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
@@ -185,7 +186,7 @@ const CouponsSection = ({ orgId }) => {
           onClick={openCreate}
           className="shrink-0"
         >
-          <Plus />
+          <Plus  aria-hidden="true" />
           Crear cupón
         </Button>
       </div>
@@ -204,7 +205,7 @@ const CouponsSection = ({ orgId }) => {
             onClick={openCreate}
             className="mt-4 mx-auto"
           >
-            <Plus />
+            <Plus  aria-hidden="true" />
             Crear primer cupón
           </Button>
         </div>
@@ -278,23 +279,23 @@ const CouponsSection = ({ orgId }) => {
 
                   {/* Actions */}
                   <div className="flex items-center justify-end gap-1.5">
-                    <Button
+                    <IconButton
                       variant="ghost"
-                      size="icon-xs"
+                      size="icon"
                       onClick={() => openEdit(coupon)}
                       title="Editar"
-                    >
-                      <Pencil />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
+                     label="Editar">
+                      <Pencil  aria-hidden="true" />
+                    </IconButton>
+                    <IconButton
+                      variant="destructive"
+                      size="icon"
                       onClick={() => setConfirmDelete(coupon)}
                       title="Eliminar"
-                      className="hover:text-red-500 hover:bg-red-50"
-                    >
-                      <Trash2 />
-                    </Button>
+                      className=""
+                     label="Eliminar">
+                      <Trash2  aria-hidden="true" />
+                    </IconButton>
                   </div>
                 </div>
               );

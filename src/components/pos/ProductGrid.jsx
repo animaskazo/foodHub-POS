@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, Keyboard as KeyboardIcon, X, Menu, ChefHat, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -274,13 +276,13 @@ const ProductGrid = ({
       <div ref={searchBarRef} className="bg-white pt-5 pb-4 shadow-sm z-10 sticky top-0">
         <div className="px-3 md:px-5 mb-4 md:mb-5 flex items-center justify-between gap-2 md:gap-3 w-full">
           {/* Mobile Burger Menu Trigger */}
-          <button
+          <IconButton
             onClick={onOpenMobileMenu}
-            className="md:hidden flex items-center justify-center p-2 -ml-1 rounded-lg text-gray-700 active:bg-gray-100 shrink-0 select-none"
+            className="md:hidden flex items-center justify-center -ml-1 text-gray-700 active:bg-gray-100 shrink-0 select-none"
             style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            <Menu className="h-7 w-7" />
-          </button>
+           label="Abrir menú" variant="ghost">
+            <Menu className="h-7 w-7" aria-hidden="true" />
+          </IconButton>
           {/* Search Input */}
           <div className="relative flex-1">
             <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-gray-400 pointer-events-none" />
@@ -324,8 +326,8 @@ const ProductGrid = ({
                 onClick={handleClearSearch}
                 className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 p-1 md:p-1.5 rounded-full bg-gray-300 active:bg-gray-400 select-none"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
-              >
-                <X className="h-3 w-3 md:h-3.5 md:w-3.5 text-gray-600" />
+               aria-label="Cerrar">
+                <X className="h-3 w-3 md:h-3.5 md:w-3.5 text-gray-600" aria-hidden="true" />
               </button>
             ) : (
               <button
@@ -334,8 +336,8 @@ const ProductGrid = ({
                   setTimeout(() => inputRef.current?.focus(), 100);
                 }}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 p-1"
-              >
-                <KeyboardIcon className="h-5 w-5" />
+               aria-label="Abrir teclado">
+                <KeyboardIcon className="h-5 w-5" aria-hidden="true" />
               </button>
             )}
           </div>
@@ -383,15 +385,15 @@ const ProductGrid = ({
         ) : (
           <div className="flex items-center px-2 md:px-4 gap-1">
             {/* Left Button */}
-            <button 
+            <IconButton
               type="button"
               onClick={() => scrollCats('left')}
-              className="flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0 cursor-pointer select-none"
+              className="flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0 cursor-pointer select-none"
               title="Categorías anteriores"
               style={{ WebkitTapHighlightColor: 'transparent' }}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
+             label="Categorías anteriores" variant="ghost">
+              <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+            </IconButton>
 
             {/* Categories Scroll Track */}
             <div 
@@ -429,15 +431,15 @@ const ProductGrid = ({
             </div>
 
             {/* Right Button */}
-            <button 
+            <IconButton
               type="button"
               onClick={() => scrollCats('right')}
-              className="flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0 cursor-pointer select-none"
+              className="flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0 cursor-pointer select-none"
               title="Siguientes categorías"
               style={{ WebkitTapHighlightColor: 'transparent' }}
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
+             label="Siguientes categorías" variant="ghost">
+              <ChevronRight className="h-5 w-5" aria-hidden="true" />
+            </IconButton>
           </div>
         )}
       </div>
@@ -513,13 +515,13 @@ const ProductGrid = ({
                 {search ? `"${search}"` : 'Buscar artículo...'}
               </span>
             </div>
-            <button
+            <Button
               onClick={() => setShowKeyboard(false)}
-              className="px-4 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-bold active:bg-blue-700 select-none"
+              className="bg-blue-600 text-white active:bg-blue-700 select-none"
               style={{ WebkitTapHighlightColor: 'transparent' }}
-            >
+             variant="ghost" size="default">
               Listo
-            </button>
+            </Button>
           </div>
 
           {/* Keyboard */}

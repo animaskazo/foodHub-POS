@@ -361,7 +361,7 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
             onClick={() => fileInputRef.current?.click()}
             className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center justify-center gap-2 shadow-sm h-11"
           >
-            <Upload className="h-4 w-4" />
+            <Upload className="h-4 w-4" aria-hidden="true" />
             {csvData ? 'Cambiar Archivo' : 'Subir Liquidación'}
           </Button>
 
@@ -410,12 +410,12 @@ const KlapReconciliationTab = ({ orders, onReconciled }) => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <Button
                 onClick={() => setSelectedOrders(new Set())}
-                className="text-xs text-gray-400 hover:text-white transition-colors px-2 py-1"
-              >
+                className="text-gray-400 hover:text-white transition-colors"
+               variant="ghost" size="sm">
                 Cancelar
-              </button>
+              </Button>
               <Button
                 onClick={handleMarkSelectedAsPaid}
                 disabled={isSaving}

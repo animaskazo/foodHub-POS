@@ -1,3 +1,4 @@
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useRef } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
@@ -180,14 +181,14 @@ const CategoriesList = () => {
               Desactivar
             </Button>
             <Button variant="destructive" size="sm" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })} className="flex-1 sm:flex-none justify-center">
-              <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+              <Trash2 className="h-4 w-4" aria-hidden="true" /> Eliminar
             </Button>
           </div>
         </div>
       ) : (
         <div className="py-4 md:px-6 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-3 md:border-b">
           <Button className="order-1 w-full sm:w-auto sm:order-4" onClick={() => navigate('/categories/new')}>
-            <Plus className="h-4 w-4 mr-2" /> Nueva categoría
+            <Plus className="h-4 w-4" aria-hidden="true" /> Nueva categoría
           </Button>
           <div className="relative order-2 w-full sm:w-auto sm:order-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -210,7 +211,7 @@ const CategoriesList = () => {
             </SelectContent>
           </Select>
           <Button variant="outline" className="hidden sm:inline-flex sm:order-3 sm:ml-auto">
-            Acciones <ChevronDown className="ml-2 h-4 w-4" />
+            Acciones <ChevronDown className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
       )}
@@ -236,9 +237,9 @@ const CategoriesList = () => {
               <th className="px-6 py-3 font-medium">Artículos asignados</th>
               <th className="px-6 py-3 font-medium text-center">Estado</th>
               <th className="px-6 py-3 w-10 text-center">
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover: " variant="secondary">
-                  <Plus className="h-4 w-4" />
-                </Button>
+                <IconButton variant="ghost" size="icon" className="text-gray-600 hover:" variant="secondary" label="Aumentar cantidad">
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                </IconButton>
               </th>
             </tr>
           </thead>

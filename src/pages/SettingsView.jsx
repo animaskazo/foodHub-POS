@@ -761,7 +761,7 @@ const SettingsView = () => {
                           onClick={() => navigator.clipboard.writeText(storeUrl)}
                           title="Copiar enlace"
                         >
-                          <Copy />
+                          <Copy  aria-hidden="true" />
                           Copiar
                         </Button>
                         <a
@@ -956,7 +956,7 @@ const SettingsView = () => {
                         }}
                         className="w-full sm:w-auto shrink-0"
                       >
-                        <Download className="h-4 w-4" />
+                        <Download className="h-4 w-4" aria-hidden="true" />
                         Descargar QR (PNG)
                       </Button>
                     </div>
@@ -1270,7 +1270,7 @@ const SettingsView = () => {
                               disabled={busy}
                               title="Resetear PIN"
                             >
-                              <KeyRound />
+                              <KeyRound  aria-hidden="true" />
                               Resetear PIN
                             </Button>
                           )}

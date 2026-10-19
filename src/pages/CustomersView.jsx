@@ -356,7 +356,7 @@ const CustomersView = () => {
                 variant="destructive"
                 onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', isDeleting: false })}
               >
-                <Trash2 className="h-4 w-4 mr-2" /> Eliminar seleccionados
+                <Trash2 className="h-4 w-4" aria-hidden="true" /> Eliminar seleccionados
               </Button>
             </div>
           )}
@@ -523,7 +523,7 @@ const CustomersView = () => {
               {/* Actions */}
               <div className="flex justify-end gap-2">
                 <Button variant="outline" size="sm" onClick={handleOpenEdit}>
-                  <Pencil className="h-4 w-4 mr-1.5" />
+                  <Pencil className="h-4 w-4" aria-hidden="true" />
                   Editar
                 </Button>
                 <Button 
@@ -531,7 +531,7 @@ const CustomersView = () => {
                   size="sm" 
                   onClick={() => setDeleteModal({ isOpen: true, mode: 'single', isDeleting: false })}
                 >
-                  <Trash2 className="h-4 w-4 mr-1.5" />
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
                   Eliminar
                 </Button>
               </div>

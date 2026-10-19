@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -184,19 +185,19 @@ const StoreLocationPicker = ({ address = '', lat = null, lng = null, onChange })
           <label className="block text-sm font-semibold text-gray-700">
             Dirección del Local
           </label>
-          <button
+          <Button
             type="button"
             onClick={handleUseCurrentLocation}
             disabled={isLocatingGPS}
-            className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-50"
-          >
+            className="text-blue-600 hover:text-blue-800 flex items-center cursor-pointer transition-colors disabled:opacity-50"
+           variant="ghost" size="sm">
             {isLocatingGPS ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <Navigation className="w-3.5 h-3.5 text-blue-600" />
             )}
             Usar mi ubicación actual
-          </button>
+          </Button>
         </div>
 
         <div className="form-field flex items-center px-4 bg-white border border-gray-300 rounded-xl focus-within:ring-2 focus-within:ring-black focus-within:border-black transition-all">

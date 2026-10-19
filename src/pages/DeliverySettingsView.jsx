@@ -497,7 +497,7 @@ const DeliverySettingsView = () => {
                           }}
                           className="shrink-0"
                         >
-                          <Plus className="w-3.5 h-3.5" />
+                          <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                           Nueva Zona
                         </Button>
                       </div>
@@ -600,7 +600,7 @@ const DeliverySettingsView = () => {
                                   setHasChanges(true);
                                 }}
                               >
-                                <Trash2 />
+                                <Trash2  aria-hidden="true" />
                                 Limpiar
                               </Button>
                               <Button
@@ -608,7 +608,7 @@ const DeliverySettingsView = () => {
                                 size="sm"
                                 onClick={() => setDrawingZoneId(null)}
                               >
-                                <CheckCircle2 />
+                                <CheckCircle2  aria-hidden="true" />
                                 Finalizar
                               </Button>
                             </div>
@@ -789,7 +789,7 @@ const DeliverySettingsView = () => {
                               }}
                               className="w-full mt-1"
                             >
-                              <MousePointer2 />
+                              <MousePointer2  aria-hidden="true" />
                               Ir al mapa para dibujar
                             </Button>
                           </div>

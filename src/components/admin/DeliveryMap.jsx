@@ -67,7 +67,7 @@ const DeliveryMap = ({ lat, lng, storeAddress = '', polygon, zones = [], activeZ
                 size="sm"
                 onClick={() => onPolygonChange?.([])}
               >
-                <Trash2 />
+                <Trash2  aria-hidden="true" />
                 Limpiar Puntos
               </Button>
             )}

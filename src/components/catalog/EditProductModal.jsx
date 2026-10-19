@@ -1,3 +1,4 @@
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import { Button } from "@/components/ui/button";
@@ -149,14 +150,14 @@ const EditProductModal = ({ isOpen, onClose, onSuccess, productId, organizationI
               </div>
               {trackStock && (
                 <div className="mt-3 flex items-center gap-2">
-                  <button
+                  <IconButton
                     type="button"
                     onClick={() => setStockQuantity(String(Math.max(0, (parseInt(stockQuantity || '0', 10) || 0) - 1)))}
-                    className="h-9 w-9 shrink-0 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
-                    aria-label="Quitar una unidad"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </button>
+                    className="shrink-0 flex items-center justify-center bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
+                    label="Quitar una unidad"
+                   variant="ghost">
+                    <Minus className="h-4 w-4" aria-hidden="true" />
+                  </IconButton>
                   <Input
                     type="number"
                     min="0"
@@ -167,14 +168,14 @@ const EditProductModal = ({ isOpen, onClose, onSuccess, productId, organizationI
                     placeholder="0"
                     className="bg-white text-center font-bold tabular-nums h-10"
                   />
-                  <button
+                  <IconButton
                     type="button"
                     onClick={() => setStockQuantity(String((parseInt(stockQuantity || '0', 10) || 0) + 1))}
-                    className="h-9 w-9 shrink-0 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
-                    aria-label="Agregar una unidad"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
+                    className="shrink-0 flex items-center justify-center bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
+                    label="Agregar una unidad"
+                   variant="ghost">
+                    <Plus className="h-4 w-4" aria-hidden="true" />
+                  </IconButton>
                 </div>
               )}
             </div>

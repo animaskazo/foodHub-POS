@@ -1,3 +1,4 @@
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -882,13 +883,13 @@ const OrderView = () => {
         )}
         {(step === 2 || step === 3) && (
           <div className="w-full max-w-3xl mx-auto px-4 pt-6 pb-0 flex items-center gap-3">
-            <button
+            <IconButton
               onClick={() => setStep(s => Math.max(1, s - 1))}
-              className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors shrink-0"
-              aria-label="Volver"
-            >
-              <ArrowLeft className="h-5 w-5 text-gray-700" />
-            </button>
+              className="bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors shrink-0"
+              label="Volver"
+             variant="ghost">
+              <ArrowLeft className="h-5 w-5 text-gray-700" aria-hidden="true" />
+            </IconButton>
             <h1 className="font-black text-2xl text-gray-900">{step === 2 ? 'Mi pedido' : 'Checkout'}</h1>
           </div>
         )}

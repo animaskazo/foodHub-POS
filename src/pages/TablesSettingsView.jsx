@@ -1,3 +1,4 @@
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useRef } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import PageHeader from '../components/ui/PageHeader';
@@ -7,7 +8,7 @@ import {
   getTableZones, createTableZone, updateTableZone, deleteTableZone, 
   getRestaurantTables, createRestaurantTable, updateRestaurantTable, deleteRestaurantTable, updateTablesBatch 
 } from '../services/tableService';
-import { Plus, Trash2, Edit2, Save, X, Users } from 'lucide-react';
+import { Plus, Trash2, Pencil as Edit2, Save, X, Users } from 'lucide-react';
 import { FullScreenSpinner } from '@/components/ui/Spinner';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -254,14 +255,14 @@ const TablesSettingsView = () => {
                   {editingZone ? <Save /> : <Plus />}
                 </Button>
                 {editingZone && (
-                  <Button
+                  <IconButton
                     variant="ghost"
-                    size="icon-sm"
+                    size="icon"
                     onClick={() => { setEditingZone(null); setNewZoneName(''); }}
                     title="Cancelar"
-                  >
-                    <X />
-                  </Button>
+                   label="Cancelar">
+                    <X  aria-hidden="true" />
+                  </IconButton>
                 )}
               </div>
 
@@ -274,23 +275,23 @@ const TablesSettingsView = () => {
                   >
                     <span className={`font-semibold text-sm ${activeZoneId === z.id ? 'text-black' : 'text-gray-700'}`}>{z.name}</span>
                     <div className="flex items-center gap-1">
-                      <Button
+                      <IconButton
                         variant="ghost"
-                        size="icon-xs"
+                        size="icon"
                         onClick={(e) => { e.stopPropagation(); setEditingZone(z); setNewZoneName(z.name); }}
                         title="Editar zona"
-                      >
-                        <Edit2 />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
+                       label="Editar zona">
+                        <Edit2  aria-hidden="true" />
+                      </IconButton>
+                      <IconButton
+                        variant="destructive"
+                        size="icon"
                         onClick={(e) => { e.stopPropagation(); setConfirmDeleteZone(z); }}
                         title="Eliminar zona"
-                        className="hover:text-red-500 hover:bg-red-50"
-                      >
-                        <Trash2 />
-                      </Button>
+                        className=""
+                       label="Eliminar zona">
+                        <Trash2  aria-hidden="true" />
+                      </IconButton>
                     </div>
                   </div>
                 ))}
@@ -367,23 +368,23 @@ const TablesSettingsView = () => {
                         <span className="text-xs text-gray-500">{t.capacity} personas · {t.shape === 'round' ? 'Redonda' : t.shape === 'rectangle' ? 'Rectangular' : 'Cuadrada'}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button
+                        <IconButton
                           variant="ghost"
-                          size="icon-xs"
+                          size="icon"
                           onClick={() => { setEditingTable(t); setNewTable({ name: t.name, capacity: t.capacity, shape: t.shape }); }}
                           title="Editar mesa"
-                        >
-                          <Edit2 />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
+                         label="Editar mesa">
+                          <Edit2  aria-hidden="true" />
+                        </IconButton>
+                        <IconButton
+                          variant="destructive"
+                          size="icon"
                           onClick={() => setConfirmDeleteTable(t)}
                           title="Eliminar mesa"
-                          className="hover:text-red-500 hover:bg-red-50"
-                        >
-                          <Trash2 />
-                        </Button>
+                          className=""
+                         label="Eliminar mesa">
+                          <Trash2  aria-hidden="true" />
+                        </IconButton>
                       </div>
                     </div>
                   ))}
@@ -402,7 +403,7 @@ const TablesSettingsView = () => {
             <div className="h-14 border-b border-gray-200 flex items-center justify-between px-6 bg-gray-50/50">
               <h3 className="font-bold text-gray-700 text-sm">Plano del Sector</h3>
               <Button size="sm" onClick={handleSaveMap}>
-                <Save /> Guardar Plano
+                <Save  aria-hidden="true" /> Guardar Plano
               </Button>
             </div>
 

@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Camera, Loader2 } from 'lucide-react';
 import { toBlob } from 'html-to-image';
@@ -110,12 +112,12 @@ const FeedbackBubble = () => {
               <Camera size={16} />
               Reportar Problema
             </h3>
-            <button 
+            <IconButton
               onClick={() => setIsOpen(false)}
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              <X size={18} />
-            </button>
+              className="text-gray-600 hover:text-white transition-colors"
+             label="Cerrar" variant="ghost">
+              <X size={18}  aria-hidden="true" />
+            </IconButton>
           </div>
           <form onSubmit={handleSubmit} className="p-4">
             <p className="text-sm text-gray-600 mb-3">
@@ -129,11 +131,11 @@ const FeedbackBubble = () => {
               onChange={(e) => setDescription(e.target.value)}
               disabled={isSubmitting}
             />
-            <button
+            <Button
               type="submit"
               disabled={isSubmitting || !description.trim()}
-              className="mt-3 w-full bg-black text-white py-2 px-4 rounded-md font-medium text-sm hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
-            >
+              className="mt-3 w-full bg-black text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+             variant="default" size="default">
               {isSubmitting ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
@@ -142,19 +144,19 @@ const FeedbackBubble = () => {
               ) : (
                 'Enviar Reporte'
               )}
-            </button>
+            </Button>
           </form>
         </div>
       )}
       
       {!isOpen && (
-        <button
+        <IconButton
           onClick={() => setIsOpen(true)}
-          className="bg-black text-white p-3 rounded-full shadow-lg hover:bg-gray-800 transition-transform hover:scale-105"
+          className="bg-black text-white shadow-lg hover:bg-gray-800 transition-transform hover:scale-105"
           title="Reportar problema"
-        >
-          <MessageCircle size={24} />
-        </button>
+         label="Reportar problema" variant="ghost">
+          <MessageCircle size={24}  aria-hidden="true" />
+        </IconButton>
       )}
     </div>
   );

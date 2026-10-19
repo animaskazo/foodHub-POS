@@ -1,3 +1,5 @@
+import { IconButton } from '@/components/ui/IconButton';
+import { Button } from '@/components/ui/button';
 import React, { useEffect, useState, useRef } from 'react';
 import { useKitchenOrders } from '../../hooks/useKitchenOrders';
 import { 
@@ -168,17 +170,17 @@ const timer = setTimeout(async () => {
           md:top-6 md:right-6 md:left-auto md:w-[420px] md:p-5
         `}
       >
-        <button 
+        <IconButton label="Cerrar alerta"
           onClick={() => {
             setIsVisible(false);
             stopTitleFlash();
             setTimeout(clearLatestNewOrder, 300);
           }}
-          className="absolute top-2 right-2 md:top-3 md:right-3 text-gray-400 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition-colors"
+          className="absolute top-2 right-2 md:top-3 md:right-3 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors"
           title="Cerrar alerta"
         >
           <X className="h-4 w-4 md:h-5 md:w-5" />
-        </button>
+        </IconButton>
 
         <div className="flex items-start gap-3 md:gap-4">
           {/* Icon based on Channel */}
@@ -239,17 +241,17 @@ const timer = setTimeout(async () => {
               )}
 
               {/* Quick Sound Test button */}
-              <button
+              <Button
                 onClick={(e) => {
                   e.stopPropagation();
                   testAlertSound(isOnline || isWhatsapp);
                 }}
-                className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 ml-auto flex items-center gap-1 transition-colors"
+                className="bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 ml-auto flex items-center transition-colors"
                 title="Probar sonido"
-              >
+               variant="outline" size="default">
                 <Volume2 className="h-2.5 w-2.5" />
                 <span>Sonar</span>
-              </button>
+              </Button>
             </div>
             
             {/* Customer & Address Details for Online Orders */}
@@ -307,26 +309,26 @@ const timer = setTimeout(async () => {
 
             {/* Actions */}
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={handleManualPrint}
                 disabled={isPrinting}
-                className="bg-white/10 text-white font-bold py-2 md:py-2.5 px-3.5 rounded-xl hover:bg-white/20 transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                className="bg-white/10 text-white hover:bg-white/20 transition-colors flex items-center justify-center disabled:opacity-50"
                 title="Imprimir Ticket"
-              >
+               variant="ghost" size="default">
                 {isPrinting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => {
                   setIsVisible(false);
                   stopTitleFlash();
                   setTimeout(clearLatestNewOrder, 300);
                   navigate('/kitchen');
                 }}
-                className="flex-1 bg-white text-black font-extrabold py-2 md:py-2.5 rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 text-sm shadow-md"
-              >
+                className="flex-1 bg-white text-black hover:bg-gray-100 transition-colors flex items-center justify-center shadow-md"
+               variant="ghost" size="default">
                 <Receipt className="h-4 w-4" />
                 Ver en Cocina
-              </button>
+              </Button>
             </div>
           </div>
         </div>

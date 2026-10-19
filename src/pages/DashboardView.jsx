@@ -501,7 +501,7 @@ const DashboardView = () => {
             onClick={() => { setShiftModalType('open'); setIsShiftModalOpen(true); }}
             className="flex items-center gap-2 bg-black text-white hover:bg-gray-800 px-6 h-11 text-base"
           >
-            <Store className="h-5 w-5" />
+            <Store className="h-5 w-5" aria-hidden="true" />
             Abrir Caja
           </Button>
         )}
@@ -569,42 +569,42 @@ const DashboardView = () => {
               variant={channelFilter === 'table' ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('table'); setShowScheduled(false); }}
             >
-              <Store className="h-3.5 w-3.5 mr-1" /> Local
+              <Store className="h-3.5 w-3.5" aria-hidden="true" /> Local
             </Button>
             <Button
               size="sm"
               variant={channelFilter === 'pickup' ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('pickup'); setShowScheduled(false); }}
             >
-              <PaperBag className="h-3.5 w-3.5 mr-1" /> Retiro
+              <PaperBag className="h-3.5 w-3.5" aria-hidden="true" /> Retiro
             </Button>
             <Button
               size="sm"
               variant={channelFilter === 'delivery' ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('delivery'); setShowScheduled(false); }}
             >
-              <Van className="h-3.5 w-3.5 mr-1" /> Delivery
+              <Van className="h-3.5 w-3.5" aria-hidden="true" /> Delivery
             </Button>
             <Button
               size="sm"
               variant={channelFilter === 'online' ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('online'); setShowScheduled(false); }}
             >
-              <Globe className="h-3.5 w-3.5 mr-1" /> Online
+              <Globe className="h-3.5 w-3.5" aria-hidden="true" /> Online
             </Button>
             <Button
               size="sm"
               variant={channelFilter === 'whatsapp' ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('whatsapp'); setShowScheduled(false); }}
             >
-              <MessageCircle className="h-3.5 w-3.5 mr-1" /> WhatsApp
+              <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" /> WhatsApp
             </Button>
             <Button
               size="sm"
               variant={showScheduled ? 'default' : 'secondary'}
               onClick={() => { setShowScheduled(!showScheduled); setChannelFilter('all'); }}
             >
-              <CalendarClock className="h-3.5 w-3.5 mr-1" /> Programados
+              <CalendarClock className="h-3.5 w-3.5" aria-hidden="true" /> Programados
               {scheduledCount > 0 && (
                 <span className={`ml-1.5 text-[11px] font-bold px-1.5 py-0.5 rounded-full ${showScheduled ? 'bg-white/20 text-white' : 'bg-amber-400 text-black'}`}>
                   {scheduledCount}
@@ -821,13 +821,13 @@ const DashboardView = () => {
         </div>
         {dashboardBlurred && (
           <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-            <button
+            <Button
               type="button"
               onClick={() => setBypassOnboardingBlur(true)}
-              className="pointer-events-auto inline-flex items-center rounded-full bg-gray-900 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-colors hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
-            >
+              className="pointer-events-auto inline-flex items-center bg-gray-900 text-white shadow-lg transition-colors hover:bg-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
+             variant="default" size="default">
               Ver dashboard
-            </button>
+            </Button>
           </div>
         )}
         </div>

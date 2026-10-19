@@ -1,3 +1,4 @@
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import { getFirstOrganizationId } from '../../services/organizationService';
 import { supabase } from '../../lib/supabase';
@@ -5,7 +6,7 @@ import { getTableZones, getRestaurantTables, onTablesChanged, notifyTablesChange
 import { getOpenOrders, sumOpenOrdersTotal } from '../../services/orderService';
 import { Users, Menu } from 'lucide-react';
 import { FullScreenSpinner } from '@/components/ui/Spinner';
-import { Button } from '@/components/ui/button';
+
 
 const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
   const [loading, setLoading] = useState(true);
@@ -155,14 +156,14 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
       {/* Top Header */}
       <div className="bg-white pt-5 pb-4 px-3 md:px-5 border-b border-gray-100 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <Button
+          <IconButton
             variant="ghost"
             size="icon"
             onPointerDown={onOpenMobileMenu}
             className="md:hidden -ml-2 shrink-0 select-none"
-          >
-            <Menu className="h-7 w-7" />
-          </Button>
+           label="Abrir menú">
+            <Menu className="h-7 w-7" aria-hidden="true" />
+          </IconButton>
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-900">Sectores</h1>
           </div>

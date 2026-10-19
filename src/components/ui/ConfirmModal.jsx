@@ -38,7 +38,7 @@ const ConfirmModal = ({
             variant={confirmVariant}
             className="flex-1"
             onClick={onConfirm}
-            disabled={loading}
+            loading={loading}
           >
             {confirmLabel}
           </Button>

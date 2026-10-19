@@ -1,3 +1,4 @@
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -550,14 +551,14 @@ const SuperAdminView = () => {
                       ? <Loader2 className="h-4 w-4 animate-spin" />
                       : <Mail className="h-4 w-4" />}
                   </button>
-                  <button
+                  <IconButton
                     type="button"
-                    aria-label={`Ver ${org.name}`}
+                    label={`Ver ${org.name}`}
                     onClick={() => selectOrganization(org, 'overview')}
-                    className="p-2.5 text-gray-300 shrink-0"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
+                    className="text-gray-300 shrink-0"
+                   variant="ghost">
+                    <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                  </IconButton>
                 </div>
               ))}
               {organizations.length === 0 && (
@@ -659,7 +660,7 @@ const SuperAdminView = () => {
                 onClick={clearSelectedOrganization}
                 className="flex items-center text-[13px] font-medium text-gray-400 hover:text-gray-900 hover:bg-transparent px-0 h-auto transition-colors mb-3"
               >
-                <ArrowLeft className="h-4 w-4 mr-1" />
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                 Negocios
               </Button>
 
@@ -694,17 +695,17 @@ const SuperAdminView = () => {
                   <ExternalLink className="h-4 w-4" />
                   Ver tienda
                 </a>
-                <button
+                <Button
                   type="button"
                   disabled={sendingWelcomeId === selectedOrganization.id}
                   onClick={() => setWelcomeTarget(selectedOrganization)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 hover:border-gray-900 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50"
-                >
+                  className="inline-flex items-center border border-gray-200 hover:border-gray-900 text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50"
+                 variant="outline" size="default">
                   {sendingWelcomeId === selectedOrganization.id
                     ? <Loader2 className="h-4 w-4 animate-spin" />
                     : <Mail className="h-4 w-4" />}
                   Enviar bienvenida
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -747,7 +748,7 @@ const SuperAdminView = () => {
                   detailTab === 'branding' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
-                <Store className="h-4 w-4" />
+                <Store className="h-4 w-4" aria-hidden="true" />
                 Perfil
               </Button>
               <Button
@@ -757,7 +758,7 @@ const SuperAdminView = () => {
                   detailTab === 'hours' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
-                <Clock className="h-4 w-4" />
+                <Clock className="h-4 w-4" aria-hidden="true" />
                 Horarios
               </Button>
               <Button
@@ -797,7 +798,7 @@ const SuperAdminView = () => {
                   detailTab === 'categories' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
-                <Tags className="h-4 w-4" />
+                <Tags className="h-4 w-4" aria-hidden="true" />
                 Categorías
                 <span className="tabular-nums text-xs opacity-70 leading-none flex items-center">{orgCategories.length}</span>
               </Button>
@@ -808,7 +809,7 @@ const SuperAdminView = () => {
                   detailTab === 'klap' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
-                <DollarSign className="h-4 w-4" />
+                <DollarSign className="h-4 w-4" aria-hidden="true" />
                 Conciliación Klap
               </Button>
               <Button
@@ -966,14 +967,14 @@ const SuperAdminView = () => {
                                   </span>
                                 </td>
                                 <td className="px-6 py-3.5 text-right">
-                                  <button
+                                  <IconButton
                                     type="button"
                                     onClick={() => setSelectedOrder(order)}
-                                    aria-label={`Ver pedido ${order.order_number}`}
-                                    className="p-2 text-gray-400 transition-colors hover:text-gray-900"
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </button>
+                                    label={`Ver pedido ${order.order_number}`}
+                                    className="text-gray-600 transition-colors hover:text-gray-900"
+                                   variant="ghost">
+                                    <Eye className="h-4 w-4" aria-hidden="true" />
+                                  </IconButton>
                                 </td>
                               </tr>
                             );
@@ -1116,7 +1117,7 @@ const SuperAdminView = () => {
                         <div className="flex items-center gap-1.5 mt-2">
                           {!isSup && !['owner', 'admin'].includes(user.rawRole) && (
                             <Button variant="outline" size="sm" onClick={() => handleResetPin(user.id)} disabled={busy}>
-                              <KeyRound />
+                              <KeyRound  aria-hidden="true" />
                               Resetear PIN
                             </Button>
                           )}
@@ -1176,16 +1177,16 @@ const SuperAdminView = () => {
                             <div className="flex items-center justify-end gap-1.5">
                               {!isSup && !['owner', 'admin'].includes(user.rawRole) && (
                                 <Button variant="outline" size="sm" onClick={() => handleResetPin(user.id)} disabled={busy} title="Resetear PIN">
-                                  <KeyRound />
+                                  <KeyRound  aria-hidden="true" />
                                   Resetear PIN
                                 </Button>
                               )}
                               <Button variant="ghost" size="icon-sm" onClick={() => handleToggleActive(user)} disabled={busy} title={user.isActive ? 'Desactivar cuenta' : 'Activar cuenta'}>
                                 {user.isActive ? <ToggleRight className="h-5 w-5 text-emerald-600" /> : <ToggleLeft className="h-5 w-5 text-gray-400" />}
                               </Button>
-                              <Button variant="ghost" size="icon-sm" onClick={() => handleToggleSupremo(user)} disabled={busy} title={isSup ? 'Quitar Super Admin' : 'Otorgar Super Admin'}>
-                                <Shield className={`h-5 w-5 ${isSup ? 'text-purple-700' : 'text-gray-300'}`} />
-                              </Button>
+                              <IconButton variant="ghost" size="icon" onClick={() => handleToggleSupremo(user)} disabled={busy} title={isSup ? 'Quitar Super Admin' : 'Otorgar Super Admin'} label={isSup ? 'Quitar Super Admin' : 'Otorgar Super Admin'}>
+                                <Shield className={`h-5 w-5 ${isSup ? 'text-purple-700' : 'text-gray-300'}`}  aria-hidden="true" />
+                              </IconButton>
                             </div>
                           </td>
                         </tr>
@@ -1481,10 +1482,10 @@ const SuperAdminView = () => {
                         className="w-full sm:w-auto text-blue-600 border-blue-200 hover:bg-blue-50"
                         onClick={() => setIsAIImportOpen(true)}
                       >
-                        <Sparkles className="h-4 w-4 mr-2" /> Importar menú con IA
+                        <Sparkles className="h-4 w-4" aria-hidden="true" /> Importar menú con IA
                       </Button>
                       <Button onClick={openNewProductEditor} className="w-full sm:w-auto">
-                        <Plus className="h-4 w-4 mr-2" /> Nuevo artículo
+                        <Plus className="h-4 w-4" aria-hidden="true" /> Nuevo artículo
                       </Button>
                     </div>
                   </div>
@@ -1516,7 +1517,7 @@ const SuperAdminView = () => {
                             onClick={() => openFullProductEditor(prod.id)}
                             className="flex-1 text-xs font-semibold h-10"
                           >
-                            <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                             Editar
                           </Button>
                           <Button
@@ -1583,7 +1584,7 @@ const SuperAdminView = () => {
                                   className="text-xs font-semibold"
                                   title="Abrir el editor completo, igual que la tienda (variantes, ingredientes, imagen, combos, receta)"
                                 >
-                                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                                  <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                                   Editar
                                 </Button>
                                 <Button
@@ -1630,10 +1631,10 @@ const SuperAdminView = () => {
                         disabled={loadingCategories}
                         className="w-full sm:w-auto h-10"
                       >
-                        <RefreshCw className={`h-4 w-4 mr-2 ${loadingCategories ? 'animate-spin' : ''}`} /> Recargar
+                        <RefreshCw className={`h-4 w-4 mr-2 ${loadingCategories ? 'animate-spin' : ''}`}  aria-hidden="true" /> Recargar
                       </Button>
                       <Button onClick={openNewCategoryEditor} className="w-full sm:w-auto h-10">
-                        <Plus className="h-4 w-4 mr-2" /> Nueva categoría
+                        <Plus className="h-4 w-4" aria-hidden="true" /> Nueva categoría
                       </Button>
                     </div>
                   </div>
@@ -1684,7 +1685,7 @@ const SuperAdminView = () => {
                               onClick={() => openFullCategoryEditor(cat.id)}
                               className="flex-1 text-xs font-semibold h-10"
                             >
-                              <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                              <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                               Editar
                             </Button>
                             <Button
@@ -1703,12 +1704,12 @@ const SuperAdminView = () => {
                               }}
                               className="flex-1 text-gray-600 text-xs font-semibold h-10 border border-gray-200"
                             >
-                              <Copy className="h-3.5 w-3.5 mr-1.5" />
+                              <Copy className="h-3.5 w-3.5" aria-hidden="true" />
                               Duplicar
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
+                            <IconButton
+                              variant="destructive"
+                              size="icon"
                               onClick={async () => {
                                 if (!confirm(`¿Eliminar la categoría "${cat.name}"? Sus artículos quedarán sin categoría.`)) return;
                                 const toastId = toast.loading('Eliminando categoría...');
@@ -1721,10 +1722,10 @@ const SuperAdminView = () => {
                                   toast.error('Error al eliminar', { id: toastId });
                                 }
                               }}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold h-10 px-3 border border-red-100"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                              className="font-semibold border"
+                             label="Eliminar">
+                              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            </IconButton>
                           </div>
                         </div>
                       ))}
@@ -1794,7 +1795,7 @@ const SuperAdminView = () => {
                                     className="text-xs font-semibold"
                                     title="Abrir el editor completo, igual que la tienda (nombre, artículos, canales)"
                                   >
-                                    <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                                    <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
                                     Editar
                                   </Button>
                                   <Button
@@ -1814,7 +1815,7 @@ const SuperAdminView = () => {
                                     className="text-gray-600 hover:text-gray-900 text-xs font-semibold"
                                     title="Duplicar categoría"
                                   >
-                                    <Copy className="h-3.5 w-3.5 mr-1.5" />
+                                    <Copy className="h-3.5 w-3.5" aria-hidden="true" />
                                     Duplicar
                                   </Button>
                                   <Button
@@ -1835,7 +1836,7 @@ const SuperAdminView = () => {
                                     className="text-red-600 hover:text-red-700 hover:bg-red-50 text-xs font-semibold"
                                     title="Eliminar categoría"
                                   >
-                                    <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                                     Eliminar
                                   </Button>
                                 </div>

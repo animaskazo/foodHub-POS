@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Sparkles, Send, Loader2, Bot, User, HelpCircle } from 'lucide-react';
 import { analyzeReportWithAI } from '../../services/aiService';
@@ -134,12 +136,12 @@ const ReportsChatDrawer = ({ isOpen, onClose, reportData }) => {
                 <p className="text-xs text-gray-400">Asistente de Reportes y Ventas</p>
               </div>
             </div>
-            <button
+            <IconButton
               onClick={onClose}
-              className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+              className="hover:bg-white/10 text-gray-600 hover:text-white transition-colors"
+             label="Cerrar" variant="ghost">
+              <X className="w-5 h-5" aria-hidden="true" />
+            </IconButton>
             </div>
           </div>
 
@@ -204,14 +206,14 @@ const ReportsChatDrawer = ({ isOpen, onClose, reportData }) => {
             </div>
             <div className="flex gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
               {SUGGESTED_PROMPTS.map((prompt, idx) => (
-                <button
+                <Button
                   key={idx}
                   onClick={() => handleSend(prompt)}
                   disabled={loading}
-                  className="px-3 py-1.5 bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-600 rounded-xl text-xs whitespace-nowrap transition-colors border border-gray-200/60 disabled:opacity-50"
-                >
+                  className="bg-gray-100 hover:bg-emerald-50 hover:text-emerald-700 text-gray-600 whitespace-nowrap transition-colors border border-gray-200/60 disabled:opacity-50"
+                 variant="outline" size="sm">
                   {prompt}
-                </button>
+                </Button>
               ))}
             </div>
             </div>
@@ -235,13 +237,13 @@ const ReportsChatDrawer = ({ isOpen, onClose, reportData }) => {
                 disabled={loading}
                 className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all disabled:opacity-50"
               />
-              <button
+              <IconButton label="Enviar mensaje"
                 type="submit"
                 disabled={!input.trim() || loading}
-                className="p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </button>
+              </IconButton>
             </form>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, description, isDeleting }) => {
@@ -28,19 +28,13 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, description, is
               Cancelar
             </Button>
             <Button 
-              variant="destructive" 
+              variant="destructive-solid"
               className="flex-1"
               onClick={onConfirm}
-              disabled={isDeleting}
+              loading={isDeleting}
+              loadingText="Eliminando…"
             >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Eliminando...
-                </>
-              ) : (
-                "Sí, eliminar"
-              )}
+              Sí, eliminar
             </Button>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/button';
@@ -383,22 +384,20 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
                         )}
                         {max > 1 && isSelected && !isSingleOption && (
                           <div className="flex items-center bg-blue-50/50 border border-blue-100 rounded-full h-8 px-1 shrink-0" onClick={e => e.stopPropagation()}>
-                            <button 
+                            <IconButton
                               onClick={(e) => handleDecrementOption(e, slot.id, opt)}
-                              className="w-6 h-6 flex items-center justify-center rounded-full text-blue-600 hover:bg-blue-100 transition-colors"
-                            >
-                              <Minus className="w-3.5 h-3.5" />
-                            </button>
+                              className="flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-colors"
+                             label={`Reducir cantidad ${opt.name}`} variant="ghost">
+                              <Minus className="w-3.5 h-3.5" aria-hidden="true" />
+                            </IconButton>
                             <span className="w-4 text-center font-bold text-sm text-blue-900">{currentQty}</span>
-                            <button 
+                            <IconButton
                               onClick={(e) => handleIncrementOption(e, slot.id, opt)}
                               disabled={atMax}
-                              className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors ${
-                                atMax ? 'text-blue-300' : 'text-blue-600 hover:bg-blue-100'
-                              }`}
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                            </button>
+                              className={` flex items-center justify-center transition-colors ${ atMax ? 'text-blue-300' : 'text-blue-600 hover:bg-blue-100' }`}
+                             label={`Aumentar cantidad ${opt.name}`} variant="ghost">
+                              <Plus className="w-3.5 h-3.5" aria-hidden="true" />
+                            </IconButton>
                           </div>
                         )}
                       </div>

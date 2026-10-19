@@ -1,3 +1,4 @@
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
@@ -155,12 +156,12 @@ const Layout = () => {
             <span className="text-[10.5px] text-gray-500 mt-0.5 ml-7 leading-none">Tuviste {todayVisits} Visitas hoy</span>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={toggleSidebar} className="hidden lg:flex p-1 hover:bg-gray-100 rounded text-gray-500 transition-colors">
-              <ChevronLeft className={`h-5 w-5 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`} />
-            </button>
-            <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden p-1 hover:bg-gray-100 rounded text-gray-500 transition-colors">
-              <X className="h-6 w-6" />
-            </button>
+            <IconButton onClick={toggleSidebar} className="hidden lg:flex hover:bg-gray-100 text-gray-500 transition-colors" label="Anterior" variant="ghost">
+              <ChevronLeft className={`h-5 w-5 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`}  aria-hidden="true" />
+            </IconButton>
+            <IconButton onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden hover:bg-gray-100 text-gray-500 transition-colors" label="Cerrar" variant="ghost">
+              <X className="h-6 w-6" aria-hidden="true" />
+            </IconButton>
           </div>
         </div>
 
@@ -515,15 +516,15 @@ className={({ isActive }) =>
       <main className="flex-1 flex flex-col min-w-0 relative">
         {/* Mobile Header OR Desktop Header when sidebar is collapsed */}
         <header className={`${!isSidebarCollapsed ? 'lg:hidden' : 'lg:flex'} bg-white border-b h-16 flex items-center px-4 shrink-0 shadow-sm sticky top-0 z-40`}>
-          <button
+          <IconButton
             onClick={() => {
               if (window.innerWidth >= 1024) toggleSidebar();
               else setIsMobileMenuOpen(true);
             }}
-            className="p-2 -ml-2 mr-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
+            className="-ml-2 mr-2 text-gray-600 hover:bg-gray-100 transition-colors"
+           label="Abrir menú" variant="ghost">
+            <Menu className="h-6 w-6" aria-hidden="true" />
+          </IconButton>
           <div className="flex flex-col lg:hidden">
             <span className="font-bold text-lg leading-tight">{organization?.name || 'FoodHub'}</span>
             <span className="text-[10px] text-gray-500 leading-none">Tuviste {todayVisits} Visitas hoy</span>

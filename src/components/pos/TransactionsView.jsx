@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, ReceiptText, TrendingUp, RefreshCcw, Menu, CalendarDays, ChevronDown } from 'lucide-react';
 import { getOrders } from '../../services/orderService';
@@ -121,26 +123,26 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
     <div className="flex flex-col w-full bg-gray-50 p-6 min-h-full">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <button
+          <IconButton
             onPointerDown={onOpenMobileMenu}
-            className="md:hidden p-2 rounded-lg text-gray-700 active:bg-gray-200 shrink-0 select-none bg-gray-100"
+            className="md:hidden text-gray-700 active:bg-gray-200 shrink-0 select-none bg-gray-100"
             style={{ WebkitTapHighlightColor: 'transparent' }}
-          >
-            <Menu className="h-6 w-6" />
-          </button>
+           label="Abrir menú" variant="ghost">
+            <Menu className="h-6 w-6" aria-hidden="true" />
+          </IconButton>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Transacciones</h1>
             <p className="text-gray-500 text-sm">Gestiona y revisa todas tus ventas</p>
           </div>
         </div>
-        <button
+        <Button
           onClick={() => fetchOrders()}
-          className="flex items-center gap-2 p-2.5 md:px-4 md:py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-sm font-semibold text-gray-700 shadow-sm select-none"
+          className="flex items-center bg-white border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-colors text-gray-700 shadow-sm select-none"
           style={{ WebkitTapHighlightColor: 'transparent' }}
-        >
+         variant="outline" size="default">
           <RefreshCcw className={`h-5 w-5 md:h-4 md:w-4 ${loading ? 'animate-spin' : ''}`} />
           <span className="hidden md:inline">Actualizar</span>
-        </button>
+        </Button>
       </div>
 
       {/* Date Range Selector */}
@@ -198,13 +200,13 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                 className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
               />
             </div>
-            <button
+            <Button
               onClick={handleCustomApply}
               disabled={!customStart || !customEnd}
-              className="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 active:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
+              className="bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+             variant="ghost" size="default">
               Aplicar
-            </button>
+            </Button>
           </div>
         )}
       </div>

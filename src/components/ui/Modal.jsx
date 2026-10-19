@@ -1,3 +1,4 @@
+import { IconButton } from './IconButton';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
@@ -71,12 +72,13 @@ const Modal = ({
               title
             )}
             {onClose && (
-              <button 
+              <IconButton
+                label="Cerrar"
                 onClick={onClose}
-                className="ml-2 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors text-gray-500 shrink-0"
+                className="ml-2 bg-gray-100 text-gray-600 hover:bg-gray-200"
               >
-                <X className="h-5 w-5" />
-              </button>
+                <X className="size-4" aria-hidden="true" />
+              </IconButton>
             )}
           </div>
         )}

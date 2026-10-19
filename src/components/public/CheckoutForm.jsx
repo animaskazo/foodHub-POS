@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard, PaperBag, Info, CalendarClock, Clock, ChefHat, Truck } from 'lucide-react';
 import { getCustomerByPhone } from '../../services/publicOrderService';
@@ -872,14 +874,14 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                     )}
 
                     {form.deliveryType === 'uber' && canOwn && distanceError && (
-                      <button
+                      <Button
                         type="button"
                         onClick={handleFallbackToOwn}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gray-900 text-white text-sm font-bold hover:bg-black active:scale-[0.99] transition-all cursor-pointer"
-                      >
+                        className="w-full flex items-center justify-center bg-gray-900 text-white hover:bg-black active:scale-[0.99] transition-all cursor-pointer"
+                       variant="default" size="default">
                         <Truck className="h-4 w-4" />
                         Probar con delivery propio
-                      </button>
+                      </Button>
                     )}
 
                     {form.deliveryCoords && (
@@ -1118,13 +1120,13 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                     }
                   }}
                 />
-                <button
+                <Button
                   onClick={handleApplyCoupon}
                   disabled={!couponCode.trim() || couponLoading}
-                  className="px-6 py-3.5 bg-gray-900 text-white text-sm font-bold rounded-2xl disabled:opacity-40 hover:bg-gray-800 transition-colors"
-                >
+                  className="bg-gray-900 text-white disabled:opacity-40 hover:bg-gray-800 transition-colors"
+                 variant="default" size="default">
                   {couponLoading ? '...' : 'Aplicar'}
-                </button>
+                </Button>
               </div>
             ) : (
               <div className="flex items-center justify-between bg-green-50 border-2 border-green-200 rounded-2xl px-4 py-3">
@@ -1134,12 +1136,12 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                     {appliedCoupon.type === 'percentage' ? `-${appliedCoupon.value}%` : `-$${appliedCoupon.value.toLocaleString('es-CL')}`}
                   </span>
                 </div>
-                <button
+                <Button
                   onClick={handleRemoveCoupon}
-                  className="text-xs text-gray-400 hover:text-red-500 transition-colors font-medium"
-                >
+                  className="text-gray-400 hover:text-red-500 transition-colors"
+                 variant="ghost" size="sm">
                   Quitar
-                </button>
+                </Button>
               </div>
             )}
             {couponError && !appliedCoupon && (
@@ -1191,7 +1193,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
             </div>
           )}
 
-          <button
+          <Button
             onClick={handleSubmit}
             disabled={
               isSubmitting ||
@@ -1203,8 +1205,8 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
               belowDeliveryMin ||
               (form.deliveryType === 'uber' && !form.quoteId)
             }
-            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-all px-8 text-[17px] tracking-wide ${(isSubmitting || nowBlocked || scheduledBlocked || uberOnlineBlocked || totalAmount <= 0 || belowDeliveryMin || (isAnyDelivery && (!!distanceError || !form.deliveryAddress.trim())) || (form.deliveryType === 'uber' && !form.quoteId)) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900 active:scale-[0.98]'}`}
-          >
+            className={`w-full text-white flex items-center justify-center shadow-2xl transition-all ${(isSubmitting || nowBlocked || scheduledBlocked || uberOnlineBlocked || totalAmount <= 0 || belowDeliveryMin || (isAnyDelivery && (!!distanceError || !form.deliveryAddress.trim())) || (form.deliveryType === 'uber' && !form.quoteId)) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900 active:scale-[0.98]'}`}
+           variant="default" size="pos">
             {isSubmitting ? (
               <><Loader2 className="h-5 w-5 animate-spin" /> Enviando pedido…</>
             ) : scheduledBlocked ? (
@@ -1226,7 +1228,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                 )}
               </div>
             )}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -1252,13 +1254,13 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                   <p className="text-sm text-gray-500 mt-0.5">Elige la hora disponible</p>
                 </div>
               </div>
-              <button
+              <IconButton
                 type="button"
                 onClick={() => setScheduleModalOpen(false)}
-                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-gray-500 shrink-0 cursor-pointer"
-              >
-                <X className="h-5 w-5" />
-              </button>
+                className="bg-gray-100 hover:bg-gray-200 transition-colors text-gray-500 shrink-0 cursor-pointer"
+               label="Cerrar" variant="ghost">
+                <X className="h-5 w-5" aria-hidden="true" />
+              </IconButton>
             </div>
           </div>
 
@@ -1342,12 +1344,12 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
 
           {/* Fixed footer with 2 actions */}
           <div className="px-5 py-4 border-t border-gray-100 bg-white shrink-0 space-y-2.5 shadow-[0_-8px_24px_rgba(0,0,0,0.04)]">
-            <button
+            <Button
               type="button"
               onClick={handleConfirmSchedule}
               disabled={!form.scheduledAt}
-              className="w-full h-14 rounded-2xl bg-black text-white font-bold text-[16px] flex items-center justify-center gap-2 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed cursor-pointer transition-all active:scale-[0.98] shadow-lg shadow-black/20 disabled:shadow-none"
-            >
+              className="w-full bg-black text-white flex items-center justify-center disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed cursor-pointer transition-all active:scale-[0.98] shadow-lg shadow-black/20 disabled:shadow-none"
+             variant="default" size="pos">
               {form.scheduledAt && selectedScheduleLabel ? (
                 <>
                   <CalendarClock className="h-5 w-5" />
@@ -1359,16 +1361,16 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                   Programar
                 </>
               )}
-            </button>
+            </Button>
             {!hideNowButton && (
-            <button
+            <Button
               type="button"
               onClick={handleChooseNow}
-              className="w-full h-13 py-3.5 rounded-2xl border-2 border-gray-200 bg-white text-gray-700 font-bold text-[16px] flex items-center justify-center gap-2 hover:border-gray-400 hover:bg-gray-50 cursor-pointer transition-all active:scale-[0.98]"
-            >
+              className="w-full border-2 border-gray-200 bg-white text-gray-700 flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 cursor-pointer transition-all active:scale-[0.98]"
+             variant="outline" size="touch">
               <Clock className="h-5 w-5" />
               Entregar ahora
-            </button>
+            </Button>
             )}
           </div>
         </div>

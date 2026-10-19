@@ -477,13 +477,13 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                       {customerName} · {deliveryFee > 0 ? `Despacho $${fmt(deliveryFee)}` : 'Despacho gratis'}{matchedZone?.name ? ` · ${matchedZone.name}` : ''}
                     </p>
                   </div>
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setIsDeliveryCollapsed(false)}
-                    className="shrink-0 rounded-full border border-gray-200 px-3.5 py-1.5 text-xs font-bold text-gray-700 transition-colors hover:bg-gray-50"
-                  >
+                    className="shrink-0 border border-gray-200 text-gray-700 transition-colors hover:bg-gray-50"
+                   variant="outline" size="sm">
                     Editar
-                  </button>
+                  </Button>
                 </div>
               )}
 
@@ -543,20 +543,14 @@ const PaymentModal = ({ isOpen, onClose, cartItems, onConfirm, onSaveCustomer, o
                           required
                         />
                       </div>
-                      <button
+                      <Button
                         type="button"
                         disabled={isValidatingAddress || isAddressValid}
                         onClick={() => handleValidateAddress()}
-                        className={`mt-7 px-4 py-3.5 font-bold text-sm rounded-xl transition-all shrink-0 flex items-center justify-center min-w-[90px] ${
-                          isAddressValid
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : isValidatingAddress
-                              ? 'bg-gray-100 text-gray-400'
-                              : 'bg-gray-900 text-white hover:bg-black active:scale-[0.98]'
-                        }`}
-                      >
+                        className={`mt-7 transition-all shrink-0 flex items-center justify-center min-w-[90px] ${ isAddressValid ? 'bg-emerald-100 text-emerald-700' : isValidatingAddress ? 'bg-gray-100 text-gray-400' : 'bg-gray-900 text-white hover:bg-black active:scale-[0.98]' }`}
+                       variant="default" size="default">
                         {isValidatingAddress ? <Loader2 className="w-4 h-4 animate-spin" /> : isAddressValid ? <CheckCircle2 className="w-5 h-5" /> : 'Validar'}
-                      </button>
+                      </Button>
                     </div>
                     {addressError && (
                       <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3">

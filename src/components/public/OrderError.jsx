@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import React from 'react';
 
 const OrderError = ({ onRetry }) => {
@@ -12,12 +13,12 @@ const OrderError = ({ onRetry }) => {
       <p className="text-gray-500 text-center max-w-md mb-8">
         No se pudo completar el pago en línea o fue cancelado. Tu pedido no ha sido enviado a la cocina.
       </p>
-      <button
+      <Button
         onClick={onRetry}
-        className="w-full max-w-xs bg-black text-white rounded-xl py-4 font-semibold hover:bg-gray-800 transition-colors"
-      >
+        className="w-full max-w-xs bg-black text-white hover:bg-gray-800 transition-colors"
+       variant="default" size="default">
         Volver al carrito e intentar de nuevo
-      </button>
+      </Button>
     </div>
   );
 };

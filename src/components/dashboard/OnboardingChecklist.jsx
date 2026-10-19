@@ -1,3 +1,4 @@
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, ChevronDown, X } from 'lucide-react';
@@ -185,28 +186,28 @@ const OnboardingChecklist = ({ onStatusChange }) => {
           <div className="text-sm font-bold text-gray-900 tabular-nums whitespace-nowrap">
             {done} de 3
           </div>
-          <button
+          <IconButton
             type="button"
             onClick={toggleCollapsed}
             aria-expanded={!collapsed}
             aria-controls="onboarding-steps"
-            aria-label={collapsed ? 'Expandir pasos de configuración' : 'Contraer pasos de configuración'}
+            label={collapsed ? 'Expandir pasos de configuración' : 'Contraer pasos de configuración'}
             title={collapsed ? 'Expandir' : 'Contraer'}
-            className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
-          >
+            className="text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
+           variant="ghost">
             <ChevronDown
               className={`h-4 w-4 motion-safe:transition-transform motion-safe:duration-200 ${collapsed ? '' : 'rotate-180'}`}
-            />
-          </button>
-          <button
+             aria-hidden="true" />
+          </IconButton>
+          <IconButton
             type="button"
             onClick={handleDismiss}
-            aria-label="Cerrar y no volver a mostrar"
+            label="Cerrar y no volver a mostrar"
             title="Cerrar y no volver a mostrar"
-            className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
-          >
-            <X className="h-4 w-4" />
-          </button>
+            className="text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300"
+           variant="ghost">
+            <X className="h-4 w-4" aria-hidden="true" />
+          </IconButton>
         </div>
       </div>
 

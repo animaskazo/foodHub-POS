@@ -299,3 +299,22 @@
 @media (prefers-reduced-motion: reduce) {
   .store-banner-marquee { animation: none; }
 }
+
+/* Shared action geometry; explicit icon sizes and specialized controls remain supported. */
+@layer components {
+  [data-slot="button"] > svg:not([class*="size-"]):not([class*="h-"]):not([class*="w-"]) {
+    width: 1rem;
+    height: 1rem;
+  }
+  [data-slot="button"][data-size="lg"] > svg:not([class*="size-"]):not([class*="h-"]):not([class*="w-"]),
+  [data-slot="button"][data-size="touch"] > svg:not([class*="size-"]):not([class*="h-"]):not([class*="w-"]),
+  [data-slot="button"][data-size="pos"] > svg:not([class*="size-"]):not([class*="h-"]):not([class*="w-"]) {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  button:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+  }
+  button:disabled, button[aria-disabled="true"] { cursor: default !important; }
+}

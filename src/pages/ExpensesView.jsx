@@ -1,3 +1,4 @@
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useAuth } from '../components/AuthContext';
@@ -385,14 +386,14 @@ const ExpensesView = () => {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button variant="outline" size="sm" onClick={() => setCatManagerOpen(true)} className="sm:hidden" aria-label="Categorías">
-              <Settings2 className="h-4 w-4" />
-            </Button>
+            <IconButton variant="outline" size="icon" onClick={() => setCatManagerOpen(true)} className="sm:hidden" label="Categorías">
+              <Settings2 className="h-4 w-4" aria-hidden="true" />
+            </IconButton>
             <Button variant="outline" onClick={() => setCatManagerOpen(true)} className="hidden sm:inline-flex">
-              <Settings2 className="h-4 w-4 mr-2" /> Categorías
+              <Settings2 className="h-4 w-4" aria-hidden="true" /> Categorías
             </Button>
             <Button size="sm" onClick={() => openModal()} className="flex-1 sm:flex-none">
-              <Plus className="h-4 w-4 mr-1.5" /> Nuevo gasto
+              <Plus className="h-4 w-4" aria-hidden="true" /> Nuevo gasto
             </Button>
           </div>
         </div>
@@ -459,9 +460,9 @@ const ExpensesView = () => {
               </Select>
             </div>
             <div className="flex items-center justify-between gap-1 bg-gray-50 rounded-xl border border-gray-200/80 px-1.5 py-1.5 w-full lg:w-fit">
-              <button onClick={prev} aria-label="Mes anterior" className="p-2.5 sm:p-1.5 hover:bg-white rounded-lg transition-colors"><ChevronLeft className="h-4 w-4 text-gray-500" /></button>
+              <IconButton onClick={prev} label="Mes anterior" className="hover:bg-white transition-colors" variant="ghost"><ChevronLeft className="h-4 w-4 text-gray-500" aria-hidden="true" /></IconButton>
               <span className="text-sm font-semibold text-gray-900 min-w-[130px] text-center select-none">{MONTHS[cm]} {cy}</span>
-              <button onClick={next} aria-label="Mes siguiente" className="p-2.5 sm:p-1.5 hover:bg-white rounded-lg transition-colors"><ChevronRight className="h-4 w-4 text-gray-500" /></button>
+              <IconButton onClick={next} label="Mes siguiente" className="hover:bg-white transition-colors" variant="ghost"><ChevronRight className="h-4 w-4 text-gray-500" aria-hidden="true" /></IconButton>
             </div>
           </div>
 
@@ -518,15 +519,15 @@ const ExpensesView = () => {
                       <td className="px-6 py-4 text-right font-bold text-gray-900 tabular-nums tracking-tight">{fmt(e.amount)}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <button title="Ver gasto" onClick={() => setViewing(e)} className="p-2 text-black hover:bg-gray-100 rounded-lg transition-colors">
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button title="Editar" onClick={() => openModal(e)} className="p-2 text-black hover:bg-gray-100 rounded-lg transition-colors">
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button title="Eliminar" onClick={() => setDeleteModal({ isOpen: true, target: e, isDeleting: false })} className="p-2 text-black hover:bg-gray-100 rounded-lg transition-colors">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <IconButton title="Ver gasto" onClick={() => setViewing(e)} className="text-black hover:bg-gray-100 transition-colors" label="Ver gasto" variant="ghost">
+                            <Eye className="h-4 w-4" aria-hidden="true" />
+                          </IconButton>
+                          <IconButton title="Editar" onClick={() => openModal(e)} className="text-black hover:bg-gray-100 transition-colors" label="Editar" variant="ghost">
+                            <Pencil className="h-4 w-4" aria-hidden="true" />
+                          </IconButton>
+                          <IconButton title="Eliminar" onClick={() => setDeleteModal({ isOpen: true, target: e, isDeleting: false })} className="transition-colors" label="Eliminar" variant="destructive">
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
+                          </IconButton>
                         </div>
                       </td>
                     </tr>
@@ -547,7 +548,7 @@ const ExpensesView = () => {
                 <p className="text-sm font-semibold text-gray-800">Sin gastos este mes</p>
                 <p className="text-xs text-gray-500 mt-1">Registra el arriendo como fijo para partir.</p>
                 <Button size="sm" onClick={() => openModal()} className="mt-3">
-                  <Plus className="h-3.5 w-3.5 mr-1.5" /> Nuevo gasto
+                  <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Nuevo gasto
                 </Button>
               </div>
             ) : filtered.map((e) => {
@@ -578,12 +579,12 @@ const ExpensesView = () => {
                       <span className="text-xs text-gray-400 whitespace-nowrap">{new Date(e.expense_date + 'T12:00:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}</span>
                     </div>
                     <div className="flex items-center gap-1 shrink-0" onClick={(ev) => ev.stopPropagation()}>
-                      <button title="Editar" aria-label="Editar gasto" onClick={() => openModal(e)} className="p-2.5 -m-1 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button title="Eliminar" aria-label="Eliminar gasto" onClick={() => setDeleteModal({ isOpen: true, target: e, isDeleting: false })} className="p-2.5 -m-1 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      <IconButton title="Editar" label="Editar gasto" onClick={() => openModal(e)} className="-m-1 text-gray-700 hover:bg-gray-100 transition-colors" variant="ghost">
+                        <Pencil className="h-4 w-4" aria-hidden="true" />
+                      </IconButton>
+                      <IconButton title="Eliminar" label="Eliminar gasto" onClick={() => setDeleteModal({ isOpen: true, target: e, isDeleting: false })} className="-m-1 transition-colors" variant="destructive">
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      </IconButton>
                     </div>
                   </div>
                 </div>
@@ -643,16 +644,16 @@ const ExpensesView = () => {
                     <p className="text-sm font-semibold text-gray-800 truncate">{receiptFile ? receiptFile.name : receiptExisting?.name}</p>
                     <p className="text-xs text-gray-500">{receiptFile ? 'Listo para autocompletar' : 'Guardado'}</p>
                   </div>
-                  <button
+                  <Button
                     type="button"
                     onClick={handleAnalyzeReceipt}
                     disabled={isAnalyzing}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-full transition-colors shrink-0"
-                  >
+                    className="flex items-center text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 transition-colors shrink-0"
+                   variant="ghost" size="sm">
                     {isAnalyzing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                     {isAnalyzing ? 'Leyendo…' : 'Autocompletar'}
-                  </button>
-                  <button
+                  </Button>
+                  <IconButton
                     type="button"
                     onClick={() => {
                       if (receiptPreview) URL.revokeObjectURL(receiptPreview);
@@ -660,11 +661,11 @@ const ExpensesView = () => {
                       setReceiptPreview(null);
                       if (receiptExisting) setReceiptRemoved(true);
                     }}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors shrink-0"
+                    className="text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
                     title="Quitar comprobante"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                   label="Quitar comprobante" variant="ghost">
+                    <X className="h-4 w-4" aria-hidden="true" />
+                  </IconButton>
                 </div>
               ) : (
                 <label className="flex items-center gap-3 cursor-pointer">
@@ -805,7 +806,7 @@ const ExpensesView = () => {
                   <SelectItem value="variable">Variable</SelectItem>
                 </SelectContent>
               </Select>
-              <Button type="submit"><Plus className="h-4 w-4" /></Button>
+              <IconButton type="submit" label="Aumentar cantidad"><Plus className="h-4 w-4" aria-hidden="true" /></IconButton>
             </form>
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {categories.map((c) => {
@@ -819,15 +820,15 @@ const ExpensesView = () => {
                       <span className="text-sm font-semibold text-gray-800">{c.name}</span>
                       <span className="text-[11px] uppercase text-gray-400">{c.type}</span>
                     </div>
-                    <button
+                    <IconButton
                       onClick={async () => {
                         try { await deleteExpenseCategory(c.id); setCategories(await getExpenseCategories(orgId)); }
                         catch { toast.error('No se puede eliminar: tiene gastos asociados'); }
                       }}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                      className=""
+                     label="Eliminar" variant="destructive">
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </IconButton>
                   </div>
                 );
               })}
@@ -851,7 +852,7 @@ const ExpensesView = () => {
                 <div className="flex items-center gap-2 shrink-0">
                   <Button variant="outline" size="sm" onClick={() => { setViewing(null); setShowReceipt(false); }}>Cerrar</Button>
                   <Button size="sm" onClick={() => { const v = viewing; setViewing(null); setShowReceipt(false); openModal(v); }}>
-                    <Pencil className="h-3.5 w-3.5" /> Editar
+                    <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> Editar
                   </Button>
                 </div>
               </div>

@@ -143,7 +143,7 @@ const ExcelImportIngredientsModal = ({ isOpen, onClose, onSuccess }) => {
             onClick={downloadIngredientExcelTemplate}
             className="shrink-0 bg-white hover:bg-gray-100 border-gray-300 text-gray-700"
           >
-            <Download className="h-4 w-4 mr-2 text-green-600" />
+            <Download className="h-4 w-4 text-green-600" aria-hidden="true" />
             Descargar Plantilla Excel
           </Button>
         </div>
@@ -209,7 +209,7 @@ const ExcelImportIngredientsModal = ({ isOpen, onClose, onSuccess }) => {
                   onClick={resetState}
                   className="text-blue-700 hover:text-blue-900 hover:bg-blue-100"
                 >
-                  <X className="h-4 w-4 mr-1" /> Cambiar archivo
+                  <X className="h-4 w-4" aria-hidden="true" /> Cambiar archivo
                 </Button>
               </div>
 

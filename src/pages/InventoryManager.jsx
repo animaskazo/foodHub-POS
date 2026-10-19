@@ -1,3 +1,5 @@
+import { Pencil } from 'lucide-react';
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Button } from "@/components/ui/button";
@@ -271,7 +273,7 @@ const InventoryManager = () => {
               </div>
               <div className="flex items-center gap-3">
                 <Button variant="destructive" onClick={() => setDeleteModal({ isOpen: true, mode: 'bulk', targetId: null, isDeleting: false })}>
-                  <Trash2 className="h-4 w-4 mr-2" /> Eliminar seleccionados
+                  <Trash2 className="h-4 w-4" aria-hidden="true" /> Eliminar seleccionados
                 </Button>
               </div>
             </div>
@@ -290,7 +292,7 @@ const InventoryManager = () => {
               </div>
               <div className="flex items-center gap-3">
                 <Button onClick={() => openModal()}>
-                  <Plus className="h-4 w-4 mr-2" /> Crear insumo
+                  <Plus className="h-4 w-4" aria-hidden="true" /> Crear insumo
                 </Button>
               </div>
             </div>
@@ -374,33 +376,30 @@ const InventoryManager = () => {
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Tooltip text="Ajustar stock">
-                            <button
+                            <IconButton
                               onClick={() => {
                                 setAdjustModal({ isOpen: true, item });
                                 setAdjustQuantity('');
                                 setAdjustNotes('');
                                 setAdjustType('adjustment');
                               }}
-                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            >
-                              <Package className="h-4 w-4" />
-                            </button>
+                              className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                             label={`Ajustar stock ${item.name}`} variant="ghost">
+                              <Package className="h-4 w-4" aria-hidden="true" />
+                            </IconButton>
                           </Tooltip>
                           <Tooltip text="Historial">
-                            <button
+                            <IconButton
                               onClick={() => openMovements(item)}
-                              className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                              <History className="h-4 w-4" />
-                            </button>
+                              className="text-gray-600 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                             label={`Ver historial ${item.name}`} variant="ghost">
+                              <History className="h-4 w-4" aria-hidden="true" />
+                            </IconButton>
                           </Tooltip>
                           <Tooltip text="Editar">
-                            <button
-                              onClick={() => openModal(item)}
-                              className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                            >
-                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                            </button>
+                            <IconButton label={`Editar ${item.name}`} onClick={() => openModal(item)}>
+                              <Pencil className="size-4" aria-hidden="true" />
+                            </IconButton>
                           </Tooltip>
                           <ActionMenu
                             onDelete={() => setDeleteModal({ isOpen: true, mode: 'single', targetId: item.id, isDeleting: false })}

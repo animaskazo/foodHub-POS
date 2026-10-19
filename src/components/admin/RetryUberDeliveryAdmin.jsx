@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAccessToken, createQuote, createDeliveryWithRetry } from '../services/uberDirectService';
@@ -309,11 +310,11 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
                   </p>
                 </div>
                 
-                <button
+                <Button
                   onClick={() => retryDelivery(order)}
                   disabled={retrying === order.id}
-                  className="px-3 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white rounded text-sm font-medium flex items-center gap-2 transition-colors"
-                >
+                  className="bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white flex items-center transition-colors"
+                 variant="ghost" size="default">
                   {retrying === order.id ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
@@ -325,7 +326,7 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
                       Reintentar
                     </>
                   )}
-                </button>
+                </Button>
               </div>
 
               {results[order.id] && (

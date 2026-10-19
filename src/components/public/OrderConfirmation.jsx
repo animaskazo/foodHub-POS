@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2, Clock, MapPin, ChevronRight, ExternalLink, CalendarClock } from 'lucide-react';
 import { FullScreenSpinner } from '@/components/ui/Spinner';
@@ -274,17 +275,17 @@ const OrderConfirmation = ({ order, org }) => {
           </div>
 
           {/* New order CTA */}
-          <button
+          <Button
             onClick={() => {
               // Redirect to main store page to reset params and start fresh
               const storeUrl = window.location.pathname;
               window.location.href = storeUrl;
             }}
-            className="w-full mt-2 border-2 border-gray-200 bg-white text-gray-800 font-bold py-4 rounded-full flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors active:scale-[0.98]"
-          >
+            className="w-full mt-2 border-2 border-gray-200 bg-white text-gray-800 flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-[0.98]"
+           variant="outline" size="default">
             Hacer otro pedido
             <ChevronRight className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
       </div>
     </div>

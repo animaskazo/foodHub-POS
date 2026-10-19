@@ -1,3 +1,5 @@
+import { QuantityStepper } from '../components/ui/QuantityStepper';
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -481,14 +483,14 @@ const CreateProductView = () => {
                 Estás editando el catálogo de otra tienda con la interfaz completa, igual que la tienda.
               </p>
             </div>
-            <button
+            <Button
               type="button"
               onClick={goBack}
-              className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition-colors shrink-0"
-            >
+              className="flex items-center border border-amber-200 bg-white text-amber-800 hover:bg-amber-100 transition-colors shrink-0"
+             variant="outline" size="sm">
               <ArrowLeft className="h-3.5 w-3.5" />
               Volver al panel
-            </button>
+            </Button>
           </div>
         )}
         {isLoading ? (
@@ -666,7 +668,7 @@ const CreateProductView = () => {
                         disabled={isUploadingVideo}
                         className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
                         Eliminar video
                       </Button>
                     )}
@@ -819,17 +821,17 @@ const CreateProductView = () => {
                                 </div>
                               </div>
                               <div className="sm:col-span-1 flex items-end justify-end">
-                                <Button
+                                <IconButton
                                   type="button"
                                   onClick={() => {
                                     setVariants(variants.filter(v2 => v2.id !== v.id));
                                     setBaseIngredients(baseIngredients.filter(b => b.variantOptionId !== v.id));
                                     setHasChanges(true);
                                   }}
-                                  className="p-2.5 text-gray-400 hover:text-red-500 transition-colors bg-white hover:bg-red-50 border border-gray-100"
-                                >
-                                  <Trash2 className="h-4.5 w-4.5" />
-                                </Button>
+                                  className="transition-colors border"
+                                 label="Eliminar" variant="destructive">
+                                  <Trash2 className="h-4.5 w-4.5" aria-hidden="true" />
+                                </IconButton>
                               </div>
                             </div>
                             <div className="p-3 flex flex-col gap-2">
@@ -856,23 +858,11 @@ const CreateProductView = () => {
                                             </span>
                                           </div>
                                         </div>
-                                        <div className="flex items-center gap-1.5 shrink-0">
-                                          <button
-                                            type="button"
-                                            onClick={() => updateVariantPortions(ing.id, v.id, -1)}
-                                            className="w-6 h-6 flex items-center justify-center rounded-md bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 text-base leading-none"
-                                          >
-                                            −
-                                          </button>
-                                          <span className="text-sm font-bold text-gray-800 w-6 text-center">{portions}</span>
-                                          <button
-                                            type="button"
-                                            onClick={() => updateVariantPortions(ing.id, v.id, 1)}
-                                            className="w-6 h-6 flex items-center justify-center rounded-md bg-blue-100 text-blue-700 hover:bg-blue-200 text-base leading-none"
-                                          >
-                                            +
-                                          </button>
-                                        </div>
+                                        <QuantityStepper compact
+                                          value={portions} label={`${ing.name} de ${v.name}`}
+                                          onDecrease={() => updateVariantPortions(ing.id, v.id, -1)}
+                                          onIncrease={() => updateVariantPortions(ing.id, v.id, 1)}
+                                        />
                                       </div>
                                     );
                                   })}
@@ -894,7 +884,7 @@ const CreateProductView = () => {
                         setHasChanges(true);
                       }}
                     >
-                      <Plus className="h-4 w-4" /> Agregar variantes
+                      <Plus className="h-4 w-4" aria-hidden="true" /> Agregar variantes
                     </Button>
                   </div>
 
@@ -994,7 +984,7 @@ const CreateProductView = () => {
                       }}
                       className="shrink-0"
                     >
-                      <Plus className="h-4 w-4" /> Agregar Slot
+                      <Plus className="h-4 w-4" aria-hidden="true" /> Agregar Slot
                     </Button>
                   </div>
 
@@ -1086,16 +1076,16 @@ const CreateProductView = () => {
                               />
                             </div>
                             <div className="md:col-span-2 flex items-end justify-end">
-                              <Button
+                              <IconButton
                                 type="button"
                                 onClick={() => {
                                   setBundleSlots(bundleSlots.filter(s => s.id !== slot.id));
                                   setHasChanges(true);
                                 }}
-                                className="p-2.5 text-gray-400 hover:text-red-500 transition-colors bg-white hover:bg-red-50 border border-gray-100"
-                              >
-                                <Trash2 className="h-4.5 w-4.5" />
-                              </Button>
+                                className="transition-colors border"
+                               label="Eliminar" variant="destructive">
+                                <Trash2 className="h-4.5 w-4.5" aria-hidden="true" />
+                              </IconButton>
                             </div>
                           </div>
 
@@ -1218,7 +1208,7 @@ const CreateProductView = () => {
                                       <span className="text-[10px] font-bold text-gray-500">Defecto</span>
                                     </label>
 
-                                    <Button
+                                    <IconButton
                                       type="button"
                                       onClick={() => {
                                         setBundleSlots(bundleSlots.map(s => {
@@ -1227,10 +1217,10 @@ const CreateProductView = () => {
                                         }));
                                         setHasChanges(true);
                                       }}
-                                      className="p-1.5 text-gray-400 hover:text-red-500 transition-colors bg-white   hover:bg-red-50 border border-gray-100 cursor-pointer shrink-0"
-                                    >
-                                      <X className="h-3.5 w-3.5" />
-                                    </Button>
+                                      className="text-gray-600 hover:text-red-500 transition-colors bg-white hover:bg-red-50 border border-gray-100 cursor-pointer shrink-0"
+                                     label="Cerrar">
+                                      <X className="h-3.5 w-3.5" aria-hidden="true" />
+                                    </IconButton>
                                   </div>
                                 ))}
                               </div>
@@ -1256,7 +1246,7 @@ const CreateProductView = () => {
                               }}
                               className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5 py-1 px-2.5   bg-blue-50 hover:bg-blue-100 transition-colors w-fit cursor-pointer"
                             >
-                              <Plus className="h-3 w-3" /> Agregar opción de producto
+                              <Plus className="h-3 w-3" aria-hidden="true" /> Agregar opción de producto
                             </Button>
                           </div>
                         </div>
@@ -1409,14 +1399,14 @@ const CreateProductView = () => {
                   <div className="mt-4 rounded-xl bg-gray-50/80 border border-gray-200/70 p-3.5">
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Cantidad disponible</label>
                     <div className="flex items-center gap-2">
-                      <button
+                      <IconButton
                         type="button"
                         onClick={() => { setStockQuantity(String(Math.max(0, (parseInt(stockQuantity || '0', 10) || 0) - 1))); setHasChanges(true); }}
-                        className="h-10 w-10 shrink-0 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
-                        aria-label="Quitar una unidad"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
+                        className="shrink-0 flex items-center justify-center bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
+                        label="Quitar una unidad"
+                       variant="ghost">
+                        <Minus className="h-4 w-4" aria-hidden="true" />
+                      </IconButton>
                       <Input
                         type="number"
                         min="0"
@@ -1427,24 +1417,24 @@ const CreateProductView = () => {
                         onChange={(e) => { setStockQuantity(e.target.value); setHasChanges(true); }}
                         className="bg-white text-center font-bold text-lg tabular-nums h-11"
                       />
-                      <button
+                      <IconButton
                         type="button"
                         onClick={() => { setStockQuantity(String((parseInt(stockQuantity || '0', 10) || 0) + 1)); setHasChanges(true); }}
-                        className="h-10 w-10 shrink-0 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
-                        aria-label="Agregar una unidad"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
+                        className="shrink-0 flex items-center justify-center bg-gray-100 text-gray-600 hover:bg-gray-200 active:scale-95 transition-all"
+                        label="Agregar una unidad"
+                       variant="ghost">
+                        <Plus className="h-4 w-4" aria-hidden="true" />
+                      </IconButton>
                     </div>
                     <div className="mt-2.5 flex items-center justify-between gap-2">
                       <p className="text-xs text-gray-400">Vacío se guarda como 0.</p>
-                      <button
+                      <Button
                         type="button"
                         onClick={() => { setStockQuantity('0'); setHasChanges(true); }}
-                        className="text-xs font-bold text-red-600 hover:text-red-700 hover:underline shrink-0"
-                      >
+                        className="text-red-600 hover:text-red-700 hover:underline shrink-0"
+                       variant="ghost" size="sm">
                         Marcar sin stock
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -1470,7 +1460,7 @@ const CreateProductView = () => {
                   <p className="font-semibold text-[15px] mb-3">Tipo de artículo</p>
                   <div className="relative">
                     <Select value={formData.type} onValueChange={(val) => handleSelectChange('type', val)}>
-                      <SelectTrigger className="w-full bg-gray-50 border-gray-200  ">
+                      <SelectTrigger className="w-full bg-gray-50 border-gray-200">
                         <SelectValue placeholder="Producto físico" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1488,7 +1478,7 @@ const CreateProductView = () => {
                 <p className="font-semibold text-[15px] mb-3">Categorías</p>
                 <div className="relative">
                   <Select value={formData.categoryId} onValueChange={(val) => handleSelectChange('categoryId', val)}>
-                    <SelectTrigger className="w-full bg-gray-50 border-gray-200  ">
+                    <SelectTrigger className="w-full bg-gray-50 border-gray-200">
                       <SelectValue placeholder="Sin categoría">
                         {formData.categoryId === 'none'
                           ? 'Sin categoría (General)'
@@ -1580,8 +1570,8 @@ const CreateProductView = () => {
                 type="button"
                 onClick={() => setShowImageModal(false)}
                 className="absolute -top-12 right-0 z-10 w-9 h-9 bg-black/50 hover:bg-black/80 backdrop-blur-sm flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-lg border border-white/10"
-              >
-                <X className="h-5 w-5" />
+               aria-label="Cerrar">
+                <X className="h-5 w-5" aria-hidden="true" />
               </Button>
               <img
                 src={formData.imageUrl}

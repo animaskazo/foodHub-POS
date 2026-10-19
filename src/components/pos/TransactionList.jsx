@@ -811,7 +811,7 @@ const pythonPrinter = localStorage.getItem('python_default_printer');
               className="bg-red-600 hover:bg-red-700 text-white font-bold gap-1.5"
               onClick={() => setIsBulkCancelConfirmOpen(true)}
             >
-              <XCircle className="w-3.5 h-3.5" />
+              <XCircle className="w-3.5 h-3.5" aria-hidden="true" />
               Cancelar
             </Button>
             <Button
@@ -819,7 +819,7 @@ const pythonPrinter = localStorage.getItem('python_default_printer');
               className="bg-red-700 hover:bg-red-800 text-white font-bold gap-1.5"
               onClick={() => setIsBulkDeleteConfirmOpen(true)}
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
               Eliminar definitivamente
             </Button>
             <Button

@@ -1,3 +1,4 @@
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { 
@@ -511,20 +512,20 @@ const KitchenView = () => {
               className="px-2.5! md:px-3! py-2 min-h-10 bg-white text-black hover:bg-gray-200 rounded-full transition-colors flex items-center justify-center shrink-0 gap-1.5 font-bold text-sm"
               title="Volver al punto de venta"
             >
-              <ArrowLeft className="size-5" />
+              <ArrowLeft className="size-5" aria-hidden="true" />
               <span className="hidden sm:inline">Volver al POS</span>
               <span className="sm:hidden">POS</span>
             </Button>
 
-            <Button
+            <IconButton
               onClick={() => navigate('/')}
               size="icon"
-              className="bg-white text-black hover:bg-gray-200 rounded-full"
+              className="bg-white text-black hover:bg-gray-200"
               title="Dashboard admin"
-              aria-label="Ir al dashboard admin"
+              label="Ir al dashboard admin"
             >
-              <Home className="size-5" />
-            </Button>
+              <Home className="size-5" aria-hidden="true" />
+            </IconButton>
           </div>
 
         {/* Controles del servicio: sonido primero, porque silenciar las alertas
@@ -536,7 +537,7 @@ const KitchenView = () => {
               vuelve insoportable. Se mantienen separados pero chicos, y el icono
               del silenciador es el que lleva el estado, para que no haya dos
               botones distintos que parezcan el mismo. */}
-          <button
+          <Button variant="ghost"
             onClick={handleToggleSound}
             className={`flex items-center gap-1.5 h-10 w-10 sm:w-auto sm:px-3 rounded-full text-xs md:text-sm font-bold border transition-colors shrink-0 justify-center sm:justify-start ${
               !audioReady
@@ -548,34 +549,34 @@ const KitchenView = () => {
           >
             <Volume2 className="h-5 w-5" />
             <span className="hidden sm:inline">{audioReady ? 'Probar' : 'Activar sonido'}</span>
-          </button>
+          </Button>
 
-          <button
+          <IconButton
             onClick={handleMuteToggle}
-            className={`flex items-center justify-center w-10 h-10 shrink-0 rounded-full border transition-colors ${
+            className={`flex items-center justify-center shrink-0 rounded-full border transition-colors ${
               muted
                 ? 'bg-red-500/15 text-red-300 border-red-500/40 hover:bg-red-500/25'
                 : 'bg-[#222] text-zinc-400 border-[#333] hover:bg-[#2b2b2b] hover:text-white'
             }`}
             title={muted ? 'Activar el sonido de las alertas' : 'Silenciar las alertas'}
-            aria-label={muted ? 'Activar el sonido de las alertas' : 'Silenciar las alertas'}
+            label={muted ? 'Activar el sonido de las alertas' : 'Silenciar las alertas'}
           >
             {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-          </button>
+          </IconButton>
 
           {/* Sin indicador de "en vivo": era un adorno estático que ocupaba
               espacio en la barra sin ayudar a hacer nada. Cuando hay algo que
               actualizar, lo dice el spinner del botón de refrescar. */}
 
-          <Button
+          <IconButton
             onClick={() => fetchOrders()}
             size="icon"
-            className="bg-[#222] hover:bg-[#333] hover:text-white text-white border border-[#333] rounded-full"
+            className="bg-[#222] hover:bg-[#333] hover:text-white text-white border border-[#333]"
             title="Actualizar manualmente"
-            aria-label="Actualizar manualmente"
+            label="Actualizar manualmente"
           >
-            <RefreshCw className={`size-5 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
+            <RefreshCw className={`size-5 ${loading ? 'animate-spin' : ''}`}  aria-hidden="true" />
+          </IconButton>
         </div>
 
         {/* Marcar todo listo. En móvil ocupa la fila completa bajo los controles;
@@ -946,7 +947,7 @@ const KitchenView = () => {
                         onClick={() => handleUpdateStatus(ticket.id, 'preparing', ticket)}
                         className={`w-full py-6 ${cfg.btnClass} rounded-full font-bold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
                       >
-                        <Play className="h-4 w-4 fill-current" />
+                        <Play className="h-4 w-4 fill-current" aria-hidden="true" />
                         Empezar Preparación
                       </Button>
                     ) : (
@@ -954,7 +955,7 @@ const KitchenView = () => {
                         onClick={() => handleUpdateStatus(ticket.id, 'ready', ticket)}
                         className={`w-full py-6 ${cfg.btnClass} rounded-full font-bold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
                       >
-                        <CheckCircle2 className="h-5 w-5" strokeWidth={2.5} />
+                        <CheckCircle2 className="h-5 w-5" strokeWidth={2}  aria-hidden="true" />
                         Marcar como Listo
                       </Button>
                     )}

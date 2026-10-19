@@ -179,14 +179,14 @@ const CreateCategoryView = () => {
                 Estás editando las categorías de otra tienda.
               </p>
             </div>
-            <button
+            <Button
               type="button"
               onClick={goBack}
-              className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 transition-colors shrink-0"
-            >
+              className="flex items-center border border-amber-200 bg-white text-amber-800 hover:bg-amber-100 transition-colors shrink-0"
+             variant="outline" size="sm">
               <ArrowLeft className="h-3.5 w-3.5" />
               Volver al panel
-            </button>
+            </Button>
           </div>
         )}
         {isLoading ? (

@@ -1,3 +1,4 @@
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -58,12 +59,12 @@ const CategoryProductsModal = ({ isOpen, onClose, onSave, allProducts, selectedP
             <h2 className="text-lg font-bold text-gray-900">Seleccionar Artículos</h2>
             <p className="text-sm text-gray-500">Asocia productos a esta categoría</p>
           </div>
-          <button 
+          <IconButton
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <X className="h-5 w-5 text-gray-500" />
-          </button>
+            className="flex items-center justify-center hover:bg-gray-100 transition-colors"
+           label="Cerrar" variant="ghost">
+            <X className="h-5 w-5 text-gray-500" aria-hidden="true" />
+          </IconButton>
         </div>
 
         {/* Search */}

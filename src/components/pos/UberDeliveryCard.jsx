@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Truck, Phone, User, ExternalLink, RefreshCw, AlertCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -74,7 +76,7 @@ const provider = order?.delivery_provider;
               <p className="text-red-800 mb-3 leading-relaxed">
                 El pedido se confirmó pero Uber no pudo asignar un repartidor.
               </p>
-              <button
+              <Button
                 onClick={async (e) => {
                   e.stopPropagation();
                   const { toast } = await import('sonner');
@@ -95,11 +97,11 @@ const provider = order?.delivery_provider;
                     toast.error(result.message, { id: toastId, duration: 5000 });
                   }
                 }}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors"
-              >
+                className="bg-red-600 hover:bg-red-700 text-white flex items-center transition-colors"
+               variant="ghost" size="default">
                 <RefreshCw className="h-4 w-4" />
                 Reintentar solicitud en Uber
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -183,14 +185,14 @@ const provider = order?.delivery_provider;
                   <p className="text-blue-900 mb-3 leading-relaxed">
                     Este pedido usa repartidor propio. Si no hay repartidor disponible, cotiza un despacho con Uber.
                   </p>
-                  <button
+                  <Button
                     onClick={handleQuoteUber}
                     disabled={quotingUber}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
-                  >
+                    className="bg-blue-600 hover:bg-blue-700 text-white flex items-center transition-colors disabled:opacity-50"
+                   variant="ghost" size="default">
                     {quotingUber ? <Clock className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
                     {quotingUber ? 'Cotizando...' : 'Cotizar repartidor Uber'}
-                  </button>
+                  </Button>
                 </>
               ) : (
                 <div className="space-y-3">
@@ -204,21 +206,21 @@ const provider = order?.delivery_provider;
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    <button
+                    <Button
                       onClick={handleConfirmUber}
                       disabled={requestingUber}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded-md text-[11px] flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
-                    >
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition-colors disabled:opacity-50"
+                     variant="ghost" size="sm">
                       {requestingUber ? <Clock className="h-3 w-3 animate-spin" /> : <Truck className="h-3 w-3" />}
                       {requestingUber ? 'Solicitando...' : 'Confirmar y solicitar'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => setEmergencyQuote(null)}
                       disabled={requestingUber}
-                      className="flex-1 bg-white hover:bg-gray-100 text-blue-700 font-bold py-1.5 px-3 rounded-md text-[11px] border border-blue-200 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
-                    >
+                      className="flex-1 bg-white hover:bg-gray-100 text-blue-700 border border-blue-200 flex items-center justify-center transition-colors disabled:opacity-50"
+                     variant="outline" size="sm">
                       Cancelar
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -264,17 +266,17 @@ const provider = order?.delivery_provider;
           <span>Uber Direct <span className="font-normal text-gray-500">({currentStatus.label})</span></span>
           {isExpanded ? <ChevronUp className="h-4 w-4 ml-1 text-gray-500" /> : <ChevronDown className="h-4 w-4 ml-1 text-gray-500" />}
         </div>
-        <button
+        <IconButton
           onClick={(e) => {
             e.stopPropagation();
             fetchUberData();
           }}
           disabled={loading}
-          className="p-1 text-gray-400 hover:text-black transition-colors rounded-full hover:bg-gray-100"
+          className="text-gray-600 hover:text-black transition-colors hover:bg-gray-100"
           title="Actualizar estado"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-blue-500' : ''}`} />
-        </button>
+         label="Actualizar estado" variant="ghost">
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-blue-500' : ''}`}  aria-hidden="true" />
+        </IconButton>
       </div>
 
       {isExpanded && (

@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, AlertTriangle, X } from 'lucide-react';
 import { getFirstOrganizationId, getInventoryItems, getInventoryUsage, getIngredientUsage } from '../services/inventoryService';
@@ -111,9 +113,9 @@ const StockNotifications = () => {
               <h3 className="font-semibold text-sm text-gray-900">Insumos con stock bajo</h3>
               <p className="text-xs text-gray-500 mt-0.5">Por debajo del umbral mínimo de riesgo</p>
             </div>
-            <button onClick={() => setOpen(false)} className="p-1 text-gray-400 hover:text-gray-600 rounded">
-              <X className="h-4 w-4" />
-            </button>
+            <IconButton onClick={() => setOpen(false)} className="text-gray-600 hover:text-gray-600" label="Cerrar" variant="ghost">
+              <X className="h-4 w-4" aria-hidden="true" />
+            </IconButton>
           </div>
           <div className="max-h-72 overflow-y-auto p-2">
             {notifications.map(item => (
@@ -135,12 +137,12 @@ const StockNotifications = () => {
             ))}
           </div>
           <div className="px-4 py-2.5 border-t border-gray-100">
-            <button
+            <Button
               onClick={() => setOpen(false)}
-              className="w-full text-center text-sm font-medium text-blue-600 hover:text-blue-700"
-            >
+              className="w-full text-center text-blue-600 hover:text-blue-700"
+             variant="ghost" size="default">
               Cerrar
-            </button>
+            </Button>
           </div>
         </div>
       )}

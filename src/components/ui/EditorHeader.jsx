@@ -1,5 +1,6 @@
+import { IconButton } from './IconButton';
 import React, { useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from './button';
 
 const EditorHeader = ({ 
@@ -16,12 +17,13 @@ const EditorHeader = ({
     <header className="flex items-center justify-between px-4 sm:px-6 py-4 bg-white/95 backdrop-blur-sm border-b border-gray-100 fixed top-0 left-0 right-0 z-50">
       {/* Izquierda: Botón de cerrar */}
       <div className="flex items-center justify-start flex-1">
-        <button 
+        <IconButton
+          label="Cerrar editor"
           onClick={onClose}
-          className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors text-gray-500 shrink-0"
+          className="bg-gray-100 text-gray-600 hover:bg-gray-200"
         >
-          <X className="h-5 w-5" />
-        </button>
+          <X className="size-4" aria-hidden="true" />
+        </IconButton>
       </div>
       
       {/* Centro: Título fijo */}
@@ -40,11 +42,12 @@ const EditorHeader = ({
         )}
         <Button
           onClick={onSave}
-          disabled={!hasChanges || isSaving || isLoading || isUploadingImage || saveDisabled}
+          disabled={!hasChanges || isLoading || isUploadingImage || saveDisabled}
+          loading={isSaving}
+          loadingText="Guardando…"
           className="px-6 font-semibold hidden md:inline-flex disabled:opacity-100 disabled:bg-gray-200 disabled:text-gray-400"
         >
-          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          {isSaving ? 'Guardando...' : 'Guardar'}
+          Guardar
         </Button>
       </div>
     </header>
@@ -76,10 +79,12 @@ export const EditorFooter = ({
       <Button
         onClick={onSave}
         disabled={disabled}
+        loading={isSaving}
+        loadingText="Guardando…"
+        size="touch"
         className="w-full h-12 text-base font-semibold shadow-[0_8px_24px_-6px_rgba(0,0,0,0.4)] disabled:opacity-100 disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none"
       >
-        {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        {isSaving ? 'Guardando...' : (label || 'Guardar')}
+        {label || 'Guardar'}
       </Button>
     </div>
   );

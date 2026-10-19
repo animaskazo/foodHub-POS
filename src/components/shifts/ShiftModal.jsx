@@ -124,20 +124,20 @@ const ShiftCloseView = ({ shift, salesData, balance, onBalanceChange, loading, f
       {/* Quick actions - preset buttons */}
       {expectedCashInRegister > 0 && !hasInput && (
         <div className="grid grid-cols-2 gap-2">
-          <button
+          <Button
             type="button"
             onClick={() => onBalanceChange(expectedCashInRegister.toLocaleString('es-CL'))}
-            className="py-2 px-3 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          >
+            className="text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
+           variant="outline" size="default">
             Usar esperado
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => onBalanceChange('0')}
-            className="py-2 px-3 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          >
+            className="text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
+           variant="outline" size="default">
             Sin efectivo
-          </button>
+          </Button>
         </div>
       )}
     </div>
@@ -321,7 +321,7 @@ onSuccess();
               />
             ) : (
               <div className="text-center py-8 text-red-500">
-                No se pudo cargar el turno. <button onClick={onClose} className="underline">Reintentar</button>
+                No se pudo cargar el turno. <Button onClick={onClose} className="underline" variant="ghost" size="default">Reintentar</Button>
               </div>
             )}
           </>
