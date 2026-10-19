@@ -570,8 +570,13 @@ const OrderView = () => {
       return;
     };
     const scheduledAt = customerForm.scheduleType === 'scheduled' && customerForm.scheduledAt ? customerForm.scheduledAt : null;
-    if (!isOpen && !scheduledAt) {
-      alert('El local se encuentra cerrado en este momento. Puedes agendar tu pedido para un horario disponible.');
+    if (scheduledAt && org?.scheduling_enabled !== true) {
+      alert('La programación de pedidos no está disponible en este momento.');
+      setIsSubmitting(false);
+      return;
+    }
+    if (!scheduledAt && (org?.instant_enabled === false || !isOpen)) {
+      alert('El local no está aceptando pedidos inmediatos en este momento. Puedes agendar para un horario disponible.');
       setIsSubmitting(false);
       return;
     }
