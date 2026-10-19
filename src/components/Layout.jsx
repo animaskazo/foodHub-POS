@@ -1,3 +1,4 @@
+import { Breadcrumbs, getBreadcrumbs } from './ui/Breadcrumbs';
 import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -542,6 +543,10 @@ className={({ isActive }) =>
         <div
           className={`min-h-0 flex-1 overflow-y-auto overscroll-contain relative touch-pan-y [\\-webkit-overflow-scrolling:touch] ${isMobileMenuOpen ? 'overflow-hidden' : ''}`}
         >
+          <Breadcrumbs
+            items={getBreadcrumbs(location.pathname, location.search)}
+            className="mx-auto w-full max-w-[1280px] px-6 pt-4 md:px-8"
+          />
           <Outlet />
         </div>
       </main>

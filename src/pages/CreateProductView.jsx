@@ -1,3 +1,4 @@
+import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import {
   Film,
   X,
@@ -471,6 +472,11 @@ const CreateProductView = () => {
 
       {/* ── Body ──────────────────────────────────────── */}
       <main className="max-w-5xl mx-auto px-6 py-8 pt-[104px]">
+        <Breadcrumbs className="mb-4" items={[
+          { label: 'Catálogo' },
+          { label: 'Productos', onClick: handleClose },
+          { label: isEditing ? 'Editar' : 'Crear' },
+        ]} />
         {superadminMode && (
           <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
             <ShieldAlert className="shrink-0 h-5 w-5" />
