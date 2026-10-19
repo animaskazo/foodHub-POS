@@ -72,12 +72,15 @@ const isWithinDay = (availability, date) => {
   return now >= open && now <= close;
 };
 
-// Los pedidos inmediatos dependen solo del horario del negocio.
+// Se puede pedir ahora si la hora cae dentro del horario del negocio
+// o dentro de un horario de retiro disponible.
 const canOrderNow = (org) => {
   if (org?.force_closed === true || org?.instant_enabled === false) return false;
-  const businessHours = org?.business_hours;
-  if (!businessHours || Object.keys(businessHours).length === 0) return true;
-  return isWithinDay(businessHours, new Date());
+  const now = new Date();
+  const schedules = [org?.business_hours, org?.pickup_hours]
+    .filter(hours => hours && Object.keys(hours).length > 0);
+  if (schedules.length === 0) return true;
+  return schedules.some(hours => isWithinDay(hours, now));
 };
 
 // ¿Un día (yyyy-mm-dd) está cerrado según la disponibilidad?
