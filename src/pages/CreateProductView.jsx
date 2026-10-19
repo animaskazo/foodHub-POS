@@ -1,3 +1,4 @@
+import { SettingsOptionRow } from '@/components/ui/SettingsOptionRow';
 import { QuantityStepper } from '../components/ui/QuantityStepper';
 import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
@@ -27,22 +28,6 @@ import {
   X, Image as ImageIcon, Store, Globe, MessageCircle, Plus, Minus, Search, ChevronDown, Trash2, Loader2, Sparkles, Check, ShieldAlert, ArrowLeft
 } from 'lucide-react';
 
-const SectionRow = ({ title, description, badge, children }) => (
-  <div className="section-row">
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center gap-2 mb-1">
-        <h4 className="font-semibold text-[15px]">{title}</h4>
-        {badge && (
-          <span className="text-[11px] px-2 py-0.5 bg-blue-100 text-blue-700 font-semibold">{badge}</span>
-        )}
-      </div>
-      {description && (
-        <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
-      )}
-    </div>
-    <div className="shrink-0 mt-0.5">{children}</div>
-  </div>
-);
 
 const CreateProductView = () => {
   const { id } = useParams();
@@ -1384,17 +1369,17 @@ const CreateProductView = () => {
 
               {/* Stock directo */}
               <div className="bg-white rounded-xl border border-gray-100 p-5">
-                <div className="flex items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-[15px] text-gray-900">Stock del producto</p>
-                    <p className="text-sm text-gray-500 leading-relaxed mt-0.5">Se descuenta solo al vender. En 0 bloquea la tarjeta y esa opción dentro de combos.</p>
-                  </div>
-                  <Switch
-                    checked={trackStock}
-                    onCheckedChange={(checked) => { setTrackStock(checked); setHasChanges(true); }}
-                    aria-label="Controlar stock del producto"
-                  />
-                </div>
+                <SettingsOptionRow
+                  title="Stock del producto"
+                  description="Se descuenta solo al vender. En 0 bloquea la tarjeta y esa opción dentro de combos."
+                  control={(labelProps) => (
+                    <Switch {...labelProps}
+                      checked={trackStock}
+                      onCheckedChange={(checked) => { setTrackStock(checked); setHasChanges(true); }}
+                      aria-label="Controlar stock del producto"
+                    />
+                  )}
+                />
                 {trackStock && (
                   <div className="mt-4 rounded-xl bg-gray-50/80 border border-gray-200/70 p-3.5">
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Cantidad disponible</label>
@@ -1442,16 +1427,17 @@ const CreateProductView = () => {
 
               {/* Producto destacado */}
               <div className="bg-white rounded-xl border border-gray-100 p-5">
-                <label className="flex items-center justify-between cursor-pointer">
-                  <div>
-                    <p className="font-semibold text-[15px] text-gray-900">Producto destacado</p>
-                    <p className="text-sm text-gray-500 leading-relaxed">Mostrar con icono especial en la tienda</p>
-                  </div>
-                  <Switch
-                    checked={formData.isFeatured}
-                    onCheckedChange={(checked) => handleSelectChange('isFeatured', checked)}
-                  />
-                </label>
+                <SettingsOptionRow
+                  as="label"
+                  title="Producto destacado"
+                  description="Mostrar con icono especial en la tienda"
+                  control={(labelProps) => (
+                    <Switch {...labelProps}
+                      checked={formData.isFeatured}
+                      onCheckedChange={(checked) => handleSelectChange('isFeatured', checked)}
+                    />
+                  )}
+                />
               </div>
 
               {/* Tipo de artículo */}
@@ -1501,55 +1487,46 @@ const CreateProductView = () => {
                 <div className="bg-white rounded-xl border border-gray-100 px-5 divide-y divide-gray-100">
                     
                     {/* POS */}
-                    <div className="flex items-start justify-between gap-4 py-4">
-                      <div className="flex items-start gap-4">
-                        <Store className="h-5 w-5 text-gray-900 mt-0.5 shrink-0" />
-                        <div>
-                          <p className="font-semibold text-[15px] mb-0.5">Presencial / Retiro (POS)</p>
-                          <p className="text-sm text-gray-500 leading-relaxed">Mostrar artículo en el Punto de Venta</p>
-                        </div>
-                      </div>
-                      <div className="shrink-0 mt-1">
-                        <Switch
+                    <SettingsOptionRow
+                      className="py-4"
+                      title="Presencial / Retiro (POS)"
+                      description="Mostrar artículo en el Punto de Venta"
+                      icon={Store} iconClassName="bg-transparent text-gray-900"
+                      control={(labelProps) => (
+                        <Switch {...labelProps}
                           checked={channels.table}
                           onCheckedChange={(val) => { setChannels({ ...channels, table: val }); setHasChanges(true); }}
                         />
-                      </div>
-                    </div>
+                      )}
+                    />
 
                     {/* Online */}
-                    <div className="flex items-start justify-between gap-4 py-4">
-                      <div className="flex items-start gap-4">
-                        <Globe className="h-5 w-5 text-gray-900 mt-0.5 shrink-0" />
-                        <div>
-                          <p className="font-semibold text-[15px] mb-0.5">Tienda Online (eCommerce)</p>
-                          <p className="text-sm text-gray-500 leading-relaxed">Mostrar artículo en la tienda web</p>
-                        </div>
-                      </div>
-                      <div className="shrink-0 mt-1">
-                        <Switch
+                    <SettingsOptionRow
+                      className="py-4"
+                      title="Tienda Online (eCommerce)"
+                      description="Mostrar artículo en la tienda web"
+                      icon={Globe} iconClassName="bg-transparent text-gray-900"
+                      control={(labelProps) => (
+                        <Switch {...labelProps}
                           checked={channels.online}
                           onCheckedChange={(val) => { setChannels({ ...channels, online: val }); setHasChanges(true); }}
                         />
-                      </div>
-                    </div>
+                      )}
+                    />
 
                     {/* WhatsApp */}
-                    <div className="flex items-start justify-between gap-4 py-4">
-                      <div className="flex items-start gap-4">
-                        <MessageCircle className="h-5 w-5 text-gray-900 mt-0.5 shrink-0" />
-                        <div>
-                          <p className="font-semibold text-[15px] mb-0.5">Agente de WhatsApp</p>
-                          <p className="text-sm text-gray-500 leading-relaxed">Hacer disponible este artículo vía WhatsApp</p>
-                        </div>
-                      </div>
-                      <div className="shrink-0 mt-1">
-                        <Switch
+                    <SettingsOptionRow
+                      className="py-4"
+                      title="Agente de WhatsApp"
+                      description="Hacer disponible este artículo vía WhatsApp"
+                      icon={MessageCircle} iconClassName="bg-transparent text-gray-900"
+                      control={(labelProps) => (
+                        <Switch {...labelProps}
                           checked={channels.whatsapp}
                           onCheckedChange={(val) => { setChannels({ ...channels, whatsapp: val }); setHasChanges(true); }}
                         />
-                      </div>
-                    </div>
+                      )}
+                    />
 
                   </div>
               </div>

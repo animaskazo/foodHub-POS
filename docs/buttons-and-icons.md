@@ -36,3 +36,9 @@ Los temas de cocina y tienda pública conservan sus colores semánticos. Cards d
 `npm run test:ui`, `npm run lint` y `npm run build`.
 
 Se revisaron visualmente los componentes compartidos y el carrito público, y se comprobaron cantidad, menú por teclado, Escape, foco, tooltip y carga en una vista local aislada con datos ficticios. No se ejecutaron cobros, cambios de inventario reales ni recorridos autenticados de producción. Antes de futuras extensiones, revisar móvil/tablet, los temas y los estados con datos representativos.
+
+## Opciones con título, descripción y control
+
+Usar `SettingsOptionRow` en configuración, caja y turnos, canales de productos/categorías, stock, delivery, cupones e integraciones de Super Admin. A menos de 640 px el icono decorativo se oculta, el título comparte la primera fila con el control y la descripción aprovecha todo el ancho.
+
+Para botones anchos o controles con texto (por ejemplo «Visible en el menú»), usar `stackControl`: el control ocupa otra fila en móvil. En escritorio el componente recupera la disposición horizontal con icono. `as="label"` conserva la activación por clic de opciones que envuelven un checkbox. Pasar las propiedades de `control(labelProps)` al interruptor/select para relacionarlo con su título y descripción; los botones de acción deben conservar su propio nombre visible y pueden usar solo `aria-describedby`.

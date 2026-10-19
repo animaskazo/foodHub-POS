@@ -1,3 +1,4 @@
+import { SettingsOptionRow } from '@/components/ui/SettingsOptionRow';
 import React, { useEffect, useState } from 'react';
 import { Loader2, Save, Clock, CalendarClock, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -213,56 +214,43 @@ const OrgHoursTab = ({ organizationId }) => {
             </p>
           </div>
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3 md:gap-4 p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
-              <div className="flex items-center gap-4">
-                <div className="h-11 w-11 rounded-2xl bg-black text-white flex items-center justify-center shrink-0">
-                  <Clock className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-bold text-sm text-gray-800">Pedidos para Ahora</p>
-                  <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
-                    Permite recibir pedidos para ahora cuando el local está dentro del horario comercial.
-                  </p>
-                </div>
-              </div>
-              <Switch checked={instantEnabled} onCheckedChange={setInstantEnabled} />
-            </div>
-            <div className="flex items-center justify-between gap-3 md:gap-4 p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
-              <div className="flex items-center gap-4">
-                <div className="h-11 w-11 rounded-2xl bg-black text-white flex items-center justify-center shrink-0">
-                  <CalendarClock className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-bold text-sm text-gray-800">Pedidos Programados</p>
-                  <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
-                    Permite agendar pedidos para una hora futura dentro del horario de retiro, incluso si el local está cerrado ahora.
-                  </p>
-                </div>
-              </div>
-              <Switch checked={schedulingEnabled} onCheckedChange={setSchedulingEnabled} />
-            </div>
-            <div className="flex items-center justify-between gap-3 md:gap-4 p-4 md:p-5 bg-white border border-gray-200 rounded-2xl">
-              <div className="flex items-center gap-4">
-                <div className="h-11 w-11 rounded-2xl bg-black text-white flex items-center justify-center shrink-0">
-                  <Timer className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-bold text-sm text-gray-800">Tiempo de preparación</p>
-                  <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
-                    Minutos de anticipación que necesita el local antes de agendar o retirar.
-                  </p>
-                </div>
-              </div>
-              <select
-                value={prepTime}
-                onChange={(e) => setPrepTime(Number(e.target.value))}
-                className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-black"
-              >
-                {[5, 10, 15, 20, 25, 30, 40, 60].map((m) => (
-                  <option key={m} value={m}>{m} min</option>
-                ))}
-              </select>
-            </div>
+            <SettingsOptionRow
+              className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl"
+              title="Pedidos para Ahora"
+              description="Permite recibir pedidos para ahora cuando el local está dentro del horario comercial."
+              icon={Clock} iconClassName="bg-black text-white"
+              control={(labelProps) => (
+                <Switch {...labelProps}
+                  checked={instantEnabled} onCheckedChange={setInstantEnabled}
+                />
+              )}
+            />
+            <SettingsOptionRow
+              className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl"
+              title="Pedidos Programados"
+              description="Permite agendar pedidos para una hora futura dentro del horario de retiro, incluso si el local está cerrado ahora."
+              icon={CalendarClock} iconClassName="bg-black text-white"
+              control={(labelProps) => (
+                <Switch {...labelProps}
+                  checked={schedulingEnabled} onCheckedChange={setSchedulingEnabled}
+                />
+              )}
+            />
+            <SettingsOptionRow
+              className="p-4 md:p-5 bg-white border border-gray-200 rounded-2xl"
+              title="Tiempo de preparación"
+              description="Minutos de anticipación que necesita el local antes de agendar o retirar."
+              icon={Timer} iconClassName="bg-black text-white"
+              control={(labelProps) => (<select {...labelProps}
+                            value={prepTime}
+                            onChange={(e) => setPrepTime(Number(e.target.value))}
+                            className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-black"
+                          >
+                            {[5, 10, 15, 20, 25, 30, 40, 60].map((m) => (
+                              <option key={m} value={m}>{m} min</option>
+                            ))}
+                          </select>)}
+            />
           </div>
           <div className="space-y-3">
             {Object.keys(daysTranslations).map((dayKey) =>

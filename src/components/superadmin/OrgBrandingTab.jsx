@@ -1,3 +1,4 @@
+import { SettingsOptionRow } from '@/components/ui/SettingsOptionRow';
 import React, { useEffect, useState } from 'react';
 import { Loader2, ExternalLink, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -245,20 +246,19 @@ const OrgBrandingTab = ({ organizationId, onSaved }) => {
       </div>
 
       <div className={`border rounded-2xl p-5 space-y-4 ${form.force_closed ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
-        <label className="flex items-center justify-between gap-4 cursor-pointer select-none">
-          <span>
-            <span className="block text-sm font-bold text-gray-800">Cerrar tienda temporalmente</span>
-            <span className="block text-xs text-gray-500 mt-0.5 max-w-sm">
-              El cliente podrá ver el menú, pero no hacer pedidos (ahora o programados). Siempre verá que no hay horarios disponibles ni pedidos para ahora.
-            </span>
-          </span>
-          <input
-            type="checkbox"
-            checked={form.force_closed}
-            onChange={(e) => setForm({ ...form, force_closed: e.target.checked })}
-            className="h-5 w-5 accent-black shrink-0 cursor-pointer"
-          />
-        </label>
+        <SettingsOptionRow
+          as="label"
+          title="Cerrar tienda temporalmente"
+          description="El cliente podrá ver el menú, pero no hacer pedidos (ahora o programados). Siempre verá que no hay horarios disponibles ni pedidos para ahora."
+          control={(labelProps) => (
+            <input {...labelProps}
+              type="checkbox"
+              checked={form.force_closed}
+              onChange={(e) => setForm({ ...form, force_closed: e.target.checked })}
+              className="h-5 w-5 accent-black shrink-0 cursor-pointer"
+            />
+          )}
+        />
         {form.force_closed && (
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Mensaje para el cliente (opcional)</label>

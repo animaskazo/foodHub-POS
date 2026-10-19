@@ -1307,18 +1307,17 @@ const SettingsView = () => {
                 
 {/* Auto Print Setting */}
                 <div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
-                        <Printer className="h-5 w-5 text-gray-700" /> Impresión Automática
-                      </h3>
-                      <p className="text-gray-500 text-sm mt-1">Imprime los pedidos apenas llegan. <br/><span className="font-semibold text-blue-600">Nota:</span> Esta opción se guarda solo en este computador.</p>
-                    </div>
-                    <Switch 
-                      checked={autoPrintEnabled}
-                      onCheckedChange={handleAutoPrintToggle}
-                    />
-                  </div>
+                  <SettingsOptionRow
+                    title="Impresión Automática"
+                    description={<>Imprime los pedidos apenas llegan. <br/><span className="font-semibold text-blue-600">Nota:</span> Esta opción se guarda solo en este computador.</>}
+                    icon={Printer} iconClassName="bg-transparent text-gray-900"
+                    control={(labelProps) => (
+                      <Switch {...labelProps}
+                        checked={autoPrintEnabled}
+                        onCheckedChange={handleAutoPrintToggle}
+                      />
+                    )}
+                  />
                   
  {autoPrintEnabled && (<div className="mt-2 p-3 bg-blue-50 text-blue-800 rounded-lg text-sm">
                        Los pedidos se imprimirán automáticamente en la impresora seleccionada arriba.

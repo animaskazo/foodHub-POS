@@ -4,12 +4,13 @@ import { createServer } from 'vite';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-let server, Button, IconButton, QuantityStepper;
+let server, Button, IconButton, QuantityStepper, SettingsOptionRow;
 before(async () => {
   server = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' });
   ({ Button } = await server.ssrLoadModule('/src/components/ui/button.jsx'));
   ({ IconButton } = await server.ssrLoadModule('/src/components/ui/IconButton.jsx'));
   ({ QuantityStepper } = await server.ssrLoadModule('/src/components/ui/QuantityStepper.jsx'));
+  ({ SettingsOptionRow } = await server.ssrLoadModule('/src/components/ui/SettingsOptionRow.jsx'));
 });
 after(async () => { await server?.close(); });
 const render = (Component, props, children) => renderToStaticMarkup(React.createElement(Component, props, children));
@@ -45,4 +46,17 @@ test('quantity controls identify the product and distinguish removal from decrem
 test('saved quantities disable both mutations', () => {
   const html = render(QuantityStepper, { value: 2, label: 'Pizza', disabled: true });
   assert.equal((html.match(/ disabled=""/g) || []).length, 2);
+});
+
+
+test('setting controls keep their title, description and disabled state connected', () => {
+  const html = render(SettingsOptionRow, {
+    title: 'Pedidos programados', description: 'Permite agendar para una hora futura.',
+    control: (labelProps) => React.createElement('input', { ...labelProps, type: 'checkbox', disabled: true }),
+  });
+  const titleId = html.match(/id="([^"]+-title)"/)[1];
+  const descriptionId = html.match(/id="([^"]+-description)"/)[1];
+  assert.ok(html.includes(`aria-labelledby="${titleId}"`));
+  assert.ok(html.includes(`aria-describedby="${descriptionId}"`));
+  assert.match(html, / disabled=""/);
 });

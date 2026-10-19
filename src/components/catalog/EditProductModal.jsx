@@ -1,3 +1,4 @@
+import { SettingsOptionRow } from '@/components/ui/SettingsOptionRow';
 import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
@@ -141,13 +142,15 @@ const EditProductModal = ({ isOpen, onClose, onSuccess, productId, organizationI
               </Select>
             </div>
             <div className="rounded-xl border border-gray-200 p-4">
-              <div className="flex items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">Stock</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Se descuenta al vender. En 0 bloquea en combos.</p>
-                </div>
-                <Switch checked={trackStock} onCheckedChange={setTrackStock} aria-label="Controlar stock" />
-              </div>
+              <SettingsOptionRow
+                title="Stock"
+                description="Se descuenta al vender. En 0 bloquea en combos."
+                control={(labelProps) => (
+                  <Switch {...labelProps}
+                    checked={trackStock} onCheckedChange={setTrackStock} aria-label="Controlar stock"
+                  />
+                )}
+              />
               {trackStock && (
                 <div className="mt-3 flex items-center gap-2">
                   <IconButton

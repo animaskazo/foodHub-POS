@@ -1,3 +1,4 @@
+import { SettingsOptionRow } from '@/components/ui/SettingsOptionRow';
 import React, { useState, useEffect } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Switch } from "@/components/ui/switch";
@@ -10,17 +11,18 @@ import CategoryProductsModal from '../components/admin/CategoryProductsModal';
 import { Button } from '@/components/ui/button';
 import EditorHeader, { EditorFooter } from '../components/ui/EditorHeader';
 
-const SectionRow = ({ icon: Icon, title, description, children }) => (
-  <div className="flex items-start justify-between gap-4 py-4">
-    <div className="flex items-start gap-4">
-      <Icon className="h-5 w-5 text-gray-900 mt-0.5 shrink-0" />
-      <div>
-        <p className="font-semibold text-[15px] mb-0.5">{title}</p>
-        {description && <p className="text-sm text-gray-500 leading-relaxed">{description}</p>}
-      </div>
-    </div>
-    <div className="shrink-0 mt-1">{children}</div>
-  </div>
+const SectionRow = ({ icon, title, description, children }) => (
+  <SettingsOptionRow
+    className="py-4"
+    icon={icon}
+    iconClassName="bg-transparent text-gray-900"
+    title={title}
+    description={description}
+    stackControl={children.type === Button}
+    control={(labelProps) => React.cloneElement(children, children.type === Button
+      ? { 'aria-describedby': labelProps['aria-describedby'] }
+      : labelProps)}
+  />
 );
 
 const CreateCategoryView = () => {

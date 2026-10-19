@@ -1,3 +1,4 @@
+import { SettingsOptionRow } from '@/components/ui/SettingsOptionRow';
 import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import { Loader2, Plus, Trash2, Check, Tag, CalendarIcon, Percent, DollarSign, Search, Copy, X, Pencil } from 'lucide-react';
@@ -292,7 +293,6 @@ const CouponsSection = ({ orgId }) => {
                       size="icon"
                       onClick={() => setConfirmDelete(coupon)}
                       title="Eliminar"
-                      className=""
                      label="Eliminar">
                       <Trash2  aria-hidden="true" />
                     </IconButton>
@@ -457,18 +457,17 @@ const CouponsSection = ({ orgId }) => {
                 </Popover>
               </div>
 
-              <div className="flex items-center justify-between p-3.5 bg-gray-50 border border-gray-200 rounded-xl">
-                <div>
-                  <p className="text-sm font-bold text-gray-900">Cupón activo</p>
-                  <p className="text-[11px] text-gray-500 mt-0.5">
-                    {form.is_active ? 'Los clientes pueden usar este cupón.' : 'No se puede usar mientras esté desactivado.'}
-                  </p>
-                </div>
-                <Switch
-                  checked={form.is_active}
-                  onCheckedChange={(checked) => setForm({ ...form, is_active: checked })}
-                />
-              </div>
+              <SettingsOptionRow
+                className="p-3.5 bg-gray-50 border border-gray-200 rounded-xl"
+                title="Cupón activo"
+                description={<>{form.is_active ? 'Los clientes pueden usar este cupón.' : 'No se puede usar mientras esté desactivado.'}</>}
+                control={(labelProps) => (
+                  <Switch {...labelProps}
+                    checked={form.is_active}
+                    onCheckedChange={(checked) => setForm({ ...form, is_active: checked })}
+                  />
+                )}
+              />
             </div>
           </div>
 

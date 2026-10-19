@@ -1,3 +1,4 @@
+import { SettingsOptionRow } from '@/components/ui/SettingsOptionRow';
 import { IconButton } from '@/components/ui/IconButton';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -1268,40 +1269,36 @@ const SuperAdminView = () => {
                 <div className="space-y-8">
                   {/* WhatsApp Integration */}
                   <div className="border rounded-xl overflow-hidden">
-                    <div className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between border-b">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
-                          <MessageCircle className="h-5 w-5 text-green-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">WhatsApp</h3>
-                          <p className="text-xs text-gray-500">Inbox de conversaciones</p>
-                        </div>
-                      </div>
-                      <label className="flex items-center justify-between sm:justify-end gap-3 cursor-pointer select-none w-full sm:w-auto">
-                        <span className={`text-sm font-semibold ${selectedOrganization.whatsappInboxEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
-                          Visible en el menú
-                        </span>
-                        <Switch
-                          checked={selectedOrganization.whatsappInboxEnabled}
-                          onCheckedChange={async (checked) => {
-                            const toastId = toast.loading(checked ? 'Habilitando WhatsApp...' : 'Deshabilitando WhatsApp...');
-                            try {
-                              const res = await supabase.functions.invoke('manage-inbox', {
-                                body: { action: 'toggle', organization_id: selectedOrganization.id, enabled: checked }
-                              });
-                              if (res.error) throw res.error;
-                              setSelectedOrganization(prev => ({ ...prev, whatsappInboxEnabled: checked }));
-                              setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, whatsappInboxEnabled: checked } : o));
-                              toast.success(checked ? 'WhatsApp habilitado' : 'WhatsApp deshabilitado', { id: toastId });
-                            } catch (err) {
-                              console.error(err);
-                              toast.error('Error al cambiar estado', { id: toastId });
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
+                    <SettingsOptionRow
+                      className="p-4 md:p-5 border-b"
+                      title="WhatsApp"
+                      description="Inbox de conversaciones"
+                      icon={MessageCircle} iconClassName="bg-green-100 text-green-600"
+                      stackControl
+                      control={(labelProps) => (<label className="flex items-center justify-between sm:justify-end gap-3 cursor-pointer select-none w-full sm:w-auto">
+                                            <span className={`text-sm font-semibold ${selectedOrganization.whatsappInboxEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
+                                              Visible en el menú
+                                            </span>
+                                            <Switch {...labelProps}
+                                              checked={selectedOrganization.whatsappInboxEnabled}
+                                              onCheckedChange={async (checked) => {
+                                                const toastId = toast.loading(checked ? 'Habilitando WhatsApp...' : 'Deshabilitando WhatsApp...');
+                                                try {
+                                                  const res = await supabase.functions.invoke('manage-inbox', {
+                                                    body: { action: 'toggle', organization_id: selectedOrganization.id, enabled: checked }
+                                                  });
+                                                  if (res.error) throw res.error;
+                                                  setSelectedOrganization(prev => ({ ...prev, whatsappInboxEnabled: checked }));
+                                                  setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, whatsappInboxEnabled: checked } : o));
+                                                  toast.success(checked ? 'WhatsApp habilitado' : 'WhatsApp deshabilitado', { id: toastId });
+                                                } catch (err) {
+                                                  console.error(err);
+                                                  toast.error('Error al cambiar estado', { id: toastId });
+                                                }
+                                              }}
+                                            />
+                                          </label>)}
+                    />
                     <div className="px-4 md:px-5 py-3 bg-gray-50/50 flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2 text-sm">
                         {selectedOrganization.whatsappInboxUrl ? (
@@ -1366,41 +1363,37 @@ const SuperAdminView = () => {
 
                   {/* Uber Direct Integration */}
                   <div className="border rounded-xl overflow-hidden">
-                    <div className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between border-b">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-                          <Globe className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">Uber Direct</h3>
-                          <p className="text-xs text-gray-500">Delivery a través de Uber</p>
-                        </div>
-                      </div>
-                      <label className="flex items-center justify-between sm:justify-end gap-3 cursor-pointer select-none w-full sm:w-auto">
-                        <span className={`text-sm font-semibold ${selectedOrganization.uberEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
-                          Visible en el menú
-                        </span>
-                        <Switch
-                          checked={selectedOrganization.uberEnabled}
-                          onCheckedChange={async (checked) => {
-                            const toastId = toast.loading(checked ? 'Habilitando Uber Direct...' : 'Deshabilitando Uber Direct...');
-                            try {
-                              const { error } = await supabase
-                                .from('organizations')
-                                .update({ uber_enabled: checked })
-                                .eq('id', selectedOrganization.id);
-                              if (error) throw error;
-                              setSelectedOrganization(prev => ({ ...prev, uberEnabled: checked }));
-                              setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, uberEnabled: checked } : o));
-                              toast.success(checked ? 'Uber Direct habilitado' : 'Uber Direct deshabilitado', { id: toastId });
-                            } catch (err) {
-                              console.error(err);
-                              toast.error('Error al actualizar', { id: toastId });
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
+                    <SettingsOptionRow
+                      className="p-4 md:p-5 border-b"
+                      title="Uber Direct"
+                      description="Delivery a través de Uber"
+                      icon={Globe} iconClassName="bg-blue-100 text-blue-600"
+                      stackControl
+                      control={(labelProps) => (<label className="flex items-center justify-between sm:justify-end gap-3 cursor-pointer select-none w-full sm:w-auto">
+                                            <span className={`text-sm font-semibold ${selectedOrganization.uberEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
+                                              Visible en el menú
+                                            </span>
+                                            <Switch {...labelProps}
+                                              checked={selectedOrganization.uberEnabled}
+                                              onCheckedChange={async (checked) => {
+                                                const toastId = toast.loading(checked ? 'Habilitando Uber Direct...' : 'Deshabilitando Uber Direct...');
+                                                try {
+                                                  const { error } = await supabase
+                                                    .from('organizations')
+                                                    .update({ uber_enabled: checked })
+                                                    .eq('id', selectedOrganization.id);
+                                                  if (error) throw error;
+                                                  setSelectedOrganization(prev => ({ ...prev, uberEnabled: checked }));
+                                                  setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, uberEnabled: checked } : o));
+                                                  toast.success(checked ? 'Uber Direct habilitado' : 'Uber Direct deshabilitado', { id: toastId });
+                                                } catch (err) {
+                                                  console.error(err);
+                                                  toast.error('Error al actualizar', { id: toastId });
+                                                }
+                                              }}
+                                            />
+                                          </label>)}
+                    />
                     <div className="px-4 md:px-5 py-3 bg-gray-50/50 flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2 text-sm">
                         {selectedOrganization.uberClientId && selectedOrganization.uberCustomerId ? (
@@ -1427,41 +1420,37 @@ const SuperAdminView = () => {
 
                   {/* Dine-In Mode Integration */}
                   <div className="border rounded-xl overflow-hidden">
-                    <div className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center shrink-0">
-                          <Store className="h-5 w-5 text-orange-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">Modo Salón (Mesas)</h3>
-                          <p className="text-xs text-gray-500">Permite gestionar mesas y sectores en el POS</p>
-                        </div>
-                      </div>
-                      <label className="flex items-center justify-between sm:justify-end gap-3 cursor-pointer select-none w-full sm:w-auto">
-                        <span className={`text-sm font-semibold ${selectedOrganization.dineInEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
-                          Habilitado
-                        </span>
-                        <Switch
-                          checked={selectedOrganization.dineInEnabled}
-                          onCheckedChange={async (checked) => {
-                            const toastId = toast.loading(checked ? 'Habilitando modo mesas...' : 'Deshabilitando modo mesas...');
-                            try {
-                              const { error } = await supabase
-                                .from('organizations')
-                                .update({ dine_in_enabled: checked })
-                                .eq('id', selectedOrganization.id);
-                              if (error) throw error;
-                              setSelectedOrganization(prev => ({ ...prev, dineInEnabled: checked }));
-                              setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, dineInEnabled: checked } : o));
-                              toast.success(checked ? 'Modo mesas habilitado' : 'Modo mesas deshabilitado', { id: toastId });
-                            } catch (err) {
-                              console.error(err);
-                              toast.error('Error al actualizar', { id: toastId });
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
+                    <SettingsOptionRow
+                      className="p-4 md:p-5"
+                      title="Modo Salón (Mesas)"
+                      description="Permite gestionar mesas y sectores en el POS"
+                      icon={Store} iconClassName="bg-orange-100 text-orange-600"
+                      stackControl
+                      control={(labelProps) => (<label className="flex items-center justify-between sm:justify-end gap-3 cursor-pointer select-none w-full sm:w-auto">
+                                            <span className={`text-sm font-semibold ${selectedOrganization.dineInEnabled ? 'text-gray-900' : 'text-gray-400'}`}>
+                                              Habilitado
+                                            </span>
+                                            <Switch {...labelProps}
+                                              checked={selectedOrganization.dineInEnabled}
+                                              onCheckedChange={async (checked) => {
+                                                const toastId = toast.loading(checked ? 'Habilitando modo mesas...' : 'Deshabilitando modo mesas...');
+                                                try {
+                                                  const { error } = await supabase
+                                                    .from('organizations')
+                                                    .update({ dine_in_enabled: checked })
+                                                    .eq('id', selectedOrganization.id);
+                                                  if (error) throw error;
+                                                  setSelectedOrganization(prev => ({ ...prev, dineInEnabled: checked }));
+                                                  setOrganizations(prev => prev.map(o => o.id === selectedOrganization.id ? { ...o, dineInEnabled: checked } : o));
+                                                  toast.success(checked ? 'Modo mesas habilitado' : 'Modo mesas deshabilitado', { id: toastId });
+                                                } catch (err) {
+                                                  console.error(err);
+                                                  toast.error('Error al actualizar', { id: toastId });
+                                                }
+                                              }}
+                                            />
+                                          </label>)}
+                    />
                   </div>
                 </div>
               )}

@@ -1,3 +1,4 @@
+import { SettingsOptionRow } from '@/components/ui/SettingsOptionRow';
 import React, { useState, useEffect } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import {
@@ -431,24 +432,20 @@ const DeliverySettingsView = () => {
 
                           {activeTab === 'own' && (
                 <div className="pt-4 border-t border-gray-100">
-<div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl mb-6">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Truck className="h-4 w-4 text-gray-700" />
-                        <h4 className="font-bold text-sm text-gray-800">Delivery Propio</h4>
-                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${isOwnActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
+<SettingsOptionRow
+  className="p-4 bg-gray-50 border border-gray-200 rounded-2xl mb-6"
+  title={<>Delivery Propio <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${isOwnActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
                           {isOwnActive ? 'Activado' : 'Desactivado'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
-                        Tus propios repartidores gestionan las entregas. Apágalo para ofrecer solo Uber Direct o retiro.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={isOwnActive}
-                      onCheckedChange={(checked) => toggleMode('own', checked)}
-                    />
-                  </div>
+                        </span></>}
+  description="Tus propios repartidores gestionan las entregas. Apágalo para ofrecer solo Uber Direct o retiro."
+  icon={Truck} iconClassName="bg-transparent text-gray-900"
+  control={(labelProps) => (
+    <Switch {...labelProps}
+      checked={isOwnActive}
+      onCheckedChange={(checked) => toggleMode('own', checked)}
+    />
+  )}
+/>
                   {isOwnActive ? (
                   <>
                   {/* Información que verán los clientes en checkout */}
@@ -823,27 +820,23 @@ const DeliverySettingsView = () => {
               )}
               {activeTab === 'uber_direct' && (
                 <div className="space-y-5 pt-4 border-t border-gray-100">
-                  <div className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Globe className="h-4 w-4 text-gray-700" />
-                        <h4 className="font-bold text-sm text-gray-800">Uber Direct</h4>
-                        <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${lockedUber ? 'bg-gray-200 text-gray-500' : isUberActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
-                          {lockedUber ? 'Bloqueado' : isUberActive ? 'Activado' : 'Desactivado'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-0.5 max-w-sm">
-                        {lockedUber
-                          ? 'Disponible solo con permiso del super admin.'
-                          : 'Usa la red de repartidores de Uber para las entregas. Apágalo para ofrecer solo delivery propio o retiro.'}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={isUberActive}
-                      disabled={lockedUber}
-                      onCheckedChange={(checked) => toggleMode('uber_direct', checked)}
-                    />
-                  </div>
+                  <SettingsOptionRow
+                    className="p-4 bg-gray-50 border border-gray-200 rounded-2xl"
+                    title={<>Uber Direct <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${lockedUber ? 'bg-gray-200 text-gray-500' : isUberActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
+                                            {lockedUber ? 'Bloqueado' : isUberActive ? 'Activado' : 'Desactivado'}
+                                          </span></>}
+                    description={<>{lockedUber
+                                            ? 'Disponible solo con permiso del super admin.'
+                                            : 'Usa la red de repartidores de Uber para las entregas. Apágalo para ofrecer solo delivery propio o retiro.'}</>}
+                    icon={Globe} iconClassName="bg-transparent text-gray-900"
+                    control={(labelProps) => (
+                      <Switch {...labelProps}
+                        checked={isUberActive}
+                        disabled={lockedUber}
+                        onCheckedChange={(checked) => toggleMode('uber_direct', checked)}
+                      />
+                    )}
+                  />
                   {(!isUberActive || lockedUber) ? (
                     <div className="p-6 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
                       <p className="text-sm font-semibold text-gray-600">

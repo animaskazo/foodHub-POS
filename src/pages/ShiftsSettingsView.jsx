@@ -1,3 +1,4 @@
+import { SettingsOptionRow } from '@/components/ui/SettingsOptionRow';
 import React, { useState, useEffect } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useAuth } from '../components/AuthContext';
@@ -85,22 +86,20 @@ const ShiftsSettingsView = () => {
   };
 
   const SettingRow = ({ icon: Icon, title, description, checked, onChange }) => (
-    <div className="flex items-start justify-between p-4 bg-white rounded-xl border border-gray-100 hover:border-blue-100 transition-colors">
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 p-2 bg-blue-50 text-blue-600 rounded-lg">
-          <Icon className="h-5 w-5" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-gray-900">{title}</h3>
-          <p className="text-sm text-gray-500 mt-1 max-w-md">{description}</p>
-        </div>
-      </div>
-      <Switch 
-        checked={checked} 
-        onCheckedChange={onChange} 
-        className="mt-1"
-      />
-    </div>
+    <SettingsOptionRow
+      className="p-4 bg-white rounded-xl border border-gray-100 hover:border-blue-100 transition-colors"
+      icon={Icon}
+      iconClassName="bg-blue-50 text-blue-600"
+      title={title}
+      description={description}
+      control={(labelProps) => (
+        <Switch {...labelProps}
+          checked={checked}
+          onCheckedChange={onChange}
+          className="mt-1"
+        />
+      )}
+    />
   );
 
   if (loading) {
@@ -112,7 +111,7 @@ const ShiftsSettingsView = () => {
   }
 
   return (
-    <div className="min-h-full bg-gray-50 p-6 md:p-8">
+    <div className="min-h-full bg-gray-50 p-4 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto pb-24">
         <PageHeader 
           title="Caja y Turnos" 
@@ -133,17 +132,17 @@ const ShiftsSettingsView = () => {
         
         {/* Main Enable Switch */}
         <div className="bg-white p-6 rounded-xl border border-gray-100">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">Módulo de Turnos</h2>
-              <p className="text-gray-500 mt-1">Activa el control de apertura y cierre de caja en el Dashboard.</p>
-            </div>
-            <Switch 
-              checked={settings.shifts_enabled} 
-              onCheckedChange={(c) => setSettings({...settings, shifts_enabled: c})} 
-              className="scale-110"
-            />
-          </div>
+          <SettingsOptionRow
+            title="Módulo de Turnos"
+            description="Activa el control de apertura y cierre de caja en el Dashboard."
+            control={(labelProps) => (
+              <Switch {...labelProps}
+                checked={settings.shifts_enabled}
+                onCheckedChange={(c) => setSettings({...settings, shifts_enabled: c})}
+                className="scale-110"
+              />
+            )}
+          />
         </div>
 
         {/* Dependent Settings */}
