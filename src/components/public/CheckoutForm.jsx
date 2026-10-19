@@ -998,7 +998,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                 >
                   <CalendarClock className={`h-5 w-5 mb-1.5 ${form.scheduleType === 'scheduled' ? 'text-black' : 'text-gray-400'}`} />
                   <span className="text-sm font-bold">Programar</span>
-                  <span className="text-[11px] text-gray-400 mt-0.5">Estamos cerrados ahora, agenda tu pedido</span>
+                  <span className="text-[11px] text-gray-400 mt-0.5">Los pedidos para ahora no están disponibles. Puedes agendar para un horario de retiro.</span>
                   {selectedScheduleLabel && form.scheduleType === 'scheduled' && (
                     <span className="text-[11px] text-black mt-0.5 font-semibold">{selectedScheduleLabel}</span>
                   )}
