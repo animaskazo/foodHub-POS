@@ -291,7 +291,10 @@ const OrderView = () => {
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
       const businessHours = org.business_hours;
 
-      if (!businessHours || Object.keys(businessHours).length === 0) return true;
+      if (!businessHours || Object.keys(businessHours).length === 0) {
+        const pickupHours = org.pickup_hours;
+        return !pickupHours || Object.keys(pickupHours).length === 0;
+      }
 
       const day = businessHours?.[todayKey];
       if (!day || day.closed) return false;
