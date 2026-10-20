@@ -93,13 +93,15 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
                 <Plus className="h-3.5 w-3.5" />
               </Button>
             ) : (
-              <QuantityStepper compact
-                value={quantity} label={product.name}
-                className="bg-white shadow-lg"
-                removeOnDecrease={quantity === 1}
-                onDecrease={() => quantity === 1 ? onRemoveItem(cartItemId) : onUpdateQty(cartItemId, quantity - 1)}
-                onIncrease={onAddDirect}
-              />
+              <div className="inline-flex items-center rounded-full border border-gray-300 bg-white px-1.5 py-1 shadow-lg shadow-black/25">
+                <QuantityStepper compact
+                  value={quantity} label={product.name}
+                  className="text-gray-900"
+                  removeOnDecrease={quantity === 1}
+                  onDecrease={() => quantity === 1 ? onRemoveItem(cartItemId) : onUpdateQty(cartItemId, quantity - 1)}
+                  onIncrease={onAddDirect}
+                />
+              </div>
             )
           ) : isOutOfStock ? (
             <Button
@@ -118,7 +120,7 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
                   onAddDirect();
                 }
               }}
-              className="bg-white text-gray-900 flex items-center active:scale-90 transition-transform shadow-lg shadow-black/20 border border-gray-100/50 hover:bg-gray-50"
+              className="!bg-white !text-gray-900 flex items-center font-semibold active:scale-95 transition-transform shadow-lg shadow-black/30 border border-gray-300 hover:!bg-gray-50 focus-visible:ring-2 focus-visible:ring-black/60"
               aria-label={`Agregar ${product.name}`}
              variant="outline" size="sm">
               <span>Agregar</span>
