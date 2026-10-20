@@ -1,7 +1,5 @@
-import { QuantityStepper } from '../ui/QuantityStepper';
-import { Button } from '../ui/button';
 import React, { useState } from 'react';
-import { ChevronRight, X, ShoppingBag } from 'lucide-react';
+import { Trash2, Plus, Minus, ChevronRight, X, ShoppingBag } from 'lucide-react';
 import IngredientIcon from '../ui/IngredientIcon';
 import ProductImageFallback from '../ui/ProductImageFallback';
 import { getCartItemUnitPrice, getCartTotal } from '../../utils/cartTotals';
@@ -15,7 +13,9 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
   if (cartItems.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 mt-12 text-center">
-        <ShoppingBag className="mb-6 h-10 w-10" />
+        <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+          <ShoppingBag className="h-10 w-10 text-gray-400" />
+        </div>
         <h2 className="text-xl font-bold text-gray-900 mb-2">Tu pedido está vacío</h2>
         <p className="text-sm text-gray-500 max-w-xs mx-auto">
           Aún no has agregado productos. Vuelve al menú para elegir qué pedir.
@@ -66,7 +66,7 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
                     <div className="flex flex-wrap gap-1 mt-1">
                       {item.selectedIngredients.map(ing => (
                         <span key={ing.id} className="inline-flex items-center gap-1 text-[10px] bg-orange-100 text-orange-700 font-bold px-2 py-0.5 rounded-full">
-                          <IngredientIcon name={ing.name} icon={ing.icon} size={11} className="shrink-0" />
+                          <IngredientIcon name={ing.name} icon={ing.icon} size={11} className="text-orange-600 shrink-0" />
                           {ing.name}
                         </span>
                       ))}
@@ -89,24 +89,41 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
                   )}
 
                   {(item.type === 'bundle' || item.variants?.length > 0 || item.ingredients?.some(i => i.isExtra)) && (
-                    <Button
+                    <button
                       onClick={() => onEditItem(item)}
-                      className="text-blue-600 hover:text-blue-700 mt-2.5 inline-flex items-center"
-                     variant="ghost" size="sm">
+                      className="text-xs font-bold text-blue-600 hover:text-blue-700 mt-2.5 inline-flex items-center"
+                    >
                       Editar opciones
-                    </Button>
+                    </button>
                   )}
 
                   {/* Controls */}
                   <div className="flex items-center justify-between mt-3">
-                    <QuantityStepper
-                      value={item.quantity} label={item.name}
-                      removeOnDecrease={item.quantity === 1}
-                      onDecrease={() => item.quantity === 1
-                        ? onRemove(item.cartItemId)
-                        : onUpdateQty(item.cartItemId, item.quantity - 1)}
-                      onIncrease={() => onUpdateQty(item.cartItemId, item.quantity + 1)}
-                    />
+                    <div className="flex items-center bg-blue-600 text-white rounded-full h-8 p-0.5 gap-1.5 shadow-sm">
+                      <button
+                        onClick={() => {
+                          if (item.quantity === 1) {
+                            onRemove(item.cartItemId);
+                          } else {
+                            onUpdateQty(item.cartItemId, item.quantity - 1);
+                          }
+                        }}
+                        className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
+                      >
+                        {item.quantity === 1 ? (
+                          <Trash2 className="h-3.5 w-3.5 text-white" />
+                        ) : (
+                          '−'
+                        )}
+                      </button>
+                      <span className="font-extrabold text-sm min-w-[12px] text-center">{item.quantity}</span>
+                      <button
+                        onClick={() => onUpdateQty(item.cartItemId, item.quantity + 1)}
+                        className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
+                      >
+                        +
+                      </button>
+                    </div>
                     <span className="font-bold text-gray-900 text-sm">${fmt(lineTotal)}</span>
                   </div>
                 </div>
@@ -131,10 +148,10 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
       {/* Checkout CTA */}
       <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-8">
         <div className="max-w-3xl mx-auto flex flex-col items-center">
-          <Button size="pos"
+          <button
             onClick={onCheckout}
             disabled={orderingBlocked}
-            className="w-full shadow-lg"
+            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-colors active:scale-[0.98] px-8 text-[17px] tracking-wide ${orderingBlocked ? 'bg-gray-400 cursor-not-allowed' : 'bg-black hover:bg-gray-900'}`}
           >
             {orderingBlocked ? 'Tienda cerrada temporalmente' : (
               <>
@@ -142,7 +159,7 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
                 <ChevronRight className="h-5 w-5" />
               </>
             )}
-          </Button>
+          </button>
           {orderingBlocked && (
             <p className="text-xs text-red-600 font-semibold mt-2">No hay horarios disponibles ni pedidos para ahora.</p>
           )}
@@ -152,15 +169,15 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
       {/* Image lightbox */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-50 bg-white/95 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
           onClick={() => setPreviewImage(null)}
         >
-          <button data-icon-button="true"
+          <button
             onClick={() => setPreviewImage(null)}
             className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white hover:bg-white/25 transition-colors z-10"
             aria-label="Cerrar imagen"
           >
-            <X className="h-6 w-6" aria-hidden="true" />
+            <X className="h-6 w-6" />
           </button>
           <img
             src={previewImage}
