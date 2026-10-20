@@ -101,6 +101,7 @@ const CartSummary = ({ cartItems, onUpdateQty, onRemove, onEditItem, onCheckout,
                   <div className="flex items-center justify-between mt-3">
                     <QuantityStepper
                       value={item.quantity} label={item.name}
+                      buttonClassName="!bg-gray-100 !text-gray-900 border border-gray-200 hover:!bg-gray-200"
                       removeOnDecrease={item.quantity === 1}
                       onDecrease={() => item.quantity === 1
                         ? onRemove(item.cartItemId)
