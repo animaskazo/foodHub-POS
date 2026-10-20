@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 
 export function QuantityStepper({ value, onDecrease, onIncrease, label, disabled = false,
   decreaseDisabled = false, increaseDisabled = false, removeOnDecrease = false,
-  children, className, buttonClassName, compact = false }) {
+  children, className, buttonClassName, valueClassName, compact = false }) {
   return (
     <div data-icon-group="true" role="group" aria-label={`Cantidad de ${label}`} className={cn(
       'inline-flex shrink-0 items-center gap-1 text-gray-900', className
@@ -14,7 +14,7 @@ export function QuantityStepper({ value, onDecrease, onIncrease, label, disabled
         disabled={disabled || decreaseDisabled} onClick={onDecrease} className={buttonClassName}>
         {removeOnDecrease ? <Trash2 className="size-4" aria-hidden="true" /> : <Minus className="size-4" aria-hidden="true" />}
       </IconButton>
-      <span className="min-w-6 text-center text-sm font-semibold tabular-nums" aria-live="polite" aria-atomic="true">
+      <span className={cn("min-w-6 text-center text-sm font-semibold tabular-nums", valueClassName)} aria-live="polite" aria-atomic="true">
         {children ?? value}
       </span>
       <IconButton size={compact ? 'icon-sm' : 'icon'} label={`Aumentar cantidad de ${label}`}
