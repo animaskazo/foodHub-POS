@@ -410,16 +410,16 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
             {(org.business_hours || org.address || org.prep_time) && (
               <div className="mt-3.5 flex flex-wrap gap-2">
                 {isOpen && org.prep_time > 0 && (
-                  <span className="inline-flex items-center gap-1.5 text-[13px] text-amber-800 font-bold bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
-                    <ChefHat className="w-3.5 h-3.5" /> Tiempo de cocina aprox. {org.prep_time} min
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold leading-4 text-gray-700">
+                    <ChefHat className="h-3.5 w-3.5 shrink-0 text-gray-500" /> Tiempo de cocina aprox. {org.prep_time} min
                   </span>
                 )}
                 {org.business_hours && (
                   <button
                     onClick={() => setIsHoursModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 text-[13px] text-blue-700 font-bold bg-blue-50/80 border border-blue-100 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors active:scale-95"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold leading-4 text-gray-700 transition-colors hover:bg-gray-100 active:scale-95"
                   >
-                    <Clock className="w-3.5 h-3.5" /> Horarios
+                    <Clock className="h-3.5 w-3.5 shrink-0 text-gray-500" /> Horarios
                   </button>
                 )}
                 {org.address && (
@@ -427,9 +427,9 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(org.address)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-[13px] text-gray-700 font-bold bg-gray-50 border border-gray-200/80 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors active:scale-95"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold leading-4 text-gray-700 transition-colors hover:bg-gray-100 active:scale-95"
                   >
-                    <MapPin className="w-3.5 h-3.5" /> Ver ubicación
+                    <MapPin className="h-3.5 w-3.5 shrink-0 text-gray-500" /> Ver ubicación
                   </a>
                 )}
               </div>
