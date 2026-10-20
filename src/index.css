@@ -347,3 +347,9 @@ svg.lucide {
   border: 0 !important;
   box-shadow: none !important;
 }
+
+/* Primary actions use white outlines against their solid black surface. */
+[data-slot="button"][data-variant="default"] svg.lucide {
+  color: #fff !important;
+  stroke: #fff !important;
+}
