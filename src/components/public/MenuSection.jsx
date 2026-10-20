@@ -93,10 +93,12 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
                 <Plus className="h-3.5 w-3.5" />
               </Button>
             ) : (
-              <div className="inline-flex items-center rounded-full border border-gray-300 bg-white px-1.5 py-1 shadow-lg shadow-black/25">
+              <div className="inline-flex items-center rounded-full border border-gray-200 bg-white p-0.5 shadow-md shadow-black/20">
                 <QuantityStepper compact
                   value={quantity} label={product.name}
-                  className="text-gray-900"
+                  className="gap-0.5"
+                  buttonClassName="!h-7 !min-h-7 !w-7 !min-w-7 !bg-blue-50 !text-blue-700 border-0 hover:!bg-blue-100"
+                  valueClassName="!inline-flex !h-6 !min-w-6 !items-center !justify-center !rounded-full !bg-blue-600 !text-white font-semibold"
                   removeOnDecrease={quantity === 1}
                   onDecrease={() => quantity === 1 ? onRemoveItem(cartItemId) : onUpdateQty(cartItemId, quantity - 1)}
                   onIncrease={onAddDirect}
