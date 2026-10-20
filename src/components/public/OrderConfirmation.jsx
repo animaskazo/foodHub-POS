@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/button';
 import React, { useEffect, useState } from 'react';
 import { CheckCircle2, Clock, MapPin, ChevronRight, ExternalLink, CalendarClock } from 'lucide-react';
 import { FullScreenSpinner } from '@/components/ui/Spinner';
@@ -62,7 +61,9 @@ const OrderConfirmation = ({ order, org }) => {
         >
           <div className="relative w-16 h-16 mx-auto">
             <div className="absolute inset-0 bg-gray-200 rounded-full animate-ping opacity-30" />
-            <CheckCircle2 className="relative h-8 w-8" strokeWidth={2} />
+            <div className="relative w-16 h-16 bg-black rounded-full flex items-center justify-center">
+              <CheckCircle2 className="h-8 w-8 text-white" strokeWidth={2.5} />
+            </div>
           </div>
         </div>
 
@@ -84,7 +85,9 @@ const OrderConfirmation = ({ order, org }) => {
         >
           {/* Status */}
           <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4">
-            <Clock className="shrink-0 h-5 w-5" />
+            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center shrink-0">
+              <Clock className="h-5 w-5 text-gray-600" />
+            </div>
             <div>
               <p className="font-bold text-gray-900 text-sm">
                 {dbOrder?.status === 'scheduled' ? 'Programado' :
@@ -118,7 +121,9 @@ const OrderConfirmation = ({ order, org }) => {
           {/* Scheduled day & time */}
           {schedule && (
             <div className="bg-amber-50 rounded-2xl border border-amber-100 p-4 flex items-center gap-4">
-              <CalendarClock className="shrink-0 h-5 w-5" />
+              <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
+                <CalendarClock className="h-5 w-5 text-amber-700" />
+              </div>
               <div>
                 <p className="text-[11px] font-bold text-amber-700/70 uppercase tracking-wider">
                   {dbOrder?.delivery_type === 'delivery' ? 'Día y hora de entrega' : 'Día y hora de retiro'}
@@ -131,7 +136,9 @@ const OrderConfirmation = ({ order, org }) => {
 
           {/* Pickup/Delivery info */}
           <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4">
-            <MapPin className="shrink-0 h-5 w-5" />
+            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center shrink-0">
+              <MapPin className="h-5 w-5 text-gray-600" />
+            </div>
             <div>
               <p className="font-bold text-gray-900 text-sm">
                 {dbOrder?.delivery_type === 'delivery'
@@ -165,7 +172,9 @@ const OrderConfirmation = ({ order, org }) => {
               rel="noopener noreferrer"
               className="bg-white rounded-2xl border border-green-200 p-4 flex items-center gap-4 hover:bg-green-50 transition-colors group"
             >
-              <ExternalLink className="shrink-0 h-5 w-5" />
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center shrink-0">
+                <ExternalLink className="h-5 w-5 text-green-600" />
+              </div>
               <div className="flex-1">
                 <p className="font-bold text-green-700 text-sm group-hover:underline">
                   Seguir delivery en vivo
@@ -183,7 +192,7 @@ const OrderConfirmation = ({ order, org }) => {
                    ''}
                 </p>
               </div>
-              <ExternalLink className="h-4 w-4 shrink-0" />
+              <ExternalLink className="h-4 w-4 text-green-500 shrink-0" />
             </a>
           )}
 
@@ -265,17 +274,17 @@ const OrderConfirmation = ({ order, org }) => {
           </div>
 
           {/* New order CTA */}
-          <Button
+          <button
             onClick={() => {
               // Redirect to main store page to reset params and start fresh
               const storeUrl = window.location.pathname;
               window.location.href = storeUrl;
             }}
-            className="w-full mt-2 border-2 border-gray-200 bg-white text-gray-800 flex items-center justify-center hover:bg-gray-50 transition-colors active:scale-[0.98]"
-           variant="outline" size="default">
+            className="w-full mt-2 border-2 border-gray-200 bg-white text-gray-800 font-bold py-4 rounded-full flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors active:scale-[0.98]"
+          >
             Hacer otro pedido
             <ChevronRight className="h-5 w-5" />
-          </Button>
+          </button>
         </div>
       </div>
     </div>
