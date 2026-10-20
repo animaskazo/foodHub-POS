@@ -319,17 +319,15 @@
   button:disabled, button[aria-disabled="true"] { cursor: default !important; }
 }
 
-/* One icon language for actions, navigation, ingredients and status symbols.
-   Charts, QR codes and brand images intentionally do not match this selector. */
+/* Normalize icon geometry without overriding semantic colors.
+   Component utility classes (text-white, text-blue-600, etc.) must control contrast. */
 svg.lucide {
-  color: #000 !important;
-  stroke: #000 !important;
-  stroke-width: 2 !important;
-  fill: none !important;
-  background: none !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
+  stroke-width: 2;
+  fill: none;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 /* Functional hit areas stay accessible without drawing a container around an icon. */
