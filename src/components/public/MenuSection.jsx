@@ -87,10 +87,10 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
             isConfigurable ? (
               <Button
                 onClick={handleTap}
-                className="bg-blue-100 text-black flex items-center shadow-lg hover:bg-blue-100 transition-colors"
-               variant="ghost" size="sm">
-                <span>{quantity}</span>
-                <Plus className="h-3.5 w-3.5" />
+                className="!bg-white !text-gray-900 flex items-center gap-1 border border-gray-200 px-1.5 shadow-md shadow-black/20"
+                variant="outline" size="sm">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white font-semibold">{quantity}</span>
+                <Plus className="h-3.5 w-3.5 text-blue-700" />
               </Button>
             ) : (
               <div className="inline-flex items-center rounded-full border border-gray-200 bg-white p-0.5 shadow-md shadow-black/20">
