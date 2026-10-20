@@ -1,9 +1,5 @@
-import { Store, Search, Star, X, Plus, Check, MapPin, ExternalLink, Clock, ChefHat } from 'lucide-react';
-
-import { QuantityStepper } from '../ui/QuantityStepper';
-import { Button } from '@/components/ui/button';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-
+import { X, Plus, Check, MapPin, ExternalLink, Clock, ChefHat } from 'lucide-react';
 import ProductDetailView from './ProductDetailView';
 import ProductMedia from './ProductMedia';
 import ProductImageFallback from '../ui/ProductImageFallback';
@@ -71,10 +67,16 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
           </div>
         )}
         {product.isFeatured && (
-          <Star className={[`absolute left-2.5 z-10 ${isOutOfStock ? "top-12" : "top-2.5"}`, "w-3.5 h-3.5"].filter(Boolean).join(" ")} aria-hidden="true" />
+          <div className={`absolute left-2.5 z-10 w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center shadow-sm border border-yellow-300 ${isOutOfStock ? 'top-12' : 'top-2.5'}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-white">
+              <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
+            </svg>
+          </div>
         )}
         {quantity > 0 && (
-          <Check className="absolute top-2.5 right-2.5 z-10 h-4 w-4" strokeWidth={2} />
+          <div className="absolute top-2.5 right-2.5 w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center shadow-lg shadow-black/25 z-10">
+            <Check className="h-4 w-4 text-white" strokeWidth={3.5} />
+          </div>
         )}
 
         {/* Floating Add/Counter inside image */}
@@ -85,32 +87,48 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
             </span>
           ) : quantity > 0 ? (
             isConfigurable ? (
-              <Button
+              <button
                 onClick={handleTap}
-                className="bg-blue-100 text-black flex items-center shadow-lg hover:bg-blue-100 transition-colors"
-               variant="ghost" size="sm">
+                className="h-8 px-3 bg-blue-600 text-white rounded-full flex items-center gap-1 font-bold text-xs shadow-lg hover:bg-blue-700 transition-colors"
+              >
                 <span>{quantity}</span>
                 <Plus className="h-3.5 w-3.5" />
-              </Button>
+              </button>
             ) : (
-              <QuantityStepper compact
-                value={quantity} label={product.name}
-                className="bg-white shadow-lg"
-                removeOnDecrease={quantity === 1}
-                onDecrease={() => quantity === 1 ? onRemoveItem(cartItemId) : onUpdateQty(cartItemId, quantity - 1)}
-                onIncrease={onAddDirect}
-              />
+              <div
+                className="flex items-center bg-blue-600 text-white rounded-full h-8 p-0.5 gap-1.5 shadow-lg"
+              >
+                <button
+                  onClick={(e) => {
+                    if (quantity === 1) {
+                      onRemoveItem(cartItemId);
+                    } else {
+                      onUpdateQty(cartItemId, quantity - 1);
+                    }
+                  }}
+                  className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
+                >
+                  −
+                </button>
+                <span className="font-extrabold text-sm min-w-[12px] text-center">{quantity}</span>
+                <button
+                  onClick={onAddDirect}
+                  className="w-7 h-7 rounded-full flex items-center justify-center font-bold hover:bg-blue-700 active:scale-90 transition-transform text-white text-sm"
+                >
+                  +
+                </button>
+              </div>
             )
           ) : isOutOfStock ? (
-            <Button
+            <button
               disabled
-              className="bg-gray-200 text-gray-500 flex items-center cursor-not-allowed"
+              className="px-3 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center gap-1 font-extrabold text-xs cursor-not-allowed"
               aria-label={`Agotado ${product.name}`}
-             variant="ghost" size="sm">
+            >
               <span>Agotado</span>
-            </Button>
+            </button>
           ) : (
-            <Button
+            <button
               onClick={(e) => {
                 if (isConfigurable) {
                   onAdd(product);
@@ -118,12 +136,12 @@ const ProductCard = ({ product, quantity, cartItemId, onAdd, onAddDirect, onUpda
                   onAddDirect();
                 }
               }}
-              className="bg-white text-gray-900 flex items-center active:scale-90 transition-transform shadow-lg shadow-black/20 border border-gray-100/50 hover:bg-gray-50"
+              className="px-3 h-8 bg-white text-gray-900 rounded-full flex items-center gap-1 font-extrabold text-xs active:scale-90 transition-transform shadow-lg shadow-black/20 border border-gray-100/50 hover:bg-gray-50"
               aria-label={`Agregar ${product.name}`}
-             variant="outline" size="sm">
+            >
               <span>Agregar</span>
-              <Plus className="h-3 w-3" />
-            </Button>
+              <Plus className="h-3 w-3 text-gray-900" />
+            </button>
           )}
         </div>
       </div>
@@ -355,14 +373,13 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
               {/* Front face: logo */}
               <div
                 className="absolute inset-0 rounded-full bg-white border-2 border-white shadow-md overflow-hidden bg-cover bg-center flex items-center justify-center"
-                data-icon-placeholder={!org.logo_url}
                 style={{
                   backfaceVisibility: 'hidden',
                   WebkitBackfaceVisibility: 'hidden',
                   ...(org.logo_url ? { backgroundImage: `url(${org.logo_url})` } : {})
                 }}
               >
-                {!org.logo_url && <Store className="size-8" aria-hidden="true" />}
+                {!org.logo_url && <span className="text-4xl">🏬</span>}
               </div>
               {/* Back face: white */}
               <div
@@ -398,12 +415,12 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
                   </span>
                 )}
                 {org.business_hours && (
-                  <Button
+                  <button
                     onClick={() => setIsHoursModalOpen(true)}
-                    className="inline-flex items-center text-blue-700 bg-blue-50/80 border border-blue-100 hover:bg-blue-100 transition-colors active:scale-95"
-                   variant="outline" size="default">
+                    className="inline-flex items-center gap-1.5 text-[13px] text-blue-700 font-bold bg-blue-50/80 border border-blue-100 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors active:scale-95"
+                  >
                     <Clock className="w-3.5 h-3.5" /> Horarios
-                  </Button>
+                  </button>
                 )}
                 {org.address && (
                   <a
@@ -475,7 +492,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
         <div className="max-w-3xl mx-auto px-4 py-4">
           {filteredProducts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-gray-300">
-              <Search className="size-10 mb-4" aria-hidden="true" />
+              <span className="text-5xl mb-4">🔍</span>
               <p className="font-semibold text-lg text-gray-400">Sin resultados</p>
               <p className="text-sm text-gray-400 mt-1">Intenta con otro término</p>
             </div>
@@ -546,16 +563,16 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
       {totalQty > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent pt-8">
           <div className="max-w-3xl mx-auto">
-            <Button
+            <button
               onClick={onViewCart}
-              className="relative w-full bg-black text-white flex items-center justify-between shadow-2xl hover:bg-gray-900 transition-colors active:scale-[0.98]"
-             variant="default" size="pos">
+              className="relative w-full h-16 bg-black text-white font-bold rounded-full flex items-center justify-between px-8 shadow-2xl hover:bg-gray-900 transition-colors active:scale-[0.98]"
+            >
               <span className="bg-white/20 text-white text-base font-extrabold px-3 py-0.5 rounded-full z-10">
                 {totalQty}
               </span>
               <span className="absolute left-1/2 -translate-x-1/2 text-[17px] tracking-wide z-10">Ver Pedido</span>
               <span className="text-lg font-extrabold z-10">${totalPrice.toLocaleString('es-CL')}</span>
-            </Button>
+            </button>
           </div>
         </div>
       )}
@@ -584,7 +601,7 @@ const MenuSection = ({ org, categories, products, cartItems, onAddItem, onUpdate
       <Modal isOpen={isHoursModalOpen} onClose={() => setIsHoursModalOpen(false)} title="Horarios de Atención">
         <div className="p-4 mb-2">
           <div className="flex items-center gap-2.5 text-gray-800 font-bold mb-4">
-            <Clock className="w-5 h-5" />
+            <Clock className="w-5 h-5 text-gray-500" />
             <span className="text-[15px]">Disponibilidad Semanal</span>
           </div>
           <div className="space-y-1">
