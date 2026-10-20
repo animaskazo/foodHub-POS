@@ -1,29 +1,10 @@
-import { Button } from '@/components/ui/button';
-import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  User,
-  Phone,
-  Mail,
-  MessageSquare,
-  Store,
-  Loader2,
-  Banknote,
-  CreditCard,
-  PaperBag,
-  Info,
-  CalendarClock,
-  Clock,
-  ChefHat,
-  Truck,
-  MapPin,
-  X
-} from 'lucide-react';
+import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard, PaperBag, Info, CalendarClock, Clock, ChefHat, Truck } from 'lucide-react';
 import { getCustomerByPhone } from '../../services/publicOrderService';
 import { geocodeAddress, calculateDistance, isPointInPolygon, findDeliveryZoneForLocation } from '../../utils/geo';
 import { getAccessToken, createQuote } from '../../services/uberDirectService';
-
-
+import { MapPin } from 'lucide-react';
+import { X } from 'lucide-react';
 import AddressAutocomplete from '../ui/AddressAutocomplete';
 import AddressMap from '../pos/AddressMap';
 import Modal from '../ui/Modal';
@@ -33,11 +14,13 @@ const InputField = ({ icon: Icon, label, isLoading, rightElement, ...props }) =>
   <div className="relative">
     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">{label}</label>
     <div className="relative">
-      {isLoading ? (
-          <Loader2 className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none z-10 h-4 w-4 animate-spin" />
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none z-10">
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
         ) : (
-          <Icon className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none z-10 h-4 w-4" />
+          <Icon className="h-4 w-4 text-gray-400" />
         )}
+      </div>
       <input
         className={`w-full pl-11 py-3.5 bg-white border-2 border-gray-200 rounded-2xl text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-black transition-colors ${rightElement ? 'pr-24' : 'pr-4'}`}
         {...props}
@@ -729,7 +712,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
           {/* Banner: Tiempo estimado de preparación (cocina) */}
           {org?.prep_time > 0 && !isClosed && (
             <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200">
-              <ChefHat className="h-4 w-4 shrink-0" />
+              <ChefHat className="h-4 w-4 shrink-0 text-amber-600" />
               <p className="text-xs font-semibold text-amber-800">
                 Tu pedido estará listo en <span className="font-bold">{kitchenPrepMinutes} minutos</span>.
               </p>
@@ -804,7 +787,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                         : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
                       }`}
                   >
-                    <Store className="h-5 w-5 mb-1.5" />
+                    <Store className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'pickup' ? 'text-black' : 'text-gray-400'}`} />
                     <span className="text-sm font-bold">Retiro en Local</span>
                   </label>
 
@@ -817,9 +800,9 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                         }`}
                     >
                       {canUber ? (
-                        <Truck className="h-5 w-5 mb-1.5" />
+                        <Truck className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'own' ? 'text-black' : 'text-gray-400'}`} />
                       ) : (
-                        <MapPin className="h-5 w-5 mb-1.5" />
+                        <MapPin className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'own' ? 'text-black' : 'text-gray-400'}`} />
                       )}
                       <div className="flex flex-wrap items-center justify-center gap-1.5">
                         <span className="text-sm font-bold">Delivery</span>
@@ -840,7 +823,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                           : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
                         }`}
                     >
-                      <PaperBag className="h-5 w-5 mb-1.5" />
+                      <PaperBag className={`h-5 w-5 mb-1.5 ${form.deliveryType === 'uber' ? 'text-black' : 'text-gray-400'}`} />
                       <div className="flex flex-wrap items-center justify-center gap-1.5">
                         <span className="text-sm font-bold">Delivery</span>
                         <span className="text-[10px] bg-green-600 text-white font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider leading-none">
@@ -889,14 +872,14 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                     )}
 
                     {form.deliveryType === 'uber' && canOwn && distanceError && (
-                      <Button
+                      <button
                         type="button"
                         onClick={handleFallbackToOwn}
-                        className="w-full flex items-center justify-center bg-gray-100 text-black hover:bg-gray-100 active:scale-[0.99] transition-all cursor-pointer"
-                       variant="default" size="default">
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gray-900 text-white text-sm font-bold hover:bg-black active:scale-[0.99] transition-all cursor-pointer"
+                      >
                         <Truck className="h-4 w-4" />
                         Probar con delivery propio
-                      </Button>
+                      </button>
                     )}
 
                     {form.deliveryCoords && (
@@ -917,27 +900,27 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                     )}
 
                     {!distanceError && isValidatedAddress && (
-                      <div className={`flex items-center justify-between px-4 py-3.5 rounded-xl ${form.deliveryType === 'uber' ? 'bg-green-100 text-black border border-green-800' : 'bg-green-50 text-green-700 border border-green-100'}`}>
+                      <div className={`flex items-center justify-between px-4 py-3.5 rounded-xl ${form.deliveryType === 'uber' ? 'bg-green-700 text-white border border-green-800' : 'bg-green-50 text-green-700 border border-green-100'}`}>
                         {form.deliveryType === 'uber' && isQuoting ? (
                           <>
                             <span className="font-semibold text-xs text-green-100 pr-2">Cotizando envío con Uber…</span>
-                            <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                            <Loader2 className="h-4 w-4 animate-spin shrink-0 text-white" />
                           </>
                         ) : form.deliveryType === 'uber' && form.quotePrice > 0 ? (
                           <>
                             <div className="flex items-center gap-2.5">
                               <span className="bg-white text-green-800 text-[10px] font-black uppercase px-2 py-0.5 rounded">Uber</span>
-                              <span className="font-bold text-[13px] text-black">Tarifa de envío</span>
+                              <span className="font-bold text-[13px] text-white">Tarifa de envío</span>
                             </div>
-                            <span className="font-black text-base text-black shrink-0">{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
+                            <span className="font-black text-base text-white shrink-0">{fmtPrice(form.quotePrice, form.quoteCurrency)}</span>
                           </>
                         ) : form.deliveryType === 'uber' ? (
                           <>
                             <div className="flex items-center gap-2.5">
                               <span className="bg-white text-green-800 text-[10px] font-black uppercase px-2 py-0.5 rounded">Uber</span>
-                              <span className="font-bold text-[13px] text-black">Tarifa de envío</span>
+                              <span className="font-bold text-[13px] text-white">Tarifa de envío</span>
                             </div>
-                            <span className="font-black text-base text-black shrink-0">Gratis</span>
+                            <span className="font-black text-base text-white shrink-0">Gratis</span>
                           </>
                         ) : (
                           <>
@@ -953,7 +936,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
             ) : (
               <div className="flex items-center justify-between p-3.5 bg-gray-50 border border-gray-200 rounded-2xl">
                 <div className="flex items-center gap-2.5">
-                  <Store className="h-4 w-4" />
+                  <Store className="h-4 w-4 text-gray-500" />
                   <span className="text-sm font-semibold text-gray-600">Método de retiro</span>
                 </div>
                 <span className="text-sm font-bold text-gray-900 bg-gray-200/50 px-2.5 py-1 rounded-lg">Retiro en local</span>
@@ -981,7 +964,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                         : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
                       }`}
                   >
-                    <Clock className="h-5 w-5 mb-1.5" />
+                    <Clock className={`h-5 w-5 mb-1.5 ${form.scheduleType === 'now' ? 'text-black' : 'text-gray-400'}`} />
                     <span className="text-sm font-bold">Ahora</span>
                   </label>
 
@@ -992,7 +975,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                         : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
                       }`}
                   >
-                    <CalendarClock className="h-5 w-5 mb-1.5" />
+                    <CalendarClock className={`h-5 w-5 mb-1.5 ${form.scheduleType === 'scheduled' ? 'text-black' : 'text-gray-400'}`} />
                     <span className="text-sm font-bold">Programar</span>
                     {selectedScheduleLabel && form.scheduleType === 'scheduled' && (
                       <span className="text-[11px] text-gray-400 mt-0.5 font-semibold">{selectedScheduleLabel}</span>
@@ -1001,7 +984,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                 </div>
               ) : instantAvailable ? (
                 <div className="flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-black bg-white shadow-sm text-center">
-                  <Clock className="h-5 w-5 mb-1.5" />
+                  <Clock className="h-5 w-5 mb-1.5 text-black" />
                   <span className="text-sm font-bold text-black">Ahora</span>
                   <span className="text-[11px] text-gray-400 mt-0.5">Retiro inmediato</span>
                 </div>
@@ -1013,7 +996,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                       : 'bg-gray-50/50 border-gray-200 text-gray-500 hover:border-gray-300'
                     }`}
                 >
-                  <CalendarClock className="h-5 w-5 mb-1.5" />
+                  <CalendarClock className={`h-5 w-5 mb-1.5 ${form.scheduleType === 'scheduled' ? 'text-black' : 'text-gray-400'}`} />
                   <span className="text-sm font-bold">Programar</span>
                   <span className="text-[11px] text-gray-400 mt-0.5">Los pedidos para ahora no están disponibles. Puedes agendar para un horario de retiro.</span>
                   {selectedScheduleLabel && form.scheduleType === 'scheduled' && (
@@ -1058,7 +1041,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                     }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <Banknote className="h-4.5 w-4.5 transition-colors" />
+                    <Banknote className={`h-4.5 w-4.5 transition-colors ${form.paymentMethod === 'local' ? 'text-gray-900' : 'text-gray-400'}`} />
                     <span className={`text-sm font-bold ${form.paymentMethod === 'local' ? 'text-gray-900' : 'text-gray-500'}`}>En Caja (Efectivo / Tarjeta)</span>
                   </div>
                   <input
@@ -1080,7 +1063,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                     }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <CreditCard className="h-4.5 w-4.5 transition-colors" />
+                    <CreditCard className={`h-4.5 w-4.5 transition-colors ${form.paymentMethod === 'online' ? 'text-gray-900' : 'text-gray-400'}`} />
                     <div className="flex items-center gap-1.5">
                       <span className={`text-sm font-bold ${form.paymentMethod === 'online' ? 'text-gray-900' : 'text-gray-500'}`}>
                         Pagar Online - Puedes usar Apple Pay o Google Pay
@@ -1105,7 +1088,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
               Notas adicionales (opcional)
             </label>
             <div className="relative">
-              <MessageSquare className="absolute left-4 top-3.5 h-4 w-4 pointer-events-none" />
+              <MessageSquare className="absolute left-4 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
               <textarea
                 rows={3}
                 placeholder="Agrega alguna petición especial"
@@ -1135,13 +1118,13 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                     }
                   }}
                 />
-                <Button
+                <button
                   onClick={handleApplyCoupon}
                   disabled={!couponCode.trim() || couponLoading}
-                  className="bg-gray-900 text-white disabled:opacity-40 hover:bg-gray-800 transition-colors"
-                 variant="default" size="default">
+                  className="px-6 py-3.5 bg-gray-900 text-white text-sm font-bold rounded-2xl disabled:opacity-40 hover:bg-gray-800 transition-colors"
+                >
                   {couponLoading ? '...' : 'Aplicar'}
-                </Button>
+                </button>
               </div>
             ) : (
               <div className="flex items-center justify-between bg-green-50 border-2 border-green-200 rounded-2xl px-4 py-3">
@@ -1151,12 +1134,12 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                     {appliedCoupon.type === 'percentage' ? `-${appliedCoupon.value}%` : `-$${appliedCoupon.value.toLocaleString('es-CL')}`}
                   </span>
                 </div>
-                <Button
+                <button
                   onClick={handleRemoveCoupon}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
-                 variant="ghost" size="sm">
+                  className="text-xs text-gray-400 hover:text-red-500 transition-colors font-medium"
+                >
                   Quitar
-                </Button>
+                </button>
               </div>
             )}
             {couponError && !appliedCoupon && (
@@ -1208,7 +1191,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
             </div>
           )}
 
-          <Button
+          <button
             onClick={handleSubmit}
             disabled={
               isSubmitting ||
@@ -1220,8 +1203,8 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
               belowDeliveryMin ||
               (form.deliveryType === 'uber' && !form.quoteId)
             }
-            className={`w-full text-black flex items-center justify-center shadow-2xl transition-all ${(isSubmitting || nowBlocked || scheduledBlocked || uberOnlineBlocked || totalAmount <= 0 || belowDeliveryMin || (isAnyDelivery && (!!distanceError || !form.deliveryAddress.trim())) || (form.deliveryType === 'uber' && !form.quoteId)) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-gray-100 hover:bg-gray-100 active:scale-[0.98]'}`}
-           variant="default" size="pos">
+            className={`w-full h-16 text-white font-bold rounded-full flex items-center justify-center gap-2 shadow-2xl transition-all px-8 text-[17px] tracking-wide ${(isSubmitting || nowBlocked || scheduledBlocked || uberOnlineBlocked || totalAmount <= 0 || belowDeliveryMin || (isAnyDelivery && (!!distanceError || !form.deliveryAddress.trim())) || (form.deliveryType === 'uber' && !form.quoteId)) ? 'bg-gray-400 cursor-not-allowed opacity-90' : 'bg-black hover:bg-gray-900 active:scale-[0.98]'}`}
+          >
             {isSubmitting ? (
               <><Loader2 className="h-5 w-5 animate-spin" /> Enviando pedido…</>
             ) : scheduledBlocked ? (
@@ -1243,7 +1226,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                 )}
               </div>
             )}
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -1261,19 +1244,21 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
           <div className="px-5 pt-6 pb-5 border-b border-gray-100 shrink-0 bg-gradient-to-b from-gray-50/80 to-transparent">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-3">
-                <CalendarClock className="shrink-0 h-5 w-5" />
+                <div className="h-11 w-11 rounded-2xl bg-black text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <CalendarClock className="h-5 w-5" />
+                </div>
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 leading-tight">¿Cuándo quieres retirar?</h2>
                   <p className="text-sm text-gray-500 mt-0.5">Elige la hora disponible</p>
                 </div>
               </div>
-              <IconButton
+              <button
                 type="button"
                 onClick={() => setScheduleModalOpen(false)}
-                className="bg-gray-100 hover:bg-gray-200 transition-colors text-gray-500 shrink-0 cursor-pointer"
-               label="Cerrar" variant="ghost">
-                <X className="h-5 w-5" aria-hidden="true" />
-              </IconButton>
+                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-gray-500 shrink-0 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
           </div>
 
@@ -1300,7 +1285,9 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
           <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
             {scheduleSlots.length === 0 ? (
               <div className="text-center py-12">
-                <CalendarClock className="mx-auto mb-4 h-7 w-7" />
+                <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                  <CalendarClock className="h-7 w-7 text-gray-300" />
+                </div>
                 <p className="text-base font-bold text-gray-700">No hay horarios disponibles</p>
                 <p className="text-sm text-gray-400 mt-1.5">{scheduleEmptyText}</p>
               </div>
@@ -1331,7 +1318,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                               }`}
                           >
                             <div className="flex items-center gap-3.5">
-                              <Clock className="h-4 w-4" />
+                              <Clock className={`h-4 w-4 ${selected ? 'text-black' : 'text-gray-400'}`} />
                               <span className={`text-base font-bold ${selected ? 'text-black' : 'text-gray-800'}`}>{slot}</span>
                             </div>
                             <div className="flex items-center gap-2.5">
@@ -1355,12 +1342,12 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
 
           {/* Fixed footer with 2 actions */}
           <div className="px-5 py-4 border-t border-gray-100 bg-white shrink-0 space-y-2.5 shadow-[0_-8px_24px_rgba(0,0,0,0.04)]">
-            <Button
+            <button
               type="button"
               onClick={handleConfirmSchedule}
               disabled={!form.scheduledAt}
-              className="w-full bg-gray-100 text-black flex items-center justify-center disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed cursor-pointer transition-all active:scale-[0.98] shadow-lg shadow-black/20 disabled:shadow-none"
-             variant="default" size="pos">
+              className="w-full h-14 rounded-2xl bg-black text-white font-bold text-[16px] flex items-center justify-center gap-2 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed cursor-pointer transition-all active:scale-[0.98] shadow-lg shadow-black/20 disabled:shadow-none"
+            >
               {form.scheduledAt && selectedScheduleLabel ? (
                 <>
                   <CalendarClock className="h-5 w-5" />
@@ -1372,16 +1359,16 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
                   Programar
                 </>
               )}
-            </Button>
+            </button>
             {!hideNowButton && (
-            <Button
+            <button
               type="button"
               onClick={handleChooseNow}
-              className="w-full border-2 border-gray-200 bg-white text-gray-700 flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 cursor-pointer transition-all active:scale-[0.98]"
-             variant="outline" size="touch">
+              className="w-full h-13 py-3.5 rounded-2xl border-2 border-gray-200 bg-white text-gray-700 font-bold text-[16px] flex items-center justify-center gap-2 hover:border-gray-400 hover:bg-gray-50 cursor-pointer transition-all active:scale-[0.98]"
+            >
               <Clock className="h-5 w-5" />
               Entregar ahora
-            </Button>
+            </button>
             )}
           </div>
         </div>

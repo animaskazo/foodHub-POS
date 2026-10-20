@@ -1,9 +1,5 @@
-import { Check, ArrowLeft, Plus, Minus } from 'lucide-react';
-import { QuantityStepper } from '../ui/QuantityStepper';
-import { Button } from '@/components/ui/button';
-import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-
+import { ArrowLeft, Plus, Minus } from 'lucide-react';
 import IngredientIcon from '../ui/IngredientIcon';
 import ProductImageFallback from '../ui/ProductImageFallback';
 import { buildSelection, selectionFromCartOption, defaultSelectionsForSlot } from '../../utils/bundleSelections';
@@ -323,12 +319,12 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
         onClick={(e) => e.stopPropagation()}
         className={`w-full max-w-2xl h-[100dvh] sm:h-[90dvh] sm:max-h-[800px] sm:rounded-3xl bg-gray-50 flex flex-col overflow-hidden relative shadow-2xl ${isClosing ? 'opacity-0 translate-y-8 transition-all duration-200 ease-in' : 'animate-in slide-in-from-bottom-8 zoom-in-95 fade-in duration-300'}`}>
         {/* Botón atrás fijo — fuera del scroll para que no se pierda al bajar */}
-        <button data-icon-button="true"
+        <button
           onClick={handleClose}
           aria-label="Volver"
           className="absolute top-4 left-4 z-30 p-2.5 bg-white/95 backdrop-blur-md rounded-full hover:bg-white transition-colors border border-black/10 shadow-[0_2px_12px_rgba(0,0,0,0.28)]"
         >
-          <ArrowLeft className="h-6 w-6" aria-hidden="true" />
+          <ArrowLeft className="h-6 w-6 text-gray-900" />
         </button>
 
         {/* Scrollable Content */}
@@ -377,7 +373,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                       key={i.id || i.name}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-gray-200 text-gray-600 text-[12px] font-semibold"
                     >
-                      <IngredientIcon name={i.name} icon={i.icon} size={14} className="shrink-0" />
+                      <IngredientIcon name={i.name} icon={i.icon} size={14} className="text-gray-500 shrink-0" />
                       {i.name}
                     </span>
                   ))}
@@ -443,10 +439,18 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          {selected && (
-                              <Check className="transition-all w-3 h-3" aria-hidden="true" />
+                          <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                            isUnavailable
+                              ? 'border-gray-300 bg-gray-100'
+                              : selected ? 'border-black bg-black' : 'border-gray-300 bg-white'
+                          }`}>
+                            {selected && (
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3.5} stroke="currentColor" className="w-3 h-3 text-white">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                              </svg>
                             )}
-                          <IngredientIcon name={ing.name} icon={ing.icon} className="h-5 w-5 shrink-0" />
+                          </div>
+                          <IngredientIcon name={ing.name} icon={ing.icon} className="h-5 w-5 text-gray-900 shrink-0" />
                           <span className="font-bold text-sm text-gray-900">{ing.name}</span>
                         </div>
                         {isUnavailable ? (
@@ -530,7 +534,15 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <Check className={[` shrink-0 transition-all ${isSelected ? " " : " opacity-0"}`, "w-3.5 h-3.5"].filter(Boolean).join(" ")} aria-hidden="true" />
+                            <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-all ${
+                              isSelected 
+                                ? 'border-black bg-black text-white' 
+                                : 'border-gray-300 bg-white text-transparent'
+                            }`}>
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3.5} stroke="currentColor" className="w-3.5 h-3.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                              </svg>
+                            </div>
                             <span className="font-bold text-sm text-gray-900 leading-snug">{opt.name}</span>
                             {isOptOut ? (
                               <span className="text-[9px] text-white bg-red-500 px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider">Sin stock</span>
@@ -547,20 +559,20 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                             )}
                             {max > 1 && isSelected && !isSingleOption && (
                               <div className="flex items-center bg-gray-100 rounded-full h-8 px-1 shrink-0" onClick={e => e.stopPropagation()}>
-                                <IconButton
+                                <button 
                                   onClick={(e) => handleDecrementOption(e, slot.id, opt)}
-                                  className="flex items-center justify-center text-gray-600 hover:bg-gray-200 hover:text-black transition-colors"
-                                 label={`Reducir cantidad ${opt.name}`} variant="ghost">
-                                  <Minus className="w-3.5 h-3.5" aria-hidden="true" />
-                                </IconButton>
+                                  className="w-6 h-6 flex items-center justify-center rounded-full text-gray-600 hover:bg-gray-200 hover:text-black transition-colors"
+                                >
+                                  <Minus className="w-3.5 h-3.5" />
+                                </button>
                                 <span className="font-bold text-sm w-5 text-center text-gray-900">{currentQty}</span>
-                                <IconButton
+                                <button 
                                   onClick={(e) => handleIncrementOption(e, slot.id, opt)}
                                   disabled={count >= max}
-                                  className={` flex items-center justify-center transition-colors ${count >= max ? 'text-gray-600' : 'text-gray-600 hover:bg-gray-200 hover:text-black'}`}
-                                 label={`Aumentar cantidad ${opt.name}`} variant="ghost">
-                                  <Plus className="w-3.5 h-3.5" aria-hidden="true" />
-                                </IconButton>
+                                  className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${count >= max ? 'text-gray-400' : 'text-gray-600 hover:bg-gray-200 hover:text-black'}`}
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
                               </div>
                             )}
                           </div>
@@ -643,7 +655,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                                     }`}
                                   >
                                     <span className="flex items-center gap-1.5 truncate min-w-0">
-                                      <IngredientIcon name={ing.name} icon={ing.icon} size={14} className="shrink-0" />
+                                      <IngredientIcon name={ing.name} icon={ing.icon} size={14} className="text-gray-500 shrink-0" />
                                       <span className="truncate">{ing.name}</span>
                                     </span>
                                     {isUnavailable ? (
@@ -669,18 +681,27 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
         {/* Sticky Bottom Actions */}
         <div className="absolute bottom-0 w-full bg-white border-t border-gray-100 px-5 py-4 pb-8 sm:pb-4 z-50">
           <div className="flex items-center gap-4">
-            <QuantityStepper
-              value={quantity} label={product.name}
-              decreaseDisabled={quantity <= 1}
-              onDecrease={() => setQuantity(q => Math.max(1, q - 1))}
-              onIncrease={() => setQuantity(q => q + 1)}
-            />
+            <div className="flex items-center bg-gray-100 rounded-full h-14 p-1 shrink-0">
+              <button
+                onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-gray-600 hover:bg-gray-200 transition-colors text-xl"
+              >−</button>
+              <span className="font-black text-lg w-8 text-center">{quantity}</span>
+              <button
+                onClick={() => setQuantity(q => q + 1)}
+                className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-gray-600 hover:bg-gray-200 transition-colors text-xl"
+              >+</button>
+            </div>
             
-            <Button
+            <button
               onClick={handleConfirm}
               disabled={isOutOfStock || orderingBlocked || !slotsComplete || (!isBundle && hasVariants && !selectedVariant)}
-              className={`flex-1 flex items-center justify-center transition-colors active:scale-[0.98] disabled:active:scale-100 ${ isOutOfStock || orderingBlocked || !slotsComplete || (!isBundle && hasVariants && !selectedVariant) ? 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/20' }`}
-             variant="ghost" size="pos">
+              className={`flex-1 h-14 font-bold rounded-full flex items-center justify-center px-6 transition-colors active:scale-[0.98] disabled:active:scale-100 ${
+                isOutOfStock || orderingBlocked || !slotsComplete || (!isBundle && hasVariants && !selectedVariant)
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/20'
+              }`}
+            >
               <span className="font-bold">{isOutOfStock ? 'Sin stock' : orderingBlocked ? 'Tienda cerrada' : 'Agregar'}</span>
               {!isOutOfStock && !orderingBlocked && (
                 <>
@@ -688,7 +709,7 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                   <span className="text-lg">${(finalGross * quantity).toLocaleString('es-CL')}</span>
                 </>
               )}
-            </Button>
+            </button>
           </div>
         </div>
       </div>
