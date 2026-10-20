@@ -982,7 +982,7 @@ const SettingsView = () => {
             {activeTab === 'hours' && (
               <div className="p-4 sm:p-6 md:p-8 space-y-6">
                 {/* Cierre temporal total de la tienda */}
-                <div className={`border rounded-2xl p-4 sm:p-5 space-y-4 ${forceClosed ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
+                <div className="border rounded-2xl p-4 sm:p-5 space-y-4 bg-white border-gray-200">
                   <SettingsOptionRow
                     title="Cerrar tienda temporalmente"
                     description="Los clientes podrán ver el menú, pero no podrán hacer pedidos (ni ahora ni programado). El aviso de cierre temporal se mostrará mientras esta opción esté activa."
@@ -1012,10 +1012,10 @@ const SettingsView = () => {
                       size="sm"
                       onClick={handleSaveStoreClosure}
                       disabled={saving}
-                      variant={forceClosed ? 'destructive' : 'default'}
+                      variant="default"
                     >
                       {saving ? <ButtonSpinner size="sm" /> : <Save className="h-4 w-4" />}
-                      {forceClosed ? 'Cerrar Tienda' : 'Guardar'}
+                      Guardar
                     </Button>
                   </div>
                 </div>
