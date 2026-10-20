@@ -120,17 +120,33 @@ const OrderConfirmation = ({ order, org }) => {
 
           {/* Scheduled day & time */}
           {schedule && (
-            <div className="bg-amber-50 rounded-2xl border border-amber-100 p-4 flex items-center gap-4">
-              <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center shrink-0">
-                <CalendarClock className="h-5 w-5 text-amber-700" />
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+                  <CalendarClock className="h-5 w-5 text-amber-800" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                      {dbOrder?.delivery_type === 'delivery' ? 'Día y hora de entrega' : 'Día y hora de retiro'}
+                    </p>
+                    <span className="shrink-0 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-900">
+                      Programado
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-[11px] font-bold text-amber-700/70 uppercase tracking-wider">
-                  {dbOrder?.delivery_type === 'delivery' ? 'Día y hora de entrega' : 'Día y hora de retiro'}
-                </p>
-                <p className="font-bold text-gray-900 text-base capitalize">{schedule.dateLabel}</p>
-                <p className="text-sm font-bold text-amber-800">a las {schedule.timeLabel} hrs</p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <p className="text-base font-bold capitalize text-gray-900">{schedule.dateLabel}</p>
+                <span className="rounded-xl border border-amber-200/80 bg-white px-2.5 py-1.5 text-sm font-bold text-amber-900">
+                  {schedule.timeLabel} hrs
+                </span>
               </div>
+              <p className="mt-2 text-xs text-gray-600">
+                {dbOrder?.delivery_type === 'delivery'
+                  ? 'Coordinaremos la entrega para la hora indicada'
+                  : 'Lo prepararemos para la hora indicada'}
+              </p>
             </div>
           )}
 
