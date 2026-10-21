@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ArrowLeft, Plus, Minus } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Info } from 'lucide-react';
 import IngredientIcon from '../ui/IngredientIcon';
 import ProductImageFallback from '../ui/ProductImageFallback';
 import { buildSelection, selectionFromCartOption, defaultSelectionsForSlot } from '../../utils/bundleSelections';
@@ -506,6 +506,19 @@ const ProductDetailView = ({ product, onAdd, onBack, initialVariant = null, init
                   </div>
 
                   <div className="space-y-2.5 mb-4">
+                    {slot.minSelections > 0 &&
+                      slot.options?.length > 0 &&
+                      slot.options.every(isOptionOutOfStock) && (
+                        <div
+                          role="status"
+                          className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800"
+                        >
+                          <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                          <span>
+                            No hay opciones disponibles para {slot.name}. No es posible agregar este pack.
+                          </span>
+                        </div>
+                      )}
                     {slot.options?.map(opt => {
                       const isSelected = currentSelection.some(s => s.optionId === opt.id);
                       const currentQty = isSelected ? (currentSelection.find(s => s.optionId === opt.id)?.quantity || 1) : 0;
