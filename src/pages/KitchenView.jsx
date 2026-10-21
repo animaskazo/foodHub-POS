@@ -1,4 +1,3 @@
-import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { 
@@ -471,7 +470,7 @@ const KitchenView = () => {
   });
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 text-gray-900 overflow-hidden font-sans" onClick={unlockAudio}>
+    <div className="flex flex-col h-screen bg-black text-gray-100 overflow-hidden font-sans" onClick={unlockAudio}>
       {/* Header en dos bandas. La primera es identidad y lleva el nombre del
           local en grande, porque en una cocina con varias sucursales lo primero
           que hay que confirmar es en cuál se está trabajando; antes iba en
@@ -479,11 +478,11 @@ const KitchenView = () => {
           es un flex-wrap: en móvil el reloj y "marcar todo listo" bajan a una
           tercera línea, en desktop queda todo en la misma. Un nodo para las dos
           disposiciones. */}
-      <header className="bg-white border-b border-gray-200 shrink-0">
+      <header className="bg-[#111] border-b border-[#222] shrink-0">
         <div className="flex items-end justify-between gap-3 px-3 md:px-4 py-2.5 md:py-3">
           {/* Nombre del local y hora, alineados por abajo para que ambos se
               apoyen en la misma línea base, como un cartel y no dos sueltos. */}
-          <h1 className="text-2xl md:text-4xl font-black text-black truncate tracking-tight leading-tight min-w-0">
+          <h1 className="text-2xl md:text-4xl font-black text-white truncate tracking-tight leading-tight min-w-0">
             {organization?.name || 'Local'}
           </h1>
 
@@ -494,13 +493,13 @@ const KitchenView = () => {
               "hrs" es lo que lo distingue de un número más de la cola. */}
           <time
             dateTime={now.toISOString()}
-            className="shrink-0 flex items-end gap-1.5 pl-3 border-l border-gray-200 select-none"
+            className="shrink-0 flex items-end gap-1.5 pl-3 border-l border-zinc-800 select-none"
             title="Hora local"
           >
-            <span className="text-3xl md:text-5xl font-black text-black tabular-nums tracking-tight leading-none">
+            <span className="text-3xl md:text-5xl font-black text-white tabular-nums tracking-tight leading-none">
               {clockLabel}
             </span>
-            <span className="text-xs md:text-sm font-bold text-gray-600 mb-1.5">hrs</span>
+            <span className="text-xs md:text-sm font-bold text-zinc-500 mb-1.5">hrs</span>
           </time>
         </div>
 
@@ -513,20 +512,21 @@ const KitchenView = () => {
               className="px-2.5! md:px-3! py-2 min-h-10 bg-white text-black hover:bg-gray-200 rounded-full transition-colors flex items-center justify-center shrink-0 gap-1.5 font-bold text-sm"
               title="Volver al punto de venta"
             >
-              <ArrowLeft className="size-5" aria-hidden="true" />
+              <ArrowLeft className="size-5" />
               <span className="hidden sm:inline">Volver al POS</span>
               <span className="sm:hidden">POS</span>
             </Button>
 
-            <IconButton
+            <Button
+              variant="ghost"
               onClick={() => navigate('/')}
               size="icon"
-              className="bg-white text-black hover:bg-gray-200"
+              className="bg-white text-black hover:bg-gray-200 rounded-full"
               title="Dashboard admin"
-              label="Ir al dashboard admin"
+              aria-label="Ir al dashboard admin"
             >
-              <Home className="size-5" aria-hidden="true" />
-            </IconButton>
+              <Home className="size-5" />
+            </Button>
           </div>
 
         {/* Controles del servicio: sonido primero, porque silenciar las alertas
@@ -538,46 +538,46 @@ const KitchenView = () => {
               vuelve insoportable. Se mantienen separados pero chicos, y el icono
               del silenciador es el que lleva el estado, para que no haya dos
               botones distintos que parezcan el mismo. */}
-          <Button variant="ghost"
+          <button
             onClick={handleToggleSound}
             className={`flex items-center gap-1.5 h-10 w-10 sm:w-auto sm:px-3 rounded-full text-xs md:text-sm font-bold border transition-colors shrink-0 justify-center sm:justify-start ${
               !audioReady
-                ? 'bg-amber-500/15 text-amber-700 border-amber-500/40 hover:bg-amber-500/25'
-                : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200 hover:text-black'
+                ? 'bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/25'
+                : 'bg-[#222] text-zinc-300 border-[#333] hover:bg-[#2b2b2b] hover:text-white'
             }`}
             title={audioReady ? 'Probar el sonido de la cocina' : 'Tocar para permitir el audio en el navegador'}
             aria-label={audioReady ? 'Probar el sonido de la cocina' : 'Activar el sonido'}
           >
             <Volume2 className="h-5 w-5" />
             <span className="hidden sm:inline">{audioReady ? 'Probar' : 'Activar sonido'}</span>
-          </Button>
+          </button>
 
-          <IconButton
+          <button
             onClick={handleMuteToggle}
-            className={`flex items-center justify-center shrink-0 rounded-full border transition-colors ${
+            className={`flex items-center justify-center w-10 h-10 shrink-0 rounded-full border transition-colors ${
               muted
-                ? 'bg-red-500/15 text-red-700 border-red-500/40 hover:bg-red-500/25'
-                : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200 hover:text-black'
+                ? 'bg-red-500/15 text-red-300 border-red-500/40 hover:bg-red-500/25'
+                : 'bg-[#222] text-zinc-400 border-[#333] hover:bg-[#2b2b2b] hover:text-white'
             }`}
             title={muted ? 'Activar el sonido de las alertas' : 'Silenciar las alertas'}
-            label={muted ? 'Activar el sonido de las alertas' : 'Silenciar las alertas'}
+            aria-label={muted ? 'Activar el sonido de las alertas' : 'Silenciar las alertas'}
           >
             {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-          </IconButton>
+          </button>
 
           {/* Sin indicador de "en vivo": era un adorno estático que ocupaba
               espacio en la barra sin ayudar a hacer nada. Cuando hay algo que
               actualizar, lo dice el spinner del botón de refrescar. */}
 
-          <IconButton
+          <Button
             onClick={() => fetchOrders()}
             size="icon"
-            className="bg-gray-100 hover:bg-gray-200 hover:text-black text-black border border-gray-300"
+            className="bg-[#222] hover:bg-[#333] hover:text-white text-white border border-[#333] rounded-full"
             title="Actualizar manualmente"
-            label="Actualizar manualmente"
+            aria-label="Actualizar manualmente"
           >
-            <RefreshCw className={`size-5 ${loading ? "animate-spin" : ""}`}  aria-hidden="true" />
-          </IconButton>
+            <RefreshCw className={`size-5 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
 
         {/* Marcar todo listo. En móvil ocupa la fila completa bajo los controles;
@@ -587,7 +587,7 @@ const KitchenView = () => {
           variant="ghost"
           onClick={() => setBulkConfirmOpen(true)}
           disabled={bulkWorking || ordersToMarkReady.length === 0}
-          className="order-3 w-full md:w-auto min-h-10 px-3! py-2 bg-emerald-500 text-black hover:bg-emerald-400 hover:text-black disabled:bg-gray-100 disabled:text-gray-500 rounded-full transition-colors flex items-center justify-between md:justify-center gap-2 font-bold text-sm shrink-0"
+          className="order-3 w-full md:w-auto min-h-10 px-3! py-2 bg-emerald-500 text-black hover:bg-emerald-400 hover:text-black disabled:bg-zinc-800 disabled:text-zinc-600 rounded-full transition-colors flex items-center justify-between md:justify-center gap-2 font-bold text-sm shrink-0"
           title={
             ordersToMarkReady.length === 0
               ? 'No hay pedidos pendientes por marcar'
@@ -597,11 +597,11 @@ const KitchenView = () => {
           <span className="flex items-center gap-2">
             {bulkWorking
               ? <Loader2 className="h-5 w-5 animate-spin" />
-              : <CheckCheck className="h-5 w-5" strokeWidth={2} />}
+              : <CheckCheck className="h-5 w-5" strokeWidth={2.5} />}
             <span>Marcar todo listo</span>
           </span>
           {ordersToMarkReady.length > 0 && (
-            <span className="text-xs font-black bg-gray-200 rounded px-1.5 py-0.5 tabular-nums">
+            <span className="text-xs font-black bg-black/20 rounded px-1.5 py-0.5 tabular-nums">
               {ordersToMarkReady.length}
             </span>
           )}
@@ -614,34 +614,34 @@ const KitchenView = () => {
 
         {/* Barra de estado. Va fuera del rail y no scrollea con él: la cola es
             lo que se mueve, el total de lo que falta es lo que no. */}
-        <div className="flex items-center gap-x-4 gap-y-1 px-4 md:px-6 py-1.5 md:py-2 bg-white border-b border-gray-200 overflow-x-auto hide-scrollbar shrink-0">
+        <div className="flex items-center gap-x-4 gap-y-1 px-4 md:px-6 py-1.5 md:py-2 bg-zinc-950 border-b border-zinc-900 overflow-x-auto hide-scrollbar shrink-0">
           <div className="flex items-baseline gap-1.5 shrink-0">
-            <span className="text-lg md:text-xl font-black text-black tabular-nums leading-none">
+            <span className="text-lg md:text-xl font-black text-white tabular-nums leading-none">
               {kitchenStats.notStarted}
             </span>
-            <span className="text-[11px] font-bold text-gray-600 whitespace-nowrap">
+            <span className="text-[11px] font-bold text-zinc-400 whitespace-nowrap">
               sin empezar
             </span>
           </div>
-          <span className="w-px h-4 bg-gray-100 shrink-0" aria-hidden="true"></span>
+          <span className="w-px h-4 bg-zinc-800 shrink-0" aria-hidden="true"></span>
           <div className="flex items-baseline gap-1.5 shrink-0">
             <span className={`text-lg md:text-xl font-black tabular-nums leading-none ${
-              kitchenStats.preparing > 0 ? 'text-emerald-700' : 'text-gray-500'
+              kitchenStats.preparing > 0 ? 'text-emerald-400' : 'text-zinc-600'
             }`}>
               {kitchenStats.preparing}
             </span>
-            <span className="text-[11px] font-bold text-gray-600 whitespace-nowrap">
+            <span className="text-[11px] font-bold text-zinc-400 whitespace-nowrap">
               preparando
             </span>
           </div>
-          <span className="w-px h-4 bg-gray-100 shrink-0" aria-hidden="true"></span>
+          <span className="w-px h-4 bg-zinc-800 shrink-0" aria-hidden="true"></span>
           <div className="flex items-baseline gap-1.5 shrink-0">
             <span className={`text-lg md:text-xl font-black tabular-nums leading-none ${
-              kitchenStats.dishes > 0 ? 'text-black' : 'text-gray-500'
+              kitchenStats.dishes > 0 ? 'text-white' : 'text-zinc-600'
             }`}>
               {kitchenStats.dishes}
             </span>
-            <span className="text-[11px] font-bold text-gray-600 whitespace-nowrap">
+            <span className="text-[11px] font-bold text-zinc-400 whitespace-nowrap">
               {kitchenStats.dishes === 1 ? 'producto' : 'productos'}
             </span>
           </div>
@@ -650,18 +650,18 @@ const KitchenView = () => {
               ya se atrasó y da igual cuántos tickets haya. */}
           {kitchenStats.oldestMins > 0 && (
             <>
-              <span className="w-px h-4 bg-gray-100 shrink-0" aria-hidden="true"></span>
+              <span className="w-px h-4 bg-zinc-800 shrink-0" aria-hidden="true"></span>
               <div className="flex items-baseline gap-1.5 shrink-0">
                 <span className={`text-lg md:text-xl font-black tabular-nums leading-none ${
                   kitchenStats.oldestMins >= 15
-                    ? 'text-red-700'
+                    ? 'text-red-400'
                     : kitchenStats.oldestMins >= 8
-                      ? 'text-amber-700'
-                      : 'text-gray-600'
+                      ? 'text-amber-400'
+                      : 'text-zinc-400'
                 }`}>
                   {formatWait(kitchenStats.oldestMins)}
                 </span>
-                <span className="text-[11px] font-bold text-gray-600 whitespace-nowrap">
+                <span className="text-[11px] font-bold text-zinc-500 whitespace-nowrap">
                   de espera
                 </span>
               </div>
@@ -671,7 +671,7 @@ const KitchenView = () => {
           {/* Los programados más tarde no son cola: se anotan aparte para que el
               número de arriba no prometa trabajo que todavía no corresponde. */}
           {kitchenStats.later > 0 && (
-            <span className="shrink-0 text-[11px] font-bold text-indigo-700/80 whitespace-nowrap">
+            <span className="shrink-0 text-[11px] font-bold text-indigo-400/80 whitespace-nowrap">
               {kitchenStats.later} {kitchenStats.later === 1 ? 'programado' : 'programados'} más tarde
             </span>
           )}
@@ -684,7 +684,7 @@ const KitchenView = () => {
 
           {tickets.length === 0 && !loading && (
             <div className="flex flex-col items-center justify-center w-full h-full py-20 col-span-full">
-              <ChefHat className="h-24 w-24 mb-6" />
+              <ChefHat className="h-24 w-24 mb-6 text-gray-400" />
               <p className="text-xl font-medium text-center text-gray-500">No hay órdenes pendientes en este momento.</p>
               <p className="text-sm mt-2 text-center text-gray-400">La cocina está al día.</p>
             </div>
@@ -704,31 +704,31 @@ const KitchenView = () => {
                   glow: 'shadow-black/40',
                   headerBg: 'bg-[#22c55e]/[0.02]',
                   label: 'Preparando',
-                  labelCls: 'bg-emerald-500/10 text-emerald-700 border border-emerald-500/20',
-                  btnClass: 'bg-[#10b981] hover:bg-[#059669] text-black',
+                  labelCls: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+                  btnClass: 'bg-[#10b981] hover:bg-[#059669] text-white',
                 },
                 pending: {
                   border: 'border-2 border-amber-500/20 border-dashed',
                   glow: 'shadow-black/40',
                   headerBg: 'bg-[#f59e0b]/[0.02]',
                   label: 'Pendiente',
-                  labelCls: 'bg-amber-500/10 text-amber-700 border border-amber-500/20',
-                  btnClass: 'bg-gray-100 hover:bg-gray-200 text-black',
+                  labelCls: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+                  btnClass: 'bg-zinc-800 hover:bg-zinc-700 text-white',
                 },
                 scheduled: {
                   border: 'border-2 border-indigo-500/40',
                   glow: 'shadow-black/40',
                   headerBg: 'bg-[#6366f1]/[0.04]',
                   label: 'Programado',
-                  labelCls: 'bg-indigo-500/10 text-indigo-700 border border-indigo-500/20',
-                  btnClass: 'bg-gray-100 hover:bg-gray-200 text-black',
+                  labelCls: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
+                  btnClass: 'bg-zinc-800 hover:bg-zinc-700 text-white',
                 },
                 confirmed: {
                   border: 'border-2 border-amber-500/50',
                   glow: 'shadow-black/40',
-                  headerBg: 'bg-gray-50',
+                  headerBg: 'bg-zinc-900',
                   label: 'Nuevo',
-                  labelCls: 'bg-gray-100 text-gray-700 border border-gray-300',
+                  labelCls: 'bg-zinc-800 text-zinc-300 border border-zinc-700',
                   btnClass: 'bg-white hover:bg-zinc-100 text-zinc-950',
                 },
               };
@@ -750,15 +750,15 @@ const KitchenView = () => {
                 <div
                   id={`ticket-${ticket.ticketId}`}
                   key={ticket.ticketId}
-                  className={`order-card ${isNew ? '' : 'transition-all'} w-full md:w-80 min-w-[300px] flex-shrink-0 flex flex-col rounded-2xl border ${cfg.border} bg-white overflow-hidden shadow-lg md:h-full ${isLeaving ? 'ticket-leave' : isNew ? 'ticket-enter-new' : (ticket.status === 'scheduled' || ticket.status === 'pending' || ticket.status === 'confirmed') ? 'ticket-enter-pending' : 'ticket-enter'}`}
+                  className={`order-card ${isNew ? '' : 'transition-all'} w-full md:w-80 min-w-[300px] flex-shrink-0 flex flex-col rounded-2xl border ${cfg.border} bg-zinc-950 overflow-hidden shadow-lg md:h-full ${isLeaving ? 'ticket-leave' : isNew ? 'ticket-enter-new' : (ticket.status === 'scheduled' || ticket.status === 'pending' || ticket.status === 'confirmed') ? 'ticket-enter-pending' : 'ticket-enter'}`}
                 >
                   {/* ── Header ── */}
-                  <div className={`${cfg.headerBg} px-4 pt-4 pb-3.5 border-b border-gray-200 shrink-0 space-y-3`}>
+                  <div className={`${cfg.headerBg} px-4 pt-4 pb-3.5 border-b border-zinc-900 shrink-0 space-y-3`}>
 
                     {/* Row 1: order number */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-3 truncate">
-                        <h2 className="text-3xl font-black text-black tracking-tight leading-none truncate">
+                        <h2 className="text-3xl font-black text-white tracking-tight leading-none truncate">
                           {ticket.order_number}
                         </h2>
                       </div>
@@ -767,7 +767,7 @@ const KitchenView = () => {
                           <Van className="h-3.5 w-3.5" /> Delivery
                         </span>
                       ) : (
-                        <span className="text-[10px] px-2 py-1 rounded bg-gray-100 text-gray-700 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
+                        <span className="text-[10px] px-2 py-1 rounded bg-zinc-800 text-zinc-300 font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
                           <ShoppingBag className="h-3.5 w-3.5" /> Retiro
                         </span>
                       )}
@@ -780,19 +780,19 @@ const KitchenView = () => {
                           {cfg.label}
                         </span>
                         {scheduledTime && (
-                          <span className="text-[11px] font-extrabold px-2.5 py-1 bg-indigo-500/10 text-indigo-700 border border-indigo-500/20">
+                          <span className="text-[11px] font-extrabold px-2.5 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                             <Clock className="h-3 w-3 inline-block mr-1" />
                             {scheduledTime}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-600 font-medium min-w-0">
+                      <div className="flex items-center gap-2 text-xs text-zinc-400 font-medium min-w-0">
                         <div className="flex items-center gap-1 shrink-0">
                           <channel.Icon className="h-3.5 w-3.5" />
                           <span>{channel.label}</span>
                         </div>
                         <div className="flex items-center gap-1 shrink-0 min-w-0">
-                          <User className="h-3.5 w-3.5 shrink-0" />
+                          <User className="h-3.5 w-3.5 fill-current shrink-0" />
                           <span className="truncate max-w-[100px]">{ticket.customer_name || 'Sin Nombre'}</span>
                         </div>
                       </div>
@@ -801,30 +801,30 @@ const KitchenView = () => {
                     {/* Customer order notes */}
                     {ticket.notes && (
                       <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                        <p className="text-xs text-amber-700/90 font-medium leading-relaxed break-words">{ticket.notes}</p>
+                        <p className="text-xs text-amber-300/90 font-medium leading-relaxed break-words">{ticket.notes}</p>
                       </div>
                     )}
 
                     {/* Delivery Address */}
                     {ticket.delivery_type === 'delivery' && ticket.delivery_address && (
-                      <div className="p-2.5 bg-gray-50/60 border border-gray-200/80 rounded-xl">
-                        <p className="text-[9px] text-gray-600 font-extrabold uppercase tracking-wider mb-1">Dirección de Despacho</p>
-                        <p className="text-xs text-gray-800 leading-relaxed font-semibold">{ticket.delivery_address}</p>
+                      <div className="p-2.5 bg-zinc-900/60 border border-zinc-800/80 rounded-xl">
+                        <p className="text-[9px] text-zinc-500 font-extrabold uppercase tracking-wider mb-1">Dirección de Despacho</p>
+                        <p className="text-xs text-zinc-200 leading-relaxed font-semibold">{ticket.delivery_address}</p>
                       </div>
                     )}
                   </div>
 
-                  <div className="py-3 px-3 space-y-2.5 bg-white md:flex-1 md:overflow-y-auto custom-scrollbar">
+                  <div className="py-3 px-3 space-y-2.5 bg-zinc-950 md:flex-1 md:overflow-y-auto custom-scrollbar">
                     {ticket.restaurant_tables && (
                       <div className="w-full bg-indigo-500/10 border border-indigo-500/20 px-3.5 py-2.5 rounded-xl mb-1 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Store className="h-4 w-4" />
-                          <span className="text-xs font-bold text-indigo-700 uppercase tracking-wider">
+                          <Store className="h-4 w-4 text-indigo-400" />
+                          <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
                             {ticket.restaurant_tables.name}
                           </span>
                         </div>
                         {ticket.restaurant_tables.table_zones?.name && (
-                          <span className="text-[10px] bg-indigo-500/20 text-indigo-700 px-2 py-0.5 rounded-md font-bold uppercase">
+                          <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-md font-bold uppercase">
                             {ticket.restaurant_tables.table_zones.name}
                           </span>
                         )}
@@ -835,11 +835,11 @@ const KitchenView = () => {
                     <div className="space-y-2.5">
                       {ticket.totalRounds > 1 && (
                         <div className="flex items-center gap-2 px-1">
-                          <div className="h-px bg-gray-100 flex-1"></div>
+                          <div className="h-px bg-zinc-800 flex-1"></div>
                           <span className="text-[10px] font-black uppercase tracking-wider text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
                             Ronda {ticket.roundIdx + 1} de {ticket.totalRounds}
                           </span>
-                          <div className="h-px bg-gray-100 flex-1"></div>
+                          <div className="h-px bg-zinc-800 flex-1"></div>
                         </div>
                       )}
                       
@@ -851,10 +851,10 @@ const KitchenView = () => {
                         const imgUrl = imageByProduct[item.product_id] || item.products?.product_images?.[0]?.url || null;
                         
                         return (
-                          <div key={item.id} className="rounded-xl bg-gray-50/60 border border-gray-200 overflow-hidden">
+                          <div key={item.id} className="rounded-xl bg-zinc-900/60 border border-zinc-900 overflow-hidden">
                             {/* qty + image + name */}
                             <div className="flex items-start gap-3 px-3.5 pt-3 pb-2.5">
-                              <div className="w-8 h-8 rounded-lg bg-gray-100 text-black flex items-center justify-center font-extrabold text-base shrink-0">
+                              <div className="w-8 h-8 rounded-lg bg-zinc-800 text-white flex items-center justify-center font-extrabold text-base shrink-0">
                                 {item.quantity}
                               </div>
                               {imgUrl ? (
@@ -862,31 +862,33 @@ const KitchenView = () => {
                                   src={imgUrl}
                                   alt={item.product_name}
                                   loading="lazy"
-                                  className="w-10 h-10 rounded-lg object-cover shrink-0 border border-gray-200"
+                                  className="w-10 h-10 rounded-lg object-cover shrink-0 border border-zinc-800"
                                 />
                               ) : (
-                                <ChefHat className="shrink-0 h-5 w-5" />
+                                <div className="w-10 h-10 rounded-lg bg-zinc-800/60 flex items-center justify-center shrink-0 border border-zinc-800/40">
+                                  <ChefHat className="h-5 w-5 text-zinc-600" />
+                                </div>
                               )}
                               <div className="flex-1 min-w-0 pt-0.5">
-                                <p className="text-[13px] font-bold text-black leading-tight break-words">{item.product_name ? item.product_name.charAt(0).toUpperCase() + item.product_name.slice(1).toLowerCase() : ''}</p>
+                                <p className="text-[13px] font-bold text-white leading-tight break-words">{item.product_name ? item.product_name.charAt(0).toUpperCase() + item.product_name.slice(1).toLowerCase() : ''}</p>
                               </div>
                             </div>
 
                             {/* modifiers block */}
                             {hasModifiers && (
-                              <div className="px-3.5 pb-3 pt-0.5 border-t border-gray-200/40 space-y-2.5 text-[13px]">
+                              <div className="px-3.5 pb-3 pt-0.5 border-t border-zinc-900/40 space-y-2.5 text-[13px]">
                                 {/* Render combo child options first, clean and structured */}
                                 {childItems.length > 0 && (
-                                  <div className="space-y-1.5 bg-gray-100 p-2.5 rounded-lg border border-gray-200/50">
-                                    <span className="text-[10px] uppercase tracking-wider text-gray-600 font-extrabold select-none block mb-1">Componentes:</span>
+                                  <div className="space-y-1.5 bg-black/30 p-2.5 rounded-lg border border-zinc-800/50">
+                                    <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-extrabold select-none block mb-1">Componentes:</span>
                                     {childItems.map((child, cIdx) => {
                                       const childVars = child.order_item_variants?.map(v => v.variant_option_name).join(', ');
                                       const childExtras = child.order_item_ingredients?.map(i => i.ingredient_name);
                                       return (
-                                        <div key={cIdx} className="text-gray-700 font-medium text-xs leading-normal">
-                                          <span className="text-emerald-700 font-bold">• {child.quantity / item.quantity}x</span> {child.product_name}
+                                        <div key={cIdx} className="text-zinc-300 font-medium text-xs leading-normal">
+                                          <span className="text-emerald-400 font-bold">• {child.quantity / item.quantity}x</span> {child.product_name}
                                           {childVars && (
-                                            <span className="text-gray-600"> ({childVars})</span>
+                                            <span className="text-zinc-500"> ({childVars})</span>
                                           )}
                                           {childExtras && childExtras.length > 0 && (
                                             <span className="text-amber-500 ml-1 font-semibold">
@@ -900,17 +902,17 @@ const KitchenView = () => {
                                 )}
 
                                 {variants && (
-                                  <div className="flex items-baseline gap-1 text-gray-600 font-medium">
-                                    <span className="text-[11px] uppercase tracking-wider text-gray-600 font-extrabold select-none shrink-0">Opción:</span>
+                                  <div className="flex items-baseline gap-1 text-zinc-400 font-medium">
+                                    <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-extrabold select-none shrink-0">Opción:</span>
                                     <span className="break-words leading-tight flex-1">{variants}</span>
                                   </div>
                                 )}
                                 {extras && extras.length > 0 && (
                                   <div className="space-y-1">
-                                    <span className="text-[11px] uppercase tracking-wider text-gray-600 font-extrabold select-none block">Agregados:</span>
+                                    <span className="text-[11px] uppercase tracking-wider text-zinc-500 font-extrabold select-none block">Agregados:</span>
                                     <div className="flex flex-wrap gap-1">
                                       {extras.map((extra, idx) => (
-                                        <span key={idx} className="inline-block bg-gray-50 border border-gray-200 text-gray-700 px-2 py-0.5 rounded-md text-[12px] font-semibold">
+                                        <span key={idx} className="inline-block bg-zinc-900 border border-zinc-800 text-zinc-300 px-2 py-0.5 rounded-md text-[12px] font-semibold">
                                           + {extra}
                                         </span>
                                       ))}
@@ -919,7 +921,7 @@ const KitchenView = () => {
                                 )}
                                 {item.notes && (
                                   <div className="p-2 bg-[#ffc107]/[0.03] border border-[#ffc107]/10 rounded-lg">
-                                    <p className="text-[12px] text-amber-700/90 font-medium leading-relaxed break-words">
+                                    <p className="text-[12px] text-amber-200/90 font-medium leading-relaxed break-words">
                                       <span className="font-bold text-[#ffc107] block select-none mb-0.5 text-[10px] uppercase tracking-wider">Nota ítem:</span>
                                       {item.notes}
                                     </p>
@@ -934,30 +936,30 @@ const KitchenView = () => {
                   </div>
 
                   {/* ── Timer & Action button ── */}
-                  <div className="px-4 pb-4 pt-2 shrink-0 flex flex-col gap-3 border-t border-gray-200/50 bg-white">
+                  <div className="px-4 pb-4 pt-2 shrink-0 flex flex-col gap-3 border-t border-zinc-900/50 bg-zinc-950">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-gray-600 font-bold uppercase tracking-wider">Tiempo de espera</span>
-                      <div className={`flex items-center gap-1.5 font-mono text-[13px] font-bold px-2 py-1 rounded-md shrink-0 select-none ${isUrgent ? 'bg-red-500/10 text-red-700 border border-red-500/20' : isWarning ? 'bg-amber-500/10 text-amber-700 border border-amber-500/20' : 'bg-gray-50 border border-gray-200 text-gray-700'}`}>
+                      <span className="text-[11px] text-zinc-500 font-bold uppercase tracking-wider">Tiempo de espera</span>
+                      <div className={`flex items-center gap-1.5 font-mono text-[13px] font-bold px-2 py-1 rounded-md shrink-0 select-none ${isUrgent ? 'bg-red-500/10 text-red-400 border border-red-500/20' : isWarning ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-zinc-900 border border-zinc-800 text-zinc-300'}`}>
                         <Clock className="h-3.5 w-3.5" />
                         <span>{elapsed}</span>
                       </div>
                     </div>
                     {(ticket.status === 'confirmed' || ticket.status === 'pending' || ticket.status === 'scheduled') ? (
                       <Button
-                        variant="ghost"
+                        variant={ticket.status === 'confirmed' ? 'ghost' : 'default'}
                         onClick={() => handleUpdateStatus(ticket.id, 'preparing', ticket)}
                         className={`w-full py-6 ${cfg.btnClass} rounded-full font-bold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
                       >
-                        <Play className="h-4 w-4" aria-hidden="true" />
+                        <Play className="h-4 w-4 fill-current" />
                         Empezar Preparación
                       </Button>
                     ) : (
                       <Button
-                        variant="ghost"
+                        variant="default"
                         onClick={() => handleUpdateStatus(ticket.id, 'ready', ticket)}
                         className={`w-full py-6 ${cfg.btnClass} rounded-full font-bold flex justify-center items-center gap-2 transition-all text-lg tracking-wide active:scale-[0.98]`}
                       >
-                        <CheckCircle2 className="h-5 w-5" strokeWidth={2}  aria-hidden="true" />
+                        <CheckCircle2 className="h-5 w-5" strokeWidth={2.5} />
                         Marcar como Listo
                       </Button>
                     )}
@@ -977,41 +979,41 @@ const KitchenView = () => {
             role="dialog"
             aria-modal="true"
             aria-labelledby="bulk-ready-title"
-            className="bg-gray-50 rounded-2xl w-full max-w-md shadow-2xl shadow-black/60 border border-gray-200 overflow-hidden animate-in zoom-in-95 duration-150"
+            className="bg-zinc-900 rounded-2xl w-full max-w-md shadow-2xl shadow-black/60 border border-zinc-800 overflow-hidden animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 sm:p-7">
-              <h2 id="bulk-ready-title" className="text-sm font-bold text-gray-600">
+              <h2 id="bulk-ready-title" className="text-sm font-bold text-zinc-400">
                 ¿Marcar todo como listo?
               </h2>
 
               {/* El número manda: el riesgo de esta acción es cuánto se cierra. */}
               <div className="mt-1 flex items-baseline gap-2.5">
-                <span className="text-5xl font-black text-black tracking-tight leading-none tabular-nums">
+                <span className="text-5xl font-black text-white tracking-tight leading-none tabular-nums">
                   {ordersToMarkReady.length}
                 </span>
-                <span className="text-sm font-extrabold uppercase tracking-wider text-emerald-700">
+                <span className="text-sm font-extrabold uppercase tracking-wider text-emerald-400">
                   {ordersToMarkReady.length === 1 ? 'pedido' : 'pedidos'}
                 </span>
               </div>
 
-              <div className="mt-5 border-y border-gray-200 divide-y divide-zinc-800">
+              <div className="mt-5 border-y border-zinc-800 divide-y divide-zinc-800">
                 <div className="flex items-center justify-between py-2.5">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-gray-600">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
                     Productos
                   </span>
-                  <span className="font-mono text-sm font-bold text-gray-800 tabular-nums">
+                  <span className="font-mono text-sm font-bold text-zinc-200 tabular-nums">
                     {itemsToMarkCount}
                   </span>
                 </div>
                 {scheduledSkippedCount > 0 && (
                   <div className="flex items-center justify-between py-2.5">
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-gray-600">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
                       Programados más tarde
                     </span>
-                    <span className="font-mono text-sm font-bold text-amber-700 tabular-nums">
+                    <span className="font-mono text-sm font-bold text-amber-400 tabular-nums">
                       {scheduledSkippedCount}
-                      <span className="ml-1.5 font-sans text-[10px] uppercase tracking-wider text-amber-700/70">
+                      <span className="ml-1.5 font-sans text-[10px] uppercase tracking-wider text-amber-400/70">
                         sin marcar
                       </span>
                     </span>
@@ -1019,7 +1021,7 @@ const KitchenView = () => {
                 )}
               </div>
 
-              <p className="mt-4 text-sm leading-relaxed text-gray-600">
+              <p className="mt-4 text-sm leading-relaxed text-zinc-400">
                 {scheduledSkippedCount > 0
                   ? 'Los programados más tarde no se marcarán. Los clientes con correo reciben el aviso de pedido listo.'
                   : 'Los clientes con correo recibirán el aviso de pedido listo.'}
@@ -1027,7 +1029,7 @@ const KitchenView = () => {
 
               {bulkWorking && (
                 <div className="mt-5">
-                  <div className="mb-1.5 flex items-baseline justify-between text-[11px] font-bold text-gray-600">
+                  <div className="mb-1.5 flex items-baseline justify-between text-[11px] font-bold text-zinc-400">
                     <span>Marcando {bulkProgress.done} de {bulkProgress.total}</span>
                     <span className="font-mono tabular-nums">
                       {bulkProgress.total > 0
@@ -1035,7 +1037,7 @@ const KitchenView = () => {
                         : 0}%
                     </span>
                   </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
                     <div
                       className="h-full rounded-full bg-emerald-500 transition-[width] duration-200 ease-out"
                       style={{
@@ -1045,20 +1047,20 @@ const KitchenView = () => {
                       }}
                     />
                   </div>
-                  <p className="mt-2 text-xs text-gray-600">
+                  <p className="mt-2 text-xs text-zinc-500">
                     No cierres esta pantalla: los pedidos ya marcados quedan guardados.
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="flex gap-2 border-t border-gray-200 bg-white/60 p-4">
+            <div className="flex gap-2 border-t border-zinc-800 bg-zinc-950/60 p-4">
               {/* Sin variant="outline": esa variante usa --background, que sin
                   la clase .dark es blanco y convertía Cancelar en el elemento
                   más brillante del modal. Colores explícitos para que el botón
                   quede recesado y la atención esté en la acción principal. */}
               <Button
-                className="flex-1 rounded-full border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:border-gray-300 hover:text-gray-800 disabled:opacity-40"
+                className="flex-1 rounded-full border border-zinc-800 bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:border-zinc-700 hover:text-zinc-200 disabled:opacity-40"
                 onClick={() => setBulkConfirmOpen(false)}
                 disabled={bulkWorking}
               >
@@ -1077,7 +1079,7 @@ const KitchenView = () => {
                   </>
                 ) : (
                   <>
-                    <CheckCheck className="mr-2 h-4 w-4" strokeWidth={2} />
+                    <CheckCheck className="mr-2 h-4 w-4" strokeWidth={3} />
                     Sí, marcar todo
                   </>
                 )}
