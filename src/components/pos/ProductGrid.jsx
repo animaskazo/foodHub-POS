@@ -1,18 +1,5 @@
-import {
-  Star,
-  Search,
-  Keyboard as KeyboardIcon,
-  X,
-  Menu,
-  ChefHat,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useRef, useEffect } from 'react';
-
+import { Search, Keyboard as KeyboardIcon, X, Menu, ChefHat, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useKitchenOrders } from '../../hooks/useKitchenOrders';
 import Keyboard from 'react-simple-keyboard';
@@ -44,16 +31,16 @@ const keyboardDisplay = {
   '{bksp}': '⌫',
   '{shift}': '⇧',
   '{space}': 'Espacio',
-  '{clear}': 'Limpiar',
+  '{clear}': '✕ Limpiar',
 };
 
-const ProductGrid = ({ 
-  organizationId, 
-  onProductClick, 
-  cartItems = [], 
-  onOpenMobileMenu, 
-  activeTable, 
-  onChangeTable, 
+const ProductGrid = ({
+  organizationId,
+  onProductClick,
+  cartItems = [],
+  onOpenMobileMenu,
+  activeTable,
+  onChangeTable,
   role,
   hasTables = false,
   logoUrl = null
@@ -130,15 +117,15 @@ const ProductGrid = ({
         getOutOfStockProductIds(organizationId),
       ]);
       setOutOfStockIds(outOfStock);
-        
+
       const activeCats = cats.filter(c => c.show_in_pos !== false && c.is_active !== false);
       const activeCatIds = activeCats.map(c => c.id);
-        
+
       const activeProds = prods.filter(p => {
         if (p.categoryId === 'none') return true;
         return activeCatIds.includes(p.categoryId);
       });
-        
+
       setCategories([{ id: 'all', name: 'Todos' }, ...activeCats]);
       setProducts(activeProds);
       setLoading(false);
@@ -158,7 +145,7 @@ const ProductGrid = ({
           return price < min ? price : min;
         }, Infinity)
       : product.price;
-    
+
     return (
       <button
         key={product.id}
@@ -184,9 +171,13 @@ const ProductGrid = ({
         )}
 
         {product.isFeatured && (
-          <Star className={[`absolute left-2 z-10 ${isOutOfStock ? "top-10" : "top-2"}`, "w-3.5 h-3.5"].filter(Boolean).join(" ")} aria-hidden="true" />
+          <div className={`absolute left-2 z-10 w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center shadow-sm border border-yellow-300 ${isOutOfStock ? 'top-10' : 'top-2'}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-white">
+              <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
+            </svg>
+          </div>
         )}
-        
+
         {hasImage ? (
           <div className="absolute inset-0">
             <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
@@ -283,17 +274,17 @@ const ProductGrid = ({
       <div ref={searchBarRef} className="bg-white pt-5 pb-4 shadow-sm z-10 sticky top-0">
         <div className="px-3 md:px-5 mb-4 md:mb-5 flex items-center justify-between gap-2 md:gap-3 w-full">
           {/* Mobile Burger Menu Trigger */}
-          <IconButton
+          <button
             onClick={onOpenMobileMenu}
-            className="md:hidden flex items-center justify-center -ml-1 text-gray-700 active:bg-gray-100 shrink-0 select-none"
+            className="md:hidden flex items-center justify-center p-2 -ml-1 rounded-lg text-gray-700 active:bg-gray-100 shrink-0 select-none"
             style={{ WebkitTapHighlightColor: 'transparent' }}
-           label="Abrir menú" variant="ghost">
-            <Menu className="h-7 w-7" aria-hidden="true" />
-          </IconButton>
+          >
+            <Menu className="h-7 w-7" />
+          </button>
           {/* Search Input */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 pointer-events-none" />
-            
+            <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-gray-400 pointer-events-none" />
+
             {/* Desktop Input */}
             <input
               ref={inputRef}
@@ -329,35 +320,35 @@ const ProductGrid = ({
               className="md:hidden flex w-full h-10 pl-9 pr-9 bg-gray-100 rounded-lg text-sm items-center transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
             />
             {search ? (
-              <button data-icon-button="true"
+              <button
                 onClick={handleClearSearch}
                 className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 p-1 md:p-1.5 rounded-full bg-gray-300 active:bg-gray-400 select-none"
                 style={{ WebkitTapHighlightColor: 'transparent' }}
-               aria-label="Cerrar">
-                <X className="h-3 w-3 md:h-3.5 md:w-3.5" aria-hidden="true" />
+              >
+                <X className="h-3 w-3 md:h-3.5 md:w-3.5 text-gray-600" />
               </button>
             ) : (
-              <button data-icon-button="true"
+              <button
                 onClick={() => {
                   setShowKeyboard(true);
                   setTimeout(() => inputRef.current?.focus(), 100);
                 }}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 p-1"
-               aria-label="Abrir teclado">
-                <KeyboardIcon className="h-5 w-5" aria-hidden="true" />
+              >
+                <KeyboardIcon className="h-5 w-5" />
               </button>
             )}
           </div>
 
           {/* Mobile Table Selector */}
           {hasTables && ['waiter', 'owner', 'admin', 'manager'].includes(role) && (
-            <button 
+            <button
               onClick={onChangeTable}
               className="md:hidden w-[28%] flex items-center justify-between bg-white border border-gray-200 rounded-lg px-2 h-10 shadow-sm text-[13px] leading-tight font-bold text-gray-800 active:bg-gray-50 active:scale-[0.98] transition-all select-none truncate shrink-0"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               <span className="truncate flex-1 text-left">{activeTable ? activeTable.name : "V. Directa"}</span>
-              <ChevronDown className="w-3.5 h-3.5 shrink-0 ml-1" />
+              <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-1" />
             </button>
           )}
 
@@ -367,7 +358,7 @@ const ProductGrid = ({
           </div>
 
           {/* Mobile Kitchen Badge Trigger (Desktop only now) */}
-          <button data-icon-button="true"
+          <button
             onClick={() => navigate('/kitchen')}
             className={`hidden md:flex relative p-2 rounded-lg shrink-0 select-none transition-colors ${newOrderFlag ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-700 active:bg-gray-200'}`}
             style={{ WebkitTapHighlightColor: 'transparent' }}
@@ -392,18 +383,18 @@ const ProductGrid = ({
         ) : (
           <div className="flex items-center px-2 md:px-4 gap-1">
             {/* Left Button */}
-            <IconButton
+            <button
               type="button"
               onClick={() => scrollCats('left')}
-              className="flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0 cursor-pointer select-none"
+              className="flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0 cursor-pointer select-none"
               title="Categorías anteriores"
               style={{ WebkitTapHighlightColor: 'transparent' }}
-             label="Categorías anteriores" variant="ghost">
-              <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-            </IconButton>
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
 
             {/* Categories Scroll Track */}
-            <div 
+            <div
               ref={categoryScrollRef}
               className={`flex gap-2 overflow-x-auto no-scrollbar snap-x snap-mandatory relative select-none ${isDraggingCats ? 'cursor-grabbing' : 'cursor-grab'} flex-1 py-1`}
               onPointerDown={handleCatPointerDown}
@@ -425,8 +416,8 @@ const ProductGrid = ({
                     }}
                     className={`
                       px-5 py-2 rounded-full font-bold text-[14px] whitespace-nowrap transition-colors select-none cursor-pointer
-                      ${activeCategory === cat.id 
-                        ? 'bg-black text-white shadow-md' 
+                      ${activeCategory === cat.id
+                        ? 'bg-black text-white shadow-md'
                         : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 active:bg-gray-100'}
                     `}
                     style={{ WebkitTapHighlightColor: 'transparent' }}
@@ -438,15 +429,15 @@ const ProductGrid = ({
             </div>
 
             {/* Right Button */}
-            <IconButton
+            <button
               type="button"
               onClick={() => scrollCats('right')}
-              className="flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0 cursor-pointer select-none"
+              className="flex items-center justify-center p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0 cursor-pointer select-none"
               title="Siguientes categorías"
               style={{ WebkitTapHighlightColor: 'transparent' }}
-             label="Siguientes categorías" variant="ghost">
-              <ChevronRight className="h-5 w-5" aria-hidden="true" />
-            </IconButton>
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
           </div>
         )}
       </div>
@@ -478,13 +469,13 @@ const ProductGrid = ({
                   acc[cat].push(p);
                   return acc;
                 }, {});
-                
+
                 // Get category names in the order they appear in the categories state (which is sorted by DB sort_order)
                 const sortedCats = categories
                   .filter(c => c.id !== 'all')
                   .map(c => c.name)
                   .filter(name => grouped[name]);
-                
+
                 // Append 'General' at the end if it exists
                 if (grouped['General'] && !sortedCats.includes('General')) {
                   sortedCats.push('General');
@@ -517,18 +508,18 @@ const ProductGrid = ({
           {/* Keyboard Header */}
           <div className="flex items-center justify-between px-4 py-2 border-b border-gray-700">
             <div className="flex items-center gap-3">
-              <Search className="h-4 w-4" />
+              <Search className="h-4 w-4 text-gray-400" />
               <span className="text-white text-sm font-medium">
                 {search ? `"${search}"` : 'Buscar artículo...'}
               </span>
             </div>
-            <Button
+            <button
               onClick={() => setShowKeyboard(false)}
-              className="bg-blue-600 text-white active:bg-blue-700 select-none"
+              className="px-4 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-bold active:bg-blue-700 select-none"
               style={{ WebkitTapHighlightColor: 'transparent' }}
-             variant="ghost" size="default">
+            >
               Listo
-            </Button>
+            </button>
           </div>
 
           {/* Keyboard */}

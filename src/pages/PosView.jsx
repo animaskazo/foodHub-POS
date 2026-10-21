@@ -1,4 +1,3 @@
-import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -120,7 +119,7 @@ const PosView = () => {
         // Check if there are any tables/zones configured
         const { data: branchData } = await supabase.from('branches').select('id').eq('organization_id', organization.id).limit(1).single();
         const { data: orgData } = await supabase.from('organizations').select('dine_in_enabled').eq('id', organization.id).single();
-        
+
         if (['waiter', 'owner', 'admin', 'manager'].includes(role)) {
           if (branchData?.id && orgData?.dine_in_enabled === true) {
             const loadedZones = await getTableZones(branchData.id);
@@ -138,7 +137,7 @@ const PosView = () => {
         setLoadingShift(false);
       }
     };
-    
+
     loadShiftData();
   }, [organization?.id]);
 
@@ -197,16 +196,16 @@ const PosView = () => {
   const addToCart = (product, variant, ingredients = []) => {
     const ingredientsIds = ingredients.map(i => i.id).sort().join(',');
     const cartItemId = `${product.id}${variant ? '-' + variant.id : ''}${ingredientsIds ? '-ing-' + ingredientsIds : ''}`;
-    
+
     const basePrice = product.basePrice !== undefined ? product.basePrice : product.price;
     const originalName = product.originalName || product.name;
 
     const baseNet = variant ? basePrice + (variant.price_modifier || 0) : basePrice;
     const baseGross = Math.round(baseNet);
     const itemPrice = baseGross;
-    
+
     const itemName = variant ? `${originalName} (${variant.name})` : originalName;
-    
+
     setCartItems(prev => {
       const existing = prev.find(i => i.cartItemId === cartItemId);
       if (existing) {
@@ -214,15 +213,15 @@ const PosView = () => {
           i.cartItemId === cartItemId ? { ...i, quantity: i.quantity + 1 } : i
         );
       }
-      return [...prev, { 
-        ...product, 
-        cartItemId, 
-        productId: product.id, 
-        name: itemName, 
+      return [...prev, {
+        ...product,
+        cartItemId,
+        productId: product.id,
+        name: itemName,
         originalName,
         basePrice,
-        price: itemPrice, 
-        quantity: 1, 
+        price: itemPrice,
+        quantity: 1,
         variant: variant || null,
         selectedIngredients: ingredients
       }];
@@ -303,7 +302,7 @@ const PosView = () => {
 
     const hasVariants = product.variants && product.variants.length > 0 && product.variants.some(v => v.is_active);
     const hasExtras = product.ingredients && product.ingredients.length > 0 && product.ingredients.some(i => i.isExtra);
-    
+
     if (hasVariants || hasExtras) {
       setSelectedProductForVariant(product);
       return;
@@ -318,7 +317,7 @@ const PosView = () => {
 
       const ingredientsIds = ingredients.map(i => i.id).sort().join(',');
       const newCartItemId = `${selectedProductForVariant.productId || selectedProductForVariant.id}${variant ? '-' + variant.id : ''}${ingredientsIds ? '-ing-' + ingredientsIds : ''}`;
-      
+
       const baseNet = variant ? basePrice + (variant.price_modifier || 0) : basePrice;
       const baseGross = Math.round(baseNet);
       const itemPrice = baseGross;
@@ -327,21 +326,21 @@ const PosView = () => {
       setCartItems(prev => {
         const withoutOld = prev.filter(i => i.cartItemId !== editingItem.cartItemId);
         const existing = withoutOld.find(i => i.cartItemId === newCartItemId);
-        
+
         if (existing) {
           return withoutOld.map(i =>
             i.cartItemId === newCartItemId ? { ...i, quantity: i.quantity + editingItem.quantity } : i
           );
         } else {
-          return [...withoutOld, { 
-            ...selectedProductForVariant, 
-            cartItemId: newCartItemId, 
-            productId: selectedProductForVariant.productId || selectedProductForVariant.id, 
+          return [...withoutOld, {
+            ...selectedProductForVariant,
+            cartItemId: newCartItemId,
+            productId: selectedProductForVariant.productId || selectedProductForVariant.id,
             name: itemName,
             originalName,
             basePrice,
-            price: itemPrice, 
-            quantity: editingItem.quantity, 
+            price: itemPrice,
+            quantity: editingItem.quantity,
             variant: variant || null,
             selectedIngredients: ingredients
           }];
@@ -357,7 +356,7 @@ const PosView = () => {
 
   const handleBundleSelect = (configuredBundle) => {
     const { editingItem } = configuredBundle;
-    
+
     // Generar un cartItemId único para esta configuración específica del combo.
     const selectionsKey = configuredBundle.selectedOptions
       .map(opt => {
@@ -374,16 +373,16 @@ const PosView = () => {
       setCartItems(prev => {
         const withoutOld = prev.filter(i => i.cartItemId !== editingItem.cartItemId);
         const existing = withoutOld.find(i => i.cartItemId === cartItemId);
-        
+
         if (existing) {
           return withoutOld.map(i =>
             i.cartItemId === cartItemId ? { ...i, quantity: i.quantity + editingItem.quantity } : i
           );
         } else {
-          return [...withoutOld, { 
-            ...configuredBundle, 
-            cartItemId, 
-            productId: configuredBundle.id, 
+          return [...withoutOld, {
+            ...configuredBundle,
+            cartItemId,
+            productId: configuredBundle.id,
             quantity: editingItem.quantity
           }];
         }
@@ -398,10 +397,10 @@ const PosView = () => {
             i.cartItemId === cartItemId ? { ...i, quantity: i.quantity + 1 } : i
           );
         }
-        return [...prev, { 
-          ...configuredBundle, 
-          cartItemId, 
-          productId: configuredBundle.id, 
+        return [...prev, {
+          ...configuredBundle,
+          cartItemId,
+          productId: configuredBundle.id,
           quantity: 1
         }];
       });
@@ -622,7 +621,7 @@ const PosView = () => {
       const total = cartTotal - discountAmount + deliveryFee;
       const subtotal = Math.round(total / (1 + taxRate));
       const tax = total - subtotal;
-      
+
       let finalOrder;
 
       // Solo se entra al reparto multi-orden si el carrito realmente referencia
@@ -724,7 +723,7 @@ const PosView = () => {
       } else {
         finalOrder = await createOrder(cartItems, method, orderType, total, subtotal, tax, deliveryInfo, orderNotes, deliveryFee, activeTable?.id, discountAmount, appliedCoupon?.id);
       }
-      
+
       setCartItems([]);
       setIsMobileCartOpen(false);
       setActiveTable(null);
@@ -732,7 +731,7 @@ const PosView = () => {
       // Mapa, modal y desplegable muestran el total de las órdenes abiertas: hay
       // que recargarlos o seguirían pintando el monto ya cobrado (en rojo).
       notifyTablesChanged();
-      
+
       // Incrementar uso del cupón si se aplicó
       if (appliedCoupon?.id) {
         const { incrementCouponUsage } = await import('../services/couponService');
@@ -740,7 +739,7 @@ const PosView = () => {
       }
       setAppliedCoupon(null);
       setCouponError('');
-      
+
       return finalOrder;
     } catch (error) {
       console.error('Error creating order:', error);
@@ -805,11 +804,13 @@ const PosView = () => {
         <>
           <div className="flex flex-col items-center justify-center h-screen bg-gray-50 text-center p-6">
             <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
-              <Store className="mx-auto mb-6 h-10 w-10" />
+              <div className="bg-red-50 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+                <Store className="h-10 w-10 text-red-500" />
+              </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Caja Cerrada</h2>
               <p className="text-gray-500 mb-8">El terminal de ventas está bloqueado porque el turno actual se encuentra cerrado. Abre la caja para comenzar a recibir pagos y procesar órdenes.</p>
               <Button onClick={() => { setShiftModalType('open'); setIsShiftModalOpen(true); }}>
-                <Store className="h-4 w-4" aria-hidden="true" />
+                <Store className="h-4 w-4 mr-2" />
                 Abrir Caja
               </Button>
             </div>
@@ -830,11 +831,13 @@ const PosView = () => {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-gray-50 text-center p-6">
         <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
-          <LogOut className="mx-auto mb-6 h-10 w-10" />
+          <div className="bg-red-50 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+            <LogOut className="h-10 w-10 text-red-500" />
+          </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Caja Cerrada</h2>
           <p className="text-gray-500 mb-8">El terminal de ventas está bloqueado porque el turno actual se encuentra cerrado. Para poder recibir pagos y procesar órdenes, por favor abre la caja desde el Dashboard administrativo.</p>
-          <Button 
-            onClick={() => navigate('/')} 
+          <Button
+            onClick={() => navigate('/')}
           >
             Ir al Dashboard
           </Button>
@@ -864,7 +867,7 @@ const PosView = () => {
                 hasTables={hasTables}
                 logoUrl={organization?.logo_url}
               />
-              
+
               {/* Floating Cart Button for Mobile — se oculta con el carrito
                   abierto: queda en z-40 sobre el drawer (también z-40) y en la
                   misma posición, tapando los botones de Cobrar / Agregar. */}
@@ -915,7 +918,7 @@ const PosView = () => {
                     setEditingBundleItem(item);
                     return;
                   }
-                  
+
                   const hasVariants = item.variants && item.variants.length > 0 && item.variants.some(v => v.is_active);
                   const hasExtras = item.ingredients && item.ingredients.length > 0 && item.ingredients.some(i => i.isExtra);
                   if (hasVariants || hasExtras) {
@@ -932,7 +935,7 @@ const PosView = () => {
             </div>
           </div>
         )}
-        
+
         {activeTab === 'transacciones' && (
           <div className="flex-1 w-full overflow-y-auto">
             <TransactionsView onOpenMobileMenu={() => setIsMobileMenuOpen(true)} />
@@ -941,9 +944,9 @@ const PosView = () => {
 
         {activeTab === 'mesas' && (
           <div className="flex-1 w-full h-full flex flex-col relative">
-            <PosFloorMap 
-              onTableSelect={handleTableSelect} 
-              onOpenMobileMenu={() => setIsMobileMenuOpen(true)} 
+            <PosFloorMap
+              onTableSelect={handleTableSelect}
+              onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
             />
           </div>
         )}
@@ -960,7 +963,7 @@ const PosView = () => {
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
           {/* Backdrop */}
-          <div 
+          <div
             className="absolute inset-0 bg-black/50"
             onPointerDown={() => setIsMobileMenuOpen(false)}
           />
@@ -968,14 +971,14 @@ const PosView = () => {
           <div className="relative w-4/5 max-w-xs bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <h2 className="font-bold text-lg">Menú</h2>
-              <IconButton
+              <Button
                 variant="ghost"
-                size="icon"
+                size="icon-sm"
                 onPointerDown={() => setIsMobileMenuOpen(false)}
-                className="text-gray-600"
-               label="Cerrar">
-                <X className="size-6" aria-hidden="true" />
-              </IconButton>
+                className="text-gray-400"
+              >
+                <X className="size-6" />
+              </Button>
             </div>
             <div className="flex-1 overflow-y-auto py-4">
               {getNavItems(role, organization?.dine_in_enabled === true, isAdmin).map(({ id, label, icon: Icon }) => (
@@ -996,7 +999,7 @@ const PosView = () => {
                     activeTab === id ? 'text-black font-extrabold bg-gray-50' : 'text-gray-500 font-semibold hover:bg-gray-50'
                   }`}
                 >
-                  <Icon className="h-8 w-8" />
+                  <Icon className={`h-8 w-8 ${activeTab === id ? 'text-black' : 'text-gray-400'}`} />
                   <span className="text-lg">{label}</span>
                 </Button>
               ))}
@@ -1015,7 +1018,7 @@ const PosView = () => {
                   }}
                   className="w-full justify-start h-14 text-base text-red-600 hover:text-red-600 hover:bg-red-50"
                 >
-                  <Lock className="size-6" aria-hidden="true" />
+                  <Lock className="size-6" />
                   Cerrar Caja
                 </Button>
               )}
@@ -1024,7 +1027,7 @@ const PosView = () => {
                 onPointerDown={() => { setIsMobileMenuOpen(false); requestChangePin(); }}
                 className="w-full justify-start h-14 text-base"
               >
-                <KeyRound className="size-6" aria-hidden="true" />
+                <KeyRound className="size-6" />
                 Cambiar mi PIN
               </Button>
               <Button
@@ -1032,7 +1035,7 @@ const PosView = () => {
                 onPointerDown={() => { setIsMobileMenuOpen(false); requestLogout(); }}
                 className="w-full justify-start h-14 text-base text-red-600 hover:text-red-600 hover:bg-red-50"
               >
-                <LogOut className="size-6" aria-hidden="true" />
+                <LogOut className="size-6" />
                 Cerrar Sesión
               </Button>
             </div>
@@ -1091,7 +1094,7 @@ const PosView = () => {
         }}
         onGenerateTicket={generateTicket}
       />
-      
+
       <VariantSelectionModal
         isOpen={selectedProductForVariant !== null}
         onClose={() => {
@@ -1167,7 +1170,9 @@ const PosView = () => {
       {toastMessage && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-top-4 fade-in duration-300">
           <div className="bg-emerald-500 text-white px-5 py-3.5 rounded-full shadow-2xl flex items-center gap-3 font-bold whitespace-nowrap text-sm sm:text-base border border-emerald-400">
-            <ChefHat className="h-5 w-5" />
+            <div className="bg-white/20 rounded-full p-1.5 flex items-center justify-center">
+              <ChefHat className="h-5 w-5 text-white" />
+            </div>
             <span>{toastMessage}</span>
           </div>
         </div>

@@ -1,4 +1,3 @@
-import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import { getFirstOrganizationId } from '../../services/organizationService';
 import { supabase } from '../../lib/supabase';
@@ -6,7 +5,7 @@ import { getTableZones, getRestaurantTables, onTablesChanged, notifyTablesChange
 import { getOpenOrders, sumOpenOrdersTotal } from '../../services/orderService';
 import { Users, Menu } from 'lucide-react';
 import { FullScreenSpinner } from '@/components/ui/Spinner';
-
+import { Button } from '@/components/ui/button';
 
 const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
   const [loading, setLoading] = useState(true);
@@ -32,7 +31,7 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
         .eq('organization_id', orgId)
         .limit(1)
         .single();
-      
+
       if (!branchData) return;
 
       const [loadedZones, loadedTables] = await Promise.all([
@@ -42,7 +41,7 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
 
       setZones(loadedZones);
       setTables(loadedTables);
-      
+
       if (loadedZones.length > 0) {
         setActiveZoneId(loadedZones[0].id);
       }
@@ -70,7 +69,7 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
 
     // El POS avisa tras cobrar o enviar a cocina.
     const unsubscribe = onTablesChanged(loadData);
-      
+
     return () => {
       supabase.removeChannel(tablesSubscription);
       unsubscribe();
@@ -96,14 +95,14 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
 
   const handlePointerMove = (e) => {
     if (!isDragging || !mapRef.current) return;
-    
+
     const dx = e.pageX - dragStart.x;
     const dy = e.pageY - dragStart.y;
-    
+
     if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
       setHasDragged(true);
     }
-    
+
     mapRef.current.scrollLeft = dragStart.scrollLeft - dx;
     mapRef.current.scrollTop = dragStart.scrollTop - dy;
   };
@@ -152,18 +151,18 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
 
   return (
     <div className="flex-1 flex flex-col w-full h-full overflow-hidden bg-gray-50">
-      
+
       {/* Top Header */}
       <div className="bg-white pt-5 pb-4 px-3 md:px-5 border-b border-gray-100 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <IconButton
+          <Button
             variant="ghost"
             size="icon"
             onPointerDown={onOpenMobileMenu}
             className="md:hidden -ml-2 shrink-0 select-none"
-           label="Abrir menú">
-            <Menu className="h-7 w-7" aria-hidden="true" />
-          </IconButton>
+          >
+            <Menu className="h-7 w-7" />
+          </Button>
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-900">Sectores</h1>
           </div>
@@ -177,8 +176,8 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
             key={z.id}
             onClick={() => setActiveZoneId(z.id)}
             className={`px-6 py-2.5 rounded-full text-[15px] font-bold whitespace-nowrap transition-colors ${
-              activeZoneId === z.id 
-                ? 'bg-black text-white shadow-md' 
+              activeZoneId === z.id
+                ? 'bg-black text-white shadow-md'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
@@ -188,7 +187,7 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
       </div>
 
       {/* Map Canvas */}
-      <div 
+      <div
         ref={mapRef}
         className={`flex-1 relative overflow-auto bg-[#fafafa] select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
         onPointerDown={handlePointerDown}
@@ -223,15 +222,15 @@ const PosFloorMap = ({ onTableSelect, onOpenMobileMenu }) => {
               <div className="absolute top-4 right-4 flex gap-1">
                 <span className={`w-2.5 h-2.5 rounded-full ${getStatusDot(visualStatus)}`}></span>
               </div>
-              
+
               <span className="font-semibold text-center px-4 text-[17px] tracking-tight">{t.name}</span>
-              
+
               <div className="flex flex-col items-center mt-1.5 gap-1.5">
-                <div className="flex items-center gap-1.5 text-[12px] font-medium opacity-60">
+                <div className={`flex items-center gap-1.5 text-[12px] font-medium opacity-60`}>
                   <Users className="w-3.5 h-3.5" />
                   <span>{t.capacity}</span>
                 </div>
-                
+
                 {openOrders.length > 0 && currentTotal > 0 && (
                   <span className="text-[13px] font-bold tracking-wide">
                     ${new Intl.NumberFormat('es-CL').format(currentTotal)}

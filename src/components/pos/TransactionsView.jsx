@@ -1,5 +1,3 @@
-import { Button } from '@/components/ui/button';
-import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, ReceiptText, TrendingUp, RefreshCcw, Menu, CalendarDays, ChevronDown } from 'lucide-react';
 import { getOrders } from '../../services/orderService';
@@ -110,7 +108,7 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
     }
   };
 
-  const filteredOrders = orders.filter(order => 
+  const filteredOrders = orders.filter(order =>
     order.order_number.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -123,32 +121,32 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
     <div className="flex flex-col w-full bg-gray-50 p-6 min-h-full">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <IconButton
+          <button
             onPointerDown={onOpenMobileMenu}
-            className="md:hidden text-gray-700 active:bg-gray-200 shrink-0 select-none bg-gray-100"
+            className="md:hidden p-2 rounded-lg text-gray-700 active:bg-gray-200 shrink-0 select-none bg-gray-100"
             style={{ WebkitTapHighlightColor: 'transparent' }}
-           label="Abrir menú" variant="ghost">
-            <Menu className="h-6 w-6" aria-hidden="true" />
-          </IconButton>
+          >
+            <Menu className="h-6 w-6" />
+          </button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Transacciones</h1>
             <p className="text-gray-500 text-sm">Gestiona y revisa todas tus ventas</p>
           </div>
         </div>
-        <Button
+        <button
           onClick={() => fetchOrders()}
-          className="flex items-center bg-white border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-colors text-gray-700 shadow-sm select-none"
+          className="flex items-center gap-2 p-2.5 md:px-4 md:py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-sm font-semibold text-gray-700 shadow-sm select-none"
           style={{ WebkitTapHighlightColor: 'transparent' }}
-         variant="outline" size="default">
-          <RefreshCcw className={`h-5 w-5 md:h-4 md:w-4 ${loading ? "animate-spin" : ""}`} />
+        >
+          <RefreshCcw className={`h-5 w-5 md:h-4 md:w-4 ${loading ? 'animate-spin' : ''}`} />
           <span className="hidden md:inline">Actualizar</span>
-        </Button>
+        </button>
       </div>
 
       {/* Date Range Selector */}
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-3">
-          <CalendarDays className="h-4 w-4" />
+          <CalendarDays className="h-4 w-4 text-gray-500" />
           <span className="text-sm font-medium text-gray-600">Período</span>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -170,13 +168,13 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
             onClick={() => setShowCustom(!showCustom)}
             className={`px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all select-none flex items-center gap-1.5 ${
               activePreset === 'custom'
-                ? 'bg-gray-100 text-black shadow-sm'
+                ? 'bg-gray-900 text-white shadow-sm'
                 : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 active:bg-gray-100'
             }`}
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             Rango personalizado
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showCustom ? "rotate-180" : ""}`} />
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showCustom ? 'rotate-180' : ''}`} />
           </button>
         </div>
 
@@ -200,13 +198,13 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
                 className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
               />
             </div>
-            <Button
+            <button
               onClick={handleCustomApply}
               disabled={!customStart || !customEnd}
-              className="bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-             variant="ghost" size="default">
+              className="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 active:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
               Aplicar
-            </Button>
+            </button>
           </div>
         )}
       </div>
@@ -214,14 +212,14 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <div className="bg-white p-6 rounded-2xl border border-gray-200 flex items-center gap-4">
-          <TrendingUp className="h-8 w-8" />
+          <TrendingUp className="h-8 w-8 text-gray-900" />
           <div>
             <p className="text-gray-500 text-sm font-medium">Ventas Totales</p>
             <p className="text-2xl font-bold text-gray-900">${fmt(totalVentas)}</p>
           </div>
         </div>
         <div className="bg-white p-6 rounded-2xl border border-gray-200 flex items-center gap-4">
-          <ReceiptText className="h-8 w-8" />
+          <ReceiptText className="h-8 w-8 text-gray-900" />
           <div>
             <p className="text-gray-500 text-sm font-medium">Transacciones</p>
             <p className="text-2xl font-bold text-gray-900">{totalTransacciones}</p>
@@ -234,7 +232,7 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
         <div className="py-4 md:p-4 md:border-b border-gray-100 flex items-center justify-between sticky top-0 bg-gray-50 md:bg-white z-10">
           <h2 className="text-lg font-bold text-gray-800">Transacciones</h2>
           <div className="relative w-40 md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               placeholder="Buscar"
@@ -245,10 +243,10 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
           </div>
         </div>
 
-        <TransactionList 
-          orders={filteredOrders} 
-          loading={loading} 
-          onOrderUpdated={() => fetchOrders(true)} 
+        <TransactionList
+          orders={filteredOrders}
+          loading={loading}
+          onOrderUpdated={() => fetchOrders(true)}
         />
       </div>
     </div>

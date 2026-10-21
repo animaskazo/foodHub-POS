@@ -1,5 +1,3 @@
-import { Button } from '@/components/ui/button';
-import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Truck, Phone, User, ExternalLink, RefreshCw, AlertCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -70,21 +68,21 @@ const provider = order?.delivery_provider;
       return (
         <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-4 text-xs">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+            <AlertCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
             <div className="flex-1">
               <h4 className="font-bold text-red-800 text-sm mb-1">Error al asignar repartidor</h4>
               <p className="text-red-800 mb-3 leading-relaxed">
                 El pedido se confirmó pero Uber no pudo asignar un repartidor.
               </p>
-              <Button
+              <button
                 onClick={async (e) => {
                   e.stopPropagation();
                   const { toast } = await import('sonner');
                   const { retryFailedUberDelivery } = await import('../../utils/uberDeliveryRetry');
-                  
+
                   const toastId = toast.loading('Solicitando repartidor en Uber Direct...');
                   const result = await retryFailedUberDelivery(order.id, organization.id);
-                  
+
                   if (result.success) {
                     toast.success('Repartidor asignado con éxito', { id: toastId });
                     // Recargar la data forzando actualización
@@ -97,11 +95,11 @@ const provider = order?.delivery_provider;
                     toast.error(result.message, { id: toastId, duration: 5000 });
                   }
                 }}
-                className="bg-red-100 hover:bg-red-100 text-black flex items-center transition-colors"
-               variant="ghost" size="default">
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors"
+              >
                 <RefreshCw className="h-4 w-4" />
                 Reintentar solicitud en Uber
-              </Button>
+              </button>
             </div>
           </div>
         </div>
@@ -176,7 +174,7 @@ const provider = order?.delivery_provider;
       return (
         <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs">
           <div className="flex items-start gap-3">
-            <Truck className="h-5 w-5 shrink-0 mt-0.5" />
+            <Truck className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
             <div className="flex-1">
               <h4 className="font-bold text-blue-900 text-sm mb-1">Delivery con repartidor propio</h4>
 
@@ -185,14 +183,14 @@ const provider = order?.delivery_provider;
                   <p className="text-blue-900 mb-3 leading-relaxed">
                     Este pedido usa repartidor propio. Si no hay repartidor disponible, cotiza un despacho con Uber.
                   </p>
-                  <Button
+                  <button
                     onClick={handleQuoteUber}
                     disabled={quotingUber}
-                    className="bg-blue-100 hover:bg-blue-100 text-black flex items-center transition-colors disabled:opacity-50"
-                   variant="ghost" size="default">
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+                  >
                     {quotingUber ? <Clock className="h-4 w-4 animate-spin" /> : <Truck className="h-4 w-4" />}
                     {quotingUber ? 'Cotizando...' : 'Cotizar repartidor Uber'}
-                  </Button>
+                  </button>
                 </>
               ) : (
                 <div className="space-y-3">
@@ -206,21 +204,21 @@ const provider = order?.delivery_provider;
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    <Button
+                    <button
                       onClick={handleConfirmUber}
                       disabled={requestingUber}
-                      className="flex-1 bg-blue-100 hover:bg-blue-100 text-black flex items-center justify-center transition-colors disabled:opacity-50"
-                     variant="ghost" size="sm">
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded-md text-[11px] flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                    >
                       {requestingUber ? <Clock className="h-3 w-3 animate-spin" /> : <Truck className="h-3 w-3" />}
                       {requestingUber ? 'Solicitando...' : 'Confirmar y solicitar'}
-                    </Button>
-                    <Button
+                    </button>
+                    <button
                       onClick={() => setEmergencyQuote(null)}
                       disabled={requestingUber}
-                      className="flex-1 bg-white hover:bg-gray-100 text-blue-700 border border-blue-200 flex items-center justify-center transition-colors disabled:opacity-50"
-                     variant="outline" size="sm">
+                      className="flex-1 bg-white hover:bg-gray-100 text-blue-700 font-bold py-1.5 px-3 rounded-md text-[11px] border border-blue-200 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
+                    >
                       Cancelar
-                    </Button>
+                    </button>
                   </div>
                 </div>
               )}
@@ -248,35 +246,35 @@ const provider = order?.delivery_provider;
   const currentStatus = statusLabels[status] || { label: status, color: 'bg-gray-50 text-gray-700 border-gray-200' };
 
   const vehicleIcons = {
-    CAR: 'Auto',
-    MOTORCYCLE: 'Moto',
-    BICYCLE: 'Bicicleta',
-    FOOT: 'A pie',
+    CAR: '🚗 Auto',
+    MOTORCYCLE: '🏍️ Moto',
+    BICYCLE: '🚲 Bicicleta',
+    FOOT: '🏃 A pie',
   };
 
   return (
     <div className="mt-3 bg-gray-50 border border-gray-200 rounded-xl p-3.5 text-xs">
       {/* Encabezado Estado Uber */}
-      <div 
+      <div
         className="flex items-center justify-between cursor-pointer select-none"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-1.5 font-bold text-gray-800">
-          <Truck className="h-4 w-4" />
+          <Truck className="h-4 w-4 text-black" />
           <span>Uber Direct <span className="font-normal text-gray-500">({currentStatus.label})</span></span>
-          {isExpanded ? <ChevronUp className="h-4 w-4 ml-1" /> : <ChevronDown className="h-4 w-4 ml-1" />}
+          {isExpanded ? <ChevronUp className="h-4 w-4 ml-1 text-gray-500" /> : <ChevronDown className="h-4 w-4 ml-1 text-gray-500" />}
         </div>
-        <IconButton
+        <button
           onClick={(e) => {
             e.stopPropagation();
             fetchUberData();
           }}
           disabled={loading}
-          className="text-gray-600 hover:text-black transition-colors hover:bg-gray-100"
+          className="p-1 text-gray-400 hover:text-black transition-colors rounded-full hover:bg-gray-100"
           title="Actualizar estado"
-         label="Actualizar estado" variant="ghost">
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin " : ""}`}  aria-hidden="true" />
-        </IconButton>
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-blue-500' : ''}`} />
+        </button>
       </div>
 
       {isExpanded && (
@@ -298,7 +296,9 @@ const provider = order?.delivery_provider;
                 {courier.img_href ? (
                   <img src={courier.img_href} alt={courier.name} className="w-10 h-10 rounded-full object-cover border border-gray-200" />
                 ) : (
-                  <User className="h-5 w-5" />
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold border border-gray-200">
+                    <User className="h-5 w-5" />
+                  </div>
                 )}
                 <div className="flex-1">
                   <p className="font-bold text-gray-900 text-sm">{courier.name}</p>
@@ -325,7 +325,7 @@ const provider = order?.delivery_provider;
             </div>
           ) : !loading && (
             <div className="bg-amber-50 p-2.5 rounded-lg border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 shrink-0" />
+              <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
               <span>Uber está asignando un repartidor. Presiona "Actualizar" en unos momentos.</span>
             </div>
           )}

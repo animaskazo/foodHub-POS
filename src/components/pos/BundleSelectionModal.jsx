@@ -1,10 +1,8 @@
-import { Check, Plus, Minus } from 'lucide-react';
-import { IconButton } from '@/components/ui/IconButton';
 import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/button';
 import { buildSelection, selectionFromCartOption, defaultSelectionsForSlot } from '../../utils/bundleSelections';
-
+import { Plus, Minus } from 'lucide-react';
 
 const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem, onDelete, outOfStockIds = [] }) => {
   const [selections, setSelections] = useState({});
@@ -258,10 +256,10 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
   const quantity = editingItem?.quantity || 1;
 
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={onClose} 
-      title={`Configurar ${originalName}`} 
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={`Configurar ${originalName}`}
       maxWidth="max-w-xl"
       footer={
         <div className="p-4 sm:p-6 space-y-3">
@@ -306,7 +304,7 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
             </span>
           </div>
         )}
-        
+
         {product.bundleSlots?.map(slot => {
           const currentSelection = selections[slot.id] || [];
           const max = slot.maxSelections > 0 ? slot.maxSelections : 1;
@@ -361,7 +359,15 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
                     >
                       <div className="flex items-center gap-3">
                         {/* Checkbox Icon */}
-                        <Check className={[` shrink-0 transition-all ${isSelected ? " " : " opacity-0"}`, "w-3.5 h-3.5"].filter(Boolean).join(" ")} aria-hidden="true" />
+                        <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-all ${
+                          isSelected
+                            ? 'border-blue-600 bg-blue-600 text-white'
+                            : 'border-gray-300 bg-white text-transparent'
+                        }`}>
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3.5} stroke="currentColor" className="w-3.5 h-3.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                        </div>
                         <span className="font-bold text-[15px] sm:text-sm text-gray-900 leading-snug">{opt.name}</span>
                         {isOutOfStock ? (
                           <span className="text-[9px] text-white bg-red-500 px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider">Sin stock</span>
@@ -377,20 +383,22 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
                         )}
                         {max > 1 && isSelected && !isSingleOption && (
                           <div className="flex items-center bg-blue-50/50 border border-blue-100 rounded-full h-8 px-1 shrink-0" onClick={e => e.stopPropagation()}>
-                            <IconButton
+                            <button
                               onClick={(e) => handleDecrementOption(e, slot.id, opt)}
-                              className="flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-colors"
-                             label={`Reducir cantidad ${opt.name}`} variant="ghost">
-                              <Minus className="w-3.5 h-3.5" aria-hidden="true" />
-                            </IconButton>
+                              className="w-6 h-6 flex items-center justify-center rounded-full text-blue-600 hover:bg-blue-100 transition-colors"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
                             <span className="w-4 text-center font-bold text-sm text-blue-900">{currentQty}</span>
-                            <IconButton
+                            <button
                               onClick={(e) => handleIncrementOption(e, slot.id, opt)}
                               disabled={atMax}
-                              className={` flex items-center justify-center transition-colors ${ atMax ? 'text-blue-300' : 'text-blue-600 hover:bg-blue-100' }`}
-                             label={`Aumentar cantidad ${opt.name}`} variant="ghost">
-                              <Plus className="w-3.5 h-3.5" aria-hidden="true" />
-                            </IconButton>
+                              className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors ${
+                                atMax ? 'text-blue-300' : 'text-blue-600 hover:bg-blue-100'
+                              }`}
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         )}
                       </div>
@@ -434,8 +442,8 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
                                 key={v.id}
                                 onClick={() => handleSelectVariant(slot.id, sel.optionId, v)}
                                 className={`px-3 py-2 rounded-lg text-[13px] sm:text-xs font-semibold border transition-all ${
-                                  isVarSelected 
-                                    ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold' 
+                                  isVarSelected
+                                    ? 'border-blue-600 bg-blue-50 text-blue-700 font-bold'
                                     : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                                 }`}
                               >
@@ -464,8 +472,8 @@ const BundleSelectionModal = ({ isOpen, onClose, product, onConfirm, editingItem
                                 className={`flex items-center justify-between px-3 py-2.5 sm:py-2 border rounded-lg text-[13px] sm:text-xs transition-all text-left ${
                                   isUnavailable
                                     ? 'border-gray-200 bg-gray-50 text-gray-400 opacity-60 cursor-not-allowed'
-                                    : isIngSelected 
-                                      ? 'border-orange-500 bg-orange-50/50 text-orange-700 font-bold' 
+                                    : isIngSelected
+                                      ? 'border-orange-500 bg-orange-50/50 text-orange-700 font-bold'
                                       : 'border-gray-250 bg-white text-gray-600 hover:border-gray-300'
                                 }`}
                               >

@@ -53,7 +53,7 @@ const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable,
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Seleccionar Mesa" alignEnd={true} maxWidth="max-w-full md:max-w-md">
       <div className="flex flex-col h-full">
-        <div 
+        <div
           className="px-5 py-4 hover:bg-gray-50 active:bg-gray-100 cursor-pointer border-b border-gray-100 flex items-center justify-between shrink-0"
           onClick={() => {
             onClearTable();
@@ -63,7 +63,7 @@ const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable,
           <span className="font-bold text-gray-800 text-lg">Venta Directa</span>
           {!activeTable && <span className="w-2.5 h-2.5 rounded-full bg-black"></span>}
         </div>
-        
+
         {!loading && zones.length > 0 && (
           <div className="flex overflow-x-auto border-b border-gray-100 bg-white shrink-0 px-4 py-3 gap-2 hide-scrollbar">
             <button
@@ -91,10 +91,12 @@ const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable,
             ))}
           </div>
         )}
-        
+
         <div className="flex-1 overflow-y-auto max-h-[60vh] bg-gray-50/50">
           {loading ? (
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+            </div>
           ) : filteredTables.length === 0 ? (
             <div className="px-5 py-8 text-center text-gray-500">No hay mesas configuradas</div>
           ) : (
@@ -103,9 +105,9 @@ const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable,
               const currentTotal = sumOpenOrdersTotal(table.orders);
               const isOccupied = openOrders.length > 0;
               const isActive = activeTable?.id === table.id;
-              
+
               return (
-                <div 
+                <div
                   key={table.id}
                   className={`px-5 py-4 cursor-pointer border-b border-gray-100 flex items-center justify-between transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-700 hover:bg-gray-50 active:bg-gray-100'}`}
                   onClick={() => {
@@ -121,7 +123,7 @@ const TableSelectionListModal = ({ isOpen, onClose, onTableSelect, onClearTable,
                       </span>
                     )}
                   </span>
-                  
+
                   <div className="flex items-center gap-2">
                     {isOccupied && (
                       <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm"></span>

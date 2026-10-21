@@ -26,7 +26,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
   const [isPaymentConfirmOpen, setIsPaymentConfirmOpen] = useState(false);
   const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
-  
+
   // Selección masiva y eliminación
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -175,7 +175,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
         });
         if (error) throw error;
       }
-      
+
       // Free table if applicable
       if (pendingPaymentOrder.table_id) {
         await supabase
@@ -255,7 +255,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                         <tr key={`date-header-${dateKey}`} className="bg-gray-100/90 border-y border-gray-200">
                           <td colSpan={canCancel ? 9 : 8} className="px-6 py-3 text-xs font-bold text-gray-700 tracking-wide uppercase bg-gray-100/90">
                             <div className="flex items-center gap-2">
-                              <CalendarClock className="h-4 w-4 shrink-0" />
+                              <CalendarClock className="h-4 w-4 text-gray-600 shrink-0" />
                               <span>{formatDateSeparator(order.created_at)}</span>
                             </div>
                           </td>
@@ -302,7 +302,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                             )}
                             {order.status === 'preparing' && (
                               <Tooltip text="Pedido listo">
-                                <button data-icon-button="true"
+                                <button
                                   type="button"
                                   aria-label="Pedido listo"
                                   title="Pedido listo"
@@ -313,7 +313,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
 {markingReadyId === order.id ? (
                                      <ButtonSpinner size="xs" />
                                    ) : (
-                                    <Check className="h-4 w-4" strokeWidth={2} />
+                                    <Check className="h-4 w-4" strokeWidth={3} />
                                   )}
                                 </button>
                               </Tooltip>
@@ -340,7 +340,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                         </td>
                         <td className="px-6 py-6">
                           {order.order_type === 'table' ? (
-                            <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-gray-100 text-zinc-300 flex items-center gap-1 w-fit">
+                            <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1 w-fit">
                               <Store className="h-3.5 w-3.5 shrink-0" /> Local
                             </span>
                           ) : order.delivery_type === 'delivery' ? (
@@ -354,7 +354,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                               </span>
                             )
                           ) : (
-                            <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-gray-100 text-zinc-300 flex items-center gap-1 w-fit">
+                            <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1 w-fit">
                               <ShoppingBag className="h-3.5 w-3.5 shrink-0" /> Retiro
                             </span>
                           )}
@@ -434,7 +434,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                 <React.Fragment key={order.id}>
                   {isNewDate && (
                     <div key={`mobile-date-header-${dateKey}`} className="pt-3 pb-1 px-1 flex items-center gap-2 text-xs font-extrabold text-gray-800 uppercase tracking-wider">
-                      <CalendarClock className="h-4 w-4 shrink-0" />
+                      <CalendarClock className="h-4 w-4 text-gray-600 shrink-0" />
                       <span>{formatDateSeparator(order.created_at)}</span>
                       <div className="flex-1 border-b border-gray-200 ml-2"></div>
                     </div>
@@ -449,7 +449,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2 mb-2">
                           {order.order_type === 'table' ? (
-                            <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-gray-100 text-zinc-300 flex items-center gap-1">
+                            <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1">
                               <Store className="h-3.5 w-3.5 shrink-0" /> Local
                             </span>
                           ) : order.delivery_type === 'delivery' ? (
@@ -463,7 +463,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                               </span>
                             )
                           ) : (
-                            <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-gray-100 text-zinc-300 flex items-center gap-1">
+                            <span className="text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wider bg-zinc-800 text-zinc-300 flex items-center gap-1">
                               <PaperBag className="h-3.5 w-3.5 shrink-0" /> Retiro
                             </span>
                           )}
@@ -491,7 +491,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                           )}
                           {order.status === 'preparing' && (
                             <Tooltip text="Pedido listo">
-                              <button data-icon-button="true"
+                              <button
                                 type="button"
                                 aria-label="Pedido listo"
                                 title="Pedido listo"
@@ -502,7 +502,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
 {markingReadyId === order.id ? (
                                    <ButtonSpinner size="xs" />
                                  ) : (
-                                  <Check className="h-4 w-4" strokeWidth={2} />
+                                  <Check className="h-4 w-4" strokeWidth={3} />
                                 )}
                               </button>
                             </Tooltip>
@@ -800,32 +800,32 @@ const pythonPrinter = localStorage.getItem('python_default_printer');
 
       {/* Barra Flotante de Acciones Masivas */}
       {selectedOrderIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-100 text-black px-6 py-3.5 rounded-2xl shadow-2xl flex flex-wrap items-center gap-4 animate-in fade-in slide-in-from-bottom-5 border border-zinc-800">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-black text-white px-6 py-3.5 rounded-2xl shadow-2xl flex flex-wrap items-center gap-4 animate-in fade-in slide-in-from-bottom-5 border border-zinc-800">
           <span className="font-bold text-sm">
             {selectedOrderIds.length} {selectedOrderIds.length === 1 ? 'pedido seleccionado' : 'pedidos seleccionados'}
           </span>
-          <div className="h-4 w-px bg-gray-100 hidden sm:block" />
+          <div className="h-4 w-px bg-zinc-700 hidden sm:block" />
           <div className="flex items-center gap-2">
             <Button
               size="xs"
-              className="bg-red-100 hover:bg-red-100 text-black font-bold gap-1.5"
+              className="bg-red-600 hover:bg-red-700 text-white font-bold gap-1.5"
               onClick={() => setIsBulkCancelConfirmOpen(true)}
             >
-              <XCircle className="w-3.5 h-3.5" aria-hidden="true" />
+              <XCircle className="w-3.5 h-3.5" />
               Cancelar
             </Button>
             <Button
               size="xs"
-              className="bg-red-100 hover:bg-red-100 text-black font-bold gap-1.5"
+              className="bg-red-700 hover:bg-red-800 text-white font-bold gap-1.5"
               onClick={() => setIsBulkDeleteConfirmOpen(true)}
             >
-              <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+              <Trash2 className="w-3.5 h-3.5" />
               Eliminar definitivamente
             </Button>
             <Button
               size="xs"
               variant="ghost"
-              className="text-zinc-400 hover:text-black"
+              className="text-zinc-400 hover:text-white"
               onClick={() => setSelectedOrderIds([])}
             >
               Deseleccionar
