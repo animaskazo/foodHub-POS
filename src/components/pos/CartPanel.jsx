@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, Plus, Minus, Monitor, X, Edit2, ChefHat, Tag, Check, RotateCcw, ArrowLeftRight, Loader2 } from 'lucide-react';
+import { Trash2, Plus, Minus, Monitor, X, Edit2, ChefHat, Tag, Check, ArrowLeftRight, Loader2 } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { getOpenOrders, sumOpenOrdersTotal } from '../../services/orderService';
 import { Button } from "../ui/button";
@@ -48,8 +48,6 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
 
   const fmt = (n) => n.toLocaleString('es-CL');
 
-  const canResetOrder = items.length > 0 || !!activeTable || !!coupon;
-
   return (
     <div className="flex flex-col h-full bg-white border-l border-gray-100">
 
@@ -74,7 +72,7 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
               <div className="relative z-50">
                 {dineInEnabled ? (
                   <div className="flex items-stretch select-none">
-                    <button
+                    <Button
                       type="button"
                       onClick={() => {
                         if (onChangeTableMobile) {
@@ -84,11 +82,12 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                         }
                       }}
                       aria-label={activeTable ? `Cambiar mesa ${activeTable.name}` : 'Elegir mesa'}
-                      style={{ WebkitTapHighlightColor: 'transparent' }}
-                      className={`flex items-center gap-2 h-10 md:h-12 px-3 md:px-3.5 border text-sm md:text-base font-semibold touch-manipulation transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                      variant="outline"
+                      shape="rounded"
+                      className={`flex items-center gap-2 h-10 md:h-12 px-3 md:px-3.5 text-sm md:text-base font-semibold touch-manipulation ${
                         activeTable
-                          ? 'rounded-l-xl bg-blue-50 text-blue-800 border-blue-200 border-r-0'
-                          : 'rounded-xl bg-white text-gray-900 border-blue-200'
+                          ? 'rounded-l-xl rounded-r-none bg-blue-50 text-blue-800 border-blue-200 border-r-0 hover:bg-blue-100 hover:text-blue-900'
+                          : 'rounded-xl bg-background text-foreground border-border hover:bg-muted'
                       }`}
                     >
                       <Monitor className={`h-4 w-4 md:h-5 md:w-5 shrink-0 ${activeTable ? 'text-blue-600' : 'text-gray-400'}`} />
@@ -106,15 +105,14 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                         </>
                       )}
                       <ArrowLeftRight className="hidden md:block h-4 w-4 shrink-0 text-gray-400" />
-                    </button>
+                    </Button>
                     {activeTable && (
                       <button
                         type="button"
                         onClick={onClearTable}
                         title="Quitar mesa"
                         aria-label={`Quitar mesa ${activeTable.name}`}
-                        style={{ WebkitTapHighlightColor: 'transparent' }}
-                        className="flex items-center px-2.5 h-10 md:h-12 rounded-r-xl bg-blue-50 border border-blue-200 border-l-0 text-blue-400 transition-colors touch-manipulation hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                        className="flex items-center px-2.5 h-10 md:h-12 rounded-l-none rounded-r-xl bg-blue-50 border border-blue-200 border-l-0 text-blue-600 transition-colors touch-manipulation hover:bg-blue-100 hover:text-blue-800 focus-visible:ring-2 focus-visible:ring-blue-500"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -185,17 +183,6 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                </div>
              </div>
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onResetOrder}
-              disabled={!canResetOrder}
-              className="text-gray-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 disabled:opacity-40 disabled:hover:text-gray-500 disabled:hover:border-gray-200 disabled:hover:bg-transparent"
-              title="Resetear pedido: vaciar carrito, mesa y cupón"
-            >
-              <RotateCcw className="h-4 w-4" />
-              <span className="hidden lg:inline">Resetear</span>
-            </Button>
             {/* "+ Nueva orden" solo en desktop: en móvil el header no tiene
                 sitio y la acción se hace desde el catálogo. */}
             <Button
