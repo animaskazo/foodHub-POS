@@ -83,14 +83,8 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                       }}
                       aria-label={activeTable ? `Cambiar mesa ${activeTable.name}` : 'Elegir mesa'}
                       variant="outline"
-                      shape="rounded"
-                      className={`flex items-center gap-2 h-10 md:h-12 px-3 md:px-3.5 text-sm md:text-base font-semibold touch-manipulation ${
-                        activeTable
-                          ? 'rounded-l-xl rounded-r-none bg-blue-50 text-blue-800 border-blue-200 border-r-0 hover:bg-blue-100 hover:text-blue-900'
-                          : 'rounded-xl bg-background text-foreground border-border hover:bg-muted'
-                      }`}
                     >
-                      <Monitor className={`h-4 w-4 md:h-5 md:w-5 shrink-0 ${activeTable ? 'text-blue-600' : 'text-gray-400'}`} />
+                      <Monitor className="h-4 w-4 shrink-0 text-muted-foreground" />
                       {activeTable ? (
                         <span className="whitespace-nowrap">
                           {!/^mesa\b/i.test(activeTable.name) && (
@@ -104,7 +98,7 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                           <span className="hidden md:inline">Venta Directa</span>
                         </>
                       )}
-                      <ArrowLeftRight className="hidden md:block h-4 w-4 shrink-0 text-gray-400" />
+                      <ArrowLeftRight className="hidden md:block h-4 w-4 shrink-0 text-muted-foreground" />
                     </Button>
                     {activeTable && (
                       <button
