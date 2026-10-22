@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 export const NAV_ITEMS = [
   { id: 'pago', label: 'Vender', icon: ShoppingCart },
   { id: 'mesas', label: 'Mesas', icon: LayoutGrid },
-  { id: 'transacciones', label: 'Historial', icon: ArrowLeftRight },
+  { id: 'transacciones', label: 'Transacciones', icon: ArrowLeftRight },
   { id: 'cocina', label: 'Cocina', icon: ChefHat },
   { id: 'dashboard', label: 'Panel', icon: Home },
 ];
@@ -38,12 +38,12 @@ const MenuItem = ({ icon: Icon, onClick, children, danger = false }) => (
         : 'text-gray-700 hover:bg-gray-50'
     }`}
   >
-    <Icon className={`h-4 w-4 ${danger ? 'text-red-500' : 'text-gray-400'}`} />
+    <Icon className={`h-4 w-4 ${danger ? 'text-red-600' : 'text-gray-800'}`} />
     {children}
   </button>
 );
 
-const BottomNav = ({ active = 'pago', onChange, isAdmin = false, onLogout, onChangePin, shiftEnabled = false, shiftOpen = false, canCloseShift = false, onCloseShift }) => {
+const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false, isAdmin = false, onLogout, onChangePin, shiftEnabled = false, shiftOpen = false, canCloseShift = false, onCloseShift }) => {
   const navigate = useNavigate();
   const { pendingCount, newOrderFlag } = useKitchenOrders();
   const [triggerAnimation, setTriggerAnimation] = useState(false);
@@ -75,6 +75,9 @@ const BottomNav = ({ active = 'pago', onChange, isAdmin = false, onLogout, onCha
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const menuNavItems = getNavItems(role, dineInEnabled, isAdmin)
+    .filter(({ id }) => id === 'transacciones' || id === 'mesas');
 
   return (
     <div className="bg-[#111111] text-white hidden md:flex items-center justify-between gap-2 px-6 h-16 shrink-0 z-50">
@@ -130,6 +133,23 @@ const BottomNav = ({ active = 'pago', onChange, isAdmin = false, onLogout, onCha
         {menuOpen && (
           <div className="absolute bottom-full right-0 mb-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden">
             <div className="py-1">
+              {menuNavItems.map(({ id, label, icon: Icon }) => (
+                  <MenuItem
+                    key={id}
+                    icon={Icon}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onChange && onChange(id);
+                    }}
+                  >
+                    {label}
+                  </MenuItem>
+                ))}
+
+              {menuNavItems.length > 0 && (
+                <div className="my-1 border-t border-gray-100" aria-hidden="true" />
+              )}
+
               {isAdmin ? (
                 <MenuItem
                   icon={Home}
