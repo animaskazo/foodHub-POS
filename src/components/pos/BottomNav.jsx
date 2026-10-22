@@ -25,7 +25,7 @@ export const getNavItems = (role, dineInEnabled = false, isAdmin = false) => {
   });
 };
 
-const LEFT_ITEM_IDS = ['pago', 'cocina', 'transacciones'];
+const LEFT_ITEM_IDS = ['pago', 'transacciones', 'cocina'];
 
 const MenuItem = ({ icon: Icon, onClick, children, danger = false }) => (
   <button
@@ -83,7 +83,7 @@ const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false, isA
 
   return (
     <div className="bg-[#111111] text-white hidden md:flex items-center justify-between gap-2 px-6 h-16 shrink-0 z-50">
-      {/* POS navigation: Vender, Cocina y Transacciones según permisos */}
+      {/* POS navigation: Vender, Transacciones y Cocina según permisos */}
       <div className="flex items-center gap-2">
         {leftItems.map(({ id, label, icon: Icon }) => (
           <Button
