@@ -25,8 +25,7 @@ export const getNavItems = (role, dineInEnabled = false, isAdmin = false) => {
   });
 };
 
-const LEFT_ITEM_IDS = ['pago', 'cocina'];
-const leftItems = NAV_ITEMS.filter(item => LEFT_ITEM_IDS.includes(item.id));
+const LEFT_ITEM_IDS = ['pago', 'cocina', 'transacciones'];
 
 const MenuItem = ({ icon: Icon, onClick, children, danger = false }) => (
   <button
@@ -76,12 +75,15 @@ const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false, isA
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const menuNavItems = getNavItems(role, dineInEnabled, isAdmin)
-    .filter(({ id }) => id === 'transacciones' || id === 'mesas');
+  const availableNavItems = getNavItems(role, dineInEnabled, isAdmin);
+  const leftItems = LEFT_ITEM_IDS
+    .map(id => availableNavItems.find(item => item.id === id))
+    .filter(Boolean);
+  const menuNavItems = availableNavItems.filter(({ id }) => id === 'mesas');
 
   return (
     <div className="bg-[#111111] text-white hidden md:flex items-center justify-between gap-2 px-6 h-16 shrink-0 z-50">
-      {/* Left: Vender + Cocina */}
+      {/* POS navigation: Vender, Cocina y Transacciones según permisos */}
       <div className="flex items-center gap-2">
         {leftItems.map(({ id, label, icon: Icon }) => (
           <Button
