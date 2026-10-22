@@ -82,9 +82,9 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                         }
                       }}
                       aria-label={activeTable ? `Cambiar mesa ${activeTable.name}` : 'Elegir mesa'}
-                      variant="outline"
+                      variant="default"
                     >
-                      <Monitor className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <Monitor className="h-4 w-4 shrink-0" />
                       {activeTable ? (
                         <span className="whitespace-nowrap">
                           {!/^mesa\b/i.test(activeTable.name) && (
@@ -98,19 +98,8 @@ const CartPanel = ({ cartItems = [], dineInEnabled = false, activeTable, onClear
                           <span className="hidden md:inline">Venta Directa</span>
                         </>
                       )}
-                      <ArrowLeftRight className="hidden md:block h-4 w-4 shrink-0 text-muted-foreground" />
+                      <ArrowLeftRight className="hidden md:block h-4 w-4 shrink-0" />
                     </Button>
-                    {activeTable && (
-                      <button
-                        type="button"
-                        onClick={onClearTable}
-                        title="Quitar mesa"
-                        aria-label={`Quitar mesa ${activeTable.name}`}
-                        className="flex items-center px-2.5 h-10 md:h-12 rounded-l-none rounded-r-xl bg-blue-50 border border-blue-200 border-l-0 text-blue-600 transition-colors touch-manipulation hover:bg-blue-100 hover:text-blue-800 focus-visible:ring-2 focus-visible:ring-blue-500"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 h-10 md:h-12 select-none">
