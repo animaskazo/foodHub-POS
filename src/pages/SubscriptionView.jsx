@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, CreditCard, Loader2, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
@@ -37,28 +37,46 @@ export default function SubscriptionView() {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [plansError, setPlansError] = useState(false);
+  const plansRequestStarted = useRef(false);
   const subscription = useMemo(() => getSubscriptionStatus(subscriptionRecord), [subscriptionRecord]);
   const currentPlan = plans.find((plan) => String(plan.planId) === subscriptionRecord?.flow_plan_id);
   const availablePlans = plans.filter((plan) => Number(plan.status) === 1);
 
   useEffect(() => {
+    if (plansRequestStarted.current) return undefined;
+    plansRequestStarted.current = true;
     let cancelled = false;
     const load = async () => {
       setLoading(true);
-      const [{ data, error }, current] = await Promise.all([
-        supabase.functions.invoke('flow-subscription-plans', { body: {} }),
-        refreshSubscription(organization?.id),
-      ]);
+      const { data, error } = await supabase.functions.invoke('flow-subscription-plans', { body: {} });
       if (!cancelled) {
-        if (error || data?.error) toast.error(data?.error || 'No se pudieron cargar los planes de Flow.');
-        else setPlans(data?.plans || []);
+        if (error || data?.error) {
+          setPlansError(true);
+          toast.error(data?.error || 'No se pudieron cargar los planes de Flow.');
+        } else {
+          setPlans(data?.plans || []);
+          setPlansError(false);
+        }
         setLoading(false);
       }
-      return current;
     };
     load();
     return () => { cancelled = true; };
-  }, [organization?.id, refreshSubscription]);
+  }, []);
+
+  const retryLoadPlans = async () => {
+    setLoading(true);
+    const { data, error } = await supabase.functions.invoke('flow-subscription-plans', { body: {} });
+    if (error || data?.error) {
+      setPlansError(true);
+      toast.error(data?.error || 'No se pudieron cargar los planes de Flow.');
+    } else {
+      setPlans(data?.plans || []);
+      setPlansError(false);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
     const flowResult = new URLSearchParams(location.search).get('flow');
@@ -115,7 +133,9 @@ export default function SubscriptionView() {
             <p className="mt-2 text-gray-600">{subscription.isTrial ? `Tu prueba gratis termina en ${subscription.daysLeft} ${subscription.daysLeft === 1 ? 'día' : 'días'}.` : 'Tu prueba gratuita terminó. Elige un plan para continuar.'}</p>
           </div>
 
-          {loading ? <div className="flex justify-center py-16"><Loader2 className="h-7 w-7 animate-spin text-gray-400" /></div> : availablePlans.length === 0 ? (
+          {loading ? <div className="flex justify-center py-16"><Loader2 className="h-7 w-7 animate-spin text-gray-400" /></div> : plansError ? (
+            <div className="rounded-xl border bg-white p-8 text-center text-sm text-gray-600"><p>No se pudieron cargar los planes de Flow.</p><button type="button" onClick={retryLoadPlans} className="mt-3 rounded-lg border px-4 py-2 font-semibold text-gray-900">Reintentar</button></div>
+          ) : availablePlans.length === 0 ? (
             <div className="rounded-xl border bg-white p-8 text-center text-sm text-gray-600">No hay planes disponibles. Contacta al administrador de FoodHub.</div>
           ) : (
             <>
