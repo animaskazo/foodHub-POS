@@ -13,6 +13,7 @@ import LoginView from './pages/LoginView';
 import SignupView from './pages/SignupView';
 import SuperAdminView from './pages/SuperAdminView';
 import DashboardView from './pages/DashboardView';
+import SubscriptionView from './pages/SubscriptionView';
 import SettingsView from './pages/SettingsView';
 import DeliverySettingsView from './pages/DeliverySettingsView';
 import ShiftsSettingsView from './pages/ShiftsSettingsView';
@@ -85,6 +86,7 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<ProtectedRoute requireAdmin={true}><DashboardView /></ProtectedRoute>} />
+          <Route path="subscription" element={<ProtectedRoute><SubscriptionView /></ProtectedRoute>} />
           <Route path="superadmin" element={
             <ProtectedRoute requireSuperAdmin={true}>
               <SuperAdminView />

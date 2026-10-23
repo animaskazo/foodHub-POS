@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { startSubscriptionTrial } from '../services/subscriptionDemo';
 
 const AuthContext = createContext({});
 
@@ -61,6 +62,7 @@ export const AuthProvider = ({ children }) => {
         
         if (data) {
           if (data.organizations) {
+            startSubscriptionTrial(data.organizations.id);
             setOrganization(data.organizations);
           }
           if (data.role) {

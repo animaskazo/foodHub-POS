@@ -36,6 +36,7 @@ import {
   KeyRound
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { getSubscriptionStatus } from '../services/subscriptionDemo';
 import FeedbackBubble from './FeedbackBubble';
 import StockNotifications from './StockNotifications';
 import PrepTimeSelector from './ui/PrepTimeSelector';
@@ -51,8 +52,16 @@ const Layout = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const { isSuperAdmin, role, organization } = useAuth();
+  const [subscriptionTick, setSubscriptionTick] = useState(0);
+  const subscription = getSubscriptionStatus(organization?.id);
   const [inboxEnabled, setInboxEnabled] = useState(false);
   const [todayVisits, setTodayVisits] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setSubscriptionTick((tick) => tick + 1), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
+  void subscriptionTick;
 
   useEffect(() => {
     if (organization?.id) {
@@ -477,6 +486,18 @@ className={({ isActive }) =>
 
         {/* Footer / Logout */}
         <div className="p-4 border-t shrink-0 flex flex-col gap-2">
+
+          <NavLink
+            to="/subscription"
+            className={({ isActive }) => `mb-1 rounded-xl border px-3 py-2.5 transition-colors ${isActive ? 'border-black bg-gray-100' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'}`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2 text-[12px] font-semibold text-gray-800"><CreditCard className="h-4 w-4" /> Suscripción</span>
+              <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${subscription.isTrial ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-800'}`}>
+                {subscription.isTrial ? `${subscription.daysLeft} días gratis` : 'Activa'}
+              </span>
+            </div>
+          </NavLink>
 
           <div className="flex flex-col gap-2 mb-1">
             <NavLink
