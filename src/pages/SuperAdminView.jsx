@@ -16,6 +16,7 @@ import Modal from '../components/ui/Modal';
 import KlapReconciliationTab from '../components/superadmin/KlapReconciliationTab';
 import OrgBrandingTab from '../components/superadmin/OrgBrandingTab';
 import OrgHoursTab from '../components/superadmin/OrgHoursTab';
+import OrgFreeAccess from '../components/superadmin/OrgFreeAccess';
 import ProductImageFallback from '../components/ui/ProductImageFallback';
 import { getPaymentMethod } from '../utils/orderUtils';
 import { getCategories, quickUpdateCategoryStatus, deleteCategory, duplicateCategory } from '../services/catalogService';
@@ -988,6 +989,7 @@ const SuperAdminView = () => {
               {/* Overview */}
               {detailTab === 'overview' && (
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-3 md:gap-4">
+                  <OrgFreeAccess key={selectedOrganization.id} organizationId={selectedOrganization.id} />
                   <div>
                     <p className="text-xl md:text-2xl font-semibold tabular-nums text-gray-900 truncate">
                       ${selectedOrganization.totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
