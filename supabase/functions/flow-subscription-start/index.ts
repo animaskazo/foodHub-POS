@@ -1,4 +1,4 @@
-import { adminClient, callerId, CORS, flowRequest, isSuperAdmin, json, safeReturnUrl } from "../_shared/flow.ts";
+import { adminClient, callerId, CORS, flowRequest, json, safeReturnUrl } from "../_shared/flow.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -11,28 +11,15 @@ Deno.serve(async (req) => {
     const planId = String(body.planId || "").trim();
     if (!planId) return json({ error: "Selecciona un plan de Flow." }, 400);
 
-    const [isSuperAdminUser, { data: staff, error: staffError }, { data: authData }] = await Promise.all([
-      isSuperAdmin(userId, sb),
+    const [{ data: staff, error: staffError }, { data: authData }] = await Promise.all([
       sb.from("staff").select("organization_id, role, is_active, organizations(name)").eq("id", userId).maybeSingle(),
       sb.auth.getUser((req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "")),
     ]);
     if (staffError) throw staffError;
-    const isOrganizationAdmin = Boolean(
-      staff?.organization_id && staff.is_active !== false && ["owner", "admin", "manager"].includes(staff.role),
-    );
-    if (!isSuperAdminUser && !isOrganizationAdmin) {
+    if (!staff?.organization_id || staff.is_active === false || !["owner", "admin", "manager"].includes(staff.role)) {
       return json({ error: "Solo el dueño o un administrador puede iniciar una suscripción." }, 403);
     }
-    const requestedOrganizationId = String(body.organizationId || "").trim();
-    const organizationId = isSuperAdminUser
-      ? requestedOrganizationId || staff?.organization_id || ""
-      : staff?.organization_id || "";
-    if (!organizationId) {
-      return json({ error: "Selecciona una organización para iniciar la suscripción." }, 400);
-    }
-    if (!isSuperAdminUser && requestedOrganizationId && requestedOrganizationId !== organizationId) {
-      return json({ error: "No puedes iniciar una suscripción para otra organización." }, 403);
-    }
+    const organizationId = staff.organization_id;
     const { data: organization, error: organizationError } = await sb.from("organizations")
       .select("id, name")
       .eq("id", organizationId)
