@@ -14,6 +14,7 @@ import SignupView from './pages/SignupView';
 import SuperAdminView from './pages/SuperAdminView';
 import DashboardView from './pages/DashboardView';
 import SubscriptionView from './pages/SubscriptionView';
+import SubscriptionPlansAdmin from './pages/SubscriptionPlansAdmin';
 import SettingsView from './pages/SettingsView';
 import DeliverySettingsView from './pages/DeliverySettingsView';
 import ShiftsSettingsView from './pages/ShiftsSettingsView';
@@ -87,6 +88,7 @@ function App() {
         }>
           <Route index element={<ProtectedRoute requireAdmin={true}><DashboardView /></ProtectedRoute>} />
           <Route path="subscription" element={<ProtectedRoute><SubscriptionView /></ProtectedRoute>} />
+          <Route path="subscription-plans" element={<ProtectedRoute requireSuperAdmin={true}><SubscriptionPlansAdmin /></ProtectedRoute>} />
           <Route path="superadmin" element={
             <ProtectedRoute requireSuperAdmin={true}>
               <SuperAdminView />

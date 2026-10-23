@@ -1,10 +1,10 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { getSubscriptionStatus } from '../services/subscriptionDemo';
+import { getSubscriptionStatus } from '../services/subscription';
 
 const ProtectedRoute = ({ children, requireSuperAdmin = false, requireAdmin = false }) => {
-  const { user, isSuperAdmin, role, organization } = useAuth();
+  const { user, isSuperAdmin, role, subscription, subscriptionLoading } = useAuth();
   const location = useLocation();
 
   if (!user) {
@@ -20,9 +20,10 @@ const ProtectedRoute = ({ children, requireSuperAdmin = false, requireAdmin = fa
     return <Navigate to="/pos" replace />;
   }
 
-  const subscription = getSubscriptionStatus(organization?.id);
+  if (subscriptionLoading) return null;
+  const billing = getSubscriptionStatus(subscription);
   const isSubscriptionPage = location.pathname === '/subscription';
-  if (!subscription.isActive && !isSubscriptionPage) {
+  if (!billing.isActive && !isSubscriptionPage && !isSuperAdmin) {
     return <Navigate to="/subscription" replace />;
   }
 

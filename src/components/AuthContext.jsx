@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { startSubscriptionTrial } from '../services/subscriptionDemo';
 
 const AuthContext = createContext({});
 
@@ -8,12 +7,33 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [organization, setOrganization] = useState(null);
+  const [subscription, setSubscription] = useState(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const [role, setRole] = useState(null);
   const [isStaffActive, setIsStaffActive] = useState(true);
   const [accountDisabled, setAccountDisabled] = useState(false);
   const [loading, setLoading] = useState(true);
   // Evita que el evento SIGNED_OUT del signOut() por desactivación borre el aviso.
   const disabledRef = React.useRef(false);
+
+  const refreshSubscription = useCallback(async (organizationId = organization?.id) => {
+    if (!organizationId) {
+      setSubscription(null);
+      return null;
+    }
+    setSubscriptionLoading(true);
+    const { data, error } = await supabase.from('organization_subscriptions')
+      .select('organization_id, status, trial_started_at, trial_ends_at, flow_plan_id, flow_plan_name, flow_plan_amount, flow_plan_currency, flow_plan_interval, flow_plan_interval_count, flow_card_type, flow_card_last4, current_period_end, last_invoice_id, created_at, updated_at')
+      .eq('organization_id', organizationId).maybeSingle();
+    setSubscriptionLoading(false);
+    if (error) {
+      console.error('Error fetching subscription:', error);
+      setSubscription(null);
+      return null;
+    }
+    setSubscription(data);
+    return data;
+  }, [organization?.id]);
 
   useEffect(() => {
     // Check active sessions and sets the user
@@ -30,6 +50,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         setIsSuperAdmin(false);
         setOrganization(null);
+        setSubscription(null);
         setRole(null);
         setIsStaffActive(true);
         if (!disabledRef.current) setAccountDisabled(false);
@@ -62,8 +83,10 @@ export const AuthProvider = ({ children }) => {
         
         if (data) {
           if (data.organizations) {
-            startSubscriptionTrial(data.organizations.id);
             setOrganization(data.organizations);
+            await refreshSubscription(data.organizations.id);
+          } else {
+            setSubscription(null);
           }
           if (data.role) {
             setRole(data.role);
@@ -104,6 +127,7 @@ export const AuthProvider = ({ children }) => {
         } else {
           setIsSuperAdmin(false);
           setOrganization(null);
+          setSubscription(null);
           setRole(null);
           setIsStaffActive(true);
           if (!disabledRef.current) setAccountDisabled(false);
@@ -131,7 +155,7 @@ export const AuthProvider = ({ children }) => {
   const mustChangePin = user?.user_metadata?.must_change_pin === true;
 
   return (
-    <AuthContext.Provider value={{ user, isSuperAdmin, isBusinessAdmin, organization, role, loading, isStaffActive, accountDisabled, mustChangePin, can }}>
+    <AuthContext.Provider value={{ user, isSuperAdmin, isBusinessAdmin, organization, subscription, subscriptionLoading, refreshSubscription, role, loading, isStaffActive, accountDisabled, mustChangePin, can }}>
       {!loading && children}
     </AuthContext.Provider>
   );

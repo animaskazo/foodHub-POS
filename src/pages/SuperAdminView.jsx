@@ -485,6 +485,9 @@ const SuperAdminView = () => {
           <h1 className="text-lg md:text-2xl font-bold text-gray-900 truncate">Super Admin Dashboard</h1>
           <p className="text-xs md:text-sm text-gray-500 mt-0.5 md:mt-1">Gestión individualizada de negocios</p>
         </div>
+        <Button type="button" variant="outline" onClick={() => navigate('/subscription-plans')} className="ml-3 inline-flex shrink-0 items-center gap-2 rounded-lg border-gray-200 px-3 text-sm">
+          <CreditCard className="h-4 w-4" /><span className="hidden sm:inline">Planes y precios</span><span className="sm:hidden">Planes</span>
+        </Button>
       </header>
 
       {/* Content */}

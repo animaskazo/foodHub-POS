@@ -36,7 +36,7 @@ import {
   KeyRound
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { getSubscriptionStatus } from '../services/subscriptionDemo';
+import { getSubscriptionStatus } from '../services/subscription';
 import FeedbackBubble from './FeedbackBubble';
 import StockNotifications from './StockNotifications';
 import PrepTimeSelector from './ui/PrepTimeSelector';
@@ -51,17 +51,10 @@ const Layout = () => {
   const [isProductsOpen, setIsProductsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
-  const { isSuperAdmin, role, organization } = useAuth();
-  const [subscriptionTick, setSubscriptionTick] = useState(0);
-  const subscription = getSubscriptionStatus(organization?.id);
+  const { isSuperAdmin, role, subscription: subscriptionRecord } = useAuth();
+  const subscription = getSubscriptionStatus(subscriptionRecord);
   const [inboxEnabled, setInboxEnabled] = useState(false);
   const [todayVisits, setTodayVisits] = useState(0);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setSubscriptionTick((tick) => tick + 1), 60000);
-    return () => window.clearInterval(timer);
-  }, []);
-  void subscriptionTick;
 
   useEffect(() => {
     if (organization?.id) {
@@ -493,8 +486,8 @@ className={({ isActive }) =>
           >
             <div className="flex items-center justify-between gap-2">
               <span className="flex items-center gap-2 text-[12px] font-semibold text-gray-800"><CreditCard className="h-4 w-4" /> Suscripción</span>
-              <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${subscription.isTrial ? 'bg-amber-100 text-amber-900' : 'bg-emerald-100 text-emerald-800'}`}>
-                {subscription.isTrial ? `${subscription.daysLeft} días gratis` : 'Activa'}
+              <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${subscription.isTrial ? 'bg-amber-100 text-amber-900' : subscription.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                {subscription.isTrial ? `${subscription.daysLeft} días gratis` : subscription.isActive ? 'Activa' : 'Vencida'}
               </span>
             </div>
           </NavLink>
