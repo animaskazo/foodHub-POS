@@ -34,9 +34,10 @@ Deno.serve(async (req) => {
     if (String(plan.planId) !== planId || Number(plan.status) !== 1) return json({ error: "Ese plan ya no está disponible en Flow." }, 409);
 
     const { data: current, error: readError } = await sb.from("organization_subscriptions")
-      .select("flow_customer_id, status")
+      .select("flow_customer_id, status, free_access")
       .eq("organization_id", organizationId).maybeSingle();
     if (readError) throw readError;
+    if (current?.free_access) return json({ error: "Este negocio tiene acceso gratuito y no necesita contratar un plan." }, 409);
     if (current?.status === "active") return json({ error: "Esta organización ya tiene una suscripción activa." }, 409);
 
     let customerId = current?.flow_customer_id;
