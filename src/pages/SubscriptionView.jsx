@@ -108,7 +108,14 @@ export default function SubscriptionView() {
     <div className="mx-auto w-full max-w-6xl px-5 pb-12 pt-6 md:px-8">
       {subscriptionRecord?.status === 'legacy_active' && <div className="mb-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">Esta cuenta ya existía antes de activar suscripciones y conserva su acceso.</div>}
 
-      {subscriptionRecord?.status === 'active' || subscriptionRecord?.status === 'legacy_active' ? (
+      {subscription.isFree ? (
+        <section className="mx-auto max-w-2xl rounded-2xl border bg-white p-8 text-center shadow-sm">
+          <ShieldCheck className="mx-auto mb-4 h-12 w-12 text-emerald-700" />
+          <h1 className="text-3xl font-bold">Acceso gratuito</h1>
+          <p className="mt-3 text-gray-600">Tu negocio tiene acceso gratuito a FoodHub, sin fecha de vencimiento mientras esta autorización esté vigente.</p>
+          <p className="mt-3 text-sm text-gray-500">No necesitas contratar un plan ni registrar una tarjeta.</p>
+        </section>
+      ) : subscriptionRecord?.status === 'active' || subscriptionRecord?.status === 'legacy_active' ? (
         <section className="mx-auto max-w-2xl rounded-2xl border bg-white p-8 text-center shadow-sm">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-700"><Check /></div>
           <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">Suscripción activa</p>
