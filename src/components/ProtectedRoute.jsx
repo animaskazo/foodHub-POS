@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import { getSubscriptionStatus } from '../services/subscription';
 
 const ProtectedRoute = ({ children, requireSuperAdmin = false, requireAdmin = false }) => {
-  const { user, isSuperAdmin, role, subscription, subscriptionLoading } = useAuth();
+  const { user, isSuperAdmin, role, subscription } = useAuth();
   const location = useLocation();
 
   if (!user) {
@@ -20,7 +20,6 @@ const ProtectedRoute = ({ children, requireSuperAdmin = false, requireAdmin = fa
     return <Navigate to="/pos" replace />;
   }
 
-  if (subscriptionLoading) return null;
   const billing = getSubscriptionStatus(subscription);
   const isSubscriptionPage = location.pathname === '/subscription';
   if (!billing.isActive && !isSubscriptionPage && !isSuperAdmin) {
