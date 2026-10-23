@@ -1,6 +1,9 @@
 const TRIAL_DAYS = 15;
 
 export function getSubscriptionStatus(subscription) {
+  if (subscription?.free_access) {
+    return { state: subscription, daysLeft: 0, isActive: true, isTrial: false, status: 'free', isFree: true };
+  }
   if (!subscription) {
     return { state: null, daysLeft: TRIAL_DAYS, isActive: true, isTrial: true, status: 'trialing' };
   }
