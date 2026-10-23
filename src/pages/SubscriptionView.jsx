@@ -31,32 +31,19 @@ const flowAmountText = (amount, currency = 'CLP') => {
 };
 
 export default function SubscriptionView() {
-  const { organization, isSuperAdmin, subscription: subscriptionRecord, refreshSubscription } = useAuth();
+  const { organization, subscription: subscriptionRecord, refreshSubscription } = useAuth();
   const location = useLocation();
   const [plans, setPlans] = useState([]);
-  const [organizations, setOrganizations] = useState([]);
-  const [selectedOrganizationId, setSelectedOrganizationId] = useState(organization?.id || '');
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [plansError, setPlansError] = useState(false);
   const subscription = useMemo(() => getSubscriptionStatus(subscriptionRecord), [subscriptionRecord]);
-  const subscriptionOrganizationId = isSuperAdmin ? selectedOrganizationId : organization?.id;
   const currentPlan = plans.find((plan) => String(plan.planId) === subscriptionRecord?.flow_plan_id);
   const availablePlans = plans.filter((plan) => Number(plan.status) === 1);
 
   useEffect(() => {
     let cancelled = false;
-    if (isSuperAdmin) {
-      supabase.from('organizations').select('id, name').order('name').then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) toast.error('No se pudieron cargar los negocios para el super-admin.');
-        else {
-          setOrganizations(data || []);
-          setSelectedOrganizationId((current) => current || organization?.id || data?.[0]?.id || '');
-        }
-      });
-    }
     const load = async () => {
       setLoading(true);
       const { data, error } = await supabase.functions.invoke('flow-subscription-plans', { body: {} });
@@ -73,13 +60,7 @@ export default function SubscriptionView() {
     };
     load();
     return () => { cancelled = true; };
-  }, [isSuperAdmin, organization?.id]);
-
-  useEffect(() => {
-    if (subscriptionOrganizationId && subscriptionOrganizationId !== organization?.id) {
-      refreshSubscription(subscriptionOrganizationId);
-    }
-  }, [subscriptionOrganizationId, organization?.id, refreshSubscription]);
+  }, []);
 
   const retryLoadPlans = async () => {
     setLoading(true);
@@ -102,11 +83,11 @@ export default function SubscriptionView() {
   }, [location.search]);
 
   const continueToFlow = async () => {
-    if (!selectedPlan || !subscriptionOrganizationId) return;
+    if (!selectedPlan || !organization?.id) return;
     setProcessing(true);
     try {
       const { data, error } = await supabase.functions.invoke('flow-subscription-start', {
-        body: { planId: selectedPlan, organizationId: subscriptionOrganizationId },
+        body: { planId: selectedPlan },
       });
       if (error || data?.error) throw new Error(await readFunctionError(error, data));
       if (!data?.url) throw new Error('Flow no devolvió un enlace de checkout.');
@@ -141,15 +122,13 @@ export default function SubscriptionView() {
           <div className="mb-6 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
             <strong>Pago seguro con Flow.</strong> El checkout registra la tarjeta y configura la frecuencia indicada en el plan. {subscription.isTrial ? 'Si te suscribes durante la prueba, el cobro comenzará después de que termine.' : 'Tu suscripción quedará activa cuando Flow confirme el registro.'}
           </div>
-          {statusMessage && <div className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 sm:flex-row sm:items-center sm:justify-between"><span>{statusMessage}</span><button type="button" onClick={() => refreshSubscription(subscriptionOrganizationId)} className="inline-flex items-center gap-1 rounded-lg border border-amber-300 px-3 py-2 text-xs font-semibold"><RefreshCw className="h-3.5 w-3.5" />Actualizar</button></div>}
+          {statusMessage && <div className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 sm:flex-row sm:items-center sm:justify-between"><span>{statusMessage}</span><button type="button" onClick={() => refreshSubscription(organization?.id)} className="inline-flex items-center gap-1 rounded-lg border border-amber-300 px-3 py-2 text-xs font-semibold"><RefreshCw className="h-3.5 w-3.5" />Actualizar</button></div>}
 
           <div className="mb-8">
             <div className="flex items-center gap-2 text-sm font-semibold text-gray-500"><Sparkles className="h-4 w-4" /> FOODHUB PARA TU NEGOCIO</div>
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-950">Elige tu plan</h1>
             <p className="mt-2 text-gray-600">{subscription.isTrial ? `Tu prueba gratis termina en ${subscription.daysLeft} ${subscription.daysLeft === 1 ? 'día' : 'días'}.` : 'Tu prueba gratuita terminó. Elige un plan para continuar.'}</p>
           </div>
-
-          {isSuperAdmin && <div className="mb-6 max-w-md"><label htmlFor="subscription-organization" className="mb-2 block text-sm font-semibold text-gray-700">Negocio al que se asociará el plan</label><select id="subscription-organization" value={subscriptionOrganizationId || ''} onChange={(event) => setSelectedOrganizationId(event.target.value)} className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm"><option value="" disabled>Selecciona un negocio</option>{organizations.map((org) => <option key={org.id} value={org.id}>{org.name}</option>)}</select></div>}
 
           {loading ? <div className="flex justify-center py-16"><Loader2 className="h-7 w-7 animate-spin text-gray-400" /></div> : plansError ? (
             <div className="rounded-xl border bg-white p-8 text-center text-sm text-gray-600"><p>No se pudieron cargar los planes de Flow.</p><button type="button" onClick={retryLoadPlans} className="mt-3 rounded-lg border px-4 py-2 font-semibold text-gray-900">Reintentar</button></div>
@@ -171,7 +150,7 @@ export default function SubscriptionView() {
 
               <section className="mt-6 flex flex-col gap-4 rounded-2xl border bg-white p-5 md:flex-row md:items-center md:justify-between">
                 <div className="flex gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100"><CreditCard className="h-5 w-5" /></div><div><h3 className="font-semibold">Resumen de suscripción</h3><p className="mt-1 text-sm text-gray-500">{selectedPlan ? `${availablePlans.find((plan) => plan.planId === selectedPlan)?.name} · ${flowAmountText(availablePlans.find((plan) => plan.planId === selectedPlan)?.amount, availablePlans.find((plan) => plan.planId === selectedPlan)?.currency)} ${flowIntervalText(availablePlans.find((plan) => plan.planId === selectedPlan) || {})}` : 'Selecciona un plan para continuar.'}</p></div></div>
-                <button type="button" disabled={!selectedPlan || !subscriptionOrganizationId || processing} onClick={continueToFlow} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-black px-5 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300"><ShieldCheck className="h-4 w-4" />{processing ? 'Conectando con Flow…' : 'Continuar con Flow'}</button>
+                <button type="button" disabled={!selectedPlan || !organization?.id || processing} onClick={continueToFlow} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-black px-5 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300"><ShieldCheck className="h-4 w-4" />{processing ? 'Conectando con Flow…' : 'Continuar con Flow'}</button>
               </section>
             </>
           )}
