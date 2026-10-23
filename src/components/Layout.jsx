@@ -51,7 +51,7 @@ const Layout = () => {
   const [isProductsOpen, setIsProductsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
-  const { isSuperAdmin, role, subscription: subscriptionRecord } = useAuth();
+  const { isSuperAdmin, role, organization, subscription: subscriptionRecord } = useAuth();
   const subscription = getSubscriptionStatus(subscriptionRecord);
   const [inboxEnabled, setInboxEnabled] = useState(false);
   const [todayVisits, setTodayVisits] = useState(0);
@@ -199,6 +199,19 @@ className={({ isActive }) =>
                 </NavLink>
               </li>
             )}
+
+            <li className="pt-2">
+              <NavLink
+                to="/subscription"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={({ isActive }) => `flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${isActive ? 'bg-gray-100 text-black' : 'text-gray-600 hover:bg-gray-50 hover:text-black'}`}
+              >
+                <span className="flex items-center gap-3"><CreditCard className="h-[18px] w-[18px]" />Suscripción</span>
+                <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${subscription.isTrial ? 'bg-amber-100 text-amber-900' : subscription.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                  {subscription.isTrial ? `${subscription.daysLeft} días` : subscription.isActive ? 'Activa' : 'Vencida'}
+                </span>
+              </NavLink>
+            </li>
 
             <li className="pt-2">
               <button
@@ -479,18 +492,6 @@ className={({ isActive }) =>
 
         {/* Footer / Logout */}
         <div className="p-4 border-t shrink-0 flex flex-col gap-2">
-
-          <NavLink
-            to="/subscription"
-            className={({ isActive }) => `mb-1 rounded-xl border px-3 py-2.5 transition-colors ${isActive ? 'border-black bg-gray-100' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'}`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2 text-[12px] font-semibold text-gray-800"><CreditCard className="h-4 w-4" /> Suscripción</span>
-              <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${subscription.isTrial ? 'bg-amber-100 text-amber-900' : subscription.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
-                {subscription.isTrial ? `${subscription.daysLeft} días gratis` : subscription.isActive ? 'Activa' : 'Vencida'}
-              </span>
-            </div>
-          </NavLink>
 
           <div className="flex flex-col gap-2 mb-1">
             <NavLink
