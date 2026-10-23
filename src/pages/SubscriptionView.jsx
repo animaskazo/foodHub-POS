@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Check, CreditCard, Loader2, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
@@ -38,14 +38,11 @@ export default function SubscriptionView() {
   const [processing, setProcessing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [plansError, setPlansError] = useState(false);
-  const plansRequestStarted = useRef(false);
   const subscription = useMemo(() => getSubscriptionStatus(subscriptionRecord), [subscriptionRecord]);
   const currentPlan = plans.find((plan) => String(plan.planId) === subscriptionRecord?.flow_plan_id);
   const availablePlans = plans.filter((plan) => Number(plan.status) === 1);
 
   useEffect(() => {
-    if (plansRequestStarted.current) return undefined;
-    plansRequestStarted.current = true;
     let cancelled = false;
     const load = async () => {
       setLoading(true);
