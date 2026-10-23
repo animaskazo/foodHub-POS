@@ -208,7 +208,7 @@ className={({ isActive }) =>
               >
                 <span className="flex items-center gap-3"><CreditCard className="h-[18px] w-[18px]" />Suscripción</span>
                 <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${subscription.isTrial ? 'bg-amber-100 text-amber-900' : subscription.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
-                  {subscription.isTrial ? `${subscription.daysLeft} días` : subscription.isActive ? 'Activa' : 'Vencida'}
+                  {subscription.isFree ? 'Gratis' : subscription.isTrial ? `${subscription.daysLeft} días` : subscription.isActive ? 'Activa' : 'Vencida'}
                 </span>
               </NavLink>
             </li>
