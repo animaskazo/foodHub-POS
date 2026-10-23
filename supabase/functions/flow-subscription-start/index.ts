@@ -11,15 +11,34 @@ Deno.serve(async (req) => {
     const planId = String(body.planId || "").trim();
     if (!planId) return json({ error: "Selecciona un plan de Flow." }, 400);
 
-    const [isAdmin, { data: staff, error: staffError }, { data: authData }] = await Promise.all([
+    const [isSuperAdminUser, { data: staff, error: staffError }, { data: authData }] = await Promise.all([
       isSuperAdmin(userId, sb),
       sb.from("staff").select("organization_id, role, is_active, organizations(name)").eq("id", userId).maybeSingle(),
       sb.auth.getUser((req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "")),
     ]);
     if (staffError) throw staffError;
-    if (!staff?.organization_id || staff.is_active === false || (!isAdmin && !["owner", "admin", "manager"].includes(staff.role))) {
+    const isOrganizationAdmin = Boolean(
+      staff?.organization_id && staff.is_active !== false && ["owner", "admin", "manager"].includes(staff.role),
+    );
+    if (!isSuperAdminUser && !isOrganizationAdmin) {
       return json({ error: "Solo el dueño o un administrador puede iniciar una suscripción." }, 403);
     }
+    const requestedOrganizationId = String(body.organizationId || "").trim();
+    const organizationId = isSuperAdminUser
+      ? requestedOrganizationId || staff?.organization_id || ""
+      : staff?.organization_id || "";
+    if (!organizationId) {
+      return json({ error: "Selecciona una organización para iniciar la suscripción." }, 400);
+    }
+    if (!isSuperAdminUser && requestedOrganizationId && requestedOrganizationId !== organizationId) {
+      return json({ error: "No puedes iniciar una suscripción para otra organización." }, 403);
+    }
+    const { data: organization, error: organizationError } = await sb.from("organizations")
+      .select("id, name")
+      .eq("id", organizationId)
+      .maybeSingle();
+    if (organizationError) throw organizationError;
+    if (!organization) return json({ error: "La organización seleccionada no existe." }, 404);
     const email = authData.user?.email;
     if (!email) return json({ error: "La cuenta no tiene un email válido para Flow." }, 400);
 
@@ -29,15 +48,14 @@ Deno.serve(async (req) => {
 
     const { data: current, error: readError } = await sb.from("organization_subscriptions")
       .select("flow_customer_id, status")
-      .eq("organization_id", staff.organization_id).maybeSingle();
+      .eq("organization_id", organizationId).maybeSingle();
     if (readError) throw readError;
     if (current?.status === "active") return json({ error: "Esta organización ya tiene una suscripción activa." }, 409);
 
     let customerId = current?.flow_customer_id;
     if (!customerId) {
-      const orgName = Array.isArray(staff.organizations) ? staff.organizations[0]?.name : staff.organizations?.name;
       const customer = await flowRequest("customer/create", "POST", {
-        name: String(orgName || "FoodHub").slice(0, 80), email, externalId: staff.organization_id,
+        name: String(organization.name || "FoodHub").slice(0, 80), email, externalId: organizationId,
       });
       customerId = String(customer.customerId || "");
       if (!customerId) throw new Error("Flow no devolvió el identificador del cliente.");
@@ -45,7 +63,7 @@ Deno.serve(async (req) => {
 
     const redirectUrl = safeReturnUrl(req.headers.get("origin"));
     const { error: saveError } = await sb.from("organization_subscriptions").upsert({
-      organization_id: staff.organization_id,
+      organization_id: organizationId,
       status: "pending_card",
       flow_customer_id: customerId,
       flow_plan_id: planId,
@@ -64,7 +82,7 @@ Deno.serve(async (req) => {
     if (!registration.token || !registration.url) throw new Error("Flow no devolvió el enlace para registrar la tarjeta.");
     const { error: tokenError } = await sb.from("organization_subscriptions")
       .update({ flow_registration_token: String(registration.token), flow_checkout_url: String(registration.url) })
-      .eq("organization_id", staff.organization_id);
+      .eq("organization_id", organizationId);
     if (tokenError) throw tokenError;
     return json({ url: `${registration.url}?token=${encodeURIComponent(String(registration.token))}` });
   } catch (error) {
