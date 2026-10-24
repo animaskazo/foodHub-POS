@@ -561,8 +561,7 @@ className={({ isActive }) =>
                   label="Cerrar caja"
                   variant="ghost"
                 >
-                  <Store className="h-7 w-7" strokeWidth={2} aria-hidden="true" />
-                  <span className={`absolute right-1 top-1 h-2.5 w-2.5 rounded-full border-2 border-white ${mobileShift.active ? 'bg-green-500' : 'bg-gray-300'}`} />
+                  <Store className="h-8 w-8" strokeWidth={2.25} aria-hidden="true" />
                 </IconButton>
               )}
             </div>
