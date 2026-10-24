@@ -82,7 +82,7 @@ const PrepTimeSelector = ({ compact = false, menuVariant = false, iconOnly = fal
           onClick={() => setDetailsOpen(value => !value)}
           aria-label="Tiempo de preparación"
           aria-expanded={detailsOpen}
-          className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-800 transition-colors hover:bg-gray-100"
+          className="relative flex h-11 w-11 items-center justify-center rounded-full text-gray-800 transition-colors hover:bg-gray-100"
         >
           {saving ? <Loader2 className="h-6 w-6 animate-spin" strokeWidth={2} /> : saved ? <Check className="h-6 w-6" strokeWidth={2} /> : <Timer className="h-6 w-6" strokeWidth={2} />}
         </button>
