@@ -6,11 +6,12 @@ import Tooltip from './tooltip';
 
 const PREP_OPTIONS = [0, 5, 10, 15, 20, 25, 30, 40, 60];
 
-const PrepTimeSelector = ({ compact = false, menuVariant = false }) => {
+const PrepTimeSelector = ({ compact = false, menuVariant = false, iconOnly = false }) => {
   const { organization } = useAuth();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 768px)');
@@ -69,6 +70,34 @@ const PrepTimeSelector = ({ compact = false, menuVariant = false }) => {
               <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none h-5 w-5" />
             )}
         </div>
+      </div>
+    );
+  }
+
+  if (compact && iconOnly) {
+    return (
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setDetailsOpen(value => !value)}
+          aria-label="Tiempo de preparación"
+          aria-expanded={detailsOpen}
+          className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-800 transition-colors hover:bg-gray-100"
+        >
+          {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : saved ? <Check className="h-5 w-5" /> : <Timer className="h-5 w-5" />}
+        </button>
+        {detailsOpen && (
+          <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-gray-200 bg-white p-4 shadow-lg">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">Tiempo de preparación</label>
+            <select
+              value={current}
+              onChange={(e) => handleChange(Number(e.target.value))}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-800 outline-none focus:border-black"
+            >
+              {PREP_OPTIONS.map((m) => <option key={m} value={m}>{m === 0 ? 'No informar' : `${m} min`}</option>)}
+            </select>
+          </div>
+        )}
       </div>
     );
   }
