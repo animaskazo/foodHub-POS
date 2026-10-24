@@ -222,77 +222,48 @@ const CouponsSection = ({ orgId }) => {
             <span className="text-right">Acciones</span>
           </div>
 
-          {/* Rows */}
-          <div className="divide-y divide-gray-100">
+          {/* Mobile coupon cards */}
+          <div className="space-y-3 p-3 md:hidden">
             {filteredCoupons.map((coupon) => {
               const isExpired = coupon.expires_at && new Date(coupon.expires_at) < new Date();
               return (
-                <div
-                  key={coupon.id}
-                  className={`grid grid-cols-1 md:grid-cols-[1fr_100px_90px_90px_50px_120px] gap-3 md:gap-3 px-6 py-4 items-center transition-colors hover:bg-gray-50 ${
-                    !coupon.is_active ? 'opacity-60' : ''
-                  }`}
-                >
-                  {/* Coupon info */}
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Tag className="h-4 w-4 shrink-0" />
-                    <div className="min-w-0">
-                      <span className="font-bold text-sm text-gray-900 truncate block">{coupon.code}</span>
+                <article key={coupon.id} className={`rounded-2xl border border-gray-200 bg-white p-4 shadow-sm ${!coupon.is_active ? 'opacity-60' : ''}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Tag className="h-4 w-4 shrink-0 text-gray-500" />
+                      <span className="truncate font-bold text-gray-900">{coupon.code}</span>
+                      <Button variant="ghost" size="icon-xs" onClick={() => handleCopyCode(coupon.code)} title="Copiar código">
+                        {copiedCode === coupon.code ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      onClick={() => handleCopyCode(coupon.code)}
-                      title="Copiar código"
-                    >
-                      {copiedCode === coupon.code ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                    </Button>
+                    <Switch checked={coupon.is_active} onCheckedChange={() => handleToggleActive(coupon)} />
                   </div>
-
-                  {/* Discount */}
-                  <span className="text-sm font-bold text-gray-900">
-                    {coupon.type === 'percentage' ? `${coupon.value}%` : `$${fmt(coupon.value)}`}
-                  </span>
-
-                  {/* Uses */}
-                  <span className="text-sm text-gray-600">
-                    {coupon.used_count || 0}{coupon.max_uses ? ` / ${coupon.max_uses}` : ''}
-                  </span>
-
-                  {/* Expires */}
-                  <span className={`text-sm ${isExpired ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
-                    {coupon.expires_at
-                      ? new Date(coupon.expires_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })
-                      : '—'}
-                  </span>
-
-                  {/* Active toggle */}
-                  <div className="flex justify-center">
-                    <Switch
-                      checked={coupon.is_active}
-                      onCheckedChange={() => handleToggleActive(coupon)}
-                    />
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    <div><p className="text-xs text-gray-500">Descuento</p><p className="mt-1 font-semibold text-gray-900">{coupon.type === 'percentage' ? `${coupon.value}%` : `$${fmt(coupon.value)}`}</p></div>
+                    <div><p className="text-xs text-gray-500">Usos</p><p className="mt-1 font-semibold text-gray-900">{coupon.used_count || 0}{coupon.max_uses ? ` / ${coupon.max_uses}` : ''}</p></div>
+                    <div><p className="text-xs text-gray-500">Vence</p><p className={`mt-1 font-semibold ${isExpired ? 'text-red-500' : 'text-gray-900'}`}>{coupon.expires_at ? new Date(coupon.expires_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' }) : '—'}</p></div>
                   </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center justify-end gap-1.5">
-                    <IconButton
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openEdit(coupon)}
-                      title="Editar"
-                     label="Editar">
-                      <Pencil  aria-hidden="true" />
-                    </IconButton>
-                    <IconButton
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => setConfirmDelete(coupon)}
-                      title="Eliminar"
-                     label="Eliminar">
-                      <Trash2  aria-hidden="true" />
-                    </IconButton>
+                  <div className="mt-3 flex justify-end gap-2 border-t border-gray-100 pt-3">
+                    <IconButton variant="ghost" size="icon" onClick={() => openEdit(coupon)} title="Editar" label="Editar"><Pencil aria-hidden="true" /></IconButton>
+                    <IconButton variant="destructive" size="icon" onClick={() => setConfirmDelete(coupon)} title="Eliminar" label="Eliminar"><Trash2 aria-hidden="true" /></IconButton>
                   </div>
+                </article>
+              );
+            })}
+          </div>
+
+          {/* Desktop coupon table */}
+          <div className="hidden divide-y divide-gray-100 md:block">
+            {filteredCoupons.map((coupon) => {
+              const isExpired = coupon.expires_at && new Date(coupon.expires_at) < new Date();
+              return (
+                <div key={coupon.id} className={`grid grid-cols-[1fr_100px_90px_90px_50px_120px] gap-3 px-6 py-4 items-center transition-colors hover:bg-gray-50 ${!coupon.is_active ? 'opacity-60' : ''}`}>
+                  <div className="flex items-center gap-3 min-w-0"><Tag className="h-4 w-4 shrink-0" /><span className="font-bold text-sm text-gray-900 truncate">{coupon.code}</span><Button variant="ghost" size="icon-xs" onClick={() => handleCopyCode(coupon.code)} title="Copiar código">{copiedCode === coupon.code ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}</Button></div>
+                  <span className="text-sm font-bold text-gray-900">{coupon.type === 'percentage' ? `${coupon.value}%` : `$${fmt(coupon.value)}`}</span>
+                  <span className="text-sm text-gray-600">{coupon.used_count || 0}{coupon.max_uses ? ` / ${coupon.max_uses}` : ''}</span>
+                  <span className={`text-sm ${isExpired ? 'text-red-500 font-medium' : 'text-gray-500'}`}>{coupon.expires_at ? new Date(coupon.expires_at).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' }) : '—'}</span>
+                  <div className="flex justify-center"><Switch checked={coupon.is_active} onCheckedChange={() => handleToggleActive(coupon)} /></div>
+                  <div className="flex items-center justify-end gap-1.5"><IconButton variant="ghost" size="icon" onClick={() => openEdit(coupon)} title="Editar" label="Editar"><Pencil aria-hidden="true" /></IconButton><IconButton variant="destructive" size="icon" onClick={() => setConfirmDelete(coupon)} title="Eliminar" label="Eliminar"><Trash2 aria-hidden="true" /></IconButton></div>
                 </div>
               );
             })}
