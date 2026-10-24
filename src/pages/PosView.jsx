@@ -961,14 +961,14 @@ const PosView = () => {
 
       {/* Mobile Burger Drawer */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
+        <div className="fixed inset-0 z-50 flex md:hidden touch-none">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/50"
-            onPointerDown={() => setIsMobileMenuOpen(false)}
+            onClick={() => setIsMobileMenuOpen(false)}
           />
           {/* Drawer */}
-          <div className="relative w-4/5 max-w-xs bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
+          <div className="relative w-4/5 max-w-xs bg-white h-[100dvh] shadow-2xl flex flex-col animate-in slide-in-from-left duration-200 touch-auto">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <h2 className="font-bold text-lg">Menú</h2>
               <Button
@@ -980,7 +980,7 @@ const PosView = () => {
                 <X className="size-6" />
               </Button>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain touch-pan-y">
+            <div className="flex-1 min-h-0 overflow-y-scroll overscroll-y-contain touch-pan-y [-webkit-overflow-scrolling:touch]">
               <div className="py-4">
                 {getNavItems(role, organization?.dine_in_enabled === true, isAdmin).map(({ id, label, icon: Icon }) => (
                   <Button
@@ -1025,7 +1025,7 @@ const PosView = () => {
                 )}
                 <Button
                   variant="ghost"
-                  onPointerDown={() => { setIsMobileMenuOpen(false); requestChangePin(); }}
+                  onClick={() => { setIsMobileMenuOpen(false); requestChangePin(); }}
                   className="w-full justify-start h-14 text-base"
                 >
                   <KeyRound className="size-6" />
@@ -1033,7 +1033,7 @@ const PosView = () => {
                 </Button>
                 <Button
                   variant="ghost"
-                  onPointerDown={() => { setIsMobileMenuOpen(false); requestLogout(); }}
+                  onClick={() => { setIsMobileMenuOpen(false); requestLogout(); }}
                   className="w-full justify-start h-14 text-base text-red-600 hover:text-red-600 hover:bg-red-50"
                 >
                   <LogOut className="size-6" />
