@@ -493,7 +493,7 @@ const DashboardView = () => {
     if (!shiftSettings?.shifts_enabled) return null;
     
     return (
-      <div className="hidden md:block">
+      <div>
         {currentShift ? (
           <Button 
             onClick={() => { setShiftModalType('close'); setIsShiftModalOpen(true); }}
@@ -523,8 +523,9 @@ const DashboardView = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         <PageHeader
           title={
-            <div className="flex items-center justify-between w-full gap-3 flex-wrap">
+            <div className="flex w-full items-center justify-between gap-3">
               <span>Dashboard</span>
+              {renderShiftButton()}
             </div>
           }
           subtitle={
@@ -538,7 +539,6 @@ const DashboardView = () => {
                 <PrepTimeSelector />
                 <StockNotifications />
               </div>
-              {renderShiftButton()}
             </div>
           }
         />
