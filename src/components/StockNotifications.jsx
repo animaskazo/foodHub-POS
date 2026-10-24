@@ -97,9 +97,9 @@ const StockNotifications = () => {
       <button data-icon-button="true"
         onClick={() => setOpen(!open)}
         title="Insumos en riesgo"
-        className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-800 transition-colors hover:bg-gray-100"
+        className="relative flex h-11 w-11 items-center justify-center rounded-full text-gray-800 transition-colors hover:bg-gray-100"
       >
-        <Bell className="h-5 w-5" strokeWidth={2} />
+        <Bell className="h-6 w-6" strokeWidth={2} />
         <span className="absolute -top-1 -right-1 bg-white text-red-600 text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-sm">
           {notifications.length}
         </span>
