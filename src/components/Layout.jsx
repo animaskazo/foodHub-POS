@@ -556,9 +556,9 @@ className={({ isActive }) =>
               <StockNotifications />
               {mobileShift.enabled && (
                 <IconButton
-                  onClick={() => window.dispatchEvent(new CustomEvent('foodhub:open-shift', { detail: { type: mobileShift.active ? 'close' : 'open' } }))}
+                  onClick={() => window.dispatchEvent(new CustomEvent('foodhub:open-shift', { detail: { type: 'close' } }))}
                   className="relative h-10 w-10 rounded-full text-gray-800 hover:bg-gray-100"
-                  label={mobileShift.active ? 'Turno activo, ver acciones' : 'Abrir turno'}
+                  label="Cerrar caja"
                   variant="ghost"
                 >
                   <Store className="h-5 w-5" aria-hidden="true" />
