@@ -981,7 +981,10 @@ const PosView = () => {
               </Button>
             </div>
             <div className="flex-1 min-h-0 overflow-y-scroll overscroll-y-contain touch-pan-y [-webkit-overflow-scrolling:touch]">
-              <div className="py-4">
+              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+                <PrepTimeSelector menuVariant />
+              </div>
+              <div className="py-2">
                 {getNavItems(role, organization?.dine_in_enabled === true, isAdmin).map(({ id, label, icon: Icon }) => (
                   <Button
                     key={id}
@@ -996,17 +999,12 @@ const PosView = () => {
                       }
                       setIsMobileMenuOpen(false);
                     }}
-                    className={`w-full flex items-center justify-start gap-5 px-8 h-16 transition-colors rounded-none ${
-                      activeTab === id ? 'text-black font-extrabold bg-gray-50' : 'text-gray-500 font-semibold hover:bg-gray-50'
-                    }`}
+                    className="w-full flex items-center justify-start gap-4 px-8 h-14 transition-colors rounded-none text-gray-900 font-medium hover:bg-gray-50"
                   >
-                    <Icon className={`h-8 w-8 ${activeTab === id ? 'text-black' : 'text-gray-400'}`} />
-                    <span className="text-lg">{label}</span>
+                    <Icon className="size-6 text-gray-900" />
+                    <span className="text-base">{label}</span>
                   </Button>
                 ))}
-              </div>
-              <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/50">
-                <PrepTimeSelector menuVariant />
               </div>
               <div className="p-5 border-t border-gray-100 space-y-2">
                 {shiftSettings?.shifts_enabled && currentShift && canCloseShift && (
@@ -1017,7 +1015,7 @@ const PosView = () => {
                       setIsShiftModalOpen(true);
                       setIsMobileMenuOpen(false);
                     }}
-                    className="w-full justify-start h-14 text-base text-red-600 hover:text-red-600 hover:bg-red-50"
+                    className="w-full justify-start h-14 text-base text-gray-900 hover:text-gray-900 hover:bg-gray-50"
                   >
                     <Lock className="size-6" />
                     Cerrar Caja
@@ -1034,7 +1032,7 @@ const PosView = () => {
                 <Button
                   variant="ghost"
                   onClick={() => { setIsMobileMenuOpen(false); requestLogout(); }}
-                  className="w-full justify-start h-14 text-base text-red-600 hover:text-red-600 hover:bg-red-50"
+                  className="w-full justify-start h-14 text-base text-gray-900 hover:text-gray-900 hover:bg-gray-50"
                 >
                   <LogOut className="size-6" />
                   Cerrar Sesión
