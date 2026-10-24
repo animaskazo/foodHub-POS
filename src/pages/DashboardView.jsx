@@ -489,11 +489,11 @@ const DashboardView = () => {
 
   useDocumentTitle('Dashboard');
 
-  const renderShiftButton = (mobileOnly = false) => {
+  const renderShiftButton = () => {
     if (!shiftSettings?.shifts_enabled) return null;
     
     return (
-      <div className={mobileOnly ? "hidden" : "hidden md:block"}>
+      <div className="hidden md:block">
         {currentShift ? (
           <Button 
             onClick={() => { setShiftModalType('close'); setIsShiftModalOpen(true); }}
@@ -525,7 +525,6 @@ const DashboardView = () => {
           title={
             <div className="flex items-center justify-between w-full gap-3 flex-wrap">
               <span>Dashboard</span>
-              {renderShiftButton(true)}
             </div>
           }
           subtitle={
@@ -539,7 +538,7 @@ const DashboardView = () => {
                 <PrepTimeSelector />
                 <StockNotifications />
               </div>
-              {renderShiftButton(false)}
+              {renderShiftButton()}
             </div>
           }
         />
