@@ -566,56 +566,56 @@ const DashboardView = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div className="flex min-w-0 items-center gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain overscroll-y-none hide-scrollbar touch-pan-x">
             <Button
-              className="shrink-0 h-7 px-3 text-xs gap-1.5"
-              size="sm"
+              className="shrink-0"
+              size="xs"
               variant={channelFilter === 'all' && !showScheduled ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('all'); setShowScheduled(false); }}
             >
               Todos
             </Button>
             <Button
-              className="shrink-0 h-7 px-3 text-xs gap-1.5"
-              size="sm"
+              className="shrink-0"
+              size="xs"
               variant={channelFilter === 'table' ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('table'); setShowScheduled(false); }}
             >
               <Store className="h-3.5 w-3.5" aria-hidden="true" /> Local
             </Button>
             <Button
-              className="shrink-0 h-7 px-3 text-xs gap-1.5"
-              size="sm"
+              className="shrink-0"
+              size="xs"
               variant={channelFilter === 'pickup' ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('pickup'); setShowScheduled(false); }}
             >
               <PaperBag className="h-3.5 w-3.5" aria-hidden="true" /> Retiro
             </Button>
             <Button
-              className="shrink-0 h-7 px-3 text-xs gap-1.5"
-              size="sm"
+              className="shrink-0"
+              size="xs"
               variant={channelFilter === 'delivery' ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('delivery'); setShowScheduled(false); }}
             >
               <Van className="h-3.5 w-3.5" aria-hidden="true" /> Delivery
             </Button>
             <Button
-              className="shrink-0 h-7 px-3 text-xs gap-1.5"
-              size="sm"
+              className="shrink-0"
+              size="xs"
               variant={channelFilter === 'online' ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('online'); setShowScheduled(false); }}
             >
               <Globe className="h-3.5 w-3.5" aria-hidden="true" /> Online
             </Button>
             <Button
-              className="shrink-0 h-7 px-3 text-xs gap-1.5"
-              size="sm"
+              className="shrink-0"
+              size="xs"
               variant={channelFilter === 'whatsapp' ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('whatsapp'); setShowScheduled(false); }}
             >
               <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" /> WhatsApp
             </Button>
             <Button
-              className="shrink-0 h-7 px-3 text-xs gap-1.5"
-              size="sm"
+              className="shrink-0"
+              size="xs"
               variant={showScheduled ? 'default' : 'secondary'}
               onClick={() => { setShowScheduled(!showScheduled); setChannelFilter('all'); }}
             >
