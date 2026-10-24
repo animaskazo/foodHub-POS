@@ -986,7 +986,7 @@ const PosView = () => {
                   <Button
                     key={id}
                     variant="ghost"
-                    onPointerDown={() => {
+                    onClick={() => {
                       if (id === 'cocina') {
                         navigate('/kitchen');
                       } else if (id === 'dashboard') {
@@ -1012,7 +1012,7 @@ const PosView = () => {
                 {shiftSettings?.shifts_enabled && currentShift && canCloseShift && (
                   <Button
                     variant="ghost"
-                    onPointerDown={() => {
+                    onClick={() => {
                       setShiftModalType('close');
                       setIsShiftModalOpen(true);
                       setIsMobileMenuOpen(false);
