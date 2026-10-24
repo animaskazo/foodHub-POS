@@ -38,6 +38,7 @@ const getPresetRange = (key) => {
 
 const DateRangePicker = ({ from, to, onSelect, activePreset, onPresetChange }) => {
   const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [calendarRange, setCalendarRange] = useState({ from: from || null, to: to || null });
 
   const handlePreset = (key) => {
@@ -46,6 +47,7 @@ const DateRangePicker = ({ from, to, onSelect, activePreset, onPresetChange }) =
     onPresetChange(key);
     onSelect(range.from, range.to);
     setOpen(false);
+    setMobileOpen(false);
   };
 
   const handleCalendarSelect = (range) => {
@@ -67,6 +69,7 @@ const DateRangePicker = ({ from, to, onSelect, activePreset, onPresetChange }) =
     onPresetChange(null);
     onSelect(calendarRange.from, calendarRange.to);
     setOpen(false);
+    setMobileOpen(false);
   };
 
   const displayText = () => {
@@ -86,6 +89,11 @@ const DateRangePicker = ({ from, to, onSelect, activePreset, onPresetChange }) =
       <PopoverTrigger
         render={
           <button
+            onClick={() => {
+              if (window.matchMedia('(max-width: 767px)').matches) {
+                setMobileOpen(value => !value);
+              }
+            }}
             className={cn(
               "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all select-none border",
               activePreset || (from && to)
@@ -130,7 +138,7 @@ const DateRangePicker = ({ from, to, onSelect, activePreset, onPresetChange }) =
           />
         </div>
       </PopoverContent>
-      {open && createPortal(
+      {mobileOpen && createPortal(
         <div
           className="fixed inset-0 z-[100] flex flex-col bg-white md:hidden"
           role="dialog"
@@ -143,7 +151,7 @@ const DateRangePicker = ({ from, to, onSelect, activePreset, onPresetChange }) =
               <h2 className="text-lg font-bold text-gray-900">Seleccionar fechas</h2>
               <p className="mt-0.5 text-sm text-gray-500">Elige un rango para consultar tus pedidos</p>
             </div>
-            <button type="button" onClick={() => setOpen(false)} className="rounded-full p-2 text-gray-600 hover:bg-gray-100" aria-label="Cerrar calendario">
+            <button type="button" onClick={() => { setOpen(false); setMobileOpen(false); }} className="rounded-full p-2 text-gray-600 hover:bg-gray-100" aria-label="Cerrar calendario">
               <X className="h-5 w-5" />
             </button>
           </div>
