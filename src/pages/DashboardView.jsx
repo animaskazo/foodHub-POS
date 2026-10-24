@@ -497,20 +497,20 @@ const DashboardView = () => {
         {currentShift ? (
           <Button 
             onClick={() => { setShiftModalType('close'); setIsShiftModalOpen(true); }}
-            className="flex items-center gap-2 bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 px-6 h-11 text-base"
+            className="flex h-9 items-center gap-1.5 border border-green-200 bg-green-50 px-3 text-sm text-green-700 hover:bg-green-100"
           >
-            <span className="flex h-2.5 w-2.5 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
             </span>
             Turno Activo
           </Button>
         ) : (
           <Button 
             onClick={() => { setShiftModalType('open'); setIsShiftModalOpen(true); }}
-            className="flex items-center gap-2 bg-gray-100 text-black hover:bg-gray-100 px-6 h-11 text-base"
+            className="flex h-9 items-center gap-1.5 bg-gray-100 px-3 text-sm text-black hover:bg-gray-200"
           >
-            <Store className="h-5 w-5" aria-hidden="true" />
+            <Store className="h-4 w-4" aria-hidden="true" />
             Abrir Caja
           </Button>
         )}
