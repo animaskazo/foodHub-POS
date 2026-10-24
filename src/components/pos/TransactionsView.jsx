@@ -238,7 +238,7 @@ const TransactionsView = ({ onOpenMobileMenu }) => {
               placeholder="Buscar"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-white md:bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
+              className="w-full pl-9 pr-4 py-2 bg-white md:bg-gray-50 border border-gray-200 rounded-xl text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors"
             />
           </div>
         </div>
