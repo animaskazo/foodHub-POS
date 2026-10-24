@@ -84,7 +84,7 @@ const PrepTimeSelector = ({ compact = false, menuVariant = false, iconOnly = fal
           aria-expanded={detailsOpen}
           className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-800 transition-colors hover:bg-gray-100"
         >
-          {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : saved ? <Check className="h-5 w-5" /> : <Timer className="h-5 w-5" />}
+          {saving ? <Loader2 className="h-6 w-6 animate-spin" /> : saved ? <Check className="h-6 w-6" /> : <Timer className="h-6 w-6" />}
         </button>
         {detailsOpen && (
           <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-gray-200 bg-white p-4 shadow-lg">
