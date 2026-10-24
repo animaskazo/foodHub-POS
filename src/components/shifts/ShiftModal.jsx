@@ -35,9 +35,9 @@ const ShiftCloseView = ({ shift, salesData, balance, onBalanceChange, loading, f
   const hasInput = balance.trim().length > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Turno context - one line */}
-      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 px-1">
+      <div className="flex flex-wrap items-center gap-2 rounded-xl bg-gray-50 px-3 py-2.5 text-xs text-gray-500">
         <span className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
           <span>{formatDateTime(shift?.start_time)} → {formatDateTime(new Date().toISOString())}</span>
@@ -48,11 +48,11 @@ const ShiftCloseView = ({ shift, salesData, balance, onBalanceChange, loading, f
       </div>
 
       {/* Expected amount - prominent */}
-      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-baseline justify-between gap-4">
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-wider">Esperado en caja</p>
-            <p className="text-2xl font-bold tabular-nums text-gray-900">{formatCurrency(expectedCashInRegister)}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Efectivo esperado</p>
+            <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-gray-900">{formatCurrency(expectedCashInRegister)}</p>
           </div>
           <div className="text-right text-sm text-gray-500">
             <p>Inicial: <span className="font-medium tabular-nums">{formatCurrency(startingBalance)}</span></p>
@@ -62,12 +62,12 @@ const ShiftCloseView = ({ shift, salesData, balance, onBalanceChange, loading, f
       </div>
 
       {/* Sales breakdown - collapsible/simple */}
-      <details className="group border border-gray-100 rounded-xl overflow-hidden">
-        <summary className="flex items-center justify-between p-3 bg-gray-50 cursor-pointer list-none">
-          <span className="text-sm font-medium text-gray-700">Desglose de ventas</span>
+      <details className="group overflow-hidden rounded-2xl border border-gray-200 bg-white">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3.5 text-sm font-semibold text-gray-800">
+          <span>Desglose de ventas</span>
           <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
         </summary>
-        <div className="p-3 space-y-2 border-t border-gray-100 bg-white">
+        <div className="space-y-2 border-t border-gray-100 bg-white p-4">
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="flex justify-between py-1"><span className="text-gray-500">Efectivo</span><span className="font-medium tabular-nums">{formatCurrency(cashSales)}</span></div>
             <div className="flex justify-between py-1"><span className="text-gray-500">Tarjeta</span><span className="font-medium tabular-nums">{formatCurrency(cardSales)}</span></div>
@@ -81,15 +81,15 @@ const ShiftCloseView = ({ shift, salesData, balance, onBalanceChange, loading, f
       </details>
 
       {/* Input - single, prominent */}
-      <div className="relative">
-        <label className="block text-sm font-semibold text-gray-700 mb-2">Efectivo contado <span className="text-normal font-normal text-gray-400">($)</span></label>
+      <div className="relative rounded-2xl border border-gray-200 bg-gray-50 p-4">
+        <label className="mb-3 block text-sm font-bold text-gray-900">Efectivo contado</label>
         <div className="relative">
           <DollarSign className="absolute inset-y-0 left-0 pointer-events-none h-6 w-6" />
           <Input
             type="text"
             value={balance}
             onChange={(e) => onBalanceChange(e.target.value.replace(/\D/g, ''))}
-            className="pl-10 text-2xl font-bold h-14 text-center tabular-nums"
+            className="h-14 rounded-xl border-gray-300 bg-white pl-10 text-2xl font-bold text-center tabular-nums focus-visible:ring-2 focus-visible:ring-black"
             placeholder="0"
             autoFocus
             disabled={fetchingData || loading}
@@ -288,8 +288,8 @@ onSuccess();
   const actionLabel = type === 'open' ? 'Abrir Caja' : 'Cerrar Caja e Imprimir';
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} size={type === 'close' ? 'lg' : 'md'}>
-      <div className="p-6 pb-4">
+    <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth={type === 'close' ? 'max-w-2xl' : 'max-w-md'} fullScreenOnMobile>
+      <div className="p-4 pb-5 sm:p-6">
         {type === 'open' ? (
           <ShiftOpenView
             balance={balance}
