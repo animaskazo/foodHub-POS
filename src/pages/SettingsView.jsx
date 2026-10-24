@@ -1138,8 +1138,8 @@ const SettingsView = () => {
             )}
 
             {activeTab === 'staff' && (
-              <div className="p-6 md:p-8 space-y-4">
-                <div className="flex justify-between items-center">
+              <div className="p-4 sm:p-6 md:p-8 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                   <h3 className="text-lg font-semibold text-gray-900">Equipo</h3>
                   {!showInvite ? (
                     <Button size="sm" onClick={() => { setShowInvite(true); setCreatedTeamPin(null); }}>
@@ -1212,7 +1212,7 @@ const SettingsView = () => {
                             <p className="text-sm text-gray-500 capitalize">{member.role === 'cashier' ? 'Vendedor' : (member.role || 'Staff')} · {active ? 'Activo' : 'Inactivo'}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                           {!['owner', 'admin'].includes(member.role) && (
                             <Button
                               variant="outline"
