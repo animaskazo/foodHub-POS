@@ -1015,7 +1015,7 @@ const PosView = () => {
                       setIsShiftModalOpen(true);
                       setIsMobileMenuOpen(false);
                     }}
-                    className="w-full justify-start gap-4 px-8 h-14 text-base text-gray-900 hover:text-gray-900 hover:bg-gray-50"
+                    className="w-full flex items-center justify-start gap-4 px-8 h-14 text-base text-gray-900 hover:text-gray-900 hover:bg-gray-50"
                   >
                     <Lock className="size-6" />
                     Cerrar Caja
