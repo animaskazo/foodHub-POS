@@ -1032,7 +1032,7 @@ const PosView = () => {
                 <Button
                   variant="ghost"
                   onClick={() => { setIsMobileMenuOpen(false); requestLogout(); }}
-                  className="w-full justify-start h-14 text-base text-gray-900 hover:text-gray-900 hover:bg-gray-50"
+                  className="w-full flex items-center justify-start gap-4 px-8 h-14 text-base text-gray-900 hover:text-gray-900 hover:bg-gray-50"
                 >
                   <LogOut className="size-6" />
                   Cerrar Sesión
