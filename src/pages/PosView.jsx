@@ -981,10 +981,10 @@ const PosView = () => {
               </Button>
             </div>
             <div className="flex-1 min-h-0 overflow-y-scroll overscroll-y-contain touch-pan-y [-webkit-overflow-scrolling:touch]">
-              <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+              <div className="px-8 py-2">
                 <PrepTimeSelector menuVariant />
               </div>
-              <div className="py-2">
+              <div className="py-0">
                 {getNavItems(role, organization?.dine_in_enabled === true, isAdmin).map(({ id, label, icon: Icon }) => (
                   <Button
                     key={id}
@@ -1006,7 +1006,7 @@ const PosView = () => {
                   </Button>
                 ))}
               </div>
-              <div className="p-5 border-t border-gray-100 space-y-2">
+              <div className="p-0">
                 {shiftSettings?.shifts_enabled && currentShift && canCloseShift && (
                   <Button
                     variant="ghost"
@@ -1015,7 +1015,7 @@ const PosView = () => {
                       setIsShiftModalOpen(true);
                       setIsMobileMenuOpen(false);
                     }}
-                    className="w-full justify-start h-14 text-base text-gray-900 hover:text-gray-900 hover:bg-gray-50"
+                    className="w-full justify-start gap-4 px-8 h-14 text-base text-gray-900 hover:text-gray-900 hover:bg-gray-50"
                   >
                     <Lock className="size-6" />
                     Cerrar Caja
@@ -1024,7 +1024,7 @@ const PosView = () => {
                 <Button
                   variant="ghost"
                   onClick={() => { setIsMobileMenuOpen(false); requestChangePin(); }}
-                  className="w-full justify-start h-14 text-base"
+                  className="w-full justify-start gap-4 px-8 h-14 text-base text-gray-900 hover:bg-gray-50"
                 >
                   <KeyRound className="size-6" />
                   Cambiar mi PIN
