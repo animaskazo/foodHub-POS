@@ -980,64 +980,66 @@ const PosView = () => {
                 <X className="size-6" />
               </Button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4">
-              {getNavItems(role, organization?.dine_in_enabled === true, isAdmin).map(({ id, label, icon: Icon }) => (
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain touch-pan-y">
+              <div className="py-4">
+                {getNavItems(role, organization?.dine_in_enabled === true, isAdmin).map(({ id, label, icon: Icon }) => (
+                  <Button
+                    key={id}
+                    variant="ghost"
+                    onPointerDown={() => {
+                      if (id === 'cocina') {
+                        navigate('/kitchen');
+                      } else if (id === 'dashboard') {
+                        navigate('/');
+                      } else {
+                        setActiveTab(id);
+                      }
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-start gap-5 px-8 h-16 transition-colors rounded-none ${
+                      activeTab === id ? 'text-black font-extrabold bg-gray-50' : 'text-gray-500 font-semibold hover:bg-gray-50'
+                    }`}
+                  >
+                    <Icon className={`h-8 w-8 ${activeTab === id ? 'text-black' : 'text-gray-400'}`} />
+                    <span className="text-lg">{label}</span>
+                  </Button>
+                ))}
+              </div>
+              <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+                <PrepTimeSelector menuVariant />
+              </div>
+              <div className="p-5 border-t border-gray-100 space-y-2">
+                {shiftSettings?.shifts_enabled && currentShift && canCloseShift && (
+                  <Button
+                    variant="ghost"
+                    onPointerDown={() => {
+                      setShiftModalType('close');
+                      setIsShiftModalOpen(true);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full justify-start h-14 text-base text-red-600 hover:text-red-600 hover:bg-red-50"
+                  >
+                    <Lock className="size-6" />
+                    Cerrar Caja
+                  </Button>
+                )}
                 <Button
-                  key={id}
                   variant="ghost"
-                  onPointerDown={() => {
-                    if (id === 'cocina') {
-                      navigate('/kitchen');
-                    } else if (id === 'dashboard') {
-                      navigate('/');
-                    } else {
-                      setActiveTab(id);
-                    }
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-start gap-5 px-8 h-16 transition-colors rounded-none ${
-                    activeTab === id ? 'text-black font-extrabold bg-gray-50' : 'text-gray-500 font-semibold hover:bg-gray-50'
-                  }`}
+                  onPointerDown={() => { setIsMobileMenuOpen(false); requestChangePin(); }}
+                  className="w-full justify-start h-14 text-base"
                 >
-                  <Icon className={`h-8 w-8 ${activeTab === id ? 'text-black' : 'text-gray-400'}`} />
-                  <span className="text-lg">{label}</span>
+                  <KeyRound className="size-6" />
+                  Cambiar mi PIN
                 </Button>
-              ))}
-            </div>
-            <div className="shrink-0 px-5 py-4 border-t border-gray-100 bg-gray-50/50">
-              <PrepTimeSelector menuVariant />
-            </div>
-            <div className="shrink-0 p-5 border-t border-gray-100 space-y-2">
-              {shiftSettings?.shifts_enabled && currentShift && canCloseShift && (
                 <Button
                   variant="ghost"
-                  onPointerDown={() => {
-                    setShiftModalType('close');
-                    setIsShiftModalOpen(true);
-                    setIsMobileMenuOpen(false);
-                  }}
+                  onPointerDown={() => { setIsMobileMenuOpen(false); requestLogout(); }}
                   className="w-full justify-start h-14 text-base text-red-600 hover:text-red-600 hover:bg-red-50"
                 >
-                  <Lock className="size-6" />
-                  Cerrar Caja
+                  <LogOut className="size-6" />
+                  Cerrar Sesión
                 </Button>
-              )}
-              <Button
-                variant="ghost"
-                onPointerDown={() => { setIsMobileMenuOpen(false); requestChangePin(); }}
-                className="w-full justify-start h-14 text-base"
-              >
-                <KeyRound className="size-6" />
-                Cambiar mi PIN
-              </Button>
-              <Button
-                variant="ghost"
-                onPointerDown={() => { setIsMobileMenuOpen(false); requestLogout(); }}
-                className="w-full justify-start h-14 text-base text-red-600 hover:text-red-600 hover:bg-red-50"
-              >
-                <LogOut className="size-6" />
-                Cerrar Sesión
-              </Button>
+              </div>
             </div>
           </div>
         </div>
