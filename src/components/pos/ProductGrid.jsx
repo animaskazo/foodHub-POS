@@ -317,7 +317,7 @@ const ProductGrid = ({
                 }
               }}
               placeholder="Buscar..."
-              className="md:hidden flex w-full h-10 pl-9 pr-9 bg-gray-100 rounded-lg text-sm items-center transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+              className="md:hidden flex w-full h-10 pl-9 pr-9 bg-gray-100 rounded-lg text-base items-center transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
             />
             {search ? (
               <button
