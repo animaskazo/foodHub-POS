@@ -105,7 +105,7 @@ const StockNotifications = () => {
         </span>
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-50">
+        <div className="fixed left-2 right-2 top-[calc(env(safe-area-inset-top)+4.5rem)] z-50 rounded-xl border border-gray-200 bg-white shadow-lg md:absolute md:left-auto md:right-0 md:top-full md:mt-2 md:w-80">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <div>
               <h3 className="font-semibold text-sm text-gray-900">Insumos con stock bajo</h3>
