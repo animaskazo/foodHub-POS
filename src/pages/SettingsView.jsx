@@ -904,7 +904,7 @@ const SettingsView = () => {
 
                 {/* BLOQUE 5: Código QR del Menú */}
                 {formData.slug && (
-                  <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-4">
+                  <div className="space-y-4">
                     <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
                       <QrCode className="hidden shrink-0 sm:block w-5 h-5" />
                       <div>
@@ -1558,7 +1558,7 @@ const SettingsView = () => {
           {/* Coupons Tab */}
           {activeTab === 'coupons' && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900">Cupones de descuento</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Cupones</h2>
               <CouponsSection orgId={orgId} />
             </div>
           )}
