@@ -9,7 +9,7 @@ export const NAV_ITEMS = [
   { id: 'mesas', label: 'Mesas', icon: LayoutGrid },
   { id: 'transacciones', label: 'Transacciones', icon: ArrowLeftRight },
   { id: 'cocina', label: 'Cocina', icon: ChefHat },
-  { id: 'dashboard', label: 'Panel', icon: Home },
+  { id: 'dashboard', label: 'Dashboard', icon: Home },
 ];
 
 export const getNavItems = (role, dineInEnabled = false, isAdmin = false) => {
