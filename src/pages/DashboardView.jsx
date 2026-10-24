@@ -115,6 +115,15 @@ const DashboardView = () => {
   const [weeklySparklines, setWeeklySparklines] = useState({ revenue: [], orders: [], ticket: [], visits: [] });
   const { latestNewOrder } = useKitchenOrders();
 
+  useEffect(() => {
+    const handleOpenShift = (event) => {
+      setShiftModalType(event.detail?.type || 'open');
+      setIsShiftModalOpen(true);
+    };
+    window.addEventListener('foodhub:open-shift', handleOpenShift);
+    return () => window.removeEventListener('foodhub:open-shift', handleOpenShift);
+  }, []);
+
   const fetchSparklines = useCallback(async () => {
     if (!organization?.id) return;
     const endOfDay = new Date();
@@ -484,7 +493,7 @@ const DashboardView = () => {
     if (!shiftSettings?.shifts_enabled) return null;
     
     return (
-      <div className={mobileOnly ? "md:hidden" : "hidden md:block"}>
+      <div className={mobileOnly ? "hidden" : "hidden md:block"}>
         {currentShift ? (
           <Button 
             onClick={() => { setShiftModalType('close'); setIsShiftModalOpen(true); }}
