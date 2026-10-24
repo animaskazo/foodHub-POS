@@ -3,7 +3,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { User, Calendar, Clock, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe, Store, Plus, Pencil, Tags, Copy, Trash2, Mail, KeyRound } from 'lucide-react';
+import { User, Calendar, Clock, Shield, Loader2, Building2, MessageSquare, DollarSign, ExternalLink, ArrowLeft, ChevronRight, PackageOpen, Package, X, Eye, MapPin, CreditCard, ShoppingBag, MessageCircle, RefreshCw, ToggleLeft, ToggleRight, Sparkles, Globe, Store, Plus, Pencil, Tags, Copy, Trash2, Mail, KeyRound, TrendingUp, ShoppingCart, Activity } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getStoreUrl } from '../utils/tenant';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,8 @@ const SuperAdminView = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   
   const [loading, setLoading] = useState(true);
+  const [globalMetrics, setGlobalMetrics] = useState({ salesAllTime: 0, salesToday: 0, ordersToday: 0, activeStores: 0, averageTicketToday: 0, topStoresToday: [] });
+  const [metricsError, setMetricsError] = useState(null);
   const [error, setError] = useState(null);
   const [isAIImportOpen, setIsAIImportOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
@@ -329,6 +331,7 @@ const SuperAdminView = () => {
         fetchUsers(),
         fetchSupremos(),
         fetchOrganizations(),
+        fetchGlobalMetrics(),
         fetchFeedbacks(),
         fetchProducts()
       ]);
@@ -337,6 +340,79 @@ const SuperAdminView = () => {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchGlobalMetrics = async () => {
+    setMetricsError(null);
+    try {
+      const { data: activeStores, error: storesError } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .eq('is_active', true);
+      if (storesError) throw storesError;
+
+      const stores = activeStores || [];
+      if (stores.length === 0) {
+        setGlobalMetrics({ salesAllTime: 0, salesToday: 0, ordersToday: 0, activeStores: 0, averageTicketToday: 0, topStoresToday: [] });
+        return;
+      }
+
+      const storesById = new Map(stores.map((store) => [store.id, store.name]));
+      const salesByStoreToday = new Map(stores.map((store) => [store.id, { id: store.id, name: store.name, orders: 0, sales: 0 }]));
+      const santiagoDateFormatter = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit',
+      });
+      const todayInSantiago = santiagoDateFormatter.format(new Date());
+      let salesAllTime = 0;
+      let salesToday = 0;
+      let ordersToday = 0;
+      const pageSize = 1000;
+
+      for (let offset = 0; ; offset += pageSize) {
+        const { data: orders, error: ordersError } = await supabase
+          .from('orders')
+          .select('id, organization_id, total, status, created_at, payments(status)')
+          .in('organization_id', stores.map((store) => store.id))
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: true })
+          .range(offset, offset + pageSize - 1);
+        if (ordersError) throw ordersError;
+
+        const rows = orders || [];
+        rows.forEach((order) => {
+          const isPaidSale = order.status !== 'cancelled'
+            && order.status !== 'refunded'
+            && (order.payments || []).some((payment) => payment.status === 'paid');
+          if (!isPaidSale || !storesById.has(order.organization_id)) return;
+
+          const total = Number(order.total || 0);
+          salesAllTime += total;
+          const orderDateInSantiago = santiagoDateFormatter.format(new Date(order.created_at));
+          if (orderDateInSantiago === todayInSantiago) {
+            salesToday += total;
+            ordersToday += 1;
+            const storeToday = salesByStoreToday.get(order.organization_id);
+            storeToday.orders += 1;
+            storeToday.sales += total;
+          }
+        });
+        if (rows.length < pageSize) break;
+      }
+
+      setGlobalMetrics({
+        salesAllTime,
+        salesToday,
+        ordersToday,
+        activeStores: stores.length,
+        averageTicketToday: ordersToday ? salesToday / ordersToday : 0,
+        topStoresToday: [...salesByStoreToday.values()].filter((store) => store.orders > 0)
+          .sort((a, b) => b.orders - a.orders || b.sales - a.sales || a.name.localeCompare(b.name))
+          .slice(0, 5),
+      });
+    } catch (err) {
+      console.error('Error fetching super admin metrics:', err);
+      setMetricsError('No se pudieron cargar los indicadores globales.');
     }
   };
 
@@ -499,15 +575,73 @@ const SuperAdminView = () => {
         {loading ? (
           <Loader2 className="h-8 w-8 animate-spin" />
         ) : !selectedOrganization ? (
-          
-          /* =========================================================
-             MASTER VIEW: List of all Organizations
-             ========================================================= */
-          <div className="bg-white rounded-xl border overflow-hidden min-h-[400px] [&_button]:rounded-full">
-            <div className="px-4 md:px-6 py-4 border-b flex items-baseline gap-2">
-              <h2 className="text-[15px] font-semibold text-gray-900">Negocios registrados</h2>
-              <span className="text-xs text-gray-400 tabular-nums">{organizations.length}</span>
-            </div>
+          <div className="space-y-6">
+            <section aria-label="Indicadores globales" className="space-y-4">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-semibold text-gray-900">Resumen de la plataforma</h2>
+                  <p className="mt-1 text-xs text-gray-500">Ventas de tiendas activas · Hoy según hora de Santiago</p>
+                </div>
+                <button type="button" onClick={fetchGlobalMetrics} className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50">
+                  <RefreshCw className="h-3.5 w-3.5" /> Actualizar
+                </button>
+              </div>
+              {metricsError && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{metricsError}</p>}
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                {[
+                  { label: 'Ventas acumuladas', value: globalMetrics.salesAllTime, icon: TrendingUp, detail: 'Pedidos pagados · todas las fechas' },
+                  { label: 'Ventas de hoy', value: globalMetrics.salesToday, icon: DollarSign, detail: `${globalMetrics.ordersToday} pedidos pagados` },
+                ].map((metric) => (
+                  <div key={metric.label} className="rounded-xl border bg-white p-4 md:p-5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-gray-500">{metric.label}</span>
+                      <metric.icon className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <p className="mt-3 text-xl font-semibold tracking-tight text-gray-900 md:text-2xl">{metric.value.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 })}</p>
+                    <p className="mt-1 text-[11px] text-gray-400">{metric.detail}</p>
+                  </div>
+                ))}
+                <div className="rounded-xl border bg-white p-4 md:p-5">
+                  <div className="flex items-center justify-between gap-2"><span className="text-xs font-medium text-gray-500">Tiendas activas</span><Store className="h-4 w-4 text-gray-400" /></div>
+                  <p className="mt-3 text-xl font-semibold tracking-tight text-gray-900 md:text-2xl">{globalMetrics.activeStores.toLocaleString('es-CL')}</p>
+                  <p className="mt-1 text-[11px] text-gray-400">Cuentas habilitadas en la plataforma</p>
+                </div>
+                <div className="rounded-xl border bg-white p-4 md:p-5">
+                  <div className="flex items-center justify-between gap-2"><span className="text-xs font-medium text-gray-500">Ticket promedio de hoy</span><Activity className="h-4 w-4 text-gray-400" /></div>
+                  <p className="mt-3 text-xl font-semibold tracking-tight text-gray-900 md:text-2xl">{globalMetrics.averageTicketToday.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 })}</p>
+                  <p className="mt-1 text-[11px] text-gray-400">Ventas de hoy ÷ pedidos pagados</p>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-xl border bg-white">
+                <div className="flex items-center justify-between border-b px-4 py-4 md:px-6">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">Tiendas con más pedidos hoy</h3>
+                    <p className="mt-1 text-xs text-gray-500">Top 5 por cantidad de pedidos pagados</p>
+                  </div>
+                  <ShoppingCart className="h-4 w-4 text-gray-400" />
+                </div>
+                {globalMetrics.topStoresToday.length ? (
+                  <div className="divide-y">
+                    {globalMetrics.topStoresToday.map((store, index) => (
+                      <div key={store.id} className="flex items-center gap-3 px-4 py-3 md:px-6">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-600">{index + 1}</span>
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-900">{store.name}</span>
+                        <span className="text-right text-sm font-semibold tabular-nums text-gray-900">{store.orders} <span className="font-normal text-gray-500">{store.orders === 1 ? 'pedido' : 'pedidos'}</span></span>
+                        <span className="hidden w-32 text-right text-sm tabular-nums text-gray-500 sm:block">{store.sales.toLocaleString('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 })}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="px-4 py-8 text-center text-sm text-gray-500">Aún no hay pedidos pagados hoy.</p>}
+              </div>
+            </section>
+
+            {/* MASTER VIEW: List of all organizations */}
+            <div className="bg-white rounded-xl border overflow-hidden min-h-[400px] [&_button]:rounded-full">
+              <div className="px-4 md:px-6 py-4 border-b flex items-baseline gap-2">
+                <h2 className="text-[15px] font-semibold text-gray-900">Negocios registrados</h2>
+                <span className="text-xs text-gray-400 tabular-nums">{organizations.length}</span>
+              </div>
             {/* Mobile: cards */}
             <div className="divide-y md:hidden">
               {organizations.map((org) => (
@@ -643,6 +777,7 @@ const SuperAdminView = () => {
                   )}
                 </tbody>
               </table>
+            </div>
             </div>
           </div>
         ) : (
