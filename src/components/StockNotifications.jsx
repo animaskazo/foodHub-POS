@@ -87,8 +87,6 @@ const StockNotifications = () => {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  if (notifications.length === 0) return null;
-
   const goTo = (type) => {
     setOpen(false);
     navigate(type === 'ingredient' ? '/ingredients' : '/inventory');
@@ -118,7 +116,9 @@ const StockNotifications = () => {
             </IconButton>
           </div>
           <div className="max-h-72 overflow-y-auto p-2">
-            {notifications.map(item => (
+            {notifications.length === 0 ? (
+              <p className="px-3 py-5 text-center text-sm text-gray-500">No hay alertas de stock.</p>
+            ) : notifications.map(item => (
               <button
                 key={`${item.type}-${item.id}`}
                 onClick={() => goTo(item.type)}
