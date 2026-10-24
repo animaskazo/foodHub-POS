@@ -5,7 +5,7 @@ import { useKitchenOrders } from '../../hooks/useKitchenOrders';
 import { Button } from '@/components/ui/button';
 
 export const NAV_ITEMS = [
-  { id: 'pago', label: 'Vender', icon: ShoppingCart },
+  { id: 'pago', label: 'Punto de Venta', icon: ShoppingCart },
   { id: 'mesas', label: 'Mesas', icon: LayoutGrid },
   { id: 'transacciones', label: 'Transacciones', icon: ArrowLeftRight },
   { id: 'cocina', label: 'Cocina', icon: ChefHat },
