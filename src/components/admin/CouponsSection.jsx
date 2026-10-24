@@ -169,15 +169,15 @@ const CouponsSection = ({ orgId }) => {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="relative w-full sm:flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por código..."
-            className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-medium outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-gray-400"
+            className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-full text-base sm:text-sm font-medium outline-none focus:border-black focus:ring-1 focus:ring-black transition-all placeholder:text-gray-400"
           />
         </div>
         <Button
