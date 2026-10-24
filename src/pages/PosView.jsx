@@ -980,7 +980,7 @@ const PosView = () => {
                 <X className="size-6" />
               </Button>
             </div>
-            <div className="flex-1 overflow-y-auto py-4">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4">
               {getNavItems(role, organization?.dine_in_enabled === true, isAdmin).map(({ id, label, icon: Icon }) => (
                 <Button
                   key={id}
@@ -1004,10 +1004,10 @@ const PosView = () => {
                 </Button>
               ))}
             </div>
-            <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/50">
+            <div className="shrink-0 px-5 py-4 border-t border-gray-100 bg-gray-50/50">
               <PrepTimeSelector menuVariant />
             </div>
-            <div className="p-5 border-t border-gray-100 space-y-2">
+            <div className="shrink-0 p-5 border-t border-gray-100 space-y-2">
               {shiftSettings?.shifts_enabled && currentShift && canCloseShift && (
                 <Button
                   variant="ghost"
