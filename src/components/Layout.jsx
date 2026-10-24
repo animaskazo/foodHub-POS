@@ -554,16 +554,6 @@ className={({ isActive }) =>
             <div className="flex items-center gap-2 lg:hidden">
               <PrepTimeSelector compact iconOnly />
               <StockNotifications />
-              {mobileShift.enabled && (
-                <IconButton
-                  onClick={() => window.dispatchEvent(new CustomEvent('foodhub:open-shift', { detail: { type: 'close' } }))}
-                  className="relative flex h-11 w-11 items-center justify-center rounded-full text-gray-800 hover:bg-gray-100"
-                  label="Cerrar caja"
-                  variant="ghost"
-                >
-                  <Store className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
-                </IconButton>
-              )}
             </div>
           )}
         </header>
