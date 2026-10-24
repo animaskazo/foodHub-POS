@@ -561,7 +561,7 @@ className={({ isActive }) =>
                   label="Cerrar caja"
                   variant="ghost"
                 >
-                  <Store className="h-8 w-8" strokeWidth={2.25} aria-hidden="true" />
+                  <Store className="h-7 w-7" strokeWidth={2} aria-hidden="true" />
                 </IconButton>
               )}
             </div>
