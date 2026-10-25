@@ -211,7 +211,7 @@ const CouponsSection = ({ orgId }) => {
           <p className="text-sm text-gray-500">No se encontraron cupones con "{search}"</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="md:bg-white md:rounded-2xl md:border md:border-gray-200 md:overflow-hidden">
           {/* Table header */}
           <div className="grid grid-cols-[1fr_100px_90px_90px_50px_120px] gap-3 px-6 py-3 bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-500 uppercase tracking-wider hidden md:grid">
             <span>Cupón</span>
