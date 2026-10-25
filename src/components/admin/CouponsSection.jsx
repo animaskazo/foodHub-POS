@@ -169,8 +169,8 @@ const CouponsSection = ({ orgId }) => {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div className="relative w-full sm:flex-1 sm:max-w-sm">
+      <div className="flex flex-col gap-3">
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" />
           <input
             type="text"
@@ -183,7 +183,7 @@ const CouponsSection = ({ orgId }) => {
         <Button
           size="sm"
           onClick={openCreate}
-          className="shrink-0"
+          className="w-full sm:w-auto self-start"
         >
           <Plus  aria-hidden="true" />
           Crear cupón
