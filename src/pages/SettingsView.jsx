@@ -1204,7 +1204,7 @@ const SettingsView = () => {
                       const busy = teamBusy === member.id;
                       const active = member.is_active !== false;
                       return (
-                      <div key={member.id} className={`flex items-center justify-between p-4 border border-gray-100 rounded-xl ${active ? '' : 'opacity-60'}`}>
+                      <div key={member.id} className={`flex flex-col gap-4 p-4 border border-gray-100 rounded-xl sm:flex-row sm:items-center sm:justify-between ${active ? '' : 'opacity-60'}`}>
                         <div className="flex items-center gap-4 min-w-0">
                           <User className="shrink-0 h-5 w-5" />
                           <div className="min-w-0">
@@ -1212,7 +1212,7 @@ const SettingsView = () => {
                             <p className="text-sm text-gray-500 capitalize">{member.role === 'cashier' ? 'Vendedor' : (member.role || 'Staff')} · {active ? 'Activo' : 'Inactivo'}</p>
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+                        <div className="flex flex-wrap items-center gap-2 pl-9 sm:shrink-0 sm:pl-0">
                           {!['owner', 'admin'].includes(member.role) && (
                             <Button
                               variant="outline"
