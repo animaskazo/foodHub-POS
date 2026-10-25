@@ -1557,8 +1557,8 @@ const SettingsView = () => {
 
           {/* Coupons Tab */}
           {activeTab === 'coupons' && (
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900">Cupones</h2>
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold text-gray-900">Cupones</h2>
               <CouponsSection orgId={orgId} />
             </div>
           )}
