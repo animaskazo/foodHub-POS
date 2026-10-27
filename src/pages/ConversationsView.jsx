@@ -88,6 +88,27 @@ const InstagramInbox = () => {
     } catch (err) { setError(err.message || 'No se pudo enviar el mensaje.'); }
     finally { setBusy(false); }
   };
+  const setMode = async (mode) => {
+    if (!selected || busy) return;
+    setBusy(true); setError('');
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('instagram-set-mode', { body: { conversation_id: selected, mode } });
+      if (invokeError) throw invokeError;
+      if (data?.mode !== mode) throw new Error(data?.error || 'No se pudo cambiar el modo.');
+      setConversations(current => current.map(c => c.id === selected ? { ...c, mode } : c));
+    } catch (err) { setError(err.message || 'No se pudo cambiar el modo.'); }
+    finally { setBusy(false); }
+  };
+  const disconnect = async () => {
+    if (!window.confirm('¿Desconectar Instagram de este negocio?')) return;
+    setBusy(true); setError('');
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('instagram-disconnect');
+      if (invokeError || !data?.disconnected) throw invokeError || new Error('No se pudo desconectar.');
+      setConnection({ status: 'disconnected' });
+    } catch (err) { setError(err.message || 'No se pudo desconectar.'); }
+    finally { setBusy(false); }
+  };
   const active = conversations.find(c => c.id === selected);
   return (
     <div className="flex h-full min-h-0 flex-col bg-white text-gray-950">
@@ -100,6 +121,7 @@ const InstagramInbox = () => {
         <>
           <section className="m-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-gray-50 p-4 md:mx-6">
             <div className="flex items-center gap-3"><Settings2 size={20}/><div><p className="font-medium">Conexión de Instagram</p><p className="text-sm text-gray-600">{connection?.status === 'connected' ? 'Conectado' + (connection.username ? ' · @' + connection.username : '') : connection?.status === 'unavailable' ? 'Servicio de conexión pendiente de configuración' : 'No conectado'}</p></div></div>
+            {connection?.status === 'connected' && <button disabled={busy} onClick={disconnect} className={button + ' border border-gray-300'}>Desconectar</button>}
             {connection?.status !== 'connected' && <button disabled={busy} onClick={beginConnect} className={button + ' bg-black text-white'}>{busy ? 'Conectando…' : 'Conectar Instagram'}</button>}
           </section>
           <div className="flex min-h-0 flex-1 border-t">
@@ -116,7 +138,7 @@ const InstagramInbox = () => {
             </aside>
             <main className={(mobileThread ? 'flex' : 'hidden md:flex') + ' min-w-0 flex-1 flex-col'}>
               {!active ? <div className="flex flex-1 items-center justify-center p-8 text-center text-gray-500">Selecciona una conversación para ver sus mensajes.</div> : <>
-                <div className="flex items-center gap-3 border-b p-4"><button aria-label="Volver a conversaciones" className="md:hidden" onClick={() => setMobileThread(false)}><ArrowLeft size={20}/></button><div className="min-w-0"><p className="truncate font-semibold">{active.customer_display_name || 'Cliente de Instagram'}</p><p className="text-xs text-gray-500">{active.mode === 'human' ? 'Atención humana' : 'Agente IA activo'}</p></div></div>
+                <div className="flex items-center gap-3 border-b p-4"><button aria-label="Volver a conversaciones" className="md:hidden" onClick={() => setMobileThread(false)}><ArrowLeft size={20}/></button><div className="min-w-0"><p className="truncate font-semibold">{active.customer_display_name || 'Cliente de Instagram'}</p><p className="text-xs text-gray-500">{active.mode === 'human' ? 'Atención humana' : 'Agente IA activo'}</p></div><button disabled={busy} onClick={() => setMode(active.mode === 'human' ? 'ai' : 'human')} className={button + ' ml-auto border'}>{active.mode === 'human' ? 'Activar IA' : 'Responder manualmente'}</button></div>
                 <div className="flex-1 space-y-3 overflow-auto bg-gray-50 p-4">
                   {messages.length === 0 && <p className="text-center text-sm text-gray-500">Aún no hay mensajes en esta conversación.</p>}
                   {messages.map(m => <div key={m.id} className={'flex ' + (m.direction === 'outbound' ? 'justify-end' : 'justify-start')}><div className={'max-w-[85%] rounded-xl p-3 text-sm ' + (m.direction === 'outbound' ? 'bg-gray-900 text-white' : 'border bg-white')}><p className="whitespace-pre-wrap break-words">{m.body || 'Mensaje multimedia'}</p><p className={'mt-1 text-xs ' + (m.direction === 'outbound' ? 'text-gray-300' : 'text-gray-500')}>{fmt(m.created_at)} · {m.sender_type === 'agent' ? 'IA' : m.sender_type === 'staff' ? 'Equipo' : 'Cliente'}</p></div></div>)}
