@@ -198,13 +198,18 @@ VENTA_WEB: ${Boolean(context.branch.accepts_online)}`;
   if (!toolUse?.input) throw new Error("El asistente devolvió una respuesta no válida.");
   return toolUse.input;
 }
-async function confirmOrder(cart: unknown, customer: any, delivery: any, context: Awaited<ReturnType<typeof getContext>>) {
+async function confirmOrder(cart: unknown, customer: any, delivery: any, context: Awaited<ReturnType<typeof getContext>>, source?: {channel:string;key:string}) {
+  if (source) {
+    if (source.channel !== "instagram" || !/^[a-zA-Z0-9:_-]{8,180}$/.test(source.key)) throw new Error("Invalid order source");
+    const prior = await db(`orders?organization_id=eq.${context.organization.id}&external_order_key=eq.${encodeURIComponent(source.key)}&select=id,order_number,total`);
+    if (prior.length) return {order_id:prior[0].id,order_number:prior[0].order_number,total:prior[0].total,replayed:true};
+  }
   if (!context.branch.accepts_online) throw new Error("Esta sucursal no está habilitada para recibir pedidos web.");
   const items = validateCart(cart, context);
   const customerName = text(customer?.name).trim(); const phone = text(customer?.phone).trim();
   if (!customerName || !phone) throw new Error("Indica tu nombre y teléfono para confirmar.");
   // Tu operación consolida estos pedidos como WhatsApp, incluso durante la etapa web.
-  const orderType = "whatsapp";
+  const orderType = "whatsapp"; // Existing enum value; external_order_key identifies Instagram source.
   const taxRate = context.organization.default_tax_rate ? toNumber(context.organization.default_tax_rate) / 100 : 0.19;
   
   const deliveryType = text(delivery?.type) === "delivery" ? "delivery" : "pickup";
@@ -226,7 +231,7 @@ async function confirmOrder(cart: unknown, customer: any, delivery: any, context
     await db(`customers?id=eq.${customerId}`, { method: "PATCH", body: JSON.stringify({ full_name: customerName, email: customerEmail || null }) });
   }
 
-  const orderRows = await db("orders", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ organization_id: context.organization.id, branch_id: context.branch.id, customer_id: customerId || null, order_type: orderType, delivery_type: deliveryType, delivery_address: deliveryAddress, delivery_fee: deliveryFee, status: "pending", customer_name: customerName, customer_phone: phone, notes: text(customer?.notes).slice(0, 280), subtotal: netTotal, tax_amount: taxAmount, total: grossTotal }) });
+  const orderRows = await db("orders", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ organization_id: context.organization.id, external_order_key: source?.key || null, branch_id: context.branch.id, customer_id: customerId || null, order_type: orderType, delivery_type: deliveryType, delivery_address: deliveryAddress, delivery_fee: deliveryFee, status: "pending", customer_name: customerName, customer_phone: phone, notes: text(customer?.notes).slice(0, 280), subtotal: netTotal, tax_amount: taxAmount, total: grossTotal }) });
   const order = orderRows[0];
   const orderItems = items.map((item) => ({ order_id: order.id, product_id: item.product.id, product_name: item.product.name, quantity: item.quantity, unit_price: item.grossUnitPrice, total_price: item.grossUnitPrice * item.quantity, notes: item.notes || null }));
   await db("order_items", { method: "POST", body: JSON.stringify(orderItems) });
@@ -331,7 +336,16 @@ Deno.serve(async (request) => {
         cart: validCart.map((item) => ({ product_id: item.product.id, name: item.product.name, quantity: item.quantity, notes: item.notes, variant_option_ids: item.options.map((option: any) => option.option.id), unit_price: item.grossUnitPrice })) 
       }); 
     }
-    if (body.action === "confirm") return json(await confirmOrder(body.cart, body.customer, body.delivery, context));
+    if (body.action === "confirm") {
+      // Instagram confirmations require a server-to-server authorization and idempotency key.
+      if (body.channel === "instagram") {
+        const auth = request.headers.get("x-instagram-checkout-secret");
+        if (!Deno.env.get("INSTAGRAM_CHECKOUT_SECRET") || auth !== Deno.env.get("INSTAGRAM_CHECKOUT_SECRET")) return json({error:"Unauthorized"},401);
+        if (!body.idempotency_key) return json({error:"Missing idempotency key"},400);
+      }
+      return json(await confirmOrder(body.cart, body.customer, body.delivery, context,
+        body.channel === "instagram" ? {channel:"instagram",key:body.idempotency_key} : undefined));
+    }
     return json({ error: "Acción no reconocida." }, 400);
   } catch (error) { return json({ error: error instanceof Error ? error.message : "Ocurrió un error inesperado." }, 400); }
 });
