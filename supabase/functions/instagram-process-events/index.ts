@@ -37,6 +37,8 @@ Deno.serve(async request=>{
    const {data:session}=await sb.from("channel_sessions").select("session_data").eq("organization_id",event.organization_id).eq("channel","instagram").eq("channel_account_id",p.account_id).eq("external_customer_id",p.sender_id).maybeSingle();
    const state=session?.session_data||{messages:[],cart:[]};
    const messages=[...(Array.isArray(state.messages)?state.messages:[]),{role:"user",content:p.text}].slice(-10);
+   // The shared agent can recommend items but must not promise checkout completion.
+   // Phone collection and explicit order confirmation are handled by a separate checkout flow.
    const response=await fetch(env("SUPABASE_URL")+"/functions/v1/food-agent",{
     method:"POST",headers:{"Authorization":"Bearer "+env("SUPABASE_SERVICE_ROLE_KEY"),"Content-Type":"application/json"},
     body:JSON.stringify({organization_slug:org.slug,action:"chat",messages,cart:state.cart||[]})
