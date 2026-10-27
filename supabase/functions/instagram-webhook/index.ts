@@ -61,6 +61,22 @@ Deno.serve(async (request) => {
       },
     }, { onConflict: "channel,provider_event_id", ignoreDuplicates: true });
     if (error) return new Response("Event persistence failed", { status: 500 });
+    // Store the inbox view independently of the AI processor.
+    const { data: conversation, error: conversationError } = await sb.from("channel_conversations").upsert({
+      organization_id: connection.organization_id, channel: "instagram",
+      channel_account_id: message.accountId, external_customer_id: message.senderId,
+      last_message_preview: (message.text || "Mensaje multimedia").slice(0, 180),
+      last_message_at: new Date().toISOString(),
+    }, { onConflict: "organization_id,channel,channel_account_id,external_customer_id" })
+      .select("id").single();
+    if (conversationError || !conversation) return new Response("Inbox persistence failed", { status: 500 });
+    const { error: messageError } = await sb.from("channel_messages").upsert({
+      conversation_id: conversation.id, organization_id: connection.organization_id,
+      provider_message_id: message.messageId, direction: "inbound",
+      sender_type: "customer", message_type: message.text === null ? "unsupported" : "text",
+      body: message.text, delivery_status: "received",
+    }, { onConflict: "conversation_id,provider_message_id", ignoreDuplicates: true });
+    if (messageError) return new Response("Message persistence failed", { status: 500 });
   }
   return new Response("EVENT_RECEIVED", { status: 200 });
 });
