@@ -231,7 +231,15 @@ async function confirmOrder(cart: unknown, customer: any, delivery: any, context
     await db(`customers?id=eq.${customerId}`, { method: "PATCH", body: JSON.stringify({ full_name: customerName, email: customerEmail || null }) });
   }
 
-  const orderRows = await db("orders", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ organization_id: context.organization.id, external_order_key: source?.key || null, branch_id: context.branch.id, customer_id: customerId || null, order_type: orderType, delivery_type: deliveryType, delivery_address: deliveryAddress, delivery_fee: deliveryFee, status: "pending", customer_name: customerName, customer_phone: phone, notes: text(customer?.notes).slice(0, 280), subtotal: netTotal, tax_amount: taxAmount, total: grossTotal }) });
+  let orderRows;
+  try { orderRows = await db("orders", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify({ organization_id: context.organization.id, external_order_key: source?.key || null, branch_id: context.branch.id, customer_id: customerId || null, order_type: orderType, delivery_type: deliveryType, delivery_address: deliveryAddress, delivery_fee: deliveryFee, status: "pending", customer_name: customerName, customer_phone: phone, notes: text(customer?.notes).slice(0, 280), subtotal: netTotal, tax_amount: taxAmount, total: grossTotal }) }); }
+  catch (e) {
+    if (source) {
+      const prior = await db(`orders?organization_id=eq.${context.organization.id}&external_order_key=eq.${encodeURIComponent(source.key)}&select=id,order_number,total`);
+      if (prior.length) return {order_id:prior[0].id,order_number:prior[0].order_number,total:prior[0].total,replayed:true};
+    }
+    throw e;
+  }
   const order = orderRows[0];
   const orderItems = items.map((item) => ({ order_id: order.id, product_id: item.product.id, product_name: item.product.name, quantity: item.quantity, unit_price: item.grossUnitPrice, total_price: item.grossUnitPrice * item.quantity, notes: item.notes || null }));
   await db("order_items", { method: "POST", body: JSON.stringify(orderItems) });
