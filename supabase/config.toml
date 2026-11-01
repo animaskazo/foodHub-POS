@@ -40,3 +40,9 @@ verify_jwt = false
 [functions.uber-direct-proxy]
 enabled = true
 verify_jwt = false
+
+[functions.new-order-push]
+enabled = true
+# Function validates its own server-only PUSH_WORKER_SECRET bearer token.
+verify_jwt = false
+entrypoint = "./functions/new-order-push/index.ts"
