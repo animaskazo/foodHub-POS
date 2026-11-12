@@ -87,8 +87,6 @@ const StockNotifications = () => {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  if (notifications.length === 0) return null;
-
   const goTo = (type) => {
     setOpen(false);
     navigate(type === 'ingredient' ? '/ingredients' : '/inventory');
@@ -99,15 +97,15 @@ const StockNotifications = () => {
       <button data-icon-button="true"
         onClick={() => setOpen(!open)}
         title="Insumos en riesgo"
-        className="relative p-2.5 bg-red-500 text-black hover:bg-red-100 rounded-full transition-colors shadow-sm shadow-red-200"
+        className="relative flex h-11 w-11 items-center justify-center rounded-full text-gray-800 transition-colors hover:bg-gray-100"
       >
-        <Bell className="h-5 w-5" />
+        <Bell className="h-6 w-6" strokeWidth={2} />
         <span className="absolute -top-1 -right-1 bg-white text-red-600 text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-sm">
           {notifications.length}
         </span>
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-50">
+        <div className="fixed left-2 right-2 top-[calc(env(safe-area-inset-top)+4.5rem)] z-50 rounded-xl border border-gray-200 bg-white shadow-lg md:absolute md:left-auto md:right-0 md:top-full md:mt-2 md:w-80">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <div>
               <h3 className="font-semibold text-sm text-gray-900">Insumos con stock bajo</h3>
@@ -118,7 +116,9 @@ const StockNotifications = () => {
             </IconButton>
           </div>
           <div className="max-h-72 overflow-y-auto p-2">
-            {notifications.map(item => (
+            {notifications.length === 0 ? (
+              <p className="px-3 py-5 text-center text-sm text-gray-500">No hay alertas de stock.</p>
+            ) : notifications.map(item => (
               <button
                 key={`${item.type}-${item.id}`}
                 onClick={() => goTo(item.type)}

@@ -115,6 +115,15 @@ const DashboardView = () => {
   const [weeklySparklines, setWeeklySparklines] = useState({ revenue: [], orders: [], ticket: [], visits: [] });
   const { latestNewOrder } = useKitchenOrders();
 
+  useEffect(() => {
+    const handleOpenShift = (event) => {
+      setShiftModalType(event.detail?.type || 'open');
+      setIsShiftModalOpen(true);
+    };
+    window.addEventListener('foodhub:open-shift', handleOpenShift);
+    return () => window.removeEventListener('foodhub:open-shift', handleOpenShift);
+  }, []);
+
   const fetchSparklines = useCallback(async () => {
     if (!organization?.id) return;
     const endOfDay = new Date();
@@ -480,28 +489,28 @@ const DashboardView = () => {
 
   useDocumentTitle('Dashboard');
 
-  const renderShiftButton = (mobileOnly = false) => {
+  const renderShiftButton = () => {
     if (!shiftSettings?.shifts_enabled) return null;
     
     return (
-      <div className={mobileOnly ? "md:hidden" : "hidden md:block"}>
+      <div>
         {currentShift ? (
           <Button 
             onClick={() => { setShiftModalType('close'); setIsShiftModalOpen(true); }}
-            className="flex items-center gap-2 bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 px-6 h-11 text-base"
+            className="flex h-9 items-center gap-1.5 border border-green-200 bg-green-50 px-3 text-sm text-green-700 hover:bg-green-100"
           >
-            <span className="flex h-2.5 w-2.5 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
             </span>
             Turno Activo
           </Button>
         ) : (
           <Button 
             onClick={() => { setShiftModalType('open'); setIsShiftModalOpen(true); }}
-            className="flex items-center gap-2 bg-gray-100 text-black hover:bg-gray-100 px-6 h-11 text-base"
+            className="flex h-9 items-center gap-1.5 bg-gray-100 px-3 text-sm text-black hover:bg-gray-200"
           >
-            <Store className="h-5 w-5" aria-hidden="true" />
+            <Store className="h-4 w-4" aria-hidden="true" />
             Abrir Caja
           </Button>
         )}
@@ -514,9 +523,9 @@ const DashboardView = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         <PageHeader
           title={
-            <div className="flex items-center justify-between w-full gap-3 flex-wrap">
+            <div className="flex w-full items-center justify-between gap-3">
               <span>Dashboard</span>
-              {renderShiftButton(true)}
+              {renderShiftButton()}
             </div>
           }
           subtitle={
@@ -530,7 +539,6 @@ const DashboardView = () => {
                 <PrepTimeSelector />
                 <StockNotifications />
               </div>
-              {renderShiftButton(false)}
             </div>
           }
         />
@@ -556,51 +564,58 @@ const DashboardView = () => {
 
         {/* Top Filters & Period Selector */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
+          <div className="flex min-w-0 items-center gap-2 overflow-x-auto overflow-y-hidden overscroll-x-contain overscroll-y-none hide-scrollbar touch-pan-x">
             <Button
-              size="sm"
+              className="shrink-0"
+              size="xs"
               variant={channelFilter === 'all' && !showScheduled ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('all'); setShowScheduled(false); }}
             >
               Todos
             </Button>
             <Button
-              size="sm"
+              className="shrink-0"
+              size="xs"
               variant={channelFilter === 'table' ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('table'); setShowScheduled(false); }}
             >
               <Store className="h-3.5 w-3.5" aria-hidden="true" /> Local
             </Button>
             <Button
-              size="sm"
+              className="shrink-0"
+              size="xs"
               variant={channelFilter === 'pickup' ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('pickup'); setShowScheduled(false); }}
             >
               <PaperBag className="h-3.5 w-3.5" aria-hidden="true" /> Retiro
             </Button>
             <Button
-              size="sm"
+              className="shrink-0"
+              size="xs"
               variant={channelFilter === 'delivery' ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('delivery'); setShowScheduled(false); }}
             >
               <Van className="h-3.5 w-3.5" aria-hidden="true" /> Delivery
             </Button>
             <Button
-              size="sm"
+              className="shrink-0"
+              size="xs"
               variant={channelFilter === 'online' ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('online'); setShowScheduled(false); }}
             >
               <Globe className="h-3.5 w-3.5" aria-hidden="true" /> Online
             </Button>
             <Button
-              size="sm"
+              className="shrink-0"
+              size="xs"
               variant={channelFilter === 'whatsapp' ? 'default' : 'secondary'}
               onClick={() => { setChannelFilter('whatsapp'); setShowScheduled(false); }}
             >
               <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" /> WhatsApp
             </Button>
             <Button
-              size="sm"
+              className="shrink-0"
+              size="xs"
               variant={showScheduled ? 'default' : 'secondary'}
               onClick={() => { setShowScheduled(!showScheduled); setChannelFilter('all'); }}
             >

@@ -42,6 +42,7 @@ import StockNotifications from './StockNotifications';
 import PrepTimeSelector from './ui/PrepTimeSelector';
 import NewOrderAlert from './ui/NewOrderAlert';
 import ConfirmModal from './ui/ConfirmModal';
+import { getShiftSettings, getCurrentShift } from '../services/shiftService';
 
 const Layout = () => {
   const location = useLocation();
@@ -55,6 +56,24 @@ const Layout = () => {
   const subscription = getSubscriptionStatus(subscriptionRecord);
   const [inboxEnabled, setInboxEnabled] = useState(false);
   const [todayVisits, setTodayVisits] = useState(0);
+  const [mobileShift, setMobileShift] = useState({ enabled: false, active: false });
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadMobileShift = async () => {
+      if (!organization?.id) return;
+      try {
+        const settings = await getShiftSettings(organization.id);
+        const shift = settings?.shifts_enabled ? await getCurrentShift(organization.id) : null;
+        if (!cancelled) setMobileShift({ enabled: !!settings?.shifts_enabled, active: !!shift });
+      } catch (error) {
+        console.error('Error loading mobile shift status:', error);
+      }
+    };
+    loadMobileShift();
+    const interval = setInterval(loadMobileShift, 20000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [organization?.id]);
 
   useEffect(() => {
     if (organization?.id) {
@@ -548,7 +567,7 @@ className={({ isActive }) =>
           <div className="flex-1" />
           {isDashboard && (
             <div className="flex items-center gap-2 lg:hidden">
-              <PrepTimeSelector compact />
+              <PrepTimeSelector compact iconOnly />
               <StockNotifications />
             </div>
           )}
