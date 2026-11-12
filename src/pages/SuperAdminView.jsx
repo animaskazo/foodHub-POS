@@ -988,24 +988,30 @@ const SuperAdminView = () => {
 
               {/* Overview */}
               {detailTab === 'overview' && (
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-3 md:gap-4">
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold tracking-tight text-gray-950">Resumen del negocio</h3>
+                    <p className="mt-1 text-sm text-gray-500">Actividad acumulada y estado de acceso de {selectedOrganization.name}.</p>
+                  </div>
+
+                  <dl className="grid overflow-hidden rounded-xl border border-gray-200 bg-gray-50 sm:grid-cols-3 sm:divide-x sm:divide-gray-200">
+                    <div className="border-b border-gray-200 p-4 sm:border-b-0 sm:p-5">
+                      <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Ventas totales</dt>
+                      <dd className="mt-2 truncate text-2xl font-semibold tabular-nums tracking-tight text-gray-950">
+                        ${Math.round(selectedOrganization.totalSales || 0).toLocaleString('es-CL')}
+                      </dd>
+                    </div>
+                    <div className="border-b border-gray-200 p-4 sm:border-b-0 sm:p-5">
+                      <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Órdenes</dt>
+                      <dd className="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-gray-950">{Number(selectedOrganization.orderCount || 0).toLocaleString('es-CL')}</dd>
+                    </div>
+                    <div className="p-4 sm:p-5">
+                      <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Visitas últimos 30 días</dt>
+                      <dd className="mt-2 text-2xl font-semibold tabular-nums tracking-tight text-gray-950">{(selectedOrganization.visits30d || 0).toLocaleString('es-CL')}</dd>
+                    </div>
+                  </dl>
+
                   <OrgFreeAccess key={selectedOrganization.id} organizationId={selectedOrganization.id} />
-                  <div>
-                    <p className="text-xl md:text-2xl font-semibold tabular-nums text-gray-900 truncate">
-                      ${selectedOrganization.totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                    <p className="text-[13px] text-gray-400 mt-1">Ventas totales</p>
-                  </div>
-
-                  <div>
-                    <p className="text-xl md:text-2xl font-semibold tabular-nums text-gray-900">{selectedOrganization.orderCount}</p>
-                    <p className="text-[13px] text-gray-400 mt-1">Órdenes</p>
-                  </div>
-
-                  <div>
-                    <p className="text-xl md:text-2xl font-semibold tabular-nums text-gray-900">{(selectedOrganization.visits30d || 0).toLocaleString('es-CL')}</p>
-                    <p className="text-[13px] text-gray-400 mt-1">Visitas 30d</p>
-                  </div>
                 </div>
               )}
 

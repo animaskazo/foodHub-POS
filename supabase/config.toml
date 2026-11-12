@@ -52,3 +52,31 @@ verify_jwt = false
 [functions.flow-subscription-plans]
 enabled = true
 verify_jwt = true
+
+[functions.reconcile-flow-subscriptions]
+enabled = true
+verify_jwt = false
+
+[functions.change-flow-subscription-plan]
+enabled = true
+verify_jwt = true
+
+[functions.cancel-flow-subscription]
+enabled = true
+verify_jwt = true
+
+[functions.manage-complimentary-access]
+enabled = true
+verify_jwt = true
+
+[functions.cancel-incomplete-subscription]
+enabled = true
+verify_jwt = true
+
+[functions.request-trial-extension]
+enabled = true
+verify_jwt = true
+
+[functions.send-subscription-announcement]
+enabled = true
+verify_jwt = true

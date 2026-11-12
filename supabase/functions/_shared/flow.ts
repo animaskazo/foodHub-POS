@@ -1,6 +1,12 @@
 export const FLOW_API_KEY = Deno.env.get("FLOW_API_KEY") ?? "";
 export const FLOW_SECRET_KEY = Deno.env.get("FLOW_SECRET_KEY") ?? "";
 export const FLOW_API_BASE_URL = (Deno.env.get("FLOW_API_BASE_URL") || "https://sandbox.flow.cl/api").replace(/\/$/, "");
+export const FLOW_QA_ORGANIZATION_ID = "75caf8f2-d8ce-4ef3-833f-ad968cb9ebf1";
+
+export function isFlowQaPlan(plan: Record<string, unknown>) {
+  const name = String(plan.name || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  return name === "plan qa produccion";
+}
 
 export const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -27,6 +33,11 @@ async function signature(params: Record<string, string | number>) {
   );
   const digest = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data)));
   return Array.from(digest).map((value) => value.toString(16).padStart(2, "0")).join("");
+}
+
+export async function sha256(value: string) {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)));
+  return Array.from(digest).map((part) => part.toString(16).padStart(2, "0")).join("");
 }
 
 export async function flowRequest(
@@ -103,12 +114,17 @@ export function callbackUrl() {
 export function safeReturnUrl(origin: string | null) {
   if (!origin) throw new Error("No se pudo validar el sitio de retorno.");
   const url = new URL(origin);
-  const allowed = url.protocol === "https:" && (
+  const productionOrigin = url.protocol === "https:" && (
     url.hostname === "foodhub.work" ||
     url.hostname.endsWith(".foodhub.work") ||
     url.hostname === "food-admin.digital-solutions.work" ||
     url.hostname.endsWith(".vercel.app")
   );
-  if (!allowed) throw new Error("El sitio de retorno no está autorizado.");
+  const localDevelopmentOrigin = url.protocol === "http:" && (
+    url.hostname === "localhost" ||
+    url.hostname === "127.0.0.1" ||
+    url.hostname === "[::1]"
+  );
+  if (!productionOrigin && !localDevelopmentOrigin) throw new Error("El sitio de retorno no está autorizado.");
   return `${url.origin}/subscription?flow=return`;
 }

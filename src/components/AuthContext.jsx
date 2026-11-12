@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
     }
     setSubscriptionLoading(true);
     const { data, error } = await supabase.from('organization_subscriptions')
-      .select('organization_id, free_access, status, trial_started_at, trial_ends_at, flow_plan_id, flow_plan_name, flow_plan_amount, flow_plan_currency, flow_plan_interval, flow_plan_interval_count, flow_card_type, flow_card_last4, current_period_end, last_invoice_id, created_at, updated_at')
+      .select('organization_id, free_access, free_access_starts_at, free_access_ends_at, free_access_granted_by, free_access_note, status, trial_started_at, trial_ends_at, flow_plan_id, flow_plan_name, flow_plan_amount, flow_plan_currency, flow_plan_interval, flow_plan_interval_count, flow_card_type, flow_card_last4, subscribed_at, next_payment_at, scheduled_plan_id, scheduled_plan_name, scheduled_plan_change_at, cancel_at_period_end, cancellation_requested_at, cancellation_effective_at, current_period_end, last_invoice_id, last_payment_at, last_flow_sync_at, flow_status, flow_morose, payment_failure_reason, created_at, updated_at')
       .eq('organization_id', organizationId).maybeSingle();
     setSubscriptionLoading(false);
     if (error) {

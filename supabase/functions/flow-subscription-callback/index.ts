@@ -1,4 +1,5 @@
-import { adminClient, CORS, flowRequest } from "../_shared/flow.ts";
+import { adminClient, CORS, flowRequest, sha256 } from "../_shared/flow.ts";
+import { sendSubscriptionActivationEmail } from "../_shared/subscription-activation-email.ts";
 
 const redirect = (url: string, result: string) => {
   const target = new URL(url);
@@ -6,76 +7,132 @@ const redirect = (url: string, result: string) => {
   return new Response(null, { status: 303, headers: { ...CORS, Location: target.toString() } });
 };
 
+const flowDate = (value: unknown) => {
+  if (!value) return null;
+  const normalized = String(value).replace(" ", "T");
+  const date = new Date(normalized.endsWith("Z") ? normalized : `${normalized}-03:00`);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: CORS });
+
   const form = await req.formData().catch(() => null);
-  const invoiceId = String(form?.get("invoiceId") || "");
   const token = String(form?.get("token") || "");
+  if (!token || token.length > 256) return new Response("Invalid callback", { status: 400, headers: CORS });
+
   const sb = adminClient();
+  const tokenHash = await sha256(token);
+  const { data: registration } = await sb.from("organization_subscriptions")
+    .select("organization_id, flow_customer_id, flow_plan_id, flow_registration_token, flow_registration_token_hash, trial_ends_at, free_access, free_access_starts_at, free_access_ends_at, redirect_url, status")
+    .or(`flow_registration_token.eq.${token},flow_registration_token_hash.eq.${tokenHash}`)
+    .maybeSingle();
 
-  // Flow sends invoiceId to the plan's recurring-payment callback. Fetch the
-  // invoice from Flow before changing access; never trust callback form fields.
-  if (invoiceId && invoiceId.length <= 64) {
+  if (registration) {
+    const returnUrl = registration.redirect_url || "https://foodhub.work/subscription?flow=return";
+    if (!registration.flow_registration_token) {
+      return redirect(returnUrl, registration.status === "active" ? "active" : "pending");
+    }
     try {
-      const invoice = await flowRequest("invoice/get", "GET", { invoiceId });
-      const subscriptionId = String(invoice.subscriptionId || "");
-      if (!subscriptionId || String(invoice.id) !== invoiceId) return new Response("Unknown invoice", { status: 404, headers: CORS });
-      const { data: subscriptionRow, error: lookupError } = await sb.from("organization_subscriptions")
-        .select("organization_id, flow_subscription_id")
-        .eq("flow_subscription_id", subscriptionId).maybeSingle();
-      if (lookupError || !subscriptionRow) return new Response("Unknown subscription", { status: 404, headers: CORS });
-
-      const paid = Number(invoice.payment?.status) === 1;
-      const failed = Number(invoice.status) === 0 && Number(invoice.attemped) === 1;
-      const update: Record<string, unknown> = { last_invoice_id: invoiceId };
-      if (paid) {
-        update.status = "active";
-        update.current_period_end = invoice.period_end ? new Date(String(invoice.period_end)).toISOString() : null;
-      } else if (failed) {
-        update.status = "past_due";
+      const result = await flowRequest("customer/getRegisterStatus", "GET", { token });
+      if (String(result.status) !== "1" || String(result.customerId) !== registration.flow_customer_id) {
+        await sb.from("organization_subscriptions").update({ status: "pending_card", flow_registration_token: null, flow_checkout_url: null }).eq("organization_id", registration.organization_id);
+        return redirect(returnUrl, "card_failed");
       }
-      const { error: updateError } = await sb.from("organization_subscriptions")
-        .update(update).eq("organization_id", subscriptionRow.organization_id);
-      if (updateError) throw updateError;
-      return new Response("OK", { status: 200, headers: CORS });
-    } catch {
-      return new Response("Could not verify invoice", { status: 502, headers: CORS });
+
+      const now = Date.now();
+      const freeStartsAt = registration.free_access_starts_at ? new Date(registration.free_access_starts_at).getTime() : Number.NEGATIVE_INFINITY;
+      const freeEndsAt = registration.free_access_ends_at ? new Date(registration.free_access_ends_at).getTime() : Number.POSITIVE_INFINITY;
+      const hasCourtesy = Boolean(registration.free_access) && freeStartsAt <= now && freeEndsAt > now;
+      const trialEndsAt = registration.trial_ends_at ? new Date(registration.trial_ends_at).getTime() : 0;
+      const hasTrial = trialEndsAt > now;
+      const createParams: Record<string, string | number> = { planId: registration.flow_plan_id || "", customerId: registration.flow_customer_id || "" };
+      if (!hasCourtesy && hasTrial) createParams.subscription_start = new Date(trialEndsAt).toISOString().slice(0, 10);
+
+      const created = await flowRequest("subscription/create", "POST", createParams);
+      const subscriptionId = String(created.subscriptionId || created.id || "");
+      if (!subscriptionId) throw new Error("Flow no devolvió el identificador de suscripción.");
+      const verified = await flowRequest("subscription/get", "GET", { subscriptionId });
+      if (String(verified.subscriptionId || "") !== subscriptionId || String(verified.customerId || "") !== registration.flow_customer_id) {
+        throw new Error("Flow devolvió una suscripción que no corresponde al cliente.");
+      }
+
+      await sb.from("organization_subscriptions").update({
+        status: hasTrial && !hasCourtesy ? "trialing" : "pending_payment",
+        flow_subscription_id: subscriptionId,
+        flow_status: Number(verified.status),
+        flow_morose: Number(verified.morose) === 1,
+        flow_card_type: String(result.creditCardType || "") || null,
+        flow_card_last4: String(result.last4CardDigits || "") || null,
+        subscribed_at: flowDate(verified.created) || new Date().toISOString(),
+        next_payment_at: flowDate(verified.next_invoice_date),
+        current_period_end: flowDate(verified.period_end),
+        last_flow_sync_at: new Date().toISOString(),
+        flow_registration_token: null,
+        flow_checkout_url: null,
+        free_access: false,
+        free_access_starts_at: null,
+        free_access_ends_at: null,
+        free_access_granted_by: null,
+        free_access_note: null,
+      }).eq("organization_id", registration.organization_id);
+      return redirect(returnUrl, hasTrial && !hasCourtesy ? "pending" : "payment_pending");
+    } catch (error) {
+      console.error("Flow card registration callback failed", error);
+      await sb.from("organization_subscriptions").update({ status: "pending_payment", payment_failure_reason: error instanceof Error ? error.message.slice(0, 500) : "Error de Flow" }).eq("organization_id", registration.organization_id);
+      return redirect(returnUrl, "pending");
     }
   }
 
-  if (!token || token.length > 256) return new Response("Invalid callback", { status: 400, headers: CORS });
-  const { data: row, error } = await sb.from("organization_subscriptions")
-    .select("organization_id, flow_customer_id, flow_plan_id, flow_registration_token, trial_ends_at, redirect_url")
-    .eq("flow_registration_token", token).maybeSingle();
-  if (error || !row) return new Response("Unknown registration", { status: 404, headers: CORS });
-  const returnUrl = row.redirect_url || "https://foodhub.work/subscription?flow=return";
-
   try {
-    const registration = await flowRequest("customer/getRegisterStatus", "GET", { token });
-    if (String(registration.status) !== "1" || String(registration.customerId) !== row.flow_customer_id) {
-      await sb.from("organization_subscriptions").update({ status: "pending_card", flow_registration_token: null, flow_checkout_url: null }).eq("organization_id", row.organization_id);
-      return redirect(returnUrl, "card_failed");
+    let payment: Record<string, unknown>;
+    try {
+      payment = await flowRequest("payment/getStatusExtended", "GET", { token });
+    } catch {
+      payment = await flowRequest("payment/getStatus", "GET", { token });
     }
-
-    const createParams: Record<string, string | number> = { planId: row.flow_plan_id || "", customerId: row.flow_customer_id || "" };
-    if (row.trial_ends_at && new Date(row.trial_ends_at).getTime() > Date.now()) {
-      createParams.subscription_start = new Date(row.trial_ends_at).toISOString().slice(0, 10);
+    const commerceOrder = String(payment.commerceOrder || "");
+    const flowOrder = Number(payment.flowOrder);
+    const status = Number(payment.status);
+    if (!commerceOrder || !Number.isSafeInteger(flowOrder) || !Number.isInteger(status)) throw new Error("Flow devolvió un pago incompleto.");
+    const paidAt = flowDate((payment.paymentData as Record<string, unknown> | undefined)?.date);
+    const { data: eventId, error } = await sb.rpc("record_flow_subscription_payment", {
+      p_token_hash: tokenHash,
+      p_flow_order: flowOrder,
+      p_commerce_order: commerceOrder,
+      p_flow_status: status,
+      p_amount: Number(payment.amount) || null,
+      p_currency: String(payment.currency || "") || null,
+      p_paid_at: paidAt,
+      p_source: "callback",
+      p_payload: payment,
+    });
+    if (error) throw error;
+    if (status === 2 && eventId) {
+      try {
+        const { data: event } = await sb.from("subscription_payment_events")
+          .select("organization_id,flow_subscription_id")
+          .eq("id", eventId)
+          .single();
+        if (event?.organization_id && event.flow_subscription_id) {
+          const remote = await flowRequest("subscription/get", "GET", { subscriptionId: event.flow_subscription_id });
+          await sb.from("organization_subscriptions").update({
+            subscribed_at: flowDate(remote.created),
+            next_payment_at: flowDate(remote.next_invoice_date),
+            current_period_end: flowDate(remote.period_end),
+            last_flow_sync_at: new Date().toISOString(),
+          }).eq("organization_id", event.organization_id);
+          await sendSubscriptionActivationEmail(sb, event.organization_id);
+        }
+      } catch (emailError) {
+        // Payment confirmation must remain successful. Reconciliation retries the email.
+        console.error("Subscription activation email failed", emailError);
+      }
     }
-    const subscription = await flowRequest("subscription/create", "POST", createParams);
-    const subscriptionId = String(subscription.subscriptionId || subscription.id || "");
-    if (!subscriptionId) throw new Error("Flow no devolvió el identificador de suscripción.");
-    await sb.from("organization_subscriptions").update({
-      status: "active",
-      flow_subscription_id: subscriptionId,
-      flow_card_type: String(registration.creditCardType || "") || null,
-      flow_card_last4: String(registration.last4CardDigits || "") || null,
-      flow_registration_token: null,
-      flow_checkout_url: null,
-    }).eq("organization_id", row.organization_id);
-    return redirect(returnUrl, "active");
-  } catch {
-    await sb.from("organization_subscriptions").update({ status: "pending_payment", flow_registration_token: null, flow_checkout_url: null }).eq("organization_id", row.organization_id);
-    return redirect(returnUrl, "pending");
+    return new Response("OK", { status: 200, headers: CORS });
+  } catch (error) {
+    console.error("Flow recurring payment callback failed", error);
+    return new Response("Could not verify payment", { status: 502, headers: CORS });
   }
 });

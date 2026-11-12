@@ -11,8 +11,9 @@ test('free access survives an expired trial and is not shown as a trial', () => 
 test('removing free access restores the existing expired trial', () => {
   assert.equal(getSubscriptionStatus({ status: 'trialing', trial_ends_at: '2020-01-01', free_access: false }).isActive, false);
 });
-test('removing free access does not change legacy or paid access', () => {
-  for (const status of ['legacy_active', 'active']) assert.equal(getSubscriptionStatus({ status, free_access: false }).isActive, true);
+test('legacy access is blocked after migration while paid access remains active', () => {
+  assert.equal(getSubscriptionStatus({ status: 'legacy_active', free_access: false }).isActive, false);
+  assert.equal(getSubscriptionStatus({ status: 'active', free_access: false }).isActive, true);
 });
 test('cancelled business may receive complimentary access', () => {
   assert.equal(getSubscriptionStatus({ status: 'cancelled', free_access: true }).isActive, true);

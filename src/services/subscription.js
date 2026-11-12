@@ -1,13 +1,36 @@
 const TRIAL_DAYS = 15;
 
+export function isComplimentaryAccessActive(subscription, now = Date.now()) {
+  if (!subscription?.free_access) return false;
+  const startsAt = subscription.free_access_starts_at
+    ? new Date(subscription.free_access_starts_at).getTime()
+    : Number.NEGATIVE_INFINITY;
+  const endsAt = subscription.free_access_ends_at
+    ? new Date(subscription.free_access_ends_at).getTime()
+    : Number.POSITIVE_INFINITY;
+  return startsAt <= now && endsAt > now;
+}
+
 export function getSubscriptionStatus(subscription) {
-  if (subscription?.free_access) {
-    return { state: subscription, daysLeft: 0, isActive: true, isTrial: false, status: 'free', isFree: true };
+  if (isComplimentaryAccessActive(subscription)) {
+    const endsAt = subscription.free_access_ends_at
+      ? new Date(subscription.free_access_ends_at).getTime()
+      : null;
+    const daysLeft = endsAt ? Math.max(0, Math.ceil((endsAt - Date.now()) / 86400000)) : null;
+    return {
+      state: subscription,
+      daysLeft,
+      isActive: true,
+      isTrial: false,
+      status: 'complimentary',
+      isFree: true,
+      isComplimentary: true,
+    };
   }
   if (!subscription) {
     return { state: null, daysLeft: TRIAL_DAYS, isActive: true, isTrial: true, status: 'trialing' };
   }
-  if (subscription.status === 'legacy_active' || subscription.status === 'active') {
+  if (subscription.status === 'active') {
     return { state: subscription, daysLeft: 0, isActive: true, isTrial: false, status: subscription.status };
   }
   if (subscription.status === 'trialing') {

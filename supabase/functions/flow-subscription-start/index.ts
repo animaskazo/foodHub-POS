@@ -1,4 +1,14 @@
-import { adminClient, callerId, CORS, flowRequest, json, safeReturnUrl } from "../_shared/flow.ts";
+import { adminClient, callerId, CORS, FLOW_QA_ORGANIZATION_ID, flowRequest, isFlowQaPlan, json, safeReturnUrl, sha256 } from "../_shared/flow.ts";
+
+function errorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string" && error.trim()) return error;
+  if (error && typeof error === "object" && "message" in error) {
+    const message = String(error.message || "").trim();
+    if (message) return message;
+  }
+  return "No se pudo iniciar el checkout de Flow.";
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
@@ -32,13 +42,29 @@ Deno.serve(async (req) => {
     // Always resolve the plan from Flow. No local plan catalog is used.
     const plan = await flowRequest("plans/get", "GET", { planId });
     if (String(plan.planId) !== planId || Number(plan.status) !== 1) return json({ error: "Ese plan ya no está disponible en Flow." }, 409);
+    if (isFlowQaPlan(plan) && organizationId !== FLOW_QA_ORGANIZATION_ID) {
+      return json({ error: "Este plan está reservado para las pruebas internas de FoodHub." }, 403);
+    }
 
     const { data: current, error: readError } = await sb.from("organization_subscriptions")
-      .select("flow_customer_id, status, free_access")
+      .select("flow_customer_id, flow_plan_id, flow_registration_token, flow_checkout_url, status, free_access, free_access_starts_at, free_access_ends_at")
       .eq("organization_id", organizationId).maybeSingle();
     if (readError) throw readError;
-    if (current?.free_access) return json({ error: "Este negocio tiene acceso gratuito y no necesita contratar un plan." }, 409);
     if (current?.status === "active") return json({ error: "Esta organización ya tiene una suscripción activa." }, 409);
+    if (current?.status === "pending_payment") {
+      return json({ error: "El pago anterior todavía está pendiente de confirmación. Verifica su estado antes de iniciar otro intento." }, 409);
+    }
+    if (
+      current?.status === "pending_card" &&
+      current.flow_plan_id === planId &&
+      current.flow_registration_token &&
+      current.flow_checkout_url
+    ) {
+      return json({
+        url: `${current.flow_checkout_url}?token=${encodeURIComponent(String(current.flow_registration_token))}`,
+        resumed: true,
+      });
+    }
 
     let customerId = current?.flow_customer_id;
     if (!customerId) {
@@ -69,11 +95,16 @@ Deno.serve(async (req) => {
     });
     if (!registration.token || !registration.url) throw new Error("Flow no devolvió el enlace para registrar la tarjeta.");
     const { error: tokenError } = await sb.from("organization_subscriptions")
-      .update({ flow_registration_token: String(registration.token), flow_checkout_url: String(registration.url) })
+      .update({
+        flow_registration_token: String(registration.token),
+        flow_registration_token_hash: await sha256(String(registration.token)),
+        flow_checkout_url: String(registration.url),
+      })
       .eq("organization_id", organizationId);
     if (tokenError) throw tokenError;
     return json({ url: `${registration.url}?token=${encodeURIComponent(String(registration.token))}` });
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : "No se pudo iniciar el checkout de Flow." }, 400);
+    console.error("flow-subscription-start failed", error);
+    return json({ error: errorMessage(error) }, 400);
   }
 });
