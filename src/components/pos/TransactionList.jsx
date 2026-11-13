@@ -16,7 +16,7 @@ import { fmt, getKitchenTime, getPaymentMethod, getStatusTag, formatDateSeparato
 import UberDeliveryCard from './UberDeliveryCard';
 import OrderDetailModal from './OrderDetailModal';
 
-const TransactionList = ({ orders, loading, onOrderUpdated }) => {
+const TransactionList = ({ orders, loading, onOrderUpdated, forceCards = false, showCompletionChip = false }) => {
   const { organization, role, isSuperAdmin } = useAuth();
   // Dueño/Admin del negocio o Super Admin puede anular/eliminar (vendedores: solo venden).
   const canCancel = isSuperAdmin || ['owner', 'admin', 'manager'].includes(role);
@@ -198,7 +198,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
   return (
     <>
       {/* Vista de Escritorio - Tabla */}
-      <div className="hidden md:block bg-white rounded-xl border border-gray-100 mt-6 overflow-hidden">
+      <div className={`${forceCards ? 'hidden' : 'hidden md:block'} bg-white rounded-xl border border-gray-100 mt-6 overflow-hidden`}>
         <table className="w-full text-left">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
@@ -407,7 +407,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
       </div>
 
       {/* Vista Móvil - Tarjetas */}
-      <div className="md:hidden flex flex-col gap-4 mt-4 w-full">
+      <div className={`${forceCards ? 'flex flex-1 min-h-0 overflow-y-auto overscroll-contain pb-2 md:flex-initial md:overflow-visible' : 'md:hidden'} flex-col ${forceCards ? 'gap-5' : 'gap-4'} ${forceCards ? 'mt-0' : 'mt-4'} w-full`}>
         {loading ? (
           <div className="py-12 text-center text-gray-500">
             <FullScreenSpinner size="md" />
@@ -439,6 +439,50 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                       <div className="flex-1 border-b border-gray-200 ml-2"></div>
                     </div>
                   )}
+                  {forceCards ? (
+                    <div
+                      onClick={() => handleOpenModal(order)}
+                      className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-base font-bold text-gray-900">{order.order_number}</div>
+                        <div className="mt-1 truncate text-xs text-gray-600">{order.customer_name || 'Cliente sin nombre'}</div>
+                        {(() => {
+                          const channel = order.order_type === 'online'
+                            ? { label: 'Online', color: 'text-blue-600', Icon: Globe }
+                            : order.order_type === 'whatsapp'
+                              ? { label: 'WhatsApp', color: 'text-green-600', Icon: MessageCircle }
+                              : { label: 'Punto de venta', color: 'text-orange-500', Icon: Store };
+                          const dispatch = order.order_type === 'table'
+                            ? { label: 'Local', color: 'text-orange-500', Icon: Store }
+                            : order.delivery_type === 'delivery'
+                              ? { label: 'Delivery', color: 'text-blue-600', Icon: order.uber_delivery_id ? Truck : Van }
+                              : { label: 'Retiro', color: 'text-green-600', Icon: PaperBag };
+                          return (
+                            <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700">
+                                <channel.Icon className={`h-3.5 w-3.5 ${channel.color}`} aria-hidden="true" />
+                                {channel.label}
+                              </span>
+                              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500">
+                                <dispatch.Icon className={`h-3.5 w-3.5 ${dispatch.color}`} aria-hidden="true" />
+                                {dispatch.label}
+                              </span>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      <div className="shrink-0 flex flex-col items-end gap-2">
+                        <span className="text-sm font-bold text-gray-900">${fmt(order.total || 0)}</span>
+                        {showCompletionChip && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-[10px] font-semibold text-green-700">
+                            <Check className="h-3 w-3" aria-hidden="true" />
+                            {order.status === 'delivered' ? 'Entregado' : 'Listo'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
                   <div
                     onClick={() => handleOpenModal(order)}
                     className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl p-5 flex flex-col gap-4.5 cursor-pointer"
@@ -594,14 +638,19 @@ const TransactionList = ({ orders, loading, onOrderUpdated }) => {
                       </div>
                     </div>
                   </div>
+                  )}
                 </React.Fragment>
               );
             });
           })()
         ) : (
-          <div className="text-center py-12 text-gray-400 font-medium bg-white rounded-xl border border-gray-100">
-            No hay órdenes registradas.
-          </div>
+          forceCards ? (
+            <div className="py-3 text-center text-sm text-gray-400">Sin pedidos</div>
+          ) : (
+            <div className="text-center py-12 text-gray-400 font-medium bg-white rounded-xl border border-gray-100">
+              No hay órdenes registradas.
+            </div>
+          )
         )}
       </div>
 

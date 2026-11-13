@@ -18,7 +18,11 @@ import {
   CalendarClock,
   ChevronDown,
   ChevronUp,
-  Info
+  Info,
+  List,
+  Columns3,
+  ArrowRight,
+  X
 } from 'lucide-react';
 import { InlineSpinner } from '@/components/ui/Spinner';
 import PageHeader from '../components/ui/PageHeader';
@@ -39,6 +43,8 @@ const toLocalDateStr = (date) => {
   const d = String(date.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
 }
+
+const DAILY_BOARD_WELCOME_KEY = 'foodhub-daily-board-welcome-v1';
 
 const MobileMetricsSlider = ({ children }) => {
   const [active, setActive] = useState(0);
@@ -99,6 +105,8 @@ const DashboardView = () => {
   const [channelFilter, setChannelFilter] = useState('all'); // all, table, pickup, online, whatsapp
   const [showScheduled, setShowScheduled] = useState(false);
   const [kitchenStatusFilter, setKitchenStatusFilter] = useState('all'); // all, pending, preparing, ready, delivered, cancelled
+  const [dailyRecordLayout, setDailyRecordLayout] = useState('table');
+  const [showDailyBoardWelcome, setShowDailyBoardWelcome] = useState(false);
   const [activePreset, setActivePreset] = useState('today');
   const [rangeFrom, setRangeFrom] = useState(null);
   const [rangeTo, setRangeTo] = useState(null);
@@ -114,6 +122,72 @@ const DashboardView = () => {
 
   const [weeklySparklines, setWeeklySparklines] = useState({ revenue: [], orders: [], ticket: [], visits: [] });
   const { latestNewOrder } = useKitchenOrders();
+  const dailyColumnsRef = useRef(null);
+  const touchStartXRef = useRef(null);
+  const lastColumnNavigationRef = useRef(0);
+
+  useEffect(() => {
+    if (!window.localStorage.getItem(DAILY_BOARD_WELCOME_KEY)) {
+      setShowDailyBoardWelcome(true);
+    }
+  }, []);
+
+  const closeDailyBoardWelcome = (openColumns = false) => {
+    window.localStorage.setItem(DAILY_BOARD_WELCOME_KEY, 'seen');
+    setShowDailyBoardWelcome(false);
+    if (openColumns) {
+      setKitchenStatusFilter('all');
+      setDailyRecordLayout('columns');
+    }
+  };
+
+  const moveDailyColumn = useCallback((direction) => {
+    const scroller = dailyColumnsRef.current;
+    if (!scroller) return;
+    const columns = Array.from(scroller.children);
+    if (columns.length < 2) return;
+
+    const scrollerRect = scroller.getBoundingClientRect();
+    const scrollerCenter = scrollerRect.left + scroller.clientWidth / 2;
+    const currentIndex = columns.reduce((closestIndex, column, index) => {
+      const rect = column.getBoundingClientRect();
+      const center = rect.left + rect.width / 2;
+      const closestRect = columns[closestIndex].getBoundingClientRect();
+      const closestCenter = closestRect.left + closestRect.width / 2;
+      return Math.abs(center - scrollerCenter) < Math.abs(closestCenter - scrollerCenter) ? index : closestIndex;
+    }, 0);
+    const nextIndex = Math.max(0, Math.min(columns.length - 1, currentIndex + direction));
+    if (nextIndex === currentIndex) return;
+
+    const nextRect = columns[nextIndex].getBoundingClientRect();
+    const left = scroller.scrollLeft + nextRect.left - scrollerRect.left - (scroller.clientWidth - nextRect.width) / 2;
+    scroller.scrollTo({ left, behavior: 'smooth' });
+  }, []);
+
+  const handleDailyColumnsTouchStart = (event) => {
+    touchStartXRef.current = event.touches[0]?.clientX ?? null;
+  };
+
+  const handleDailyColumnsTouchEnd = (event) => {
+    if (touchStartXRef.current === null) return;
+    const deltaX = touchStartXRef.current - (event.changedTouches[0]?.clientX ?? touchStartXRef.current);
+    touchStartXRef.current = null;
+    if (Math.abs(deltaX) < 12) return;
+    const now = Date.now();
+    if (now - lastColumnNavigationRef.current < 350) return;
+    lastColumnNavigationRef.current = now;
+    moveDailyColumn(deltaX > 0 ? 1 : -1);
+  };
+
+  const handleDailyColumnsWheel = (event) => {
+    const delta = event.shiftKey ? event.deltaY : event.deltaX;
+    if (Math.abs(delta) < 8) return;
+    event.preventDefault();
+    const now = Date.now();
+    if (now - lastColumnNavigationRef.current < 450) return;
+    lastColumnNavigationRef.current = now;
+    moveDailyColumn(delta > 0 ? 1 : -1);
+  };
 
   useEffect(() => {
     const handleOpenShift = (event) => {
@@ -792,7 +866,40 @@ const DashboardView = () => {
         <div className="md:bg-white md:rounded-2xl md:border md:border-gray-200 overflow-hidden flex flex-col">
           {/* Toolbar */}
           <div className="pb-4 md:p-6 md:border-b flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-2">
-            <h2 className="text-base font-semibold text-gray-900 whitespace-nowrap">Registro Diario</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-base font-semibold text-gray-900 whitespace-nowrap">Registro Diario</h2>
+              <div className="flex items-center gap-1" role="group" aria-label="Cambiar vista del registro diario">
+                <Tooltip text="Vista de listado">
+                  <Button
+                    type="button"
+                    size="icon-xs"
+                    variant={dailyRecordLayout === 'table' ? 'default' : 'ghost'}
+                    className="border-0 shadow-none"
+                    onClick={() => setDailyRecordLayout('table')}
+                    aria-label="Vista de listado"
+                    aria-pressed={dailyRecordLayout === 'table'}
+                  >
+                    <List className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </Tooltip>
+                <Tooltip text="Vista de columnas por estado">
+                  <Button
+                    type="button"
+                    size="icon-xs"
+                    variant={dailyRecordLayout === 'columns' ? 'default' : 'ghost'}
+                    className="border-0 shadow-none"
+                    onClick={() => {
+                      setKitchenStatusFilter('all');
+                      setDailyRecordLayout('columns');
+                    }}
+                    aria-label="Vista de columnas por estado"
+                    aria-pressed={dailyRecordLayout === 'columns'}
+                  >
+                    <Columns3 className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </Tooltip>
+              </div>
+            </div>
             <div className="flex items-center gap-2 sm:ml-auto flex-wrap justify-start sm:justify-end">
               <DateRangePicker
                 from={rangeFrom}
@@ -810,28 +917,67 @@ const DashboardView = () => {
                   }
                 }}
               />
-              <select
-                value={kitchenStatusFilter}
-                onChange={(e) => setKitchenStatusFilter(e.target.value)}
-                className="bg-white border border-gray-200 text-gray-700 rounded-lg px-2 py-1.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer appearance-none pr-6 transition-all"
-                style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.25rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.2em 1.2em' }}
-              >
-                <option value="all">Todos</option>
-                <option value="scheduled">Programados</option>
-                <option value="pending">Pendientes</option>
-                <option value="preparing">Preparación</option>
-                <option value="ready">Listos</option>
-                <option value="delivered">Entregados</option>
-                <option value="cancelled">Cancelados</option>
-              </select>
+              {dailyRecordLayout === 'table' && (
+                <select
+                  value={kitchenStatusFilter}
+                  onChange={(e) => setKitchenStatusFilter(e.target.value)}
+                  className="bg-white border border-gray-200 text-gray-700 rounded-lg px-2 py-1.5 text-xs font-semibold outline-none focus:ring-2 focus:ring-gray-200 cursor-pointer appearance-none pr-6 transition-all"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.25rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.2em 1.2em' }}
+                >
+                  <option value="all">Todos</option>
+                  <option value="scheduled">Programados</option>
+                  <option value="pending">Pendientes</option>
+                  <option value="preparing">Preparación</option>
+                  <option value="ready">Listos</option>
+                  <option value="delivered">Entregados</option>
+                  <option value="cancelled">Cancelados</option>
+                </select>
+              )}
             </div>
           </div>
           
-          <TransactionList 
-            orders={filteredOrders} 
-            loading={loading} 
-            onOrderUpdated={() => fetchOrders(true)} 
-          />
+          {dailyRecordLayout === 'columns' ? (
+            <div
+              role="region"
+              aria-label="Pedidos por estado. Desliza horizontalmente para cambiar de columna."
+              ref={dailyColumnsRef}
+              onWheel={handleDailyColumnsWheel}
+              onTouchStart={handleDailyColumnsTouchStart}
+              onTouchEnd={handleDailyColumnsTouchEnd}
+              className="flex h-[calc(100dvh-260px)] min-h-[360px] snap-x snap-mandatory touch-pan-y items-stretch gap-3 overflow-x-auto overscroll-x-contain scroll-smooth px-0 pb-3 md:h-auto md:min-h-0 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:p-6 md:pt-4 lg:grid-cols-3"
+            >
+              {[
+                { title: 'Pedidos recibidos', statuses: ['pending', 'confirmed'] },
+                { title: 'Pedidos en preparación', status: 'preparing' },
+                { title: 'Pedidos entregados', statuses: ['ready', 'delivered'] },
+              ].map(({ title, status, statuses }) => {
+                const statusOrders = filteredOrders.filter(order => statuses ? statuses.includes(order.status) : order.status === status);
+                return (
+                  <section key={status || title} className="flex h-full min-w-0 w-[82vw] max-w-[360px] shrink-0 snap-always snap-center flex-col rounded-xl border border-gray-200 bg-gray-50/70 p-3 md:h-auto md:w-auto md:max-w-none md:shrink md:snap-start">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+                      <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-gray-600 border border-gray-200">
+                        {statusOrders.length}
+                      </span>
+                    </div>
+                    <TransactionList
+                      orders={statusOrders}
+                      loading={loading}
+                      forceCards
+                      showCompletionChip={title === 'Pedidos entregados'}
+                      onOrderUpdated={() => fetchOrders(true)}
+                    />
+                  </section>
+                );
+              })}
+            </div>
+          ) : (
+            <TransactionList
+              orders={filteredOrders}
+              loading={loading}
+              onOrderUpdated={() => fetchOrders(true)}
+            />
+          )}
         </div>
         </div>
         {dashboardBlurred && (
@@ -864,6 +1010,55 @@ const DashboardView = () => {
         currentShift={currentShift}
         organization={organization}
       />
+
+      {showDailyBoardWelcome && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-gray-950/35 p-4 backdrop-blur-md"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeDailyBoardWelcome(false);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="daily-board-welcome-title"
+            aria-describedby="daily-board-welcome-description"
+            className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/70 bg-white shadow-2xl"
+          >
+            <button
+              type="button"
+              onClick={() => closeDailyBoardWelcome(false)}
+              aria-label="Cerrar bienvenida"
+              className="absolute right-4 top-4 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-600 shadow-sm transition hover:bg-white hover:text-gray-900"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <img
+              src="/images/daily-orders-board.jpg"
+              alt="Pedidos organizados en columnas por estado, con canal y tipo de despacho"
+              className="aspect-[3/2] w-full object-cover"
+            />
+            <div className="px-6 pb-6 pt-5 sm:px-8 sm:pb-8">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Nueva vista</span>
+              <h2 id="daily-board-welcome-title" className="mt-2 text-2xl font-semibold tracking-tight text-gray-900">
+                Tus pedidos, organizados por estado
+              </h2>
+              <p id="daily-board-welcome-description" className="mt-2 text-sm leading-6 text-gray-600">
+                Revisa lo recibido, lo que está en preparación y lo listo o entregado. En el celular, desliza para avanzar de una columna a otra.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <Button type="button" onClick={() => closeDailyBoardWelcome(true)} className="gap-2">
+                  Ver nueva vista
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => closeDailyBoardWelcome(false)}>
+                  Más tarde
+                </Button>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 };
