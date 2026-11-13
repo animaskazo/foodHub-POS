@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CalendarDays, CalendarX2, Check, Clock3, CreditCard, Crown, Gift, History, Layers3, Loader2, LockKeyhole, Mail, RefreshCw, ShieldCheck, Store, Terminal } from 'lucide-react';
+import { ArrowRight, CalendarDays, CalendarX2, Check, Clock3, CreditCard, Crown, Gift, History, Layers3, Loader2, LockKeyhole, Mail, RefreshCw, ShieldCheck, Store, Terminal, X } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -7,6 +7,8 @@ import { getSubscriptionStatus } from '../services/subscription';
 import { toast } from 'sonner';
 import PageHeader from '../components/ui/PageHeader';
 import ConfirmModal from '../components/ui/ConfirmModal';
+
+const SUBSCRIPTION_WELCOME_KEY = 'foodhub-subscription-welcome-v1';
 
 const readFunctionError = async (error, data) => {
   if (data?.error) return data.error;
@@ -161,6 +163,7 @@ export default function SubscriptionView() {
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showOtherPlans, setShowOtherPlans] = useState(false);
+  const [showSubscriptionWelcome, setShowSubscriptionWelcome] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [changingPlan, setChangingPlan] = useState(false);
   const [showCancellationConfirm, setShowCancellationConfirm] = useState(false);
@@ -370,6 +373,17 @@ export default function SubscriptionView() {
       ? 'Consulta el plan contratado y el estado de tu facturación.'
       : 'Compara los planes disponibles y administra el acceso de tu negocio.';
 
+  useEffect(() => {
+    if (!window.localStorage.getItem(SUBSCRIPTION_WELCOME_KEY)) {
+      setShowSubscriptionWelcome(true);
+    }
+  }, []);
+
+  const closeSubscriptionWelcome = () => {
+    window.localStorage.setItem(SUBSCRIPTION_WELCOME_KEY, 'seen');
+    setShowSubscriptionWelcome(false);
+  };
+
   return (
     <div className="min-h-full bg-gray-50 p-6 md:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -546,6 +560,62 @@ export default function SubscriptionView() {
         confirmLabel="Confirmar cancelación"
         confirmVariant="destructive"
       />
+      {showSubscriptionWelcome && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-gray-950/35 p-4 backdrop-blur-md"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) closeSubscriptionWelcome();
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="subscription-welcome-title"
+            aria-describedby="subscription-welcome-description"
+            className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/70 bg-white shadow-2xl"
+          >
+            <button
+              type="button"
+              onClick={closeSubscriptionWelcome}
+              aria-label="Cerrar información de suscripciones"
+              className="absolute right-4 top-4 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-600 shadow-sm transition hover:bg-white hover:text-gray-900"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <img
+              src="/images/subscriptions-welcome.jpg"
+              alt="Planes para negocios, pagos recurrentes y protección de pago"
+              className="aspect-[3/2] w-full object-cover"
+            />
+            <div className="px-6 pb-6 pt-5 sm:px-8 sm:pb-8">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Planes y facturación</span>
+              <h2 id="subscription-welcome-title" className="mt-2 text-2xl font-semibold tracking-tight text-gray-900">
+                Tu suscripción, siempre clara
+              </h2>
+              <p id="subscription-welcome-description" className="mt-2 text-sm leading-6 text-gray-600">
+                Revisa el estado de tu cuenta, compara planes y consulta tus pagos desde un solo lugar. Los cobros recurrentes se gestionan de forma segura con Flow.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={closeSubscriptionWelcome}
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-gray-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2"
+                >
+                  Ver suscripciones
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={closeSubscriptionWelcome}
+                  className="inline-flex min-h-10 items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
+                >
+                  Más tarde
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

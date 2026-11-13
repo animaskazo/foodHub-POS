@@ -965,6 +965,7 @@ const DashboardView = () => {
                       loading={loading}
                       forceCards
                       showCompletionChip={title === 'Pedidos entregados'}
+                      showColumnActions
                       onOrderUpdated={() => fetchOrders(true)}
                     />
                   </section>

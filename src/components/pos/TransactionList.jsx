@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, Check, CheckCircle2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock, Ban, Trash2, CheckSquare, Square, XCircle, Truck, AlertTriangle } from 'lucide-react';
+import { Store, ShoppingBag, Globe, MessageCircle, Clock, CreditCard, Timer, Check, CheckCircle2, ReceiptText, Van, User, PaperBag, Printer, ExternalLink, CalendarClock, Ban, Trash2, CheckSquare, Square, XCircle, Truck, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Spinner, FullScreenSpinner, ButtonSpinner } from '@/components/ui/Spinner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import { fmt, getKitchenTime, getPaymentMethod, getStatusTag, formatDateSeparato
 import UberDeliveryCard from './UberDeliveryCard';
 import OrderDetailModal from './OrderDetailModal';
 
-const TransactionList = ({ orders, loading, onOrderUpdated, forceCards = false, showCompletionChip = false }) => {
+const TransactionList = ({ orders, loading, onOrderUpdated, forceCards = false, showCompletionChip = false, showColumnActions = false }) => {
   const { organization, role, isSuperAdmin } = useAuth();
   // Dueño/Admin del negocio o Super Admin puede anular/eliminar (vendedores: solo venden).
   const canCancel = isSuperAdmin || ['owner', 'admin', 'manager'].includes(role);
@@ -35,20 +35,23 @@ const TransactionList = ({ orders, loading, onOrderUpdated, forceCards = false, 
   const [isDeleting, setIsDeleting] = useState(false);
   const [markingReadyId, setMarkingReadyId] = useState(null);
 
-  const handleMarkReady = async (e, order) => {
+  const handleAdvanceStatus = async (e, order, nextStatus) => {
     e.stopPropagation();
-    if (!order || markingReadyId) return;
+    if (!order || !nextStatus || markingReadyId) return;
     setMarkingReadyId(order.id);
     try {
-      await updateOrderStatus(order.id, 'ready');
+      await updateOrderStatus(order.id, nextStatus);
       if (onOrderUpdated) await onOrderUpdated();
     } catch (err) {
-      console.error('Error marcando pedido como listo:', err);
-      alert(`No se pudo marcar el pedido como listo: ${err.message || JSON.stringify(err)}`);
+      console.error('Error avanzando el estado del pedido:', err);
+      const action = nextStatus === 'preparing' ? 'pasar a preparación' : 'marcar como listo';
+      alert(`No se pudo ${action}: ${err.message || JSON.stringify(err)}`);
     } finally {
       setMarkingReadyId(null);
     }
   };
+
+  const handleMarkReady = (e, order) => handleAdvanceStatus(e, order, 'ready');
 
   const toggleSelectAll = () => {
     if (selectedOrderIds.length === orders.length) {
@@ -430,6 +433,10 @@ const TransactionList = ({ orders, loading, onOrderUpdated, forceCards = false, 
               const hours = String(date.getHours()).padStart(2, '0');
               const minutes = String(date.getMinutes()).padStart(2, '0');
               const formattedDate = `${day}/${monthCapitalized} ${hours}:${minutes}`;
+              const columnNextStatus = ['pending', 'confirmed'].includes(order.status)
+                ? 'preparing'
+                : order.status === 'preparing' ? 'ready' : null;
+              const columnActionLabel = columnNextStatus === 'preparing' ? 'Pasar a Preparación' : 'Pedido listo';
               return (
                 <React.Fragment key={order.id}>
                   {isNewDate && (
@@ -442,7 +449,7 @@ const TransactionList = ({ orders, loading, onOrderUpdated, forceCards = false, 
                   {forceCards ? (
                     <div
                       onClick={() => handleOpenModal(order)}
-                      className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                      className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-4 cursor-pointer hover:bg-gray-50 transition-colors"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-base font-bold text-gray-900">{order.order_number}</div>
@@ -481,6 +488,26 @@ const TransactionList = ({ orders, loading, onOrderUpdated, forceCards = false, 
                           </span>
                         )}
                       </div>
+                      {showColumnActions && columnNextStatus && (
+                        <div className="flex basis-full justify-end">
+                          <button
+                            type="button"
+                            onClick={(event) => handleAdvanceStatus(event, order, columnNextStatus)}
+                            disabled={markingReadyId === order.id}
+                            aria-busy={markingReadyId === order.id}
+                            className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-lg bg-gray-950 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-950 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60"
+                          >
+                            {markingReadyId === order.id ? (
+                              <ButtonSpinner size="xs" />
+                            ) : columnNextStatus === 'preparing' ? (
+                              <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                            ) : (
+                              <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                            )}
+                            {markingReadyId === order.id ? 'Actualizando…' : columnActionLabel}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                   <div
