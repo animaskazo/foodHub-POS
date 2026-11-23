@@ -1,5 +1,5 @@
-import { ChevronDown, CircleCheck, CircleX, TriangleAlert, Loader2, DollarSign, Store } from 'lucide-react';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ChevronDown, CircleCheck, Loader2, Printer, TriangleAlert } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -8,342 +8,349 @@ import { printShiftReport } from '../../services/printerService';
 import { useAuth } from '../AuthContext';
 import { toast } from 'sonner';
 
-
 const formatCurrency = (value) => '$' + Number(value || 0).toLocaleString('es-CL');
-const parseCurrency = (str) => Number((str || '').replace(/\D/g, '')) || 0;
+const onlyDigits = (str) => String(str ?? '').replace(/\D/g, '');
+const formatTime = (iso) => new Date(iso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+const formatDate = (iso) => new Date(iso).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' });
 
-const formatDateTime = (isoString) => {
-  const date = new Date(isoString);
-  return date.toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const printErrorMessage = (error) => {
+  const msg = error?.message || String(error);
+  if (msg.includes('No hay impresora')) return 'No hay impresora configurada. Ve a Ajustes > Impresoras.';
+  if (msg.includes('Print server') || msg.includes('fetch')) return 'Servidor de impresión no disponible. ¿Está corriendo el print server?';
+  return `No se pudo imprimir el reporte: ${msg}`;
 };
 
-const ShiftCloseView = ({ shift, salesData, balance, onBalanceChange, loading, fetchingData }) => {
-  const startingBalance = Number(shift?.starting_balance || 0);
-  const cashSales = Number(salesData?.cashSales || 0);
-  const cardSales = Number(salesData?.cardSales || 0);
-  const transferSales = Number(salesData?.transferSales || 0);
-  const onlineSales = Number(salesData?.onlineSales || 0);
-  const otherSales = Number(salesData?.otherSales || 0);
-  const electronicSales = cardSales + transferSales + onlineSales + otherSales;
-  const totalSales = Number(salesData?.totalSales || 0);
-  const expectedCashInRegister = startingBalance + cashSales;
-  const reportedBalance = parseCurrency(balance);
-  const difference = reportedBalance - expectedCashInRegister;
-  const isShort = difference < 0;
-  const isOver = difference > 0;
-  const isExact = difference === 0 && reportedBalance > 0;
-  const hasInput = balance.trim().length > 0;
+// Input de dinero: guarda solo dígitos y muestra separador de miles mientras se escribe.
+const MoneyInput = ({ id, value, onChange, disabled, autoFocus }) => (
+  <div className="relative">
+    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-semibold text-gray-400" aria-hidden="true">$</span>
+    <Input
+      id={id}
+      type="text"
+      inputMode="numeric"
+      autoComplete="off"
+      value={value === '' ? '' : Number(value).toLocaleString('es-CL')}
+      onChange={(e) => onChange(onlyDigits(e.target.value))}
+      className="h-16 rounded-xl bg-white pl-10 pr-4 text-right text-3xl font-bold tabular-nums"
+      placeholder="0"
+      disabled={disabled}
+      autoFocus={autoFocus}
+    />
+  </div>
+);
+
+const Row = ({ label, value, strong = false, muted = false }) => (
+  <div className={`flex items-center justify-between py-1.5 text-sm ${strong ? 'font-semibold text-gray-900' : muted ? 'text-gray-500' : 'text-gray-700'}`}>
+    <span>{label}</span>
+    <span className="tabular-nums">{value}</span>
+  </div>
+);
+
+const differenceInfo = (difference) => {
+  if (difference === 0) return { label: 'Cuadra exacto', tone: 'border-emerald-200 bg-emerald-50 text-emerald-700', Icon: CircleCheck };
+  if (difference < 0) return { label: `Faltan ${formatCurrency(-difference)}`, tone: 'border-red-200 bg-red-50 text-red-700', Icon: TriangleAlert };
+  return { label: `Sobran ${formatCurrency(difference)}`, tone: 'border-amber-200 bg-amber-50 text-amber-800', Icon: TriangleAlert };
+};
+
+/* ---------------- Abrir caja ---------------- */
+
+const OpenShiftBody = ({ balance, onBalanceChange, loading, required, userName }) => (
+  <div className="space-y-5 p-6">
+    <p className="text-sm text-gray-500">
+      Turno de <span className="font-medium text-gray-900">{userName || 'tu usuario'}</span> · {formatDate(new Date().toISOString())} {formatTime(new Date().toISOString())}
+    </p>
+    <div className="space-y-2">
+      <label htmlFor="shift-starting-cash" className="block text-sm font-semibold text-gray-900">
+        Fondo inicial {!required && <span className="font-normal text-gray-400">(opcional)</span>}
+      </label>
+      <MoneyInput id="shift-starting-cash" value={balance} onChange={onBalanceChange} disabled={loading} autoFocus />
+      <p className="text-xs text-gray-500">Efectivo (sencillo) con el que parte la caja.</p>
+    </div>
+  </div>
+);
+
+/* ---------------- Cerrar caja: arqueo ---------------- */
+
+const CloseShiftCount = ({ shift, sales, counted, onCountedChange, loading, required, pendingConfirm }) => {
+  const hasCount = counted !== '';
+  const difference = hasCount ? Number(counted) - sales.expectedCashInRegister : null;
+  const info = hasCount ? differenceInfo(difference) : null;
 
   return (
-    <div className="space-y-5">
-      {/* Turno context - one line */}
-      <div className="flex flex-wrap items-center gap-2 rounded-xl bg-gray-50 px-3 py-2.5 text-xs text-gray-500">
-        <span className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-          <span>{formatDateTime(shift?.start_time)} → {formatDateTime(new Date().toISOString())}</span>
-        </span>
-        <span>{shift?.opened_by_name || '—'}</span>
-        <span className="text-gray-400">·</span>
-        <span>{salesData?.orderCount || 0} órdenes</span>
-      </div>
+    <div className="space-y-5 p-6">
+      <p className="text-sm text-gray-500">
+        Abierta por <span className="font-medium text-gray-900">{shift.opened_by_name || 'usuario'}</span> · {formatDate(shift.start_time)} {formatTime(shift.start_time)} → {formatTime(new Date().toISOString())} · {sales.orderCount} {sales.orderCount === 1 ? 'venta' : 'ventas'}
+      </p>
 
-      {/* Expected amount - prominent */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex items-baseline justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Efectivo esperado</p>
-            <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-gray-900">{formatCurrency(expectedCashInRegister)}</p>
-          </div>
-          <div className="text-right text-sm text-gray-500">
-            <p>Inicial: <span className="font-medium tabular-nums">{formatCurrency(startingBalance)}</span></p>
-            <p>+ Efectivo: <span className="font-medium tabular-nums">{formatCurrency(cashSales)}</span></p>
-          </div>
+      <div className="rounded-2xl border border-gray-200 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Efectivo esperado en caja</p>
+        <p className="mt-1 text-3xl font-bold tabular-nums text-gray-900">{formatCurrency(sales.expectedCashInRegister)}</p>
+        <div className="mt-3 border-t border-gray-100 pt-2">
+          <Row label="Fondo inicial" value={formatCurrency(sales.startingBalance)} muted />
+          <Row label="Ventas en efectivo" value={`+ ${formatCurrency(sales.cashSales)}`} muted />
         </div>
       </div>
 
-      {/* Sales breakdown - collapsible/simple */}
-      <details className="group overflow-hidden rounded-2xl border border-gray-200 bg-white">
-        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3.5 text-sm font-semibold text-gray-800">
-          <span>Desglose de ventas</span>
-          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
-        </summary>
-        <div className="space-y-2 border-t border-gray-100 bg-white p-4">
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="flex justify-between py-1"><span className="text-gray-500">Efectivo</span><span className="font-medium tabular-nums">{formatCurrency(cashSales)}</span></div>
-            <div className="flex justify-between py-1"><span className="text-gray-500">Tarjeta</span><span className="font-medium tabular-nums">{formatCurrency(cardSales)}</span></div>
-            <div className="flex justify-between py-1"><span className="text-gray-500">Transferencia</span><span className="font-medium tabular-nums">{formatCurrency(transferSales)}</span></div>
-            <div className="flex justify-between py-1"><span className="text-gray-500">Online</span><span className="font-medium tabular-nums">{formatCurrency(onlineSales)}</span></div>
-            {otherSales > 0 && <div className="flex justify-between py-1"><span className="text-gray-500">Otros</span><span className="font-medium tabular-nums">{formatCurrency(otherSales)}</span></div>}
-            <div className="flex justify-between py-1 border-t border-gray-100 font-semibold text-base"><span>Total</span><span className="tabular-nums">{formatCurrency(totalSales)}</span></div>
-            <div className="flex justify-between py-1 text-gray-500"><span>Electrónico</span><span className="font-medium tabular-nums">{formatCurrency(electronicSales)}</span></div>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <label htmlFor="shift-counted-cash" className="text-sm font-semibold text-gray-900">
+            Efectivo contado {!required && <span className="font-normal text-gray-400">(opcional)</span>}
+          </label>
+          {!hasCount && (
+            <Button type="button" variant="ghost" size="sm" onClick={() => onCountedChange(String(sales.expectedCashInRegister))} disabled={loading}>
+              Cuadra exacto
+            </Button>
+          )}
+        </div>
+        <MoneyInput id="shift-counted-cash" value={counted} onChange={onCountedChange} disabled={loading} autoFocus />
+        {info && (
+          <div className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-base font-semibold ${info.tone}`} role="status">
+            <info.Icon className="h-5 w-5" aria-hidden="true" />
+            {info.label}
           </div>
-        </div>
-      </details>
-
-      {/* Input - single, prominent */}
-      <div className="relative rounded-2xl border border-gray-200 bg-gray-50 p-4">
-        <label className="mb-3 block text-sm font-bold text-gray-900">Efectivo contado</label>
-        <div className="relative">
-          <DollarSign className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500" />
-          <Input
-            type="text"
-            value={balance}
-            onChange={(e) => onBalanceChange(e.target.value.replace(/\D/g, ''))}
-            className="h-14 rounded-xl border-gray-300 bg-white pl-10 text-2xl font-bold text-center tabular-nums focus-visible:ring-2 focus-visible:ring-black"
-            placeholder="0"
-            autoFocus
-            disabled={fetchingData || loading}
-            inputMode="numeric"
-          />
-        </div>
-        {hasInput && (
-          <p className="mt-2 text-sm text-gray-500 text-center">
-            {reportedBalance === 0 ? 'Ingrese el monto contado' : `Diferencia con esperado: ${difference > 0 ? '+' : ''}${formatCurrency(difference)}`}
+        )}
+        {pendingConfirm && difference !== 0 && (
+          <p className="text-center text-sm text-gray-600">
+            El conteo no cuadra. Revisa el efectivo o confirma para cerrar con la diferencia registrada.
           </p>
         )}
       </div>
 
-      {/* Live difference - the key UX element */}
-      {hasInput && reportedBalance > 0 && (
-        <div className={`rounded-xl p-4 text-center text-xl font-bold ${
-          isExact ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' :
-          isShort ? 'bg-red-50 border border-red-200 text-red-700' :
-          'bg-amber-50 border border-amber-200 text-amber-700'
-        }`}>
-          <div className="flex items-center justify-center gap-2 mb-1">
-            {isExact && <CircleCheck className="h-6 w-6" aria-hidden="true" />}
-            {isShort && <CircleX className="h-6 w-6" aria-hidden="true" />}
-            {isOver && <TriangleAlert className="h-6 w-6" aria-hidden="true" />}
-            <span>{isExact ? 'Cuadre exacto' : isShort ? 'Faltante' : 'Sobrante'}</span>
+      <details className="group rounded-2xl border border-gray-200">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold text-gray-800">
+          Ventas del turno · {formatCurrency(sales.totalSales)}
+          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
+        </summary>
+        <div className="border-t border-gray-100 px-4 py-2">
+          <Row label="Efectivo" value={formatCurrency(sales.cashSales)} />
+          <Row label="Tarjeta" value={formatCurrency(sales.cardSales)} />
+          <Row label="Transferencia" value={formatCurrency(sales.transferSales)} />
+          <Row label="Online" value={formatCurrency(sales.onlineSales)} />
+          {sales.otherSales > 0 && <Row label="Otros" value={formatCurrency(sales.otherSales)} />}
+          <div className="mt-1 border-t border-gray-100 pt-1">
+            <Row label="Total" value={formatCurrency(sales.totalSales)} strong />
           </div>
-          <div className="text-2xl tabular-nums">{formatCurrency(Math.abs(difference))}</div>
         </div>
-      )}
-
-      {/* Quick actions - preset buttons */}
-      {expectedCashInRegister > 0 && !hasInput && (
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            type="button"
-            onClick={() => onBalanceChange(expectedCashInRegister.toLocaleString('es-CL'))}
-            className="text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
-           variant="outline" size="default">
-            Usar esperado
-          </Button>
-          <Button
-            type="button"
-            onClick={() => onBalanceChange('0')}
-            className="text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
-           variant="outline" size="default">
-            Sin efectivo
-          </Button>
-        </div>
-      )}
+      </details>
     </div>
   );
 };
 
-const ShiftOpenView = ({ balance, onBalanceChange, loading, requireInput }) => (
-  <div className="space-y-4 text-center">
-    <Store className="mx-auto h-8 w-8" />
-    <p className="text-gray-500">
-      {requireInput
-        ? 'Ingresa el monto de efectivo (sencillo) con el que inicias el turno.'
-        : 'Se abrirá un nuevo turno de caja.'}
-    </p>
-    {requireInput && (
-      <div className="relative max-w-xs mx-auto">
-        <DollarSign className="absolute inset-y-0 left-0 pointer-events-none h-6 w-6" />
-<Input
-            type="text"
-            value={balance}
-            onChange={(e) => onBalanceChange(e.target.value.replace(/\D/g, ''))}
-            className="pl-10 text-3xl font-bold h-16 text-center tabular-nums"
-            placeholder="0"
-            autoFocus
-            disabled={loading}
-            inputMode="numeric"
-          />
+/* ---------------- Cerrar caja: resumen ---------------- */
+
+const CloseShiftDone = ({ sales, counted }) => {
+  const hasCount = counted !== null;
+  const difference = hasCount ? counted - sales.expectedCashInRegister : null;
+  const info = hasCount ? differenceInfo(difference) : null;
+
+  return (
+    <div className="space-y-5 p-6">
+      <div className="text-center">
+        <CircleCheck className="mx-auto h-10 w-10 text-emerald-600" aria-hidden="true" />
+        <p className="mt-2 text-lg font-semibold text-gray-900">Caja cerrada</p>
       </div>
-    )}
-  </div>
-);
+      <div className="rounded-2xl border border-gray-200 px-4 py-2">
+        <Row label="Efectivo esperado" value={formatCurrency(sales.expectedCashInRegister)} />
+        <Row label="Efectivo contado" value={hasCount ? formatCurrency(counted) : 'Sin conteo'} />
+        {info && (
+          <div className="flex items-center justify-between py-1.5 text-sm">
+            <span className="text-gray-700">Diferencia</span>
+            <span className={`rounded-md border px-2 py-0.5 font-semibold ${info.tone}`}>{info.label}</span>
+          </div>
+        )}
+        <div className="mt-1 border-t border-gray-100 pt-1">
+          <Row label="Ventas del turno" value={formatCurrency(sales.totalSales)} strong />
+        </div>
+      </div>
+    </div>
+  );
+};
 
-const ShiftModal = ({
-  isOpen,
-  onClose,
-  type = 'open',
-  settings,
-  organizationId,
-  shiftId,
-  totalSales = 0,
-  onSuccess,
-  currentShift,
-  organization
-}) => {
+/* ---------------- Modal ---------------- */
+
+const ShiftModal = ({ isOpen, onClose, type = 'open', settings, shift, organizationId, organization, onSuccess }) => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const staffName = user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email;
   const [balance, setBalance] = useState('');
-  const [shiftData, setShiftData] = useState(null);
-  const [salesBreakdown, setSalesBreakdown] = useState(null);
-  const [fetchingData, setFetchingData] = useState(false);
-  const prevShiftIdRef = useRef(null);
-  const fetchingRef = useRef(false);
+  const [loading, setLoading] = useState(false);
+  const [sales, setSales] = useState(null);
+  const [salesError, setSalesError] = useState(null);
+  const [fetchingSales, setFetchingSales] = useState(false);
+  const [pendingConfirm, setPendingConfirm] = useState(false);
+  const [closed, setClosed] = useState(null); // { shift, counted, closedAt } tras cerrar
+  const [printing, setPrinting] = useState(false);
 
-  useEffect(() => {
-    const shiftId = currentShift?.id;
-    const shouldFetch = isOpen && type === 'close' && shiftId && organizationId && shiftId !== prevShiftIdRef.current && !fetchingRef.current;
+  const isClose = type === 'close';
+  const required = isClose ? !!settings?.require_ending_cash : !!settings?.require_starting_cash;
 
-    if (shouldFetch) {
-      prevShiftIdRef.current = shiftId;
-      fetchingRef.current = true;
-      const fetchData = async () => {
-        setFetchingData(true);
-        try {
-          setShiftData(currentShift);
-          const breakdown = await getShiftSalesBreakdown(organizationId, currentShift.start_time);
-          setSalesBreakdown(breakdown);
-          if (settings?.require_ending_cash && balance === '' && !fetchingRef.current) {
-            setBalance(breakdown.expectedCashInRegister.toLocaleString('es-CL'));
-          }
-        } catch (err) {
-          console.error('[ShiftModal] Error fetching shift data:', err);
-          toast.error(`Error: ${err?.message || 'No se pudo cargar el detalle del turno'}`);
-        } finally {
-          setFetchingData(false);
-          fetchingRef.current = false;
-        }
-      };
-      fetchData();
-    } else if (type === 'open') {
-      prevShiftIdRef.current = null;
-      setShiftData(null);
-      setSalesBreakdown(null);
-      setBalance('');
+  const loadSales = useCallback(async () => {
+    if (!shift) return;
+    setFetchingSales(true);
+    setSalesError(null);
+    try {
+      setSales(await getShiftSalesBreakdown(shift));
+    } catch (err) {
+      setSalesError(err?.message || 'No se pudo cargar el detalle del turno');
+    } finally {
+      setFetchingSales(false);
     }
-// eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, type, currentShift, organizationId, settings?.require_ending_cash]);
+  }, [shift]);
 
-  const handleConfirm = async () => {
-    if (!organizationId || !user?.id) return;
+  // Estado limpio y datos frescos cada vez que se abre el modal.
+  useEffect(() => {
+    if (!isOpen) return;
+    setBalance('');
+    setPendingConfirm(false);
+    setClosed(null);
+    setSales(null);
+    if (isClose) loadSales();
+  }, [isOpen, isClose, loadSales]);
+
+  const handleCountedChange = (value) => {
+    setBalance(value);
+    setPendingConfirm(false);
+  };
+
+  const doPrint = async (closedShift, counted, closedAt) => {
+    setPrinting(true);
+    try {
+      await printShiftReport({
+        shift: closedShift,
+        salesData: sales,
+        reportedBalance: counted ?? 0,
+        organization,
+        closedBy: user?.id,
+        closedAt,
+      });
+      toast.success('Reporte Z impreso');
+    } catch (err) {
+      console.error('[ShiftModal] Error printing Z report:', err);
+      toast.error(printErrorMessage(err));
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  const handleOpen = async () => {
     setLoading(true);
     try {
-      const numericBalance = parseCurrency(balance);
-
-    if (type === 'open') {
-      if (settings?.require_starting_cash && !balance) {
-        toast.error('Debes ingresar el monto inicial');
-        return;
-      }
-      await openShift(organizationId, numericBalance, user.id);
-      toast.success('Caja abierta exitosamente');
-    } else {
-      if (settings?.require_ending_cash && !balance) {
-        toast.error('Debes ingresar el monto final de caja');
-        return;
-      }
-      const finalSalesData = salesBreakdown || { totalSales };
-      const totalSalesAmount = finalSalesData.totalSales || totalSales;
-      await closeShift(shiftId, numericBalance, numericBalance, totalSalesAmount, user.id);
-      toast.success('Caja cerrada exitosamente');
-      if (settings?.auto_print_z_report && shiftData && salesBreakdown) {
-        try {
-          toast.info('Imprimiendo reporte Z...');
-          await printShiftReport({
-            shift: shiftData,
-            salesData: salesBreakdown,
-            reportedBalance: numericBalance,
-            organization,
-            closedBy: user.id,
-            closedAt: new Date().toISOString()
-          });
-          toast.success('Reporte Z impreso correctamente');
-        } catch (printError) {
-          console.error('[ShiftModal] Error printing Z report:', printError);
-          const msg = printError?.message || String(printError);
-          if (msg.includes('No hay impresora')) {
-            toast.error('No hay impresora configurada. Ve a Ajustes > Impresoras.');
-          } else if (msg.includes('Print server') || msg.includes('fetch')) {
-            toast.error('Servidor de impresión no disponible. ¿Está corriendo el print server?');
-          } else {
-            toast.error(`Caja cerrada, pero falló la impresión: ${msg}`);
-          }
-        }
-      }
-    }
-onSuccess();
-      setBalance('');
-    } catch (error) {
-      console.error('[ShiftModal] Error confirmando turno:', error);
-      toast.error(`No se pudo ${type === 'open' ? 'abrir' : 'cerrar'} la caja: ${error?.message || 'intenta nuevamente'}`);
+      await openShift(organizationId, Number(balance || 0), user.id);
+      toast.success('Caja abierta');
+      onSuccess();
+    } catch (err) {
+      console.error('[ShiftModal] Error opening shift:', err);
+      toast.error(`No se pudo abrir la caja: ${err?.message || 'intenta nuevamente'}`);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleClose = async () => {
+    const counted = balance === '' ? null : Number(balance);
+    const difference = counted === null ? 0 : counted - sales.expectedCashInRegister;
+    if (difference !== 0 && !pendingConfirm) {
+      setPendingConfirm(true);
+      return;
+    }
+    setLoading(true);
+    try {
+      const closedShift = await closeShift({
+        shiftId: shift.id,
+        countedCash: counted,
+        expectedCash: sales.expectedCashInRegister,
+        totalSales: sales.totalSales,
+        userId: user.id,
+      });
+      const closedAt = closedShift?.end_time || new Date().toISOString();
+      const fullShift = { ...shift, ...closedShift };
+      setClosed({ shift: fullShift, counted, closedAt });
+      if (settings?.auto_print_z_report) doPrint(fullShift, counted, closedAt);
+    } catch (err) {
+      console.error('[ShiftModal] Error closing shift:', err);
+      toast.error(`No se pudo cerrar la caja: ${err?.message || 'intenta nuevamente'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Tras cerrar, cualquier forma de salir refresca el estado del POS.
+  const handleDismiss = closed ? onSuccess : onClose;
+
   if (!isOpen) return null;
 
-  const requireInput = type === 'open' ? settings?.require_starting_cash : settings?.require_ending_cash;
-  const title = type === 'open' ? 'Abrir Caja' : 'Cerrar Caja';
-  const actionLabel = type === 'open' ? 'Abrir Caja' : 'Cerrar Caja e Imprimir';
+  let body;
+  let footer;
+
+  if (!isClose) {
+    body = <OpenShiftBody balance={balance} onBalanceChange={setBalance} loading={loading} required={required} userName={staffName} />;
+    footer = (
+      <div className="flex gap-3 p-4 sm:px-6">
+        <Button variant="outline" size="lg" className="flex-1" onClick={onClose} disabled={loading}>Cancelar</Button>
+        <Button size="lg" className="flex-1" onClick={handleOpen} disabled={loading || (required && balance === '')}>
+          {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />}
+          Abrir caja
+        </Button>
+      </div>
+    );
+  } else if (closed) {
+    body = <CloseShiftDone sales={sales} counted={closed.counted} />;
+    footer = (
+      <div className="flex gap-3 p-4 sm:px-6">
+        <Button variant="outline" size="lg" className="flex-1" onClick={() => doPrint(closed.shift, closed.counted, closed.closedAt)} disabled={printing}>
+          {printing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" /> : <Printer className="mr-2 h-5 w-5" aria-hidden="true" />}
+          Imprimir reporte Z
+        </Button>
+        <Button size="lg" className="flex-1" onClick={onSuccess}>Listo</Button>
+      </div>
+    );
+  } else if (fetchingSales || (!sales && !salesError)) {
+    body = (
+      <div className="flex items-center justify-center gap-3 py-16 text-gray-600">
+        <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
+        Cargando ventas del turno…
+      </div>
+    );
+  } else if (salesError) {
+    body = (
+      <div className="space-y-4 px-6 py-12 text-center">
+        <p className="text-sm text-red-600">{salesError}</p>
+        <Button variant="outline" onClick={loadSales}>Reintentar</Button>
+      </div>
+    );
+  } else {
+    const missingRequired = required && balance === '';
+    body = (
+      <CloseShiftCount
+        shift={shift}
+        sales={sales}
+        counted={balance}
+        onCountedChange={handleCountedChange}
+        loading={loading}
+        required={required}
+        pendingConfirm={pendingConfirm}
+      />
+    );
+    footer = (
+      <div className="flex gap-3 p-4 sm:px-6">
+        <Button variant="outline" size="lg" className="flex-1" onClick={onClose} disabled={loading}>Cancelar</Button>
+        <Button size="lg" className="flex-1" onClick={handleClose} disabled={loading || missingRequired}>
+          {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />}
+          {pendingConfirm ? 'Cerrar con diferencia' : 'Cerrar caja'}
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth={type === 'close' ? 'max-w-2xl' : 'max-w-md'} fullScreenOnMobile>
-      <div className="p-4 pb-5 sm:p-6">
-        {type === 'open' ? (
-          <ShiftOpenView
-            balance={balance}
-            onBalanceChange={setBalance}
-            loading={loading}
-            requireInput={requireInput}
-            settings={settings}
-          />
-        ) : (
-          <>
-            {fetchingData ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin" />
-                <span className="ml-3 text-gray-600">Cargando turno...</span>
-              </div>
-            ) : shiftData && salesBreakdown ? (
-              <ShiftCloseView
-                shift={shiftData}
-                salesData={salesBreakdown}
-                balance={balance}
-                onBalanceChange={setBalance}
-                loading={loading}
-                fetchingData={fetchingData}
-              />
-            ) : (
-              <div className="text-center py-8 text-red-500">
-                No se pudo cargar el turno. <Button onClick={onClose} className="underline" variant="ghost" size="default">Reintentar</Button>
-              </div>
-            )}
-          </>
-        )}
-
-        <div className="flex justify-center gap-3 mt-6 pt-4 border-t border-gray-100">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={onClose}
-            disabled={loading || fetchingData}
-            className="min-w-[120px]"
-          >
-            Cancelar
-          </Button>
-          <Button
-            size="lg"
-            variant={type === 'close' ? 'destructive' : 'default'}
-            className="min-w-[160px]"
-            onClick={handleConfirm}
-            disabled={loading || fetchingData || (requireInput && !balance.trim())}
-          >
-            {loading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : null}
-            {actionLabel}
-          </Button>
-        </div>
-      </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={loading ? undefined : handleDismiss}
+      title={isClose ? 'Cerrar caja' : 'Abrir caja'}
+      maxWidth="max-w-lg"
+      fullScreenOnMobile
+      footer={footer}
+    >
+      {body}
     </Modal>
   );
 };

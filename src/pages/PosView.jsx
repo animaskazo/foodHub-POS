@@ -22,7 +22,7 @@ import { createOrder, updateOrderCustomer, getOpenOrdersForTable, appendItemsToO
 import { getTableZones, getRestaurantTables, notifyTablesChanged } from '../services/tableService';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
-import { getShiftSettings, getCurrentShift } from '../services/shiftService';
+import { getShiftSettings, getCurrentShift, canManageShifts } from '../services/shiftService';
 import { PosSkeleton } from '../components/ui/Skeleton';
 import { defaultSelectionsForSlot, bundleHasChoices } from '../utils/bundleSelections';
 import { getOutOfStockProductIds } from '../services/inventoryService';
@@ -33,11 +33,11 @@ import { calculateDiscount } from '../services/couponService';
 
 
 const PosView = () => {
-  const { organization, role, isSuperAdmin, user } = useAuth();
+  const { organization, role, isSuperAdmin } = useAuth();
   const isAdmin = isSuperAdmin || ['owner', 'admin', 'manager'].includes(role);
-  // El vendedor (rol `cashier`) opera solo con el POS, por lo que debe poder
-  // abrir la caja desde aquí sin depender del Dashboard administrativo.
-  const canOpenShiftFromPos = role === 'cashier';
+  // La caja se abre y cierra solo desde el POS. Puede hacerlo cualquier rol con
+  // permiso RLS sobre `shifts` (vendedor o admin), sin importar quién la abrió.
+  const canManageShift = canManageShifts(role, isSuperAdmin);
   const taxRate = organization?.default_tax_rate ? Number(organization.default_tax_rate) / 100 : 0.19;
 
   const navigate = useNavigate();
@@ -190,8 +190,8 @@ const PosView = () => {
   }, [posPrintOrder, organization]);
 
   const isPosBlocked = !loadingShift && shiftSettings?.shifts_enabled && shiftSettings?.block_pos_when_closed && !currentShift;
-  // El vendedor solo puede cerrar el turno que él abrió; los admins, cualquiera.
-  const canCloseShift = !!currentShift && (isAdmin || currentShift.opened_by === user?.id);
+  const shiftsEnabled = shiftSettings?.shifts_enabled === true;
+  const openShiftModal = (type) => { setShiftModalType(type); setIsShiftModalOpen(true); };
 
   const addToCart = (product, variant, ingredients = []) => {
     const ingredientsIds = ingredients.map(i => i.id).sort().join(',');
@@ -799,50 +799,41 @@ const PosView = () => {
   useDocumentTitle('Punto de Venta');
 
   if (isPosBlocked) {
-    if (canOpenShiftFromPos) {
-      return (
-        <>
-          <div className="flex flex-col items-center justify-center h-screen bg-gray-50 text-center p-6">
-            <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
-              <div className="bg-red-50 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-                <Store className="h-10 w-10 text-red-500" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Caja Cerrada</h2>
-              <p className="text-gray-500 mb-8">El terminal de ventas está bloqueado porque el turno actual se encuentra cerrado. Abre la caja para comenzar a recibir pagos y procesar órdenes.</p>
-              <Button onClick={() => { setShiftModalType('open'); setIsShiftModalOpen(true); }}>
-                <Store className="h-4 w-4 mr-2" />
-                Abrir Caja
-              </Button>
-            </div>
-          </div>
-          <ShiftModal
-            isOpen={isShiftModalOpen}
-            onClose={() => setIsShiftModalOpen(false)}
-            type="open"
-            settings={shiftSettings}
-            organizationId={organization?.id}
-            organization={organization}
-            onSuccess={handleShiftChange}
-          />
-        </>
-      );
-    }
-
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50 text-center p-6">
-        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full">
-          <div className="bg-red-50 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-            <LogOut className="h-10 w-10 text-red-500" />
+      <>
+        <div className="flex h-[100dvh] flex-col items-center justify-center bg-gray-50 p-6 text-center">
+          <div className="w-full max-w-sm rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+              <Lock className="h-7 w-7 text-gray-700" aria-hidden="true" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">La caja está cerrada</h2>
+            {canManageShift ? (
+              <>
+                <p className="mt-2 text-sm text-gray-500">Abre la caja para empezar a vender y recibir pagos.</p>
+                <Button size="lg" className="mt-6 w-full" onClick={() => openShiftModal('open')}>
+                  <Store className="mr-2 h-5 w-5" aria-hidden="true" />
+                  Abrir caja
+                </Button>
+              </>
+            ) : (
+              <p className="mt-2 text-sm text-gray-500">Pide a un vendedor o administrador que abra la caja para empezar a vender.</p>
+            )}
+            <Button variant="ghost" className="mt-3 w-full" onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
+              Cerrar sesión
+            </Button>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Caja Cerrada</h2>
-          <p className="text-gray-500 mb-8">El terminal de ventas está bloqueado porque el turno actual se encuentra cerrado. Para poder recibir pagos y procesar órdenes, por favor abre la caja desde el Dashboard administrativo.</p>
-          <Button
-            onClick={() => navigate('/')}
-          >
-            Ir al Dashboard
-          </Button>
         </div>
-      </div>
+        <ShiftModal
+          isOpen={isShiftModalOpen}
+          onClose={() => setIsShiftModalOpen(false)}
+          type="open"
+          settings={shiftSettings}
+          organizationId={organization?.id}
+          organization={organization}
+          onSuccess={handleShiftChange}
+        />
+      </>
     );
   }
 
@@ -1007,18 +998,24 @@ const PosView = () => {
                 ))}
               </div>
               <div className="p-0">
-                {shiftSettings?.shifts_enabled && currentShift && canCloseShift && (
+                {shiftsEnabled && canManageShift && (
                   <Button
                     variant="ghost"
                     onClick={() => {
-                      setShiftModalType('close');
-                      setIsShiftModalOpen(true);
+                      openShiftModal(currentShift ? 'close' : 'open');
                       setIsMobileMenuOpen(false);
                     }}
                     className="w-full flex items-center justify-start gap-4 px-8 h-14 text-base text-gray-900 hover:text-gray-900 hover:bg-gray-50"
                   >
-                    <Lock className="size-6" />
-                    Cerrar Caja
+                    {currentShift ? <Lock className="size-6" /> : <Store className="size-6" />}
+                    <span className="flex flex-col items-start leading-tight">
+                      {currentShift ? 'Cerrar caja' : 'Abrir caja'}
+                      {currentShift && (
+                        <span className="text-xs font-normal text-gray-500">
+                          Abierta desde las {new Date(currentShift.start_time).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
+                    </span>
                   </Button>
                 )}
                 <Button
@@ -1044,7 +1041,7 @@ const PosView = () => {
       )}
 
       {/* Bottom Navigation (Hidden on mobile) */}
-      <BottomNav active={activeTab} onChange={setActiveTab} role={role} dineInEnabled={organization?.dine_in_enabled === true} isAdmin={isAdmin} onLogout={requestLogout} onChangePin={requestChangePin} shiftEnabled={shiftSettings?.shifts_enabled === true} shiftOpen={!!currentShift} canCloseShift={canCloseShift} onCloseShift={() => { setShiftModalType('close'); setIsShiftModalOpen(true); }} />
+      <BottomNav active={activeTab} onChange={setActiveTab} role={role} dineInEnabled={organization?.dine_in_enabled === true} isAdmin={isAdmin} onLogout={requestLogout} onChangePin={requestChangePin} shiftEnabled={shiftsEnabled} currentShift={currentShift} canManageShift={canManageShift} onShiftAction={openShiftModal} />
 
       <ConfirmModal
         isOpen={confirmAction === 'pin'}
@@ -1078,8 +1075,7 @@ const PosView = () => {
         settings={shiftSettings}
         organizationId={organization?.id}
         organization={organization}
-        shiftId={currentShift?.id}
-        currentShift={currentShift}
+        shift={currentShift}
         onSuccess={handleShiftChange}
       />
 

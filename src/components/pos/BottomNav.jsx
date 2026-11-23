@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, ArrowLeftRight, Home, ChefHat, LogOut, LayoutGrid, KeyRound, Lock, Menu } from 'lucide-react';
+import { ShoppingCart, ArrowLeftRight, Home, ChefHat, LogOut, LayoutGrid, KeyRound, Menu, Store } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useKitchenOrders } from '../../hooks/useKitchenOrders';
 import { Button } from '@/components/ui/button';
@@ -42,7 +42,45 @@ const MenuItem = ({ icon: Icon, onClick, children, danger = false }) => (
   </button>
 );
 
-const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false, isAdmin = false, onLogout, onChangePin, shiftEnabled = false, shiftOpen = false, canCloseShift = false, onCloseShift }) => {
+// Estado de caja siempre visible en la barra del POS: abre el cierre o la apertura.
+const ShiftStatusButton = ({ currentShift, canManageShift, onShiftAction }) => {
+  if (currentShift) {
+    const since = new Date(currentShift.start_time).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    return (
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled={!canManageShift}
+        onClick={() => onShiftAction && onShiftAction('close')}
+        className="px-4 text-gray-300 hover:bg-white/10 hover:text-white disabled:opacity-100"
+        title={canManageShift ? 'Cerrar caja' : 'Caja abierta'}
+      >
+        <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden="true" />
+        <span className="text-sm font-semibold">Caja abierta · {since}</span>
+      </Button>
+    );
+  }
+  if (!canManageShift) {
+    return (
+      <span className="flex items-center gap-2 px-4 text-sm font-semibold text-gray-400">
+        <span className="h-2 w-2 rounded-full bg-gray-500" aria-hidden="true" />
+        Caja cerrada
+      </span>
+    );
+  }
+  return (
+    <Button
+      size="sm"
+      onClick={() => onShiftAction && onShiftAction('open')}
+      className="bg-white px-4 text-gray-900 hover:bg-gray-100"
+    >
+      <Store className="size-4" aria-hidden="true" />
+      <span className="text-sm font-semibold">Abrir caja</span>
+    </Button>
+  );
+};
+
+const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false, isAdmin = false, onLogout, onChangePin, shiftEnabled = false, currentShift = null, canManageShift = false, onShiftAction }) => {
   const navigate = useNavigate();
   const { pendingCount, newOrderFlag } = useKitchenOrders();
   const [triggerAnimation, setTriggerAnimation] = useState(false);
@@ -116,7 +154,11 @@ const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false, isA
         ))}
       </div>
 
-      {/* Right: dropdown grouping session + cash register */}
+      {/* Right: estado de caja + menú de sesión */}
+      <div className="flex items-center gap-2">
+      {shiftEnabled && (
+        <ShiftStatusButton currentShift={currentShift} canManageShift={canManageShift} onShiftAction={onShiftAction} />
+      )}
       <div className="relative" ref={menuRef}>
         <Button
           variant="ghost"
@@ -182,22 +224,10 @@ const BottomNav = ({ active = 'pago', onChange, role, dineInEnabled = false, isA
                   </MenuItem>
                 </>
               )}
-
-              {shiftEnabled && shiftOpen && canCloseShift && (
-                <MenuItem
-                  icon={Lock}
-                  danger
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onCloseShift && onCloseShift();
-                  }}
-                >
-                  Cerrar Caja
-                </MenuItem>
-              )}
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

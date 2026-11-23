@@ -3,9 +3,7 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../components/AuthContext';
-import { getShiftSettings, getCurrentShift } from '../services/shiftService';
 import { activateDueScheduledOrders } from '../services/orderService';
-import ShiftModal from '../components/shifts/ShiftModal';
 import {
   TrendingUp,
   ShoppingCart,
@@ -114,11 +112,6 @@ const DashboardView = () => {
   const [bypassOnboardingBlur, setBypassOnboardingBlur] = useState(false);
   const dashboardBlurred = onboardingPending && !bypassOnboardingBlur;
   
-  // Shifts State
-  const [shiftSettings, setShiftSettings] = useState(null);
-  const [currentShift, setCurrentShift] = useState(null);
-  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
-  const [shiftModalType, setShiftModalType] = useState('open'); // 'open' or 'close'
 
   const [weeklySparklines, setWeeklySparklines] = useState({ revenue: [], orders: [], ticket: [], visits: [] });
   const { latestNewOrder } = useKitchenOrders();
@@ -188,15 +181,6 @@ const DashboardView = () => {
     lastColumnNavigationRef.current = now;
     moveDailyColumn(delta > 0 ? 1 : -1);
   };
-
-  useEffect(() => {
-    const handleOpenShift = (event) => {
-      setShiftModalType(event.detail?.type || 'open');
-      setIsShiftModalOpen(true);
-    };
-    window.addEventListener('foodhub:open-shift', handleOpenShift);
-    return () => window.removeEventListener('foodhub:open-shift', handleOpenShift);
-  }, []);
 
   const fetchSparklines = useCallback(async () => {
     if (!organization?.id) return;
@@ -309,7 +293,6 @@ const DashboardView = () => {
     if (authLoading) return;
 
     if (organization?.id) {
-      loadShiftData();
       fetchOrders();
 
       // Supabase Realtime subscription for instant updates on the dashboard
@@ -327,7 +310,6 @@ const DashboardView = () => {
 
       const interval = setInterval(() => {
         fetchOrders(true);
-        loadShiftData();
       }, 20000);
 
       return () => {
@@ -339,28 +321,6 @@ const DashboardView = () => {
       setError('No tienes una organización asignada.');
     }
   }, [organization?.id, authLoading, activePreset, rangeFrom, rangeTo, fetchSparklines]);
-
-  const loadShiftData = async () => {
-    try {
-      const settings = await getShiftSettings(organization.id);
-      setShiftSettings(settings);
-      
-      if (settings?.shifts_enabled) {
-        const shift = await getCurrentShift(organization.id);
-        if (shift?.opened_by) {
-          const { data: staffData } = await supabase
-            .from('staff')
-            .select('name')
-            .eq('id', shift.opened_by)
-            .single();
-          shift.opened_by_name = staffData?.name || 'Usuario';
-        }
-        setCurrentShift(shift);
-      }
-    } catch (err) {
-      console.error('Error loading shift data:', err);
-    }
-  };
 
   const fetchOrders = async (isBackground = false) => {
     if (!isBackground) {
@@ -563,35 +523,6 @@ const DashboardView = () => {
 
   useDocumentTitle('Dashboard');
 
-  const renderShiftButton = () => {
-    if (!shiftSettings?.shifts_enabled) return null;
-    
-    return (
-      <div>
-        {currentShift ? (
-          <Button 
-            onClick={() => { setShiftModalType('close'); setIsShiftModalOpen(true); }}
-            className="flex h-9 items-center gap-1.5 border border-green-200 bg-green-50 px-3 text-sm text-green-700 hover:bg-green-100"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
-            </span>
-            Turno Activo
-          </Button>
-        ) : (
-          <Button 
-            onClick={() => { setShiftModalType('open'); setIsShiftModalOpen(true); }}
-            className="flex h-9 items-center gap-1.5 bg-gray-100 px-3 text-sm text-black hover:bg-gray-200"
-          >
-            <Store className="h-4 w-4" aria-hidden="true" />
-            Abrir Caja
-          </Button>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div className="bg-gray-50 p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -599,7 +530,6 @@ const DashboardView = () => {
           title={
             <div className="flex w-full items-center justify-between gap-3">
               <span>Dashboard</span>
-              {renderShiftButton()}
             </div>
           }
           subtitle={
@@ -995,22 +925,6 @@ const DashboardView = () => {
         </div>
       </div>
 
-
-      <ShiftModal 
-        isOpen={isShiftModalOpen} 
-        onClose={() => setIsShiftModalOpen(false)} 
-        type={shiftModalType} 
-        settings={shiftSettings}
-        organizationId={organization?.id}
-        onSuccess={() => {
-          setIsShiftModalOpen(false);
-          loadShiftData();
-        }}
-        shiftId={currentShift?.id}
-        totalSales={metrics.totalRevenue}
-        currentShift={currentShift}
-        organization={organization}
-      />
 
       {showDailyBoardWelcome && (
         <div
