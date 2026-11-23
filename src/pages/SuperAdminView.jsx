@@ -1,4 +1,5 @@
 import { SettingsOptionRow } from '@/components/ui/SettingsOptionRow';
+import { getOrgSecretsStatus } from '../services/organizationService';
 import { IconButton } from '@/components/ui/IconButton';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -25,6 +26,16 @@ const SuperAdminView = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedOrganization, setSelectedOrganization] = useState(null);
+  // Estado de credenciales de la org seleccionada (sin valores: viven en organization_secrets).
+  const [selectedOrgSecrets, setSelectedOrgSecrets] = useState(null);
+  useEffect(() => {
+    if (!selectedOrganization?.id) { setSelectedOrgSecrets(null); return; }
+    let cancelled = false;
+    getOrgSecretsStatus(selectedOrganization.id)
+      .then((status) => { if (!cancelled) setSelectedOrgSecrets(status); })
+      .catch(() => { if (!cancelled) setSelectedOrgSecrets(null); });
+    return () => { cancelled = true; };
+  }, [selectedOrganization?.id]);
   const [detailTab, setDetailTab] = useState('overview');
   
   const [users, setUsers] = useState([]);
@@ -454,7 +465,7 @@ const SuperAdminView = () => {
   const fetchOrganizations = async () => {
     const { data, error: fetchError } = await supabase
       .from('organizations')
-      .select('id, name, slug, logo_url, cover_url, cover_is_video, description, force_closed, closed_message, created_at, whatsapp_phone_number_id, whatsapp_inbox_url, whatsapp_inbox_enabled, uber_enabled, delivery_mode, delivery_modes, uber_client_id, uber_customer_id, dine_in_enabled, orders(total)')
+      .select('id, name, slug, logo_url, cover_url, cover_is_video, description, force_closed, closed_message, created_at, whatsapp_phone_number_id, whatsapp_inbox_url, whatsapp_inbox_enabled, uber_enabled, delivery_mode, delivery_modes, dine_in_enabled, orders(total)')
       .order('created_at', { ascending: false });
 
     if (fetchError) throw fetchError;
@@ -499,8 +510,6 @@ const SuperAdminView = () => {
         dineInEnabled: org.dine_in_enabled === true, // default to false
         deliveryMode: org.delivery_mode || 'own',
         deliveryModes: org.delivery_modes || null,
-        uberClientId: org.uber_client_id || '',
-        uberCustomerId: org.uber_customer_id || '',
         orderCount: ordersArray.length,
         totalSales: totalSales,
         visits30d: visitsByOrg[org.id] || 0,
@@ -1532,7 +1541,7 @@ const SuperAdminView = () => {
                     />
                     <div className="px-4 md:px-5 py-3 bg-gray-50/50 flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-2 text-sm">
-                        {selectedOrganization.uberClientId && selectedOrganization.uberCustomerId ? (
+                        {selectedOrgSecrets?.has_uber_credentials ? (
                           <span className="text-green-600 font-medium flex items-center gap-1.5">
                             <span className="h-2 w-2 rounded-full bg-green-500"></span>
                             Conectado
@@ -1545,8 +1554,8 @@ const SuperAdminView = () => {
                         )}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {selectedOrganization.uberClientId ? (
-                          <>Client ID: <span className="font-mono">{selectedOrganization.uberClientId}</span></>
+                        {selectedOrgSecrets?.uber_client_id_hint ? (
+                          <>Client ID: <span className="font-mono">{selectedOrgSecrets.uber_client_id_hint}</span></>
                         ) : (
                           'Credenciales no configuradas'
                         )}

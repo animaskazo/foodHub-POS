@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const { data } = await supabase
           .from('staff')
-          .select('organizations ( id, name, logo_url, address, delivery_enabled, dine_in_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, prep_time, hide_cancelled_orders, uber_client_id, uber_client_secret, uber_customer_id, uber_enabled, delivery_mode, delivery_modes, ticket_extra_message ), role, is_active')
+          .select('organizations ( id, name, logo_url, address, delivery_enabled, dine_in_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, prep_time, hide_cancelled_orders, uber_enabled, delivery_mode, delivery_modes, ticket_extra_message ), role, is_active')
           .eq('id', userId)
           .single();
         

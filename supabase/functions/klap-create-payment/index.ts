@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { getOrgSecrets } from "../_shared/orgSecrets.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -91,16 +92,12 @@ serve(async (req) => {
       console.log("[Klap] orderData:", JSON.stringify(orderData), "error:", JSON.stringify(orderErr));
 
       if (orderData?.organization_id) {
-        const { data: orgData, error: orgErr } = await supabase
-          .from('organizations')
-          .select('klap_api_key')
-          .eq('id', orderData.organization_id)
-          .single();
+        const { klap_api_key } = await getOrgSecrets(supabase, orderData.organization_id);
 
-        console.log("[Klap] orgData:", orgData ? { id: orderData.organization_id, has_key: !!orgData.klap_api_key, key_prefix: orgData.klap_api_key?.substring(0, 8) } : null, "error:", JSON.stringify(orgErr));
+        console.log("[Klap] org:", orderData.organization_id, "has_key:", !!klap_api_key);
 
-        if (orgData?.klap_api_key) {
-          apiKey = orgData.klap_api_key;
+        if (klap_api_key) {
+          apiKey = klap_api_key;
           console.log("[Klap] Usando API key personalizada de la organización:", orderData.organization_id);
         } else {
           console.log("[Klap] Organización sin API key propia, usando key global");

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Truck, Phone, User, ExternalLink, RefreshCw, AlertCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { getAccessToken, getDelivery } from '../../services/uberDirectService';
+import { getDelivery } from '../../services/uberDirectService';
 
 export const UberDeliveryCard = ({ order, organization, canRequestUber = false }) => {
   const [deliveryData, setDeliveryData] = useState(null);
@@ -15,37 +15,24 @@ export const UberDeliveryCard = ({ order, organization, canRequestUber = false }
 
   const fetchUberData = useCallback(async () => {
     if (!order?.uber_delivery_id) return;
-    let cid = organization?.uber_customer_id;
-    let clientId = organization?.uber_client_id;
-    let clientSecret = organization?.uber_client_secret;
+    const orgId = order?.organization_id || organization?.id;
+    if (!orgId) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      if ((!cid || !clientId || !clientSecret) && (order?.organization_id || organization?.id)) {
-        const orgId = order?.organization_id || organization?.id;
+      // Las credenciales de Uber se resuelven en el servidor (uber-direct-proxy).
+      if (!deliveryMode) {
         const { data: orgData } = await supabase
           .from('organizations')
-          .select('uber_customer_id, uber_client_id, uber_client_secret, delivery_mode')
+          .select('delivery_mode')
           .eq('id', orgId)
           .single();
-        if (orgData) {
-          cid = orgData.uber_customer_id;
-          clientId = orgData.uber_client_id;
-          clientSecret = orgData.uber_client_secret;
-          if (orgData.delivery_mode) setDeliveryMode(orgData.delivery_mode);
-        }
+        if (orgData?.delivery_mode) setDeliveryMode(orgData.delivery_mode);
       }
 
-      if (!cid || !clientId || !clientSecret) {
-        setError('Credenciales de Uber Direct no disponibles');
-        setLoading(false);
-        return;
-      }
-
-      const tokenRes = await getAccessToken(clientId, clientSecret);
-      const data = await getDelivery(cid, tokenRes.access_token, order.uber_delivery_id);
+      const data = await getDelivery(orgId, order.uber_delivery_id);
       setDeliveryData(data);
     } catch (err) {
       console.error('[UberDeliveryCard] Error fetching driver info:', err);
@@ -53,7 +40,7 @@ export const UberDeliveryCard = ({ order, organization, canRequestUber = false }
     } finally {
       setLoading(false);
     }
-  }, [order?.uber_delivery_id, order?.organization_id, organization]);
+  }, [order?.uber_delivery_id, order?.organization_id, organization?.id]);
 
   useEffect(() => {
     fetchUberData();

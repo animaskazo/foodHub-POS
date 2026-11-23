@@ -6,7 +6,7 @@ import { getCartItemUnitPrice, getBundleOptionUnitPrice, getCartTotal } from '..
 import { normalizeCode, validateCoupon, calculateDiscount } from './couponService';
 
 // ── Get organization by its name (used as public identifier) ──
-const ORG_PUBLIC_SELECT = 'id, name, slug, logo_url, cover_url, cover_is_video, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, accepts_local_payments, business_hours, pickup_hours, instant_enabled, scheduling_enabled, delivery_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, delivery_mode, delivery_modes, uber_enabled, uber_client_id, uber_client_secret, uber_customer_id, whatsapp_phone_number_id, prep_time, delivery_zones, settings, force_closed, closed_message';
+const ORG_PUBLIC_SELECT = 'id, name, slug, logo_url, cover_url, cover_is_video, description, primary_color, phone, email, address, default_tax_rate, currency, accepts_online_payments, online_payments_allowed, accepts_local_payments, business_hours, pickup_hours, instant_enabled, scheduling_enabled, delivery_enabled, store_lat, store_lng, delivery_radius_km, delivery_polygon, delivery_fee, delivery_min_order, delivery_mode, delivery_modes, uber_enabled, whatsapp_phone_number_id, prep_time, delivery_zones, settings, force_closed, closed_message';
 const ORG_PUBLIC_SELECT_LEGACY = ORG_PUBLIC_SELECT.replace(', delivery_modes,', ',');
 
 const isMissingColumnError = (err) =>

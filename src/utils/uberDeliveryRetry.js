@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { getAccessToken, createQuote, createDeliveryWithRetry } from '../services/uberDirectService';
+import { createQuote, createDeliveryWithRetry } from '../services/uberDirectService';
 import { geocodeAddress } from './geo';
 
 const normalizePhone = (phone) => {
@@ -32,7 +32,6 @@ const prepareUberDelivery = async (orderId, organizationId, allowEmergency = fal
   const ORG_SELECT = `
       id, name, address, phone,
       store_lat, store_lng,
-      uber_client_id, uber_client_secret, uber_customer_id,
       delivery_mode, delivery_modes, uber_enabled
     `;
   let orgData = null;
@@ -56,10 +55,9 @@ const prepareUberDelivery = async (orderId, organizationId, allowEmergency = fal
     }
   }
 
-  const hasUberCreds = orgData.uber_client_id && orgData.uber_client_secret && orgData.uber_customer_id;
-  if (allowEmergency) {
-    if (!hasUberCreds) throw new Error('No hay credenciales de Uber Direct configuradas para esta organización');
-  } else {
+  // Las credenciales de Uber viven en el servidor: si faltan, el proxy responde
+  // "La organización no tiene credenciales de Uber Direct configuradas".
+  if (!allowEmergency) {
     const orgModes = Array.isArray(orgData.delivery_modes)
       ? orgData.delivery_modes
       : [orgData.delivery_mode || 'own'];
@@ -75,10 +73,6 @@ const prepareUberDelivery = async (orderId, organizationId, allowEmergency = fal
     .eq('order_id', orderId);
 
   if (itemsError) throw itemsError;
-
-  // 4. Obtener token
-  const tokenRes = await getAccessToken(orgData.uber_client_id, orgData.uber_client_secret);
-  const token = tokenRes.access_token;
 
   // ── Geocodificar pickup (local) ───────────────────────────────────────
   let pickupLat = orgData.store_lat;
@@ -155,7 +149,7 @@ const prepareUberDelivery = async (orderId, organizationId, allowEmergency = fal
     manifest_items: manifestItems,
   };
 
-  return { order, orderId, organizationId, uberCustomerId: orgData.uber_customer_id, token, quoteParams, baseDeliveryData };
+  return { order, orderId, organizationId, quoteParams, baseDeliveryData };
 };
 
 /**
@@ -197,11 +191,10 @@ export const retryFailedUberDelivery = async (orderId, organizationId, options =
 
     console.log('[Retry Uber] Creando delivery con reintentos y quote fresco por intento...');
     const delivery = await createDeliveryWithRetry(
-      prepared.uberCustomerId,
-      prepared.token,
+      prepared.organizationId,
       async (attempt) => {
         console.log(`[Retry Uber] Obteniendo quote fresco (intento ${attempt})...`);
-        const freshQuote = await createQuote(prepared.uberCustomerId, prepared.token, prepared.quoteParams);
+        const freshQuote = await createQuote(prepared.organizationId, prepared.quoteParams);
         return { quote_id: freshQuote.id, ...prepared.baseDeliveryData };
       },
       3,
@@ -234,7 +227,7 @@ export const quoteUberDelivery = async (orderId, organizationId, options = {}) =
     const prepared = await prepareUberDelivery(orderId, organizationId, allowEmergency);
 
     console.log('[Quote Uber] Solicitando cotización en Uber Direct...');
-    const quote = await createQuote(prepared.uberCustomerId, prepared.token, prepared.quoteParams);
+    const quote = await createQuote(prepared.organizationId, prepared.quoteParams);
 
     return {
       success: true,
@@ -263,11 +256,10 @@ export const confirmUberQuote = async (orderId, organizationId, prepared) => {
   }
   try {
     console.log('[Confirm Uber] Creando delivery con quote fresco...');
-    const freshQuote = await createQuote(prepared.uberCustomerId, prepared.token, prepared.quoteParams);
+    const freshQuote = await createQuote(prepared.organizationId, prepared.quoteParams);
 
     const delivery = await createDeliveryWithRetry(
-      prepared.uberCustomerId,
-      prepared.token,
+      prepared.organizationId,
       async () => ({ quote_id: freshQuote.id, ...prepared.baseDeliveryData }),
       1,
     );

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { getOrgSecrets } from "../_shared/orgSecrets.ts";
 import { crypto } from "https://deno.land/std@0.177.0/crypto/mod.ts";
 
 const corsHeaders = {
@@ -54,14 +55,10 @@ serve(async (req) => {
         .single();
 
       if (orderData?.organization_id) {
-        const { data: orgData } = await supabaseForAuth
-          .from('organizations')
-          .select('klap_api_key')
-          .eq('id', orderData.organization_id)
-          .single();
+        const { klap_api_key } = await getOrgSecrets(supabaseForAuth, orderData.organization_id);
 
-        if (orgData?.klap_api_key) {
-          privateApiKey = orgData.klap_api_key;
+        if (klap_api_key) {
+          privateApiKey = klap_api_key;
           console.log("Webhook: usando API key de la organización:", orderData.organization_id);
         }
       }

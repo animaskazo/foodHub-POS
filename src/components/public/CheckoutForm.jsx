@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User, Phone, Mail, MessageSquare, Store, Loader2, Banknote, CreditCard, PaperBag, Info, CalendarClock, Clock, ChefHat, Truck } from 'lucide-react';
 import { getCustomerByPhone } from '../../services/publicOrderService';
 import { geocodeAddress, calculateDistance, isPointInPolygon, findDeliveryZoneForLocation } from '../../utils/geo';
-import { getAccessToken, createQuote } from '../../services/uberDirectService';
+import { createQuote } from '../../services/uberDirectService';
 import { MapPin } from 'lucide-react';
 import { X } from 'lucide-react';
 import AddressAutocomplete from '../ui/AddressAutocomplete';
@@ -535,9 +535,6 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
             console.log('[Uber Quote pickup]', pickupAddr);
             console.log('[Uber Quote dropoff]', dropoffAddr);
 
-            const tokenRes = await getAccessToken(org.uber_client_id, org.uber_client_secret);
-            console.log('[Uber Token] obtained');
-
             const geocodeQuery = cleanAddr ? cleanAddr + ', Chile' : 'Villa Alemana, Chile';
             console.log('[Uber Quote] clean address for geocode:', geocodeQuery);
             const orgCoordsRes = await geocodeAddress(geocodeQuery);
@@ -581,7 +578,7 @@ if (!forcedMethod && isValidatedAddress && !preFetchedCoords) return;
               };
             })();
 
-            const quoteRes = await createQuote(org.uber_customer_id, tokenRes.access_token, {
+            const quoteRes = await createQuote(org.id, {
               external_store_id: org.id,
               pickup_address: JSON.stringify(pickupAddr),
               dropoff_address: JSON.stringify(dropoffAddr),

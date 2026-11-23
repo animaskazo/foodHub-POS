@@ -1,13 +1,21 @@
+import { supabase } from '../lib/supabase'
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 const PROXY_FN = `${SUPABASE_URL}/functions/v1/uber-direct-proxy`
 
-const tokenCache = new Map()
-
 // Timeout total para la Edge Function (cubre el tiempo del proxy + Uber API)
 const PROXY_TIMEOUT_MS = 30_000
 
-async function callProxy(payload) {
+// Las credenciales y el token de Uber viven solo en el servidor (organization_secrets).
+// El navegador envía organization_id y, si hay sesión, el JWT del usuario para las
+// acciones restringidas (consultar/cancelar despachos, probar credenciales).
+async function callProxy(organizationId, action, payload = {}, credentials) {
+  if (!organizationId) throw new Error('[Uber Proxy] organizationId es obligatorio')
+
+  const { data: { session } = {} } = await supabase.auth.getSession()
+  const bearer = session?.access_token || SUPABASE_ANON_KEY
+
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS)
 
@@ -18,9 +26,9 @@ async function callProxy(payload) {
       headers: {
         'Content-Type': 'application/json',
         'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Authorization': `Bearer ${bearer}`,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ action, organization_id: organizationId, ...(credentials ? { credentials } : {}), ...payload }),
       signal: controller.signal,
     })
   } catch (fetchErr) {
@@ -43,70 +51,26 @@ async function callProxy(payload) {
   return data
 }
 
+// `credentials` ({ client_id, client_secret, customer_id }) es opcional y solo lo
+// acepta el servidor para owner/admin: sirve para probar claves antes de guardarlas.
 
-export const getAccessToken = async (clientId, clientSecret) => {
-  const cacheKey = `${clientId}:${clientSecret}`
-  const cached = tokenCache.get(cacheKey)
-  if (cached && Date.now() < cached.expiresAt) {
-    console.log('[Uber Token] using cached token')
-    return cached
-  }
-  const data = await callProxy({
-    action: 'get_access_token',
-    client_id: clientId,
-    client_secret: clientSecret,
-  })
-  data.expiresAt = Date.now() + (data.expires_in || 3600) * 1000 - 60000
-  tokenCache.set(cacheKey, data)
-  console.log('[Uber Token] cached until:', new Date(data.expiresAt))
-  return data
-}
+export const testUberCredentials = (organizationId, credentials) =>
+  callProxy(organizationId, 'test_credentials', {}, credentials)
 
-export const createQuote = async (customerId, token, quoteData) => {
-  return callProxy({
-    action: 'create_quote',
-    customer_id: customerId,
-    token,
-    ...quoteData,
-  })
-}
+export const createQuote = (organizationId, quoteData, credentials) =>
+  callProxy(organizationId, 'create_quote', quoteData, credentials)
 
-export const createDelivery = async (customerId, token, deliveryData) => {
-  return callProxy({
-    action: 'create_delivery',
-    customer_id: customerId,
-    token,
-    ...deliveryData,
-  })
-}
+export const createDelivery = (organizationId, deliveryData, credentials) =>
+  callProxy(organizationId, 'create_delivery', deliveryData, credentials)
 
-export const getDelivery = async (customerId, token, deliveryId) => {
-  return callProxy({
-    action: 'get_delivery',
-    customer_id: customerId,
-    token,
-    delivery_id: deliveryId,
-  })
-}
+export const getDelivery = (organizationId, deliveryId, credentials) =>
+  callProxy(organizationId, 'get_delivery', { delivery_id: deliveryId }, credentials)
 
-export const cancelDelivery = async (customerId, token, deliveryId) => {
-  return callProxy({
-    action: 'cancel_delivery',
-    customer_id: customerId,
-    token,
-    delivery_id: deliveryId,
-  })
-}
+export const cancelDelivery = (organizationId, deliveryId, credentials) =>
+  callProxy(organizationId, 'cancel_delivery', { delivery_id: deliveryId }, credentials)
 
-export const updateDeliveryStatus = async (customerId, token, deliveryId, status) => {
-  return callProxy({
-    action: 'update_delivery',
-    customer_id: customerId,
-    token,
-    delivery_id: deliveryId,
-    status,
-  })
-}
+export const updateDeliveryStatus = (organizationId, deliveryId, status, credentials) =>
+  callProxy(organizationId, 'update_delivery', { delivery_id: deliveryId, status }, credentials)
 
 // ── Retry wrapper with exponential backoff ──
 // `deliveryDataOrFn` puede ser:
@@ -117,8 +81,7 @@ export const updateDeliveryStatus = async (customerId, token, deliveryId, status
 // Solo interrumpe los reintentos ante errores definitivos (unauthorized, validation).
 // Errores de "invalid"/"not found" pueden ser quote expirado → se reintenta con datos frescos.
 export const createDeliveryWithRetry = async (
-  customerId,
-  token,
+  organizationId,
   deliveryDataOrFn,
   maxRetries = 3
 ) => {
@@ -133,7 +96,7 @@ export const createDeliveryWithRetry = async (
         ? await deliveryDataOrFn(attempt)
         : deliveryDataOrFn
 
-      const result = await createDelivery(customerId, token, deliveryData)
+      const result = await createDelivery(organizationId, deliveryData)
       console.log(`[Uber Delivery] ✅ Success on attempt ${attempt}`)
       return result
     } catch (error) {
@@ -179,8 +142,8 @@ export const TEST_LOCATIONS = {
 const PICKUP = TEST_LOCATIONS.pickup
 const DROPOFF = TEST_LOCATIONS.dropoff
 
-export const checkMode = async (customerId, token) => {
-  const quoteRes = await createQuote(customerId, token, {
+export const checkMode = async (organizationId, credentials) => {
+  const quoteRes = await createQuote(organizationId, {
     pickup_address: JSON.stringify(PICKUP.address),
     dropoff_address: JSON.stringify(DROPOFF.address),
     pickup_latitude: PICKUP.lat,
@@ -189,9 +152,9 @@ export const checkMode = async (customerId, token) => {
     dropoff_longitude: DROPOFF.lng,
     pickup_phone_number: PICKUP.phone,
     dropoff_phone_number: DROPOFF.phone,
-  })
+  }, credentials)
 
-  const deliveryRes = await createDelivery(customerId, token, {
+  const deliveryRes = await createDelivery(organizationId, {
     quote_id: quoteRes.id,
     pickup_address: JSON.stringify(PICKUP.address),
     pickup_name: PICKUP.name,
@@ -204,7 +167,7 @@ export const checkMode = async (customerId, token) => {
     dropoff_latitude: DROPOFF.lat,
     dropoff_longitude: DROPOFF.lng,
     manifest_items: [{ name: 'Caja de prueba', quantity: 1, weight: 10 }],
-  })
+  }, credentials)
 
   const liveMode = deliveryRes.live_mode
   const status = deliveryRes.status
@@ -212,7 +175,7 @@ export const checkMode = async (customerId, token) => {
 
   let cancelled = false
   try {
-    await cancelDelivery(customerId, token, deliveryId)
+    await cancelDelivery(organizationId, deliveryId, credentials)
     cancelled = true
   } catch {
   }

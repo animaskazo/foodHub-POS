@@ -2,7 +2,7 @@ import { MapPin, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { getAccessToken, createQuote, createDeliveryWithRetry } from '../services/uberDirectService';
+import { createQuote, createDeliveryWithRetry } from '../services/uberDirectService';
 import { geocodeAddress } from '../utils/geo';
 
 
@@ -82,7 +82,6 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
       const ORG_RETRY_SELECT = `
           id, name, address, phone,
           store_lat, store_lng,
-          uber_client_id, uber_client_secret, uber_customer_id,
           delivery_mode, delivery_modes, uber_enabled
         `;
       let orgData = null;
@@ -122,10 +121,6 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
         .eq('order_id', order.id);
 
       if (itemsError) throw itemsError;
-
-      // Obtener token
-      const tokenRes = await getAccessToken(orgData.uber_client_id, orgData.uber_client_secret);
-      const token = tokenRes.access_token;
 
       const normalizePhone = (phone) => {
         if (!phone) return '';
@@ -215,11 +210,10 @@ export const RetryUberDeliveryAdmin = ({ organizationId, branchId }) => {
 
       // Cada reintento obtiene un quote nuevo (el anterior puede expirar en segundos)
       const delivery = await createDeliveryWithRetry(
-        orgData.uber_customer_id,
-        token,
+        organizationId,
         async (attempt) => {
           console.log(`[Retry] Obteniendo quote fresco (intento ${attempt})...`);
-          const freshQuote = await createQuote(orgData.uber_customer_id, token, quoteParams);
+          const freshQuote = await createQuote(organizationId, quoteParams);
           return { quote_id: freshQuote.id, ...baseDeliveryData };
         },
         3,

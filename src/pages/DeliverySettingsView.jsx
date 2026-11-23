@@ -4,9 +4,11 @@ import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import {
   getFirstOrganizationId,
   getOrganizationDetails,
-  updateOrganizationDetails
+  updateOrganizationDetails,
+  getOrgSecretsStatus,
+  setOrgSecrets
 } from '../services/organizationService';
-import { getAccessToken, createQuote, createDelivery, getDelivery, cancelDelivery, checkMode, TEST_LOCATIONS } from '../services/uberDirectService';
+import { createQuote, createDelivery, getDelivery, cancelDelivery, checkMode, TEST_LOCATIONS } from '../services/uberDirectService';
 import { Save, Truck, Globe, CheckCircle2, XCircle, ExternalLink, Trash2, Plus, MousePointer2 } from 'lucide-react';
 import { FullScreenSpinner, ButtonSpinner } from '@/components/ui/Spinner';
 import PageHeader from '../components/ui/PageHeader';
@@ -60,6 +62,8 @@ const DeliverySettingsView = () => {
 
   const [testResult, setTestResult] = useState(null);
   const [testing, setTesting] = useState(false);
+  // Estado de credenciales guardadas (sin valores). null = sin permiso o sin datos.
+  const [uberStatus, setUberStatus] = useState(null);
 
   const [modeInfo, setModeInfo] = useState(null);
   const [modeChecking, setModeChecking] = useState(false);
@@ -123,10 +127,12 @@ const DeliverySettingsView = () => {
           delivery_fee: orgData.delivery_fee || 0,
           delivery_min_order: orgData.delivery_min_order || 0,
           raw_settings: rawSettings,
-          uber_client_id: orgData.uber_client_id || '',
-          uber_client_secret: orgData.uber_client_secret || '',
-          uber_customer_id: orgData.uber_customer_id || '',
+          // Campos de credenciales = valores NUEVOS a guardar; los guardados no se exponen.
+          uber_client_id: '',
+          uber_client_secret: '',
+          uber_customer_id: '',
         });
+        getOrgSecretsStatus(id).then(setUberStatus).catch(() => setUberStatus(null));
         // Pestaña inicial: Uber solo si es el único modo activo; si no, propio
         setActiveTab(initialModes.length === 1 && initialModes[0] === 'uber_direct' && uberAllowed ? 'uber_direct' : 'own');
 
@@ -181,9 +187,6 @@ const DeliverySettingsView = () => {
         delivery_fee: deliveryData.delivery_fee,
         delivery_min_order: deliveryData.delivery_min_order,
         settings: updatedSettings,
-        uber_client_id: deliveryData.uber_client_id,
-        uber_client_secret: deliveryData.uber_client_secret,
-        uber_customer_id: deliveryData.uber_customer_id,
       };
 
       try {
@@ -204,6 +207,16 @@ const DeliverySettingsView = () => {
         }
       }
 
+      if (typedUberCreds) {
+        await setOrgSecrets(orgId, {
+          uberClientId: deliveryData.uber_client_id.trim() || null,
+          uberClientSecret: deliveryData.uber_client_secret.trim() || null,
+          uberCustomerId: deliveryData.uber_customer_id.trim() || null,
+        });
+        setDeliveryData(prev => ({ ...prev, uber_client_id: '', uber_client_secret: '', uber_customer_id: '' }));
+        setUberStatus(await getOrgSecretsStatus(orgId).catch(() => null));
+      }
+
       toast.success('Configuración de delivery guardada exitosamente.');
       setHasChanges(false);
       setTestResult(null);
@@ -215,16 +228,25 @@ const DeliverySettingsView = () => {
     }
   };
 
+  // Credenciales escritas en el formulario (aún sin guardar). Los campos vacíos
+  // usan el valor guardado en el servidor.
+  const typedUberCreds = deliveryData.uber_client_id.trim() || deliveryData.uber_client_secret.trim() || deliveryData.uber_customer_id.trim()
+    ? {
+        client_id: deliveryData.uber_client_id.trim(),
+        client_secret: deliveryData.uber_client_secret.trim(),
+        customer_id: deliveryData.uber_customer_id.trim(),
+      }
+    : undefined;
+  const canTestUber = !!uberStatus?.has_uber_credentials || (
+    !!deliveryData.uber_client_id.trim() && !!deliveryData.uber_client_secret.trim() && !!deliveryData.uber_customer_id.trim()
+  );
+
   const handleTestConnection = async () => {
     setTesting(true);
     setTestResult(null);
     setModeInfo(null);
     try {
-      const tokenRes = await getAccessToken(deliveryData.uber_client_id, deliveryData.uber_client_secret);
-      const token = tokenRes.access_token;
-      const cid = deliveryData.uber_customer_id;
-
-      const quoteRes = await createQuote(cid, token, {
+      const quoteRes = await createQuote(orgId, {
         pickup_address: JSON.stringify(TEST_LOCATIONS.pickup.address),
         dropoff_address: JSON.stringify(TEST_LOCATIONS.dropoff.address),
         pickup_latitude: TEST_LOCATIONS.pickup.lat,
@@ -233,9 +255,9 @@ const DeliverySettingsView = () => {
         dropoff_longitude: TEST_LOCATIONS.dropoff.lng,
         pickup_phone_number: TEST_LOCATIONS.pickup.phone,
         dropoff_phone_number: TEST_LOCATIONS.dropoff.phone,
-      });
+      }, typedUberCreds);
 
-      setTestResult({ success: true, fee: quoteRes.fee, currency: quoteRes.currency, token, cid });
+      setTestResult({ success: true, fee: quoteRes.fee, currency: quoteRes.currency, credentials: typedUberCreds });
     } catch (err) {
       setTestResult({ success: false, error: err.message });
     } finally {
@@ -244,11 +266,11 @@ const DeliverySettingsView = () => {
   };
 
   const handleCheckMode = async () => {
-    if (!testResult?.token) return;
+    if (!testResult?.success) return;
     setModeChecking(true);
     setModeInfo(null);
     try {
-      const result = await checkMode(testResult.cid, testResult.token);
+      const result = await checkMode(orgId, testResult.credentials);
       setModeInfo(result);
     } catch (err) {
       setModeInfo({ error: err.message });
@@ -261,14 +283,10 @@ const DeliverySettingsView = () => {
     setCreatingDelivery(true);
     setDeliveryResult(null);
     try {
-      const tokenRes = await getAccessToken(deliveryData.uber_client_id, deliveryData.uber_client_secret);
-      const token = tokenRes.access_token;
-      const cid = deliveryData.uber_customer_id;
-
       const p = TEST_LOCATIONS.pickup;
       const d = TEST_LOCATIONS.dropoff;
 
-      const quoteRes = await createQuote(cid, token, {
+      const quoteRes = await createQuote(orgId, {
         pickup_address: JSON.stringify(p.address),
         dropoff_address: JSON.stringify(d.address),
         pickup_latitude: p.lat,
@@ -277,9 +295,9 @@ const DeliverySettingsView = () => {
         dropoff_longitude: d.lng,
         pickup_phone_number: p.phone,
         dropoff_phone_number: d.phone,
-      });
+      }, typedUberCreds);
 
-      const deliveryRes = await createDelivery(cid, token, {
+      const deliveryRes = await createDelivery(orgId, {
         quote_id: quoteRes.id,
         pickup_address: JSON.stringify(p.address),
         pickup_name: p.name,
@@ -294,9 +312,9 @@ const DeliverySettingsView = () => {
         manifest_items: [
           { name: 'Caja de prueba', quantity: 1, weight: 10 },
         ],
-      });
+      }, typedUberCreds);
 
-      setDeliveryResult({ delivery: deliveryRes, token, cid });
+      setDeliveryResult({ delivery: deliveryRes, credentials: typedUberCreds });
     } catch (err) {
       setDeliveryResult({ error: err.message });
     } finally {
@@ -308,7 +326,7 @@ const DeliverySettingsView = () => {
     if (!deliveryResult?.delivery?.id) return;
     setCheckingStatus(true);
     try {
-      const res = await getDelivery(deliveryResult.cid, deliveryResult.token, deliveryResult.delivery.id);
+      const res = await getDelivery(orgId, deliveryResult.delivery.id, deliveryResult.credentials);
       setDeliveryResult(prev => ({ ...prev, delivery: res }));
     } catch (err) {
       toast.error('Error al obtener estado: ' + err.message);
@@ -321,8 +339,8 @@ const DeliverySettingsView = () => {
     if (!deliveryResult?.delivery?.id) return;
     setCancelling(true);
     try {
-      await cancelDelivery(deliveryResult.cid, deliveryResult.token, deliveryResult.delivery.id);
-      const res = await getDelivery(deliveryResult.cid, deliveryResult.token, deliveryResult.delivery.id);
+      await cancelDelivery(orgId, deliveryResult.delivery.id, deliveryResult.credentials);
+      const res = await getDelivery(orgId, deliveryResult.delivery.id, deliveryResult.credentials);
       setDeliveryResult(prev => ({ ...prev, delivery: res }));
     } catch (err) {
       toast.error('Error al cancelar: ' + err.message);
@@ -870,7 +888,7 @@ const DeliverySettingsView = () => {
                           setHasChanges(true);
                         }}
                         className="flex-1 h-12 bg-transparent outline-none text-[15px] font-mono"
-                        placeholder="Tu Client ID de Uber"
+                        placeholder={uberStatus?.uber_client_id_hint ? `Guardado (${uberStatus.uber_client_id_hint}) · escribe para reemplazar` : 'Tu Client ID de Uber'}
                       />
                     </div>
                   </div>
@@ -886,7 +904,8 @@ const DeliverySettingsView = () => {
                           setHasChanges(true);
                         }}
                         className="flex-1 h-12 bg-transparent outline-none text-[15px] font-mono"
-                        placeholder="Tu Client Secret de Uber"
+                        placeholder={uberStatus?.has_uber_credentials ? 'Guardado · escribe para reemplazar' : 'Tu Client Secret de Uber'}
+                        autoComplete="new-password"
                       />
                     </div>
                   </div>
@@ -902,7 +921,7 @@ const DeliverySettingsView = () => {
                           setHasChanges(true);
                         }}
                         className="flex-1 h-12 bg-transparent outline-none text-[15px] font-mono"
-                        placeholder="Tu Customer ID de Uber"
+                        placeholder={uberStatus?.uber_customer_id_hint ? `Guardado (${uberStatus.uber_customer_id_hint}) · escribe para reemplazar` : 'Tu Customer ID de Uber'}
                       />
                     </div>
                   </div>
@@ -911,7 +930,7 @@ const DeliverySettingsView = () => {
                     <Button
                       size="sm"
                       onClick={handleTestConnection}
-                      disabled={testing || !deliveryData.uber_client_id || !deliveryData.uber_client_secret || !deliveryData.uber_customer_id}
+                      disabled={testing || !canTestUber}
                     >
                       {testing ? <ButtonSpinner size="sm" /> : <Globe className="h-4 w-4" />}
                       {testing ? 'Probando...' : 'Probar Conexión'}

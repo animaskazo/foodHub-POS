@@ -59,3 +59,25 @@ export const getStaff = async (organizationId) => {
   if (error) throw error;
   return data;
 };
+
+// ── Credenciales de terceros (Klap, Uber Direct) ──
+// Viven en `organization_secrets`, que el navegador no puede leer. Solo se consulta
+// si están configuradas y se guardan valores nuevos (owner/admin o super-admin).
+
+export const getOrgSecretsStatus = async (organizationId) => {
+  const { data, error } = await supabase.rpc('get_org_secrets_status', { p_organization_id: organizationId });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] || null : data;
+};
+
+// Cada valor: undefined/null → no cambia · '' → lo borra · texto → lo reemplaza.
+export const setOrgSecrets = async (organizationId, { klapApiKey, uberClientId, uberClientSecret, uberCustomerId } = {}) => {
+  const { error } = await supabase.rpc('set_org_secrets', {
+    p_organization_id: organizationId,
+    p_klap_api_key: klapApiKey ?? null,
+    p_uber_client_id: uberClientId ?? null,
+    p_uber_client_secret: uberClientSecret ?? null,
+    p_uber_customer_id: uberCustomerId ?? null,
+  });
+  if (error) throw error;
+};

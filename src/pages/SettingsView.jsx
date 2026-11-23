@@ -38,6 +38,8 @@ import {
   getFirstOrganizationId, 
   getOrganizationDetails, 
   updateOrganizationDetails,
+  getOrgSecretsStatus,
+  setOrgSecrets,
   getStaff 
 } from '../services/organizationService';
 import { uploadImage } from '../services/storageService';
@@ -228,7 +230,9 @@ const SettingsView = () => {
     }
   };
 
+  // `klapApiKey` es solo el valor NUEVO a guardar: la key guardada nunca vuelve al navegador.
   const [klapApiKey, setKlapApiKey] = useState('');
+  const [hasStoredKlapKey, setHasStoredKlapKey] = useState(false);
   const [klapApiKeySaving, setKlapApiKeySaving] = useState(false);
   const [klapApiKeyValidating, setKlapApiKeyValidating] = useState(false);
   const [klapApiKeyStatus, setKlapApiKeyStatus] = useState(null); // null | 'valid' | 'invalid'
@@ -329,13 +333,25 @@ const SettingsView = () => {
     }
   };
 
-  const handleSaveKlapKey = async () => {
+  const refreshKlapKeyStatus = async (id) => {
+    try {
+      const status = await getOrgSecretsStatus(id);
+      setHasStoredKlapKey(!!status?.has_klap_api_key);
+    } catch {
+      setHasStoredKlapKey(false);
+    }
+  };
+
+  // value: texto → reemplaza la key guardada · '' → la borra (vuelve a la key global).
+  const handleSaveKlapKey = async (value = klapApiKey.trim()) => {
     if (!orgId) return;
     setKlapApiKeySaving(true);
     try {
-      await updateOrganizationDetails(orgId, { klap_api_key: klapApiKey.trim() || null });
+      await setOrgSecrets(orgId, { klapApiKey: value });
+      setKlapApiKey('');
       setKlapApiKeyStatus(null);
-      alert('API key guardada exitosamente');
+      await refreshKlapKeyStatus(orgId);
+      alert(value ? 'API key guardada exitosamente' : 'Se usará la API key global de la plataforma');
     } catch (error) {
       console.error('Error saving Klap API key:', error);
       alert('Error al guardar la API key');
@@ -395,7 +411,8 @@ const SettingsView = () => {
         setClosedMessage(orgData.closed_message || '');
         setShowClosedBanner(orgData.settings?.show_closed_banner !== false);
         setPrepTime(orgData.prep_time != null ? orgData.prep_time : 0);
-        setKlapApiKey(orgData.klap_api_key || '');
+        setKlapApiKey('');
+        refreshKlapKeyStatus(id);
         setTicketExtraMessage(orgData.ticket_extra_message || '');
         setStaff(staffData);
       }
@@ -1466,7 +1483,8 @@ const SettingsView = () => {
                             type={showKlapKey ? 'text' : 'password'}
                             value={klapApiKey}
                             onChange={(e) => { setKlapApiKey(e.target.value); setKlapApiKeyStatus(null); }}
-                            placeholder="Pega tu API key aquí..."
+                            placeholder={hasStoredKlapKey ? 'Configurada · pega una nueva para reemplazarla' : 'Pega tu API key aquí...'}
+                            autoComplete="new-password"
                             className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-black transition-all"
                           />
                           <Button
@@ -1497,6 +1515,11 @@ const SettingsView = () => {
                           Validar
                         </Button>
                       </div>
+                      {hasStoredKlapKey && !klapApiKey && (
+                        <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> Usando tu API key propia
+                        </p>
+                      )}
                       {klapApiKeyStatus === 'valid' && (
                         <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
                           <CheckCircle2 className="h-3.5 w-3.5" /> API key válida y funcional
@@ -1513,17 +1536,20 @@ const SettingsView = () => {
                     <div className="flex items-center gap-3">
                       <Button
                         size="sm"
-                        onClick={handleSaveKlapKey}
-                        disabled={klapApiKeySaving}
+                        onClick={() => handleSaveKlapKey()}
+                        disabled={klapApiKeySaving || !klapApiKey.trim()}
                       >
                         {klapApiKeySaving ? <ButtonSpinner size="sm" /> : <Save className="h-4 w-4" />}
                         Guardar API Key
                       </Button>
-                      {klapApiKey && (
+                      {hasStoredKlapKey && (
                         <Button
                           variant="link"
                           size="sm"
-                          onClick={() => { setKlapApiKey(''); setKlapApiKeyStatus(null); }}
+                          disabled={klapApiKeySaving}
+                          onClick={() => {
+                            if (window.confirm('¿Eliminar tu API key de Klap y usar la key global de la plataforma?')) handleSaveKlapKey('');
+                          }}
                         >
                           Usar key global
                         </Button>

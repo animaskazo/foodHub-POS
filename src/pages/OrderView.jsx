@@ -9,7 +9,7 @@ import OrderError from '../components/public/OrderError';
 import ProductDetailView from '../components/public/ProductDetailView';
 import { ArrowLeft, Info } from 'lucide-react';
 import { getOrganizationByName, getPublicCatalog, createPublicOrder } from '../services/publicOrderService';
-import { getAccessToken, createQuote, createDeliveryWithRetry } from '../services/uberDirectService';
+import { createQuote, createDeliveryWithRetry } from '../services/uberDirectService';
 import { geocodeAddress } from '../utils/geo';
 import { sendEmail } from '../services/emailService';
 import { supabase } from '../lib/supabase';
@@ -423,9 +423,6 @@ const OrderView = () => {
         };
       })() : null;
 
-      const tokenRes = await getAccessToken(orgData.uber_client_id, orgData.uber_client_secret)
-      const token = tokenRes.access_token
-
       let dropoffCoords = customerForm.deliveryCoords
       if (!dropoffCoords || !dropoffCoords.address) {
         const fresh = await geocodeAddress(customerForm.deliveryAddress)
@@ -526,13 +523,12 @@ const OrderView = () => {
       let cachedQuoteId = scheduledAt ? null : (customerForm.quoteId || null)
 
       const delivery = await createDeliveryWithRetry(
-        orgData.uber_customer_id,
-        token,
+        orgData.id,
         async (attempt) => {
           // En reintentos (o si no hay quoteId), obtener quote fresco
           if (attempt > 1 || !cachedQuoteId) {
             console.log(`[Uber Delivery] Obteniendo quote fresco (intento ${attempt})...`)
-            const freshQuote = await createQuote(orgData.uber_customer_id, token, quoteParams)
+            const freshQuote = await createQuote(orgData.id, quoteParams)
             cachedQuoteId = freshQuote.id
           }
           return { quote_id: cachedQuoteId, ...baseDeliveryData }

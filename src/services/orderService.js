@@ -491,7 +491,7 @@ export const updateOrderStatus = async (orderId, status) => {
         if (branch?.organization_id) {
           const { data: org } = await supabase
             .from('organizations')
-            .select('name, logo_url, address, delivery_mode, uber_client_id, uber_client_secret, uber_customer_id, email')
+            .select('name, logo_url, address, delivery_mode, email')
             .eq('id', branch.organization_id)
             .single();
           orgData = org;
