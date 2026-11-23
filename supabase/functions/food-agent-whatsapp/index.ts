@@ -649,6 +649,14 @@ async function processMessage(
           session.messages = [];
           collect.step = "post_checkout_email";
           collect.data = {};
+        } else if (confirmData.store_closed) {
+          // La tienda cerró (manualmente o por horario) mientras el cliente armaba el pedido.
+          replyText = `🔒 ${confirmData.error ?? "En este momento el local está cerrado."}`;
+          session.cart = [];
+          session.messages = [];
+          collect.active = false;
+          collect.step = null;
+          collect.data = {};
         } else {
           replyText =
             "⚠ " +

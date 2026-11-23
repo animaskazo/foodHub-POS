@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { getStoreAvailability } from "../_shared/storeAvailability.ts";
 
 const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
 declare const Deno: any;
@@ -21,7 +22,7 @@ function text(value: unknown) { return typeof value === "string" ? value : ""; }
 function toNumber(value: unknown) { const number = Number(value); return Number.isFinite(number) ? number : 0; }
 
 async function getContext(slug: string) {
-  const organizations = await db(`organizations?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=id,name,slug,currency,primary_color,default_tax_rate,delivery_enabled,uber_enabled,store_lat,store_lng,delivery_radius_km,delivery_fee,delivery_min_order,address,logo_url,business_hours,phone,email`);
+  const organizations = await db(`organizations?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=id,name,slug,currency,primary_color,default_tax_rate,delivery_enabled,uber_enabled,store_lat,store_lng,delivery_radius_km,delivery_fee,delivery_min_order,address,logo_url,business_hours,pickup_hours,force_closed,closed_message,instant_enabled,timezone,phone,email`);
   const organization = organizations[0];
   if (!organization) throw new Error("No existe un negocio activo para ese enlace.");
   const branches = await db(`branches?organization_id=eq.${organization.id}&is_active=eq.true&select=id,name,accepts_online`);
@@ -79,23 +80,10 @@ async function askAgent(messages: unknown[], cart: unknown[], context: Awaited<R
       variants: context.variants.filter((group: any) => group.product_id === product.id).map((group: any) => ({ id: group.id, name: group.name, required: group.is_required, options: group.variant_options?.filter((option: any) => option.is_active).map((option: any) => ({ id: option.id, name: option.name, price_modifier: toNumber(option.price_modifier) })) })) 
     };
   });
-  // Formatear el horario comercial para pasarlo a Claude
-  let hoursStr = "No especificado";
-  if (context.organization.business_hours) {
-    try {
-      const bh = typeof context.organization.business_hours === "string" 
-        ? JSON.parse(context.organization.business_hours) 
-        : context.organization.business_hours;
-      hoursStr = Object.entries(bh)
-        .map(([day, val]: [string, any]) => {
-          const dayName = { mon: "Lunes", tue: "Martes", wed: "Miércoles", thu: "Jueves", fri: "Viernes", sat: "Sábado", sun: "Domingo" }[day] || day;
-          return val.closed ? `${dayName}: Cerrado` : `${dayName}: ${val.open} a ${val.close}`;
-        })
-        .join(", ");
-    } catch (e) {
-      console.error("Error parsing business hours:", e);
-    }
-  }
+  // Estado de la tienda calculado en el servidor (cierre manual > pedidos inmediatos > horario).
+  // El modelo NO decide si está abierta: recibe el resultado.
+  const availability = getStoreAvailability(context.organization);
+  const hoursStr = availability.hoursSummary;
 
   // Buscar historial de pedidos si el teléfono está presente
   let ordersStr = "No se encontraron pedidos recientes.";
@@ -119,7 +107,7 @@ async function askAgent(messages: unknown[], cart: unknown[], context: Awaited<R
   // Obtener fecha y hora actual en la zona horaria de Chile
   const now = new Date();
   const currentDate = new Intl.DateTimeFormat("es-CL", {
-    timeZone: "America/Santiago",
+    timeZone: context.organization.timezone || "America/Santiago",
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -134,10 +122,10 @@ async function askAgent(messages: unknown[], cart: unknown[], context: Awaited<R
   
   const instruction = `Eres el asistente de pedidos por WhatsApp de ${context.organization.name}. Responde siempre en español, de forma cercana y breve.
   
-REGLAS ESTRICTAS DE HORARIO:
-- Antes de ofrecer productos, DEBES revisar si el local está ABIERTO comparando la 'Fecha y Hora Actual' con el 'Horario de Atención'.
-- Si el local está CERRADO, pide disculpas cordialmente e informa que no pueden tomar pedidos en este momento, indicando el horario en que volverán a abrir. NO ofrezcas armar pedidos si están cerrados.
-
+ESTADO DEL LOCAL (calculado por el sistema, NO lo recalcules ni lo contradigas): ${availability.open ? "ABIERTO — puedes tomar pedidos." : "CERRADO — NO puedes tomar pedidos."}
+${availability.open ? "" : `- Mensaje para el cliente: "${availability.message}"
+- Responde con ese mensaje (puedes adaptarlo con cordialidad). Puedes contestar dudas sobre la carta, el horario o el estado de pedidos anteriores, pero NO armes carrito, NO aceptes productos y NO prometas tomar el pedido. Devuelve siempre el carrito vacío.
+`}
 REGLAS DE DELIVERY Y RETIRO:
 - En tu primer o segundo mensaje (cuando el cliente te salude o empiece a pedir), DEBES PREGUNTAR obligatoriamente si el pedido es para "Retiro en el local" o para "Delivery/Envío a domicilio".
 - Configuración de Envío de este local: UberDirect = ${usesUberDirect}, Delivery Propio = ${hasOwnDelivery}.
@@ -198,7 +186,11 @@ VENTA_WEB: ${Boolean(context.branch.accepts_online)}`;
   if (!toolUse?.input) throw new Error("El asistente devolvió una respuesta no válida.");
   return toolUse.input;
 }
+class StoreClosedError extends Error {}
+
 async function confirmOrder(cart: unknown, customer: any, delivery: any, context: Awaited<ReturnType<typeof getContext>>) {
+  const availability = getStoreAvailability(context.organization);
+  if (!availability.open) throw new StoreClosedError(availability.message);
   if (!context.branch.accepts_online) throw new Error("Esta sucursal no está habilitada para recibir pedidos web.");
   const items = validateCart(cart, context);
   const customerName = text(customer?.name).trim(); const phone = text(customer?.phone).trim();
@@ -319,13 +311,21 @@ Deno.serve(async (request) => {
   try {
     const body = await request.json(); const slug = text(body.organization_slug); if (!slug || !/^[a-z0-9-]{2,80}$/.test(slug)) throw new Error("El enlace del negocio no es válido.");
     const context = await getContext(slug);
-    if (body.action === "welcome") return json({ organization: { name: context.organization.name, currency: context.organization.currency, online_enabled: Boolean(context.branch.accepts_online) }, message: `¡Hola! Soy el asistente de ${context.organization.name}. ¿Qué te gustaría pedir hoy?` });
+    const availability = getStoreAvailability(context.organization);
+    if (body.action === "welcome") return json({
+      organization: { name: context.organization.name, currency: context.organization.currency, online_enabled: Boolean(context.branch.accepts_online), is_open: availability.open },
+      message: availability.open
+        ? `¡Hola! Soy el asistente de ${context.organization.name}. ¿Qué te gustaría pedir hoy?`
+        : `Soy el asistente de ${context.organization.name.trim()}. ${availability.message}`,
+    });
     if (body.action === "chat") { 
       const reply = await askAgent(Array.isArray(body.messages) ? body.messages.slice(-10) : [], body.cart, context, text(body.phone)); 
-      const requestedCart = Array.isArray(reply.cart) ? reply.cart : []; 
+      // Con la tienda cerrada el carrito se vacía en el servidor, aunque el modelo devuelva productos.
+      const requestedCart = availability.open && Array.isArray(reply.cart) ? reply.cart : []; 
       const validCart = requestedCart.length ? validateCart(requestedCart, context) : []; 
       return json({ 
         message: text(reply.message), 
+        store_open: availability.open, 
         delivery_type: reply.delivery_type, 
         delivery_address: reply.delivery_address, 
         cart: validCart.map((item) => ({ product_id: item.product.id, name: item.product.name, quantity: item.quantity, notes: item.notes, variant_option_ids: item.options.map((option: any) => option.option.id), unit_price: item.grossUnitPrice })) 
@@ -333,5 +333,8 @@ Deno.serve(async (request) => {
     }
     if (body.action === "confirm") return json(await confirmOrder(body.cart, body.customer, body.delivery, context));
     return json({ error: "Acción no reconocida." }, 400);
-  } catch (error) { return json({ error: error instanceof Error ? error.message : "Ocurrió un error inesperado." }, 400); }
+  } catch (error) {
+    if (error instanceof StoreClosedError) return json({ error: error.message, store_closed: true }, 409);
+    return json({ error: error instanceof Error ? error.message : "Ocurrió un error inesperado." }, 400);
+  }
 });
