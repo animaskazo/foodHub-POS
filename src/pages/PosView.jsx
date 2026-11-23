@@ -823,6 +823,11 @@ const PosView = () => {
               Cerrar sesión
             </Button>
           </div>
+          {isAdmin && (
+            <Button variant="link" size="sm" className="mt-4 text-gray-500" onClick={() => navigate('/')}>
+              Ir al Dashboard
+            </Button>
+          )}
         </div>
         <ShiftModal
           isOpen={isShiftModalOpen}
