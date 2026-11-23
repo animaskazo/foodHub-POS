@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./package-lock.json)",
+      "Read(./dist/**)",
+      "Read(./klap_api.yml)",
+      "Read(./python-server/FoodHubPrint.app/**)",
+      "Read(./node_modules/**)"
+    ]
+  }
+}
