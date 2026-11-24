@@ -25,9 +25,10 @@ Deno.serve(async (req) => {
 
     const { record, old_record } = payload;
 
-    // Solo enviar si el estado cambió a 'ready'
-    if (record.status !== "ready" || old_record.status === "ready") {
-      return new Response(JSON.stringify({ ignored: true, reason: "Status no es ready o ya era ready" }), {
+    // Notificar cuando el local inicia la preparación y cuando el pedido queda listo.
+    const notifyableStatuses = ["confirmed", "ready"];
+    if (!notifyableStatuses.includes(record?.status) || old_record?.status === record.status) {
+      return new Response(JSON.stringify({ ignored: true, reason: "El estado no requiere notificación o no cambió" }), {
         headers: { "Content-Type": "application/json", ...CORS },
       });
     }
@@ -56,20 +57,44 @@ Deno.serve(async (req) => {
       });
     }
 
-    let customerName = record.customer_name ? record.customer_name.split(" ")[0] : "";
+    const customerName = record.customer_name?.trim()?.split(/\s+/)[0] ?? "";
     const greeting = customerName ? `¡Hola, ${customerName}! 👋` : "¡Hola! 👋";
-    
-    let instructions = "Ya puedes pasar a retirarlo por el local.";
-    if (record.order_type === "online") {
-      instructions = "En breve te contactarán para la entrega.";
-    } else if (record.order_type === "table") {
-      instructions = "En breve te lo llevaremos a la mesa.";
+    const isReady = record.status === "ready";
+    const isDelivery = record.delivery_type === "delivery";
+
+    let message = isReady
+      ? `${greeting}\n\nTu pedido *${record.order_number}* en *${org.name}* ya está listo. 🎉\n\n${isDelivery ? "En breve saldrá a despacho." : "Ya puedes pasar a retirarlo por el local."}`
+      : `${greeting}\n\nEl local confirmó tu pedido *${record.order_number}* y ya está en preparación. 🍳`;
+
+    if (isReady && record.uber_tracking_url) {
+      message += `\n\n🛵 *Sigue tu delivery en vivo:*\n${record.uber_tracking_url}`;
     }
 
-    let message = `${greeting}\n\nTe avisamos que tu pedido *${record.order_number}* en *${org.name}* ya está listo. 🎉\n\n${instructions}`;
-
-    if (record.uber_tracking_url) {
-      message += `\n\n🛵 *Sigue tu delivery en vivo:*\n${record.uber_tracking_url}`;
+    // Registrar el aviso automático antes de enviarlo para que el eco de Kapso
+    // no se interprete como una intervención humana y pause al agente.
+    const sessionKey = `${record.customer_phone}_${org.slug || "pizza-nostra"}`;
+    try {
+      const { data: sessionRow } = await supabase
+        .from("whatsapp_sessions")
+        .select("session_data")
+        .eq("phone", sessionKey)
+        .maybeSingle();
+      const session = sessionRow?.session_data ?? {
+        messages: [],
+        cart: [],
+        collect: { active: false, step: null, data: {} },
+        org_slug: org.slug || "pizza-nostra",
+      };
+      session.last_automated_message = message;
+      session.automated_message_sent_at = new Date().toISOString();
+      await supabase
+        .from("whatsapp_sessions")
+        .upsert(
+          { phone: sessionKey, session_data: session, updated_at: new Date().toISOString() },
+          { onConflict: "phone" }
+        );
+    } catch (err) {
+      console.error("No se pudo registrar el mensaje automático:", err);
     }
 
     // Enviar a Kapso
@@ -98,29 +123,6 @@ Deno.serve(async (req) => {
         throw new Error(`Kapso error: ${res.status}`);
       }
       
-      // Al notificar que el pedido está listo, reanudamos al agente (quitamos la pausa)
-      const sessionKey = `${record.customer_phone}_${org.slug || 'pizza-nostra'}`;
-      try {
-        const { data: sessionData } = await supabase
-          .from("whatsapp_sessions")
-          .select("session_data")
-          .eq("phone", sessionKey)
-          .single();
-          
-        if (sessionData?.session_data) {
-          const s = sessionData.session_data;
-          if (s.human_paused_at) {
-            delete s.human_paused_at;
-            await supabase
-              .from("whatsapp_sessions")
-              .update({ session_data: s, updated_at: new Date().toISOString() })
-              .eq("phone", sessionKey);
-          }
-        }
-      } catch (err) {
-        console.error("No se pudo quitar la pausa de la sesión:", err);
-      }
-
     } else {
       console.warn("No KAPSO_API_KEY configurado. Simulando envío:", message);
     }
