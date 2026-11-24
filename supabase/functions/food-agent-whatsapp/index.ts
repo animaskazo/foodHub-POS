@@ -57,6 +57,8 @@ interface Session {
   delivery_address?: string;
   delivery_fee?: number;
   human_paused_at?: string;
+  last_automated_message?: string;
+  automated_message_sent_at?: string;
 }
 
 // ── Geo Utils ───────────────────────────────────────────────────────────────
@@ -230,52 +232,47 @@ async function callFoodAgent(body: Record<string, unknown>) {
   return res.json();
 }
 
-async function getJoke(): Promise<string | null> {
-  try {
-    const claudeUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/claude`;
-    const res = await fetch(claudeUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "generate_joke", payload: {} })
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success) return data.joke;
-    }
-  } catch (e) {
-    console.error("Error getting joke", e);
-  }
-  return null;
-}
-
 // ── Enviar mensaje por Kapso ─────────────────────────────────────────────────
-async function sendWhatsApp(
-  phoneNumberId: string,
-  to: string,
-  text: string
-): Promise<void> {
+type ReplyButton = { id: string; title: string };
+
+async function sendWhatsApp(phoneNumberId: string, to: string, text: string, buttons: ReplyButton[] = []): Promise<void> {
   const apiKey = Deno.env.get("KAPSO_API_KEY");
   if (!apiKey) {
     console.warn("KAPSO_API_KEY no configurada — respuesta no enviada");
     return;
   }
-  const res = await fetch(
-    `https://api.kapso.ai/meta/whatsapp/v24.0/${phoneNumberId}/messages`,
-    {
-      method: "POST",
-      headers: {
-        "X-API-Key": apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+
+  const interactiveButtons = buttons.slice(0, 3);
+  const payload = interactiveButtons.length
+    ? {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to,
+        type: "interactive",
+        interactive: {
+          type: "button",
+          body: { text },
+          action: {
+            buttons: interactiveButtons.map((button) => ({
+              type: "reply",
+              reply: { id: button.id, title: button.title },
+            })),
+          },
+        },
+      }
+    : {
         messaging_product: "whatsapp",
         recipient_type: "individual",
         to,
         type: "text",
         text: { body: text },
-      }),
-    }
-  );
+      };
+
+  const res = await fetch(`https://api.kapso.ai/meta/whatsapp/v24.0/${phoneNumberId}/messages`, {
+    method: "POST",
+    headers: { "X-API-Key": apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
   if (!res.ok) {
     const err = await res.text();
     console.error(`Kapso send error ${res.status}:`, err);
@@ -305,8 +302,51 @@ function buildConfirmSummary(session: Session): string {
   text += `*Total: ${total}*\n`;
   if (session.delivery_type === "delivery") text += `Tipo: *Delivery* (${session.delivery_address})\n`;
   else text += `Tipo: *Retiro en local*\n`;
-  text += `A nombre de: *${session.customer_name || "Cliente"}*\n\n¿Deseas confirmar el pedido? (Responde Sí o No)`;
+  text += `A nombre de: *${session.customer_name || "Cliente"}*\n\n¿Confirmas tu pedido?`;
   return text;
+}
+
+function confirmSummaryOrAskName(session: Session, prefix = ""): string {
+  if (!session.customer_name) {
+    session.collect.step = "name";
+    return prefix + "Antes de continuar, ¿a nombre de quién registramos el pedido?";
+  }
+  session.collect.step = "confirm_prompt";
+  return prefix + buildConfirmSummary(session);
+}
+
+function normalizeCommand(value: string): string {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .trim().toLowerCase().replace(/[.!?¿¡]/g, "").replace(/\s+/g, " ");
+}
+function isConfirmCommand(value: string): boolean {
+  const command = normalizeCommand(value);
+  return command === "order_confirm" || command === "confirm_order"
+    || /^(si|yes|ok|okay|perfecto|dale|confirmo|confirmar|listo|claro|bueno|yep|s)(?:$|[,\s])/i.test(command)
+    || /^(confirmo|confirmar) (el )?pedido\b/i.test(command);
+}
+function isCancelCommand(value: string): boolean {
+  const command = normalizeCommand(value);
+  return command === "order_cancel" || /^(no|no gracias|cancelar|cancelar pedido|espera)(?:$|[,\s])/i.test(command);
+}
+function isEditCommand(value: string): boolean {
+  const command = normalizeCommand(value);
+  return command === "order_edit" || /^(modificar|editar|cambiar|quiero modificar)(?:$|[,\s])/i.test(command);
+}
+function extractMessageText(message: any): string {
+  let value = "";
+  if (message?.type === "text") value = message.text?.body ?? "";
+  else if (message?.type === "button") value = message.button?.payload ?? message.button?.text ?? "";
+  else if (message?.type === "interactive") {
+    value = message.interactive?.button_reply?.id ?? message.interactive?.button_reply?.title
+      ?? message.interactive?.list_reply?.id ?? message.interactive?.list_reply?.title ?? "";
+  }
+  return typeof value === "string" ? value.trim() : "";
+}
+function extractContactName(evt: any, body: any, message: any): string {
+  const candidates = [evt?.contact?.profile?.name, evt?.contacts?.[0]?.profile?.name,
+    body?.contacts?.[0]?.profile?.name, message?.contacts?.[0]?.profile?.name];
+  return candidates.find((value) => typeof value === "string" && value.trim())?.trim() ?? "";
 }
 
 // ── Consultar Estado del Pedido Reciente ──────────────────────────────────────
@@ -501,7 +541,24 @@ async function processMessage(
   if (!session.customer_name && pushName) {
     session.customer_name = pushName;
   }
-  
+  if (!session.customer_name) {
+    const supabase = getSupabase();
+    const { data: orgData } = await supabase
+      .from("organizations")
+      .select("id")
+      .eq("slug", session.org_slug)
+      .maybeSingle();
+    if (orgData) {
+      const { data: customer } = await supabase
+        .from("customers")
+        .select("full_name")
+        .eq("organization_id", orgData.id)
+        .eq("phone", userPhone)
+        .maybeSingle();
+      if (customer?.full_name) session.customer_name = customer.full_name;
+    }
+  }
+
   const { collect } = session;
   
   // Reanudar automáticamente si han pasado más de 6 horas desde la pausa humana
@@ -519,20 +576,33 @@ async function processMessage(
 
   // ── Flujo de recolección conversacional ─────────────────────────────────
   if (collect.active) {
-    if (/^cancelar|no|espera|modificar$/i.test(userText.trim())) {
+    if (collect.step !== "confirm_prompt" && isCancelCommand(userText)) {
       collect.active = false;
       collect.step = null;
       collect.data = {};
       replyText = "Entendido, no confirmamos el pedido. ¿Deseas modificar algo en tu carrito?";
+    } else if (collect.step === "name") {
+      const customerName = userText.trim().replace(/\s+/g, " ");
+      if (!/^[\p{L}][\p{L}\p{M}'’. -]{1,79}$/u.test(customerName)) {
+        replyText = "Por favor escribe tu nombre para registrar el pedido.";
+      } else {
+        session.customer_name = customerName;
+        if (!session.delivery_type) {
+          collect.step = "delivery_method_prompt";
+          replyText = "¿El pedido será con *Delivery* o *Retiro en local*?";
+        } else if (session.delivery_type === "delivery" && !session.delivery_address) {
+          collect.step = "delivery_address_prompt";
+          replyText = "Por favor indica tu dirección exacta de entrega (Calle, Número y Comuna) para validar la cobertura.";
+        } else {
+          replyText = confirmSummaryOrAskName(session);
+        }
+      }
     } else if (collect.step === "post_checkout_email") {
       const emailText = userText.trim().toLowerCase();
-      const isNo = emailText.includes("no");
-      
-      const joke = await getJoke();
-      const jokeText = joke ? `\n\n💡 *Curiosidad del chef:*\n_${joke}_\n` : "";
+      const isNo = normalizeCommand(emailText) === "no";
       
       if (isNo) {
-        replyText = `¡Entendido! Te avisaremos por aquí cuando tu pedido esté listo.${jokeText}`;
+        replyText = "¡Entendido! Te avisaremos por aquí cuando tu pedido esté listo.";
         collect.active = false;
         collect.step = null;
         collect.data = {};
@@ -543,7 +613,7 @@ async function processMessage(
         if (orgData) {
             await supabase.from("customers").update({ email: emailText }).eq("organization_id", orgData.id).eq("phone", userPhone);
         }
-        replyText = `¡Correo guardado! Te avisaremos por aquí cuando tu pedido esté listo.${jokeText}`;
+        replyText = "¡Correo guardado! Te avisaremos por aquí cuando tu pedido esté listo.";
         collect.active = false;
         collect.step = null;
         collect.data = {};
@@ -554,8 +624,7 @@ async function processMessage(
       const txt = userText.trim().toLowerCase();
       if (txt.includes("retiro") || txt.includes("local") || txt === "1") {
         session.delivery_type = "pickup";
-        collect.step = "confirm_prompt";
-        replyText = buildConfirmSummary(session);
+        replyText = confirmSummaryOrAskName(session);
       } else if (txt.includes("delivery") || txt.includes("despacho") || txt.includes("domicilio") || txt === "2") {
         session.delivery_type = "delivery";
         collect.step = "delivery_address_prompt";
@@ -566,8 +635,7 @@ async function processMessage(
     } else if (collect.step === "delivery_address_prompt") {
       if (userText.toLowerCase().includes("retiro")) {
         session.delivery_type = "pickup";
-        collect.step = "confirm_prompt";
-        replyText = "¡Entendido! Pasamos tu pedido a retiro.\n\n" + buildConfirmSummary(session);
+        replyText = confirmSummaryOrAskName(session, "¡Entendido! Pasamos tu pedido a retiro.\n\n");
       } else {
         const coords = await geocodeAddress(userText);
         const supabase = getSupabase();
@@ -597,8 +665,7 @@ async function processMessage(
           if (matchedZone) {
             session.delivery_address = userText;
             session.delivery_fee = matchedZone.fee || orgData?.delivery_fee || 0;
-            collect.step = "confirm_prompt";
-            replyText = "¡Cobertura confirmada! 🛵\n\n" + buildConfirmSummary(session);
+            replyText = confirmSummaryOrAskName(session, "¡Cobertura confirmada! 🛵\n\n");
           } else {
             replyText = `Lo siento, esa dirección está fuera de nuestra zona de cobertura para entregas${distStr}. ¿Deseas intentar otra dirección o pasarlo a *Retiro*?`;
           }
@@ -608,7 +675,10 @@ async function processMessage(
       }
     } else if (collect.step === "confirm_prompt") {
       // Verificar si respondió afirmativamente
-      if (/^(si|sí|ok|perfecto|dale|confirmo|listo|ya|bueno|claro|confirmar|yes|yep|s)$/i.test(userText.trim())) {
+      if (isConfirmCommand(userText) && !session.customer_name) {
+        collect.step = "name";
+        replyText = "Antes de confirmar, ¿a nombre de quién registramos el pedido?";
+      } else if (isConfirmCommand(userText)) {
         const cartSnapshot = [...session.cart];
         const confirmData = await callFoodAgent({
           organization_slug: session.org_slug,
@@ -662,11 +732,22 @@ async function processMessage(
             "⚠ " +
             (confirmData.error ?? "Error al confirmar.") +
             "\nTu carrito sigue guardado, inténtalo de nuevo.";
-          collect.active = false;
+          collect.active = true;
+          collect.step = "confirm_prompt";
           collect.data = {};
         }
+      } else if (isCancelCommand(userText)) {
+        collect.active = false;
+        collect.step = null;
+        collect.data = {};
+        replyText = "Entendido, no confirmamos el pedido. Si quieres, puedes volver a modificarlo.";
+      } else if (isEditCommand(userText)) {
+        collect.active = false;
+        collect.step = null;
+        collect.data = {};
+        replyText = "Claro, dime qué deseas agregar, quitar o cambiar.";
       } else {
-        // No fue un "sí" ni un "no" claro, asumimos que quiere seguir charlando/modificando
+        // El cliente puede escribir un cambio en vez de usar los botones.
         collect.active = false;
         collect.step = null;
         collect.data = {};
@@ -726,15 +807,13 @@ async function processMessage(
 
         if (matchedZone) {
           session.delivery_fee = matchedZone.fee || orgData?.delivery_fee || 0;
-          collect.step = "confirm_prompt";
-          replyText = buildConfirmSummary(session);
+          replyText = confirmSummaryOrAskName(session);
         } else {
           collect.step = "delivery_address_prompt";
           replyText = `Lo siento, la dirección (${session.delivery_address}) está fuera de cobertura${distStr}. ¿Deseas intentar otra dirección o pasarlo a *Retiro*?`;
         }
       } else {
-        collect.step = "confirm_prompt";
-        replyText = buildConfirmSummary(session);
+        replyText = confirmSummaryOrAskName(session);
       }
     }
 
@@ -752,18 +831,6 @@ async function processMessage(
 
   // ── Chat normal con el agente ─────────────────────────────────────────────
   } else {
-    // Si no tenemos el nombre, lo intentamos buscar
-    if (!session.customer_name) {
-      const supabase = getSupabase();
-      const { data: orgData } = await supabase.from("organizations").select("id").eq("slug", session.org_slug).maybeSingle();
-      if (orgData) {
-        const { data: custData } = await supabase.from("customers").select("full_name").eq("organization_id", orgData.id).eq("phone", userPhone).maybeSingle();
-        if (custData && custData.full_name) {
-          session.customer_name = custData.full_name;
-        }
-      }
-    }
-
     const isGreeting = /^(hola|hi|buenas|hey|buenos\s+(días|dias|tardes|noches))\b/i.test(userText.trim());
     if (isGreeting && session.messages.length === 0) {
       const welcome = await callFoodAgent({
@@ -790,13 +857,22 @@ async function processMessage(
     }
   }
 
-  // Guardar sesión y enviar respuesta
-  await Promise.all([
-    saveSession(userPhone, session),
-    replyText
-      ? sendWhatsApp(phoneNumberId, userPhone, replyText)
-      : Promise.resolve(),
-  ]);
+  // Persistir antes de enviar para que el eco de Kapso no parezca un mensaje humano.
+  if (replyText) {
+    session.last_automated_message = replyText;
+    session.automated_message_sent_at = new Date().toISOString();
+  }
+  await saveSession(userPhone, session);
+  if (replyText) {
+    const buttons = collect.active && collect.step === "confirm_prompt"
+      ? [
+          { id: "ORDER_CONFIRM", title: "Confirmar pedido" },
+          { id: "ORDER_EDIT", title: "Modificar" },
+          { id: "ORDER_CANCEL", title: "Cancelar" },
+        ]
+      : [];
+    await sendWhatsApp(phoneNumberId, userPhone, replyText, buttons);
+  }
 }
 
 // ── Handler principal ────────────────────────────────────────────────────────
@@ -827,21 +903,23 @@ Deno.serve(async (req) => {
     await Promise.all(
       events.map(async (evt: any) => {
         const message = evt.message;
-        if (!message || message.type !== "text") return;
+        if (!message) return;
 
-        const text = message.text?.body?.trim();
-        if (!text) return;
-
+        const text = extractMessageText(message);
         const phoneNumberId: string =
           evt.phone_number_id ?? message.kapso?.phone_number_id ?? "";
           
         if (isOutgoing || message.fromMe) {
-          const userPhone = message.to ?? evt.contact?.wa_id ?? "";
-          if (!userPhone || !phoneNumberId) return;
+          const userPhone = message.to ?? evt.contact?.wa_id ?? evt.contacts?.[0]?.wa_id ?? "";
+          if (!userPhone || !phoneNumberId || !text) return;
           const session = await loadSession(userPhone, phoneNumberId);
           // Verificar si el texto NO coincide con el último mensaje enviado por el AI
           const lastAiMsg = session.messages.slice().reverse().find(m => m.role === "assistant")?.content?.trim();
-          if (text !== lastAiMsg) {
+          const lastAutomatedAt = new Date(session.automated_message_sent_at ?? 0).getTime();
+          const isRecentAutomatedMessage =
+            text === session.last_automated_message &&
+            Date.now() - lastAutomatedAt < 5 * 60 * 1000;
+          if (!isRecentAutomatedMessage && text !== lastAiMsg) {
              console.log(`[Human Handover] Humano detectado enviando mensaje a ${userPhone}. Pausando AI.`);
              session.human_paused_at = new Date().toISOString();
              await saveSession(userPhone, session);
@@ -849,10 +927,12 @@ Deno.serve(async (req) => {
           return;
         }
 
+        if (!text) return;
+
         const userPhone: string =
-          message.from ?? evt.contact?.wa_id ?? "";
-          
-        const pushName: string = evt.contact?.profile?.name ?? "";
+          message.from ?? evt.contact?.wa_id ?? evt.contacts?.[0]?.wa_id ?? body.contacts?.[0]?.wa_id ?? "";
+
+        const pushName = extractContactName(evt, body, message);
 
         if (!userPhone || !phoneNumberId) {
           console.warn("Evento sin userPhone o phoneNumberId:", JSON.stringify(evt));
