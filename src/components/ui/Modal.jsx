@@ -55,11 +55,11 @@ const Modal = ({
       onClick={onClose}
     >
       <div 
-        className={`relative bg-white shadow-2xl w-full ${maxWidth} overflow-hidden flex flex-col transition-all duration-300 ${fullScreenOnMobile ? `modal-fullscreen-mobile ${alignEnd ? 'rounded-none md:rounded-3xl h-[100dvh] md:h-[90dvh]' : 'rounded-none md:rounded-3xl h-[100dvh] md:h-auto'}${windowHeight < 768 ? ' !max-h-[100dvh]' : ''}` : (alignEnd ? 'rounded-t-3xl rounded-b-none sm:rounded-3xl' : 'rounded-3xl')} ${customAnimation ? '' : (visible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4')} ${className}`}
-        style={(!fullScreenOnMobile || windowHeight >= 768) ? {
+        className={`relative bg-white shadow-2xl w-full ${maxWidth} overflow-hidden flex flex-col transition-all duration-300 ${fullScreenOnMobile ? `modal-fullscreen-mobile ${alignEnd ? 'rounded-none md:rounded-3xl h-[100dvh] md:h-[90dvh]' : 'rounded-none md:rounded-3xl h-[100dvh] md:h-auto'}` : (alignEnd ? 'rounded-t-3xl rounded-b-none sm:rounded-3xl' : 'rounded-3xl')} ${customAnimation ? '' : (visible ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4')} ${className}`}
+        // Se adapta al contenido y hace scroll solo al superar heightRatio de la pantalla.
+        // En móvil (< 768px de ancho) .modal-fullscreen-mobile lo lleva a pantalla completa.
+        style={{
           maxHeight: `${windowHeight * heightRatio}px`,
-          ...(customAnimation ? { animation: customAnimation } : {})
-        } : {
           ...(customAnimation ? { animation: customAnimation } : {})
         }}
         onClick={(e) => e.stopPropagation()}
