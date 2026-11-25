@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { AlertTriangle, CreditCard, Timer, User, Van, PaperBag, CalendarClock, ShoppingBag, CheckCircle2, Printer, XCircle, Info, Loader2 } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, CreditCard, Timer, User, Van, PaperBag, CalendarClock, ShoppingBag, CheckCircle2, Printer, XCircle, Info, Loader2, MapPin, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Modal from '../ui/Modal';
 import AddressMap from './AddressMap';
 import UberDeliveryCard from './UberDeliveryCard';
+import { parseOrderLocation, reverseGeocode, shortAddressLabel } from '../../utils/geo';
 import { fmt, getKitchenTime, getPaymentMethod, getStatusTag, isKlapPendingOrder } from '../../utils/orderUtils';
 
 const OrderDetailModal = ({
@@ -20,6 +21,23 @@ const OrderDetailModal = ({
   onReschedule,
 }) => {
   const [isPrinting, setIsPrinting] = useState(false);
+  const [locationLabel, setLocationLabel] = useState('');
+
+  // Ubicación compartida por WhatsApp (viene en las notas como link de Google Maps).
+  const location = useMemo(() => parseOrderLocation(order?.notes), [order?.notes]);
+  const lat = location.coords?.lat;
+  const lng = location.coords?.lng;
+
+  // Nombre de la calle a partir de las coordenadas (se consulta desde el navegador).
+  useEffect(() => {
+    let active = true;
+    setLocationLabel('');
+    if (lat == null || lng == null || !isOpen) return undefined;
+    reverseGeocode(lat, lng).then((result) => {
+      if (active && result) setLocationLabel(shortAddressLabel(result));
+    });
+    return () => { active = false; };
+  }, [lat, lng, isOpen]);
 
   if (!order) return null;
 
@@ -116,6 +134,25 @@ const OrderDetailModal = ({
                   ) : (
                     <p className="text-sm text-gray-400 italic">Dirección no especificada</p>
                   )}
+                  {location.mapsUrl && (
+                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+                      <div className="flex items-start gap-1.5 min-w-0 text-sm text-gray-700">
+                        <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                        <span className="min-w-0 break-words">
+                          {locationLabel || 'Ubicación compartida por WhatsApp'}
+                        </span>
+                      </div>
+                      <a
+                        href={location.mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Abrir en Google Maps
+                      </a>
+                    </div>
+                  )}
                   {order.delivery_notes && (
                     <div className="flex items-start gap-3 text-sm mt-3 pt-3 border-t border-gray-100">
                       <Info className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
@@ -150,7 +187,7 @@ const OrderDetailModal = ({
           {/* Mapa - menor altura en mobile, proporción video en desktop */}
           {order.delivery_type === 'delivery' && (
             <div className="h-32 lg:h-auto lg:aspect-video w-full rounded-xl overflow-hidden border border-gray-200 lg:sticky lg:top-4">
-              <AddressMap address={order.delivery_address} />
+              <AddressMap address={order.delivery_address} coords={location.coords} />
             </div>
           )}
         </div>
@@ -211,12 +248,12 @@ const OrderDetailModal = ({
           )}
 
           {/* Notas del cliente */}
-          {order.notes && (
+          {location.notes && (
             <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
               <span className="text-amber-500 text-base shrink-0 mt-0.5">📝</span>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wider mb-0.5">Nota del cliente</p>
-                <p className="text-sm text-amber-900 font-medium leading-relaxed">{order.notes}</p>
+                <p className="text-sm text-amber-900 font-medium leading-relaxed break-words">{location.notes}</p>
               </div>
             </div>
           )}

@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { getAccessToken, createQuote, createDeliveryWithRetry } from '../services/uberDirectService';
-import { geocodeAddress } from './geo';
+import { geocodeAddress, parseOrderLocation, reverseGeocode, shortAddressLabel } from './geo';
 
 const normalizePhone = (phone) => {
   if (!phone) return '';
@@ -89,11 +89,30 @@ const prepareUberDelivery = async (orderId, organizationId, allowEmergency = fal
     if (pickupCoords) { pickupLat = pickupCoords.lat; pickupLng = pickupCoords.lng; }
   }
 
-  // ── Geocodificar dropoff (cliente) ────────────────────────────────────
-  console.log('[Uber Retry] Geocodificando dirección del cliente...');
-  const dropoffCoords = await geocodeAddress(order.delivery_address);
-  const dropoffLat = dropoffCoords?.lat ?? null;
-  const dropoffLng = dropoffCoords?.lng ?? null;
+  // ── Dropoff (cliente) ─────────────────────────────────────────────────
+  // Si el cliente compartió su ubicación por WhatsApp, usamos esas coordenadas exactas
+  // (la dirección escrita suele ser solo una referencia, ej: "Edificio VTR").
+  const sharedLocation = parseOrderLocation(order.notes).coords;
+  let dropoffCoords = null;
+  let dropoffLat = null;
+  let dropoffLng = null;
+  let dropoffStreet = order.delivery_address;
+  let dropoffNotes = order.delivery_notes || '';
+  if (sharedLocation) {
+    console.log('[Uber Retry] Usando la ubicación compartida por el cliente...');
+    dropoffLat = sharedLocation.lat;
+    dropoffLng = sharedLocation.lng;
+    dropoffCoords = await reverseGeocode(dropoffLat, dropoffLng);
+    dropoffStreet = shortAddressLabel(dropoffCoords) || order.delivery_address;
+    if (order.delivery_address && order.delivery_address !== dropoffStreet) {
+      dropoffNotes = [`Referencia: ${order.delivery_address}`, dropoffNotes].filter(Boolean).join(' · ');
+    }
+  } else {
+    console.log('[Uber Retry] Geocodificando dirección del cliente...');
+    dropoffCoords = await geocodeAddress(order.delivery_address);
+    dropoffLat = dropoffCoords?.lat ?? null;
+    dropoffLng = dropoffCoords?.lng ?? null;
+  }
 
   const city  = dropoffCoords?.address?.city ||
                 dropoffCoords?.address?.town ||
@@ -112,7 +131,7 @@ const prepareUberDelivery = async (orderId, organizationId, allowEmergency = fal
   };
 
   const dropoffAddr = {
-    street_address: [order.delivery_address],
+    street_address: [dropoffStreet],
     state,
     city,
     zip_code: zip,
@@ -135,7 +154,7 @@ const prepareUberDelivery = async (orderId, organizationId, allowEmergency = fal
     dropoff_longitude: dropoffLng,
     pickup_phone_number: normalizePhone(orgData.phone),
     dropoff_phone_number: normalizePhone(order.customer_phone),
-    dropoff_notes: order.delivery_notes || '',
+    dropoff_notes: dropoffNotes,
     manifest_items: manifestItems,
   };
 
@@ -151,7 +170,7 @@ const prepareUberDelivery = async (orderId, organizationId, allowEmergency = fal
     dropoff_phone_number: normalizePhone(order.customer_phone),
     dropoff_latitude: dropoffLat,
     dropoff_longitude: dropoffLng,
-    dropoff_notes: order.delivery_notes || '',
+    dropoff_notes: dropoffNotes,
     manifest_items: manifestItems,
   };
 

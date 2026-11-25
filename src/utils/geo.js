@@ -160,3 +160,31 @@ export const findDeliveryZoneForLocation = (point, storePoint, zones = []) => {
   return null;
 };
 
+
+// Los pedidos de WhatsApp guardan la ubicación compartida en las notas:
+// "Ubicación: https://maps.google.com/?q=<lat>,<lng>". Devuelve las coordenadas,
+// el link y las notas sin esa línea.
+const ORDER_LOCATION_RE = /Ubicaci[oó]n:\s*(https?:\/\/(?:www\.)?maps\.google\.com\/\?q=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?))\s*/i;
+
+export const parseOrderLocation = (notes) => {
+  const text = typeof notes === 'string' ? notes : '';
+  const match = text.match(ORDER_LOCATION_RE);
+  if (!match) return { coords: null, mapsUrl: null, notes: text };
+  const lat = parseFloat(match[2]);
+  const lng = parseFloat(match[3]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return { coords: null, mapsUrl: null, notes: text };
+  return {
+    coords: { lat, lng },
+    mapsUrl: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+    notes: text.replace(ORDER_LOCATION_RE, '').trim(),
+  };
+};
+
+// "Av. Vitacura 3882, Vitacura" a partir de la respuesta de reverseGeocode.
+export const shortAddressLabel = (result) => {
+  const a = result?.address || {};
+  const street = [a.road, a.house_number].filter(Boolean).join(' ');
+  const area = a.suburb || a.city_district || a.city || a.town || a.village || a.municipality || '';
+  const label = [street, area].filter(Boolean).join(', ');
+  return label || String(result?.displayName || '').split(',').slice(0, 3).join(',').trim();
+};
