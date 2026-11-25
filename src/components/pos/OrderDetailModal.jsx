@@ -41,6 +41,26 @@ const OrderDetailModal = ({
 
   if (!order) return null;
 
+  // Con ubicación compartida, la dirección principal es la del mapa y lo que escribió
+  // el cliente queda como referencia. Sin ubicación, se muestra lo que escribió.
+  const typedAddress = (order.delivery_address || '').trim();
+  const deliveryAddress = location.coords
+    ? {
+        primary: locationLabel || 'Ubicación compartida por WhatsApp',
+        // "Ubicación compartida por WhatsApp" es lo que guarda el bot si el cliente omitió la referencia.
+        reference: typedAddress && typedAddress !== locationLabel && !/^ubicaci[oó]n compartida/i.test(typedAddress)
+          ? typedAddress
+          : '',
+        mapsUrl: location.mapsUrl,
+      }
+    : {
+        primary: typedAddress,
+        reference: '',
+        mapsUrl: typedAddress
+          ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(typedAddress)}`
+          : null,
+      };
+
   const canRequestUber = ['owner', 'admin', 'superadmin'].includes(userRole);
 
   return (
@@ -125,43 +145,56 @@ const OrderDetailModal = ({
             <div>
               {order.delivery_type === 'delivery' ? (
                 <div>
-                  <div className="flex items-center gap-2 mb-2 text-gray-900">
+                  <div className="flex items-center gap-2 mb-3 text-gray-900">
                     <Van className="h-5 w-5 text-gray-400" />
                     <h3 className="font-bold text-lg">Despacho a Domicilio</h3>
                   </div>
-                  {order.delivery_address ? (
-                    <p className="text-sm text-gray-600 leading-relaxed">{order.delivery_address}</p>
-                  ) : (
-                    <p className="text-sm text-gray-400 italic">Dirección no especificada</p>
-                  )}
-                  {location.mapsUrl && (
-                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-                      <div className="flex items-start gap-1.5 min-w-0 text-sm text-gray-700">
-                        <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                        <span className="min-w-0 break-words">
-                          {locationLabel || 'Ubicación compartida por WhatsApp'}
-                        </span>
-                      </div>
-                      <a
-                        href={location.mapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        Abrir en Google Maps
-                      </a>
+
+                  {/* Tarjeta de entrega: mapa + dirección + acción, todo junto */}
+                  <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
+                    <div className="h-40 lg:h-48 w-full border-b border-gray-200">
+                      <AddressMap address={order.delivery_address} coords={location.coords} />
                     </div>
-                  )}
-                  {order.delivery_notes && (
-                    <div className="flex items-start gap-3 text-sm mt-3 pt-3 border-t border-gray-100">
-                      <Info className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                      <div>
-                        <p className="text-gray-500 font-medium text-xs mb-0.5">Referencias de entrega</p>
-                        <p className="text-gray-800 font-semibold">{order.delivery_notes}</p>
+
+                    <div className="p-4 space-y-3">
+                      <div className="flex items-start gap-3">
+                        <MapPin className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-base font-semibold text-gray-900 leading-snug break-words">
+                            {deliveryAddress.primary || <span className="text-gray-400 italic font-normal">Dirección no especificada</span>}
+                          </p>
+                          {deliveryAddress.reference && (
+                            <p className="text-sm text-gray-500 mt-0.5 break-words">
+                              Referencia: <span className="font-medium text-gray-700">{deliveryAddress.reference}</span>
+                            </p>
+                          )}
+                        </div>
                       </div>
+
+                      {order.delivery_notes && (
+                        <div className="flex items-start gap-3 text-sm">
+                          <Info className="w-5 h-5 text-gray-400 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-gray-500 font-medium text-xs mb-0.5">Referencias de entrega</p>
+                            <p className="text-gray-800 font-semibold break-words">{order.delivery_notes}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {deliveryAddress.mapsUrl && (
+                        <a
+                          href={deliveryAddress.mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100 transition-colors"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Abrir en Google Maps
+                        </a>
+                      )}
                     </div>
-                  )}
+                  </div>
+
                   <UberDeliveryCard order={order} organization={organization} canRequestUber={canRequestUber} />
                 </div>
               ) : (
@@ -181,13 +214,6 @@ const OrderDetailModal = ({
                   )}
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Mapa - menor altura en mobile, proporción video en desktop */}
-          {order.delivery_type === 'delivery' && (
-            <div className="h-32 lg:h-auto lg:aspect-video w-full rounded-xl overflow-hidden border border-gray-200 lg:sticky lg:top-4">
-              <AddressMap address={order.delivery_address} coords={location.coords} />
             </div>
           )}
         </div>
