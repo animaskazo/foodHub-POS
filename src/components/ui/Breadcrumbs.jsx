@@ -9,9 +9,17 @@ const settingsLabels = {
   printers: 'Impresoras',
   payments: 'Pasarela de pago',
   coupons: 'Cupones',
+  integrations: 'Integraciones',
 };
 
 export function getBreadcrumbs(pathname, search = '') {
+  if (pathname === '/settings/integrations/sii') {
+    return [
+      { label: 'Configuración', to: '/settings?tab=general' },
+      { label: 'Integraciones', to: '/settings?tab=integrations' },
+      { label: 'Boletas electrónicas' },
+    ];
+  }
   if (pathname === '/settings') {
     const tab = new URLSearchParams(search).get('tab') || 'general';
     if (!settingsLabels[tab]) return [];

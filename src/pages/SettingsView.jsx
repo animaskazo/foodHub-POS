@@ -52,6 +52,7 @@ import { Switch } from '@/components/ui/switch';
 import { getPrinters } from '../services/printerService';
 import StoreLocationPicker from '../components/admin/StoreLocationPicker';
 import CouponsSection from '../components/admin/CouponsSection';
+import IntegrationsSection from '../components/admin/IntegrationsSection';
 const daysTranslations = {
   mon: 'Lunes',
   tue: 'Martes',
@@ -653,11 +654,12 @@ const SettingsView = () => {
       <div className="max-w-7xl mx-auto">
         <PageHeader 
           title="Configuración del Negocio"
-          subtitle="Gestiona la información pública de tu local y tu equipo."
+          subtitle="Gestiona la información de tu local, tu equipo y sus integraciones."
         />
 
         <div className="pb-24">
-          <div className={activeTab === 'general' || activeTab === 'coupons' ? 'space-y-6' : 'bg-white rounded-2xl border border-gray-200 overflow-hidden'}>
+          <div className={['general', 'coupons', 'integrations'].includes(activeTab) ? 'space-y-6' : 'bg-white rounded-2xl border border-gray-200 overflow-hidden'}>
+            {activeTab === 'integrations' && <IntegrationsSection />}
             {activeTab === 'general' && (
               <div className="space-y-6">
                 

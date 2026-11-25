@@ -33,7 +33,8 @@ import {
   ClipboardList,
   LayoutGrid,
   Wallet,
-  KeyRound
+  KeyRound,
+  Plug
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getSubscriptionStatus } from '../services/subscription';
@@ -459,6 +460,14 @@ className={({ isActive }) =>
                     >
                       <CreditCard className="h-[18px] w-[18px]" />
                       Pasarela de pago
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink to="/settings?tab=integrations" onClick={() => setIsMobileMenuOpen(false)} className={() => {
+                      const isMatch = (location.pathname === '/settings' && new URLSearchParams(location.search).get('tab') === 'integrations') || location.pathname.startsWith('/settings/integrations/');
+                      return `flex items-center gap-3 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors ${isMatch ? 'bg-gray-100 text-black' : 'text-gray-500 hover:bg-gray-50 hover:text-black'}`;
+                    }}>
+                      <Plug className="h-[18px] w-[18px]" /> Integraciones
                     </NavLink>
                   </li>
                   <li>

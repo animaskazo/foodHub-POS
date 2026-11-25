@@ -16,6 +16,7 @@ import DashboardView from './pages/DashboardView';
 import SubscriptionView from './pages/SubscriptionView';
 import SubscriptionPlansAdmin from './pages/SubscriptionPlansAdmin';
 import SettingsView from './pages/SettingsView';
+import SiiSettingsView from './pages/SiiSettingsView';
 import DeliverySettingsView from './pages/DeliverySettingsView';
 import ShiftsSettingsView from './pages/ShiftsSettingsView';
 import TablesSettingsView from './pages/TablesSettingsView';
@@ -99,6 +100,8 @@ function App() {
           <Route path="inventory" element={<ProtectedRoute requireAdmin={true}><InventoryManager /></ProtectedRoute>} />
           <Route path="products" element={<ProtectedRoute requireAdmin={true}><CatalogManager /></ProtectedRoute>} />
           <Route path="settings" element={<ProtectedRoute requireAdmin={true}><SettingsView /></ProtectedRoute>} />
+          <Route path="settings/integrations/sii" element={<ProtectedRoute requireAdmin={true}><SiiSettingsView /></ProtectedRoute>} />
+          <Route path="sii" element={<Navigate to="/settings/integrations/sii" replace />} />
           <Route path="delivery" element={<ProtectedRoute requireAdmin={true}><DeliverySettingsView /></ProtectedRoute>} />
           <Route path="shifts-settings" element={<ProtectedRoute requireAdmin={true}><ShiftsSettingsView /></ProtectedRoute>} />
           <Route path="tables" element={<ProtectedRoute requireAdmin={true}><TablesSettingsView /></ProtectedRoute>} />
