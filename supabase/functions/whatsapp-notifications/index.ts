@@ -1,6 +1,5 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const KAPSO_API_KEY = Deno.env.get("KAPSO_API_KEY");
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -97,7 +96,8 @@ Deno.serve(async (req) => {
       console.error("No se pudo registrar el mensaje automático:", err);
     }
 
-    // Enviar a Kapso
+    // Enviar a Kapso (cada número puede tener su propia clave: KAPSO_API_KEY_<phone_number_id>)
+    const KAPSO_API_KEY = Deno.env.get(`KAPSO_API_KEY_${org.whatsapp_phone_number_id}`) ?? Deno.env.get("KAPSO_API_KEY");
     if (KAPSO_API_KEY) {
       const kapsoUrl = `https://api.kapso.ai/meta/whatsapp/v24.0/${org.whatsapp_phone_number_id}/messages`;
       const res = await fetch(kapsoUrl, {

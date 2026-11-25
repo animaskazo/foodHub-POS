@@ -22,7 +22,7 @@ function text(value: unknown) { return typeof value === "string" ? value : ""; }
 function toNumber(value: unknown) { const number = Number(value); return Number.isFinite(number) ? number : 0; }
 
 async function getContext(slug: string) {
-  const organizations = await db(`organizations?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=id,name,slug,currency,primary_color,default_tax_rate,delivery_enabled,uber_enabled,store_lat,store_lng,delivery_radius_km,delivery_fee,delivery_min_order,address,logo_url,business_hours,pickup_hours,force_closed,closed_message,instant_enabled,timezone,phone,email`);
+  const organizations = await db(`organizations?slug=eq.${encodeURIComponent(slug)}&is_active=eq.true&select=id,name,slug,currency,primary_color,default_tax_rate,delivery_enabled,delivery_mode,delivery_modes,uber_enabled,store_lat,store_lng,delivery_radius_km,delivery_fee,delivery_min_order,address,logo_url,business_hours,pickup_hours,force_closed,closed_message,instant_enabled,timezone,phone,email`);
   const organization = organizations[0];
   if (!organization) throw new Error("No existe un negocio activo para ese enlace.");
   const branches = await db(`branches?organization_id=eq.${organization.id}&is_active=eq.true&select=id,name,accepts_online`);
@@ -117,8 +117,15 @@ async function askAgent(messages: unknown[], cart: unknown[], context: Awaited<R
   }).format(now);
 
   const urlTienda = `https://${context.organization.slug}.foodhub.work`;
-  const usesUberDirect = Boolean(context.organization.uber_enabled);
-  const hasOwnDelivery = Boolean(context.organization.delivery_enabled);
+  // Mismos modos que el checkout web: delivery_modes (nuevo) o delivery_mode (legacy).
+  const deliveryEnabled = context.organization.delivery_enabled === true;
+  const configuredModes: string[] = Array.isArray(context.organization.delivery_modes)
+    ? context.organization.delivery_modes
+    : [context.organization.delivery_mode || "own"];
+  const uberAllowed = context.organization.uber_enabled !== false;
+  const hasOwnDelivery = deliveryEnabled && (configuredModes.includes("own")
+    || (!uberAllowed && configuredModes.length === 1 && configuredModes[0] === "uber_direct"));
+  const usesUberDirect = deliveryEnabled && uberAllowed && configuredModes.includes("uber_direct");
   
   const instruction = `Eres el asistente de pedidos por WhatsApp de ${context.organization.name}. Responde siempre en español, de forma cercana y breve.
   
@@ -127,17 +134,26 @@ ${availability.open ? "" : `- Mensaje para el cliente: "${availability.message}"
 - Responde con ese mensaje (puedes adaptarlo con cordialidad). Puedes contestar dudas sobre la carta, el horario o el estado de pedidos anteriores, pero NO armes carrito, NO aceptes productos y NO prometas tomar el pedido. Devuelve siempre el carrito vacío.
 `}
 REGLAS DE DELIVERY Y RETIRO:
-- En tu primer o segundo mensaje (cuando el cliente te salude o empiece a pedir), DEBES PREGUNTAR obligatoriamente si el pedido es para "Retiro en el local" o para "Delivery/Envío a domicilio".
-- Configuración de Envío de este local: UberDirect = ${usesUberDirect}, Delivery Propio = ${hasOwnDelivery}.
-- SI EL CLIENTE PIDE DELIVERY Y EL LOCAL USA UBERDIRECT (UberDirect = true): ESTÁ ESTRICTAMENTE PROHIBIDO tomar pedidos de delivery por WhatsApp. Debes disculparte y decirle textualmente: "Para envíos a domicilio debes realizar tu pedido directamente en nuestra página web: ${urlTienda}".
-- Solo puedes tomar el pedido completo por WhatsApp si el cliente elige RETIRO, o si el local tiene Delivery Propio (Delivery Propio = true) y NO usa UberDirect.
+- No preguntes si es retiro o delivery: cuando haya productos en el carrito, el sistema se lo pregunta con botones. Si el cliente lo dice por su cuenta, devuélvelo en delivery_type.
+- Configuración de Envío de este local: Delivery Propio = ${hasOwnDelivery}, UberDirect = ${usesUberDirect}.
+${hasOwnDelivery
+  ? `- Este local SÍ hace delivery propio por WhatsApp. Si el cliente elige delivery, devuelve delivery_type "delivery" y NO le pidas la dirección: el sistema le pedirá su ubicación de WhatsApp y validará la cobertura. Si el cliente escribe una dirección por su cuenta, devuélvela en delivery_address tal como la escribió. Nunca inventes una dirección ni uses marcadores como "<UNKNOWN>"; si no la sabes, omite delivery_address. NO valides la cobertura ni informes el costo de envío: lo hace el sistema.`
+  : usesUberDirect
+    ? `- Este local NO toma delivery por WhatsApp (solo despacha con UberDirect). Si el cliente pide delivery, discúlpate y dile textualmente: "Para envíos a domicilio debes realizar tu pedido directamente en nuestra página web: ${urlTienda}". Puedes seguir tomando el pedido si cambia a retiro.`
+    : `- Este local NO hace delivery. Solo puedes tomar pedidos para retiro en el local.`}
 
 INSTRUCCIONES DEL CARRITO:
 La carta adjunta es la única fuente de productos, precios y opciones. Nunca inventes productos, precios ni disponibilidad. Ayuda a armar el pedido y pregunta lo mínimo necesario por variantes obligatorias. Devuelve el carrito completo; conserva productos ya presentes salvo que el cliente pida cambiarlos. NUNCA calcules sumas ni el total del pedido, el sistema lo hará automáticamente. SIEMPRE que menciones o recomiendes un producto o variante, debes mostrar su precio exacto entre paréntesis. No confirmes ni cobres: la aplicación lo hace después.
 
 VENTA CRUZADA Y CIERRE:
-Cuando el cliente termine de pedir y antes de que diga "confirmar", analiza su carrito y recomiéndale UN (1) complemento lógico de la carta que no haya pedido (por ejemplo, si pidió hamburguesa, ofrécele una bebida o papas fritas, siempre mostrando el precio exacto).
-Asegúrate de recolectar su nombre (si no lo sabes), el tipo de entrega ("delivery" o "pickup") y la dirección (si es delivery). Una vez que tengas todo correcto y el cliente acepte (o rechace) tu recomendación, pídele que diga la palabra "confirmar" para finalizar.
+Cuando el cliente termine de pedir, recomiéndale UNA sola vez un complemento lógico de la carta que no haya pedido (por ejemplo, una bebida o papas fritas), con su precio exacto. No insistas si ya lo rechazó.
+El sistema muestra automáticamente el resumen del pedido con el total, el costo de envío y el botón "Confirmar pedido" cuando el carrito y la entrega están listos. Por eso:
+- NO escribas resúmenes del carrito ni totales, y NO pidas que escriba "confirmar".
+- NUNCA digas que el pedido está confirmado, recibido, listo o en camino: solo el sistema confirma pedidos cuando el cliente toca el botón.
+- NO pidas el nombre ni la dirección: el sistema los pide.
+- NO menciones "el sistema" ni expliques los pasos siguientes (entrega, ubicación, nombre, confirmación): los botones aparecen solos debajo de tu mensaje.
+- NUNCA digas que el pedido está "procesando", "listo", "confirmado", "recibido" o "en camino".
+- Responde corto (1 a 3 frases), sin repetir información que ya diste.
 
 INFORMACIÓN DEL LOCAL:
 - Dirección: ${context.organization.address || "No especificada"}
